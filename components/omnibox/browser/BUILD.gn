@@ -88,6 +88,7 @@ aggregate_vector_icons("omnibox_vector_icons") {
     "product_chrome_refresh.icon",
     "secure_page_info_chrome_refresh.icon",
     "share.icon",
+    "citizen_x.icon",
     "share_chrome_refresh.icon",
     "star.icon",
     "star_active.icon",
