@@ -19,8 +19,27 @@
 
 @class NSWindow;
 
-namespace device::fido::icloud_keychain {
+#ifndef ASAuthorizationWebBrowserPublicKeyCredentialManagerAuthorizationState
+@class ASAuthorization;
 
+@interface ASAuthorizationWebBrowserPlatformPublicKeyCredential : NSObject
+@property(nonatomic, nullable, readonly) NSData *credentialID;
+@property(nonatomic, nullable, readonly) NSString *customTitle;
+@property(nonatomic, nullable, readonly) NSString *name;
+@property(nonatomic, nullable, readonly) NSString *providerName;
+@property(nonatomic, nullable, readonly) NSString *relyingParty;
+@property(nonatomic, nullable, readonly) NSData *userHandle;
+@end
+
+typedef enum ASAuthorizationWebBrowserPublicKeyCredentialManagerAuthorizationState {
+    ASAuthorizationWebBrowserPublicKeyCredentialManagerAuthorizationStateNotDetermined,
+    ASAuthorizationWebBrowserPublicKeyCredentialManagerAuthorizationStateDenied,
+    ASAuthorizationWebBrowserPublicKeyCredentialManagerAuthorizationStateAuthorized
+} ASAuthorizationWebBrowserPublicKeyCredentialManagerAuthorizationState;
+
+#endif
+
+namespace device::fido::icloud_keychain {
 // SystemInterface is the lowest-level abstraction for iCloud Keychain support.
 // Automated tests can't reach below this point without triggering dialogs on
 // the machine.
@@ -52,19 +71,18 @@ class COMPONENT_EXPORT(DEVICE_FIDO) API_AVAILABLE(macos(13.3)) SystemInterface
 
   // GetPlatformCredentials enumerates the credentials for `rp_id`.
   virtual void GetPlatformCredentials(
-      const std::string& rp_id,
-      void (^)(
-          NSArray<ASAuthorizationWebBrowserPlatformPublicKeyCredential*>*)) = 0;
+    const std::string& rp_id,
+    void (^ _Nullable)(NSArray<ASAuthorizationWebBrowserPlatformPublicKeyCredential*>* _Nullable)) = 0;
 
   virtual void MakeCredential(
-      NSWindow* window,
-      CtapMakeCredentialRequest request,
-      base::OnceCallback<void(ASAuthorization*, NSError*)> callback) = 0;
+    NSWindow* _Nullable window,
+    CtapMakeCredentialRequest request,
+    base::OnceCallback<void(ASAuthorization* _Nullable, NSError* _Nullable)> callback) = 0;
 
   virtual void GetAssertion(
-      NSWindow* window,
-      CtapGetAssertionRequest request,
-      base::OnceCallback<void(ASAuthorization*, NSError*)> callback) = 0;
+    NSWindow* _Nullable window,
+    CtapGetAssertionRequest request,
+    base::OnceCallback<void(ASAuthorization* _Nullable, NSError* _Nullable)> callback) = 0;
 
   virtual void Cancel() = 0;
 

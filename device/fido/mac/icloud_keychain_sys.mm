@@ -14,6 +14,9 @@
 #include "components/device_event_log/device_event_log.h"
 #include "device/fido/mac/icloud_keychain_internals.h"
 
+@interface  ASAuthorizationWebBrowserPublicKeyCredentialManager : NSObject
+@end
+
 namespace {
 
 // This function is needed by the interfaces below, but interfaces must be
@@ -181,10 +184,12 @@ API_AVAILABLE(macos(13.3))
 namespace device::fido::icloud_keychain {
 namespace {
 
+#ifdef FULL_BUILD
 API_AVAILABLE(macos(13.3))
 ASAuthorizationWebBrowserPublicKeyCredentialManager* GetManager() {
   return [[ASAuthorizationWebBrowserPublicKeyCredentialManager alloc] init];
 }
+#endif
 
 bool ProcessHasEntitlement() {
   base::apple::ScopedCFTypeRef<SecTaskRef> task(SecTaskCreateFromSelf(nullptr));
@@ -230,10 +235,16 @@ class API_AVAILABLE(macos(13.3)) NativeSystemInterface
   }
 
   AuthState GetAuthState() override {
+#ifdef FULL_BUILD
     return GetManager().authorizationStateForPlatformCredentials;
+#else
+    return AuthState();
+#endif
   }
 
+    
   void AuthorizeAndContinue(base::OnceCallback<void()> callback) override {
+#ifdef FULL_BUILD
     auto task_runner = base::SequencedTaskRunner::GetCurrentDefault();
     __block auto internal_callback = std::move(callback);
     [GetManager()
@@ -241,6 +252,7 @@ class API_AVAILABLE(macos(13.3)) NativeSystemInterface
           task_runner->PostTask(FROM_HERE,
                                 base::BindOnce(std::move(internal_callback)));
         }];
+#endif
   }
 
   void GetPlatformCredentials(
@@ -248,9 +260,11 @@ class API_AVAILABLE(macos(13.3)) NativeSystemInterface
       void (^handler)(
           NSArray<ASAuthorizationWebBrowserPlatformPublicKeyCredential*>*))
       override {
+#ifdef FULL_BUILD
     [GetManager()
         platformCredentialsForRelyingParty:base::SysUTF8ToNSString(rp_id)
                          completionHandler:handler];
+#endif
   }
 
   void MakeCredential(
