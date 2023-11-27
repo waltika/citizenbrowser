@@ -39,12 +39,12 @@ const NGPhysicalBoxFragment* BaseLayoutAlgorithmTest::RunBlockLayoutAlgorithm(
   FragmentGeometry fragment_geometry =
       CalculateInitialFragmentGeometry(space, node, /* break_token */ nullptr);
 
-  const NGLayoutResult* result =
+  const LayoutResult* result =
       BlockLayoutAlgorithm(
           {node, fragment_geometry, space, To<BlockBreakToken>(break_token)})
           .Layout();
 
-  return To<NGPhysicalBoxFragment>(&result->PhysicalFragment());
+  return To<NGPhysicalBoxFragment>(&result->GetPhysicalFragment());
 }
 
 const NGPhysicalBoxFragment*
@@ -57,12 +57,12 @@ BaseLayoutAlgorithmTest::RunFieldsetLayoutAlgorithm(
   FragmentGeometry fragment_geometry =
       CalculateInitialFragmentGeometry(space, node, /* break_token */ nullptr);
 
-  const NGLayoutResult* result =
+  const LayoutResult* result =
       FieldsetLayoutAlgorithm(
           {node, fragment_geometry, space, To<BlockBreakToken>(break_token)})
           .Layout();
 
-  return To<NGPhysicalBoxFragment>(&result->PhysicalFragment());
+  return To<NGPhysicalBoxFragment>(&result->GetPhysicalFragment());
 }
 
 const NGPhysicalBoxFragment* BaseLayoutAlgorithmTest::GetBoxFragmentByElementId(
@@ -87,7 +87,7 @@ const NGPhysicalBoxFragment* FragmentChildIterator::NextChild(
   if (index_ >= parent_->Children().size())
     return nullptr;
   while (parent_->Children()[index_]->Type() !=
-         NGPhysicalFragment::kFragmentBox) {
+         PhysicalFragment::kFragmentBox) {
     ++index_;
     if (index_ >= parent_->Children().size())
       return nullptr;

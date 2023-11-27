@@ -23,12 +23,12 @@
 
 namespace blink {
 
-const NGLayoutResult& BoxFragmentBuilder::LayoutResultForPropagation(
-    const NGLayoutResult& layout_result) const {
-  if (layout_result.Status() != NGLayoutResult::kSuccess) {
+const LayoutResult& BoxFragmentBuilder::LayoutResultForPropagation(
+    const LayoutResult& layout_result) const {
+  if (layout_result.Status() != LayoutResult::kSuccess) {
     return layout_result;
   }
-  const auto& fragment = layout_result.PhysicalFragment();
+  const auto& fragment = layout_result.GetPhysicalFragment();
   if (fragment.IsBox()) {
     return layout_result;
   }
@@ -101,19 +101,19 @@ void BoxFragmentBuilder::AddBreakBeforeChild(LayoutInputNode child,
 }
 
 void BoxFragmentBuilder::AddResult(
-    const NGLayoutResult& child_layout_result,
+    const LayoutResult& child_layout_result,
     const LogicalOffset offset,
     absl::optional<const BoxStrut> margins,
     absl::optional<LogicalOffset> relative_offset,
     const OofInlineContainer<LogicalOffset>* inline_container) {
-  const auto& fragment = child_layout_result.PhysicalFragment();
+  const auto& fragment = child_layout_result.GetPhysicalFragment();
 
   // We'll normally propagate info from child_layout_result here, but if that's
   // a line box with a block inside, we'll use the result for that block
   // instead. The fact that we create a line box at all in such cases is just an
   // implementation detail -- anything of interest is stored on the child block
   // fragment.
-  const NGLayoutResult* result_for_propagation = &child_layout_result;
+  const LayoutResult* result_for_propagation = &child_layout_result;
 
   if (!fragment.IsBox() && items_builder_) {
     if (const auto* line = DynamicTo<PhysicalLineBoxFragment>(&fragment)) {
@@ -155,13 +155,13 @@ void BoxFragmentBuilder::AddResult(
   PropagateFromLayoutResult(*result_for_propagation);
 }
 
-void BoxFragmentBuilder::AddResult(const NGLayoutResult& child_layout_result,
+void BoxFragmentBuilder::AddResult(const LayoutResult& child_layout_result,
                                    const LogicalOffset offset) {
   AddResult(child_layout_result, offset, absl::nullopt, absl::nullopt, nullptr);
 }
 
 void BoxFragmentBuilder::AddChild(
-    const NGPhysicalFragment& child,
+    const PhysicalFragment& child,
     const LogicalOffset& child_offset,
     const MarginStrut* margin_strut,
     bool is_self_collapsing,
@@ -175,7 +175,7 @@ void BoxFragmentBuilder::AddChild(
 
   if (!relative_offset) {
     relative_offset = LogicalOffset();
-    if (box_type_ != NGPhysicalBoxFragment::NGBoxType::kInlineBox) {
+    if (box_type_ != PhysicalFragment::BoxType::kInlineBox) {
       if (child.IsLineBox()) {
         if (UNLIKELY(child.MayHaveDescendantAboveBlockStart()))
           may_have_descendant_above_block_start_ = true;
@@ -349,7 +349,7 @@ void BoxFragmentBuilder::MoveChildrenInBlockDirection(LayoutUnit delta) {
 }
 
 void BoxFragmentBuilder::PropagateBreakInfo(
-    const NGLayoutResult& child_layout_result,
+    const LayoutResult& child_layout_result,
     LogicalOffset offset) {
   DCHECK(has_block_fragmentation_);
 
@@ -367,8 +367,7 @@ void BoxFragmentBuilder::PropagateBreakInfo(
       is_block_size_for_fragmentation_clamped_ = true;
   }
 
-  const NGPhysicalFragment& child_fragment =
-      child_layout_result.PhysicalFragment();
+  const auto& child_fragment = child_layout_result.GetPhysicalFragment();
   const auto* child_box_fragment =
       DynamicTo<NGPhysicalBoxFragment>(child_fragment);
   const BlockBreakToken* token =
@@ -449,7 +448,7 @@ void BoxFragmentBuilder::PropagateBreakInfo(
     if (const auto* child_spanner_path =
             child_layout_result.GetColumnSpannerPath()) {
       DCHECK(HasInflowChildBreakInside() ||
-             !child_layout_result.PhysicalFragment().IsBox());
+             !child_layout_result.GetPhysicalFragment().IsBox());
       const auto* spanner_path =
           MakeGarbageCollected<ColumnSpannerPath>(Node(), child_spanner_path);
       SetColumnSpannerPath(spanner_path);
@@ -467,11 +466,12 @@ void BoxFragmentBuilder::PropagateBreakInfo(
 }
 
 void BoxFragmentBuilder::PropagateChildBreakValues(
-    const NGLayoutResult& child_layout_result) {
-  if (child_layout_result.Status() != NGLayoutResult::kSuccess)
+    const LayoutResult& child_layout_result) {
+  if (child_layout_result.Status() != LayoutResult::kSuccess) {
     return;
+  }
 
-  const auto& fragment = child_layout_result.PhysicalFragment();
+  const auto& fragment = child_layout_result.GetPhysicalFragment();
   if (fragment.IsInline() || !fragment.IsCSSBox() ||
       fragment.IsFloatingOrOutOfFlowPositioned())
     return;
@@ -503,13 +503,13 @@ void BoxFragmentBuilder::PropagateChildBreakValues(
   }
 }
 
-const NGLayoutResult* BoxFragmentBuilder::ToBoxFragment(
+const LayoutResult* BoxFragmentBuilder::ToBoxFragment(
     WritingMode block_or_line_writing_mode) {
 #if DCHECK_IS_ON()
   if (ItemsBuilder()) {
     for (const LogicalFragmentLink& child : Children()) {
       DCHECK(child.fragment);
-      const NGPhysicalFragment& fragment = *child.fragment;
+      const PhysicalFragment& fragment = *child.fragment;
       DCHECK(fragment.IsLineBox() ||
              // TODO(kojii): How to place floats and OOF is TBD.
              fragment.IsFloatingOrOutOfFlowPositioned());
@@ -517,9 +517,10 @@ const NGLayoutResult* BoxFragmentBuilder::ToBoxFragment(
   }
 #endif
 
-  if (UNLIKELY(box_type_ == NGPhysicalFragment::kNormalBox && node_ &&
-               node_.IsBlockInInline()))
+  if (UNLIKELY(box_type_ == PhysicalFragment::kNormalBox && node_ &&
+               node_.IsBlockInInline())) {
     SetIsBlockInInline();
+  }
 
   if (UNLIKELY(has_block_fragmentation_ && node_)) {
     if (previous_break_token_ && previous_break_token_->IsAtBlockEnd()) {
@@ -541,7 +542,7 @@ const NGLayoutResult* BoxFragmentBuilder::ToBoxFragment(
     // Make some final adjustments to block-size for fragmentation, unless this
     // is a fragmentainer (so that we only include the block-size propagated
     // from children in that case).
-    if (!NGPhysicalFragment::IsFragmentainerBoxType(box_type_)) {
+    if (!PhysicalFragment::IsFragmentainerBoxType(box_type_)) {
       OverflowClipAxes block_axis = GetWritingDirection().IsHorizontal()
                                         ? kOverflowClipY
                                         : kOverflowClipX;
@@ -572,8 +573,8 @@ const NGLayoutResult* BoxFragmentBuilder::ToBoxFragment(
       NGPhysicalBoxFragment::Create(this, block_or_line_writing_mode);
   fragment->CheckType();
 
-  return MakeGarbageCollected<NGLayoutResult>(
-      NGLayoutResult::BoxFragmentBuilderPassKey(), std::move(fragment), this);
+  return MakeGarbageCollected<LayoutResult>(
+      LayoutResult::BoxFragmentBuilderPassKey(), std::move(fragment), this);
 }
 
 LogicalOffset BoxFragmentBuilder::GetChildOffset(

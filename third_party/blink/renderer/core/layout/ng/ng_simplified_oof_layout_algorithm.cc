@@ -22,7 +22,7 @@ SimplifiedOofLayoutAlgorithm::SimplifiedOofLayoutAlgorithm(
   DCHECK(previous_fragment.IsFragmentainerBox());
   DCHECK(params.space.HasKnownFragmentainerBlockSize());
 
-  container_builder_.SetBoxType(previous_fragment.BoxType());
+  container_builder_.SetBoxType(previous_fragment.GetBoxType());
   container_builder_.SetPageNameIfNeeded(previous_fragment.PageName());
   container_builder_.SetFragmentBlockSize(
       params.space.FragmentainerBlockSize());
@@ -75,14 +75,14 @@ SimplifiedOofLayoutAlgorithm::SimplifiedOofLayoutAlgorithm(
       previous_fragment.MayHaveDescendantAboveBlockStart());
 }
 
-const NGLayoutResult* SimplifiedOofLayoutAlgorithm::Layout() {
+const LayoutResult* SimplifiedOofLayoutAlgorithm::Layout() {
   FinishFragmentationForFragmentainer(GetConstraintSpace(),
                                       &container_builder_);
   return container_builder_.ToBoxFragment();
 }
 
 void SimplifiedOofLayoutAlgorithm::AppendOutOfFlowResult(
-    const NGLayoutResult* result) {
+    const LayoutResult* result) {
   container_builder_.AddResult(*result, result->OutOfFlowPositionedOffset());
 }
 

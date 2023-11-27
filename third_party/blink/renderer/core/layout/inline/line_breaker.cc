@@ -2597,7 +2597,7 @@ void LineBreaker::HandleAtomicInline(const InlineItem& item,
                                 baseline_algorithm_type);
 
     const auto& physical_box_fragment = To<NGPhysicalBoxFragment>(
-        item_result->layout_result->PhysicalFragment());
+        item_result->layout_result->GetPhysicalFragment());
     item_result->inline_size =
         LogicalFragment(constraint_space_.GetWritingDirection(),
                         physical_box_fragment)
@@ -2721,18 +2721,18 @@ void LineBreaker::HandleBlockInInline(const InlineItem& item,
     BlockNode block_node(To<LayoutBox>(item.GetLayoutObject()));
     const ColumnSpannerPath* spanner_path_for_child =
         FollowColumnSpannerPath(column_spanner_path_, block_node);
-    const NGLayoutResult* layout_result =
+    const LayoutResult* layout_result =
         block_node.Layout(constraint_space_, block_break_token,
                           /* early_break */ nullptr, spanner_path_for_child);
     line_info->SetBlockInInlineLayoutResult(layout_result);
 
     // Early exit if the layout didn't succeed.
-    if (layout_result->Status() != NGLayoutResult::kSuccess) {
+    if (layout_result->Status() != LayoutResult::kSuccess) {
       state_ = LineBreakState::kDone;
       return;
     }
 
-    const NGPhysicalFragment& fragment = layout_result->PhysicalFragment();
+    const auto& fragment = layout_result->GetPhysicalFragment();
     item_result->inline_size =
         LogicalFragment(constraint_space_.GetWritingDirection(), fragment)
             .InlineSize();
@@ -2741,7 +2741,7 @@ void LineBreaker::HandleBlockInInline(const InlineItem& item,
     item_result->layout_result = layout_result;
 
     if (const auto* outgoing_block_break_token = To<BlockBreakToken>(
-            layout_result->PhysicalFragment().GetBreakToken())) {
+            layout_result->GetPhysicalFragment().GetBreakToken())) {
       // The block broke inside. If the block itself fits, but some content
       // inside overflowed, we now need to enter a parallel flow, i.e. resume
       // the block-in-inline in the next fragmentainer, but continue layout of
@@ -3659,13 +3659,13 @@ const InlineBreakToken* LineBreaker::CreateBreakToken(
   if (resume_block_in_inline_in_same_flow_) {
     const auto* block_in_inline = line_info.BlockInInlineLayoutResult();
     DCHECK(block_in_inline);
-    if (UNLIKELY(block_in_inline->Status() != NGLayoutResult::kSuccess)) {
+    if (UNLIKELY(block_in_inline->Status() != LayoutResult::kSuccess)) {
       return nullptr;
     }
     // Look for a break token inside the block-in-inline, so that we can add it
     // to the inline break token that we're about to create.
     const auto& block_in_inline_fragment =
-        To<NGPhysicalBoxFragment>(block_in_inline->PhysicalFragment());
+        To<NGPhysicalBoxFragment>(block_in_inline->GetPhysicalFragment());
     sub_break_token = block_in_inline_fragment.GetBreakToken();
   }
 

@@ -290,8 +290,9 @@ InlineBoxState* InlineLayoutAlgorithm::HandleCloseTag(
   // Just clear |NeedsLayout| flags. Culled inline boxes do not need paint
   // invalidations. If this object produces box fragments,
   // |InlineBoxStateStack| takes care of invalidations.
-  if (!NGDisableSideEffectsScope::IsDisabled())
+  if (!DisableLayoutSideEffectsScope::IsDisabled()) {
     item.GetLayoutObject()->ClearNeedsLayoutWithoutPaintInvalidation();
+  }
   return box;
 }
 
@@ -756,8 +757,9 @@ void InlineLayoutAlgorithm::PlaceControlItem(const InlineItem& item,
 
   DCHECK(item.GetLayoutObject());
   DCHECK(item.GetLayoutObject()->IsText());
-  if (!NGDisableSideEffectsScope::IsDisabled())
+  if (!DisableLayoutSideEffectsScope::IsDisabled()) {
     item.GetLayoutObject()->ClearNeedsLayoutWithFullPaintInvalidation();
+  }
 
   if (UNLIKELY(!item_result->Length())) {
     // Empty or fully collapsed text isn't needed for layout, but needs
@@ -826,7 +828,7 @@ InlineBoxState* InlineLayoutAlgorithm::PlaceAtomicInline(
                                  baseline_type_);
 }
 
-// Place a NGLayoutResult into the line box.
+// Place a LayoutResult into the line box.
 void InlineLayoutAlgorithm::PlaceLayoutResult(InlineItemResult* item_result,
                                               LogicalLineItems* line_box,
                                               InlineBoxState* box,
@@ -838,7 +840,7 @@ void InlineLayoutAlgorithm::PlaceLayoutResult(InlineItemResult* item_result,
   FontHeight metrics =
       LogicalBoxFragment(GetConstraintSpace().GetWritingDirection(),
                          To<NGPhysicalBoxFragment>(
-                             item_result->layout_result->PhysicalFragment()))
+                             item_result->layout_result->GetPhysicalFragment()))
           .BaselineMetrics(item_result->margins, baseline_type_);
   if (box)
     box->metrics.Unite(metrics);
@@ -860,15 +862,15 @@ void InlineLayoutAlgorithm::PlaceBlockInInline(const InlineItem& item,
   DCHECK(layout_object->IsAnonymous());
   DCHECK(!layout_object->IsInline());
   DCHECK(item_result->layout_result);
-  const NGLayoutResult& result = *item_result->layout_result;
+  const LayoutResult& result = *item_result->layout_result;
   const auto& box_fragment =
-      To<NGPhysicalBoxFragment>(result.PhysicalFragment());
+      To<NGPhysicalBoxFragment>(result.GetPhysicalFragment());
   LogicalBoxFragment fragment(GetConstraintSpace().GetWritingDirection(),
                               box_fragment);
 
   // Setup |container_builder_|. Set it up here instead of in |CreateLine|,
   // because there should be only one block-in-inline, and we need data from the
-  // |NGLayoutResult|.
+  // |LayoutResult|.
   container_builder_.SetIsBlockInInline();
   container_builder_.SetInlineSize(fragment.InlineSize());
 
@@ -1070,8 +1072,9 @@ void InlineLayoutAlgorithm::PlaceFloatingObjects(
 
     // Skip any children which aren't positioned floats.
     if (!child.layout_result ||
-        !child.layout_result->PhysicalFragment().IsFloating())
+        !child.layout_result->GetPhysicalFragment().IsFloating()) {
       continue;
+    }
 
     LayoutUnit block_offset =
         child.bfc_offset.block_offset - bfc_block_offset + baseline_adjustment;
@@ -1079,7 +1082,7 @@ void InlineLayoutAlgorithm::PlaceFloatingObjects(
     // We need to manually account for the flipped-lines writing mode here :(.
     if (IsFlippedLinesWritingMode(GetConstraintSpace().GetWritingMode())) {
       LogicalFragment fragment(GetConstraintSpace().GetWritingDirection(),
-                               child.layout_result->PhysicalFragment());
+                               child.layout_result->GetPhysicalFragment());
 
       block_offset = -fragment.BlockSize() - block_offset;
     }
@@ -1092,7 +1095,7 @@ void InlineLayoutAlgorithm::PlaceFloatingObjects(
 void InlineLayoutAlgorithm::PlaceRelativePositionedItems(
     LogicalLineItems* line_box) {
   for (auto& child : *line_box) {
-    const auto* physical_fragment = child.PhysicalFragment();
+    const auto* physical_fragment = child.GetPhysicalFragment();
     if (!physical_fragment)
       continue;
     child.rect.offset += ComputeRelativeOffsetForInline(
@@ -1360,7 +1363,7 @@ bool InlineLayoutAlgorithm::AddAnyClearanceAfterLine(
   return true;
 }
 
-const NGLayoutResult* InlineLayoutAlgorithm::Layout() {
+const LayoutResult* InlineLayoutAlgorithm::Layout() {
   const auto& constraint_space = GetConstraintSpace();
   ExclusionSpace initial_exclusion_space(constraint_space.GetExclusionSpace());
 
@@ -1516,7 +1519,7 @@ const NGLayoutResult* InlineLayoutAlgorithm::Layout() {
     const auto* block_in_inline_result = line_info.BlockInInlineLayoutResult();
     if (block_in_inline_result) {
       if (UNLIKELY(block_in_inline_result->Status() !=
-                   NGLayoutResult::kSuccess)) {
+                   LayoutResult::kSuccess)) {
         items_builder->ReleaseCurrentLogicalLineItems();
         return block_in_inline_result;
       }
@@ -1546,8 +1549,7 @@ const NGLayoutResult* InlineLayoutAlgorithm::Layout() {
       if (container_builder_.GetAdjoiningObjectTypes() &&
           bfc_block_offset != constraint_space.ExpectedBfcBlockOffset()) {
         items_builder->ReleaseCurrentLogicalLineItems();
-        return container_builder_.Abort(
-            NGLayoutResult::kBfcBlockOffsetResolved);
+        return container_builder_.Abort(LayoutResult::kBfcBlockOffsetResolved);
       }
     }
 
@@ -1691,8 +1693,7 @@ const NGLayoutResult* InlineLayoutAlgorithm::Layout() {
       }
     } else {
       if (!AddAnyClearanceAfterLine(line_info)) {
-        return container_builder_.Abort(
-            NGLayoutResult::kOutOfFragmentainerSpace);
+        return container_builder_.Abort(LayoutResult::kOutOfFragmentainerSpace);
       }
       container_builder_.SetBlockSize(container_builder_.LineHeight());
 
@@ -1718,9 +1719,9 @@ const NGLayoutResult* InlineLayoutAlgorithm::Layout() {
 
   DCHECK(items_builder);
   container_builder_.PropagateChildrenData(*line_box);
-  const NGLayoutResult* layout_result = container_builder_.ToLineBoxFragment();
-  items_builder->AssociateLogicalLineItems(line_box,
-                                           layout_result->PhysicalFragment());
+  const LayoutResult* layout_result = container_builder_.ToLineBoxFragment();
+  items_builder->AssociateLogicalLineItems(
+      line_box, layout_result->GetPhysicalFragment());
   line_break_strategy.DidCreateLine(is_end_paragraph);
   return layout_result;
 }

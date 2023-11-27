@@ -100,9 +100,7 @@ enum class ValuePatternsMetric {
 
 // Manages saving and restoring the user's personal information entered into web
 // forms. One per frame; owned by the AutofillDriver.
-class BrowserAutofillManager
-    : public AutofillManager,
-      public SingleFieldFormFiller::SuggestionsHandler {
+class BrowserAutofillManager : public AutofillManager {
  public:
   BrowserAutofillManager(AutofillDriver* driver,
                          AutofillClient* client,
@@ -164,6 +162,21 @@ class BrowserAutofillManager
       const FormFieldData& field,
       const AutofillProfile& profile,
       const AutofillTriggerDetails& trigger_details);
+
+  // Retrieves the parsed form structure from cache and checks if the
+  // `credit_card` needs to be fetched in order to complete the current filling
+  // flow. This is the case if the `form` contains a credit card number field,
+  // which is going to be filled. Or it is the case when the `credit_card` is
+  // virtual and the `field` is of type
+  // `CREDIT_CARD_STANDALONE_VERIFICATION_CODE`. This happens for the web sites,
+  // which cache all credit card details except for the cvc, which is different
+  // every time the virtual credit card is being used.
+  // TODO(crbug.com/1331312): Remove this function once all callers use already
+  // parsed form. This function is needed only to make the query to the form
+  // cache, which must remain private to the `BrowserAutofillManager`.
+  bool ShouldFetchCreditCard(const FormData& form,
+                             const FormFieldData& field,
+                             const CreditCard& credit_card);
 
   // Fills or previews the credit card form.
   // Assumes the form and field are valid.
@@ -248,11 +261,6 @@ class BrowserAutofillManager
   void Reset() override;
   void OnContextMenuShownInField(const FormGlobalId& form_global_id,
                                  const FieldGlobalId& field_global_id) override;
-  // SingleFieldFormFiller::SuggestionsHandler:
-  void OnSuggestionsReturned(
-      FieldGlobalId field_id,
-      AutofillSuggestionTriggerSource trigger_source,
-      const std::vector<Suggestion>& suggestions) override;
 
   // Retrieves the four digit combinations from the DOM of the current web page
   // and stores them in `four_digit_combinations_in_dom_`. This is used to check

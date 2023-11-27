@@ -31,10 +31,10 @@ class OutOfFlowLayoutPartTest : public BaseLayoutAlgorithmTest {
   }
 
   String DumpFragmentTree(const blink::NGPhysicalBoxFragment* fragment) {
-    NGPhysicalFragment::DumpFlags flags =
-        NGPhysicalFragment::DumpHeaderText | NGPhysicalFragment::DumpSubtree |
-        NGPhysicalFragment::DumpIndentation | NGPhysicalFragment::DumpOffset |
-        NGPhysicalFragment::DumpSize;
+    PhysicalFragment::DumpFlags flags =
+        PhysicalFragment::DumpHeaderText | PhysicalFragment::DumpSubtree |
+        PhysicalFragment::DumpIndentation | PhysicalFragment::DumpOffset |
+        PhysicalFragment::DumpSize;
 
     return fragment->DumpFragmentTree(flags);
   }
@@ -84,10 +84,11 @@ TEST_F(OutOfFlowLayoutPartTest, FixedInsideAbs) {
   // Test whether the oof fragments have been collected at NG->Legacy boundary.
   Element* rel = GetDocument().getElementById(AtomicString("rel"));
   auto* block_flow = To<LayoutBlockFlow>(rel->GetLayoutObject());
-  const NGLayoutResult* result = block_flow->GetSingleCachedLayoutResult();
+  const LayoutResult* result = block_flow->GetSingleCachedLayoutResult();
   EXPECT_TRUE(result);
-  EXPECT_EQ(result->PhysicalFragment().OutOfFlowPositionedDescendants().size(),
-            2u);
+  EXPECT_EQ(
+      result->GetPhysicalFragment().OutOfFlowPositionedDescendants().size(),
+      2u);
 
   // Test the final result.
   Element* fixed_1 = GetDocument().getElementById(AtomicString("fixed1"));

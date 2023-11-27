@@ -189,21 +189,21 @@ TEST_F(InlineLayoutAlgorithmTest, BreakToken) {
       block_flow, block_flow->Style(), constraint_space,
       block_flow->Style()->GetWritingDirection());
   SimpleInlineChildLayoutContext context(inline_node, &container_builder);
-  const NGLayoutResult* layout_result =
+  const LayoutResult* layout_result =
       inline_node.Layout(constraint_space, nullptr, nullptr, &context);
-  const auto& line1 = layout_result->PhysicalFragment();
+  const auto& line1 = layout_result->GetPhysicalFragment();
   EXPECT_TRUE(line1.GetBreakToken());
 
   // Perform 2nd layout with the break token from the 1st line.
-  const NGLayoutResult* layout_result2 = inline_node.Layout(
+  const LayoutResult* layout_result2 = inline_node.Layout(
       constraint_space, line1.GetBreakToken(), nullptr, &context);
-  const auto& line2 = layout_result2->PhysicalFragment();
+  const auto& line2 = layout_result2->GetPhysicalFragment();
   EXPECT_TRUE(line2.GetBreakToken());
 
   // Perform 3rd layout with the break token from the 2nd line.
-  const NGLayoutResult* layout_result3 = inline_node.Layout(
+  const LayoutResult* layout_result3 = inline_node.Layout(
       constraint_space, line2.GetBreakToken(), nullptr, &context);
-  const auto& line3 = layout_result3->PhysicalFragment();
+  const auto& line3 = layout_result3->GetPhysicalFragment();
   EXPECT_FALSE(line3.GetBreakToken());
 }
 
@@ -292,7 +292,7 @@ TEST_F(InlineLayoutAlgorithmTest, BoxForEndMargin) {
   // though there's no borders on the 1st line.
   const NGPhysicalBoxFragment* box_fragment = cursor.Current().BoxFragment();
   ASSERT_TRUE(box_fragment);
-  EXPECT_EQ(NGPhysicalFragment::kFragmentBox, box_fragment->Type());
+  EXPECT_EQ(PhysicalFragment::kFragmentBox, box_fragment->Type());
 
   line_box.MoveToNextLine();
   ASSERT_FALSE(line_box) << "block_flow has two lines.";
@@ -384,7 +384,7 @@ TEST_F(InlineLayoutAlgorithmTest, ContainerBorderPadding) {
   EXPECT_EQ(0, layout_result->BfcLineOffset());
 
   const auto& fragment =
-      To<NGPhysicalBoxFragment>(layout_result->PhysicalFragment());
+      To<NGPhysicalBoxFragment>(layout_result->GetPhysicalFragment());
   EXPECT_EQ(fragment.ContentOffset(), PhysicalOffset(5, 10));
   PhysicalOffset line_offset = fragment.Children()[0].Offset();
   EXPECT_EQ(line_offset, PhysicalOffset(5, 10));
@@ -455,7 +455,7 @@ TEST_F(InlineLayoutAlgorithmTest, TextFloatsAroundFloatsBefore) {
                         ->item(0)
                         ->GetLayoutObject())
           ->GetSingleCachedLayoutResult()
-          ->PhysicalFragment();
+          ->GetPhysicalFragment();
 
   auto* body_fragment =
       To<NGPhysicalBoxFragment>(html_fragment.Children()[0].get());

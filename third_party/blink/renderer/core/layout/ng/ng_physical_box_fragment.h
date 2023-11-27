@@ -27,10 +27,10 @@
 namespace blink {
 
 class BoxFragmentBuilder;
-enum class NGOutlineType;
+enum class OutlineType;
 struct FrameSetLayoutData;
 
-class CORE_EXPORT NGPhysicalBoxFragment final : public NGPhysicalFragment {
+class CORE_EXPORT NGPhysicalBoxFragment final : public PhysicalFragment {
  public:
   static const NGPhysicalBoxFragment* Create(
       BoxFragmentBuilder* builder,
@@ -98,7 +98,7 @@ class CORE_EXPORT NGPhysicalBoxFragment final : public NGPhysicalFragment {
 
   // Similar to |Children()| but all children are the latest generation of
   // post-layout, and therefore all descendants are safe.
-  NGPhysicalFragment::PostLayoutChildLinkList PostLayoutChildren() const {
+  PhysicalFragment::PostLayoutChildLinkList PostLayoutChildren() const {
     DCHECK(children_valid_);
     return PostLayoutChildLinkList(children_.size(), children_.data());
   }
@@ -372,13 +372,13 @@ class CORE_EXPORT NGPhysicalBoxFragment final : public NGPhysicalFragment {
   // Fragment offset is this fragment's offset from parent.
   // Needed to compensate for LayoutInline Legacy code offsets.
   void AddSelfOutlineRects(const PhysicalOffset& additional_offset,
-                           NGOutlineType include_block_overflows,
+                           OutlineType include_block_overflows,
                            OutlineRectCollector& collector,
                            LayoutObject::OutlineInfo* info) const;
   // Same as |AddSelfOutlineRects|, except when |this.IsInlineBox()|, in which
   // case the coordinate system is relative to the inline formatting context.
   void AddOutlineRects(const PhysicalOffset& additional_offset,
-                       NGOutlineType include_block_overflows,
+                       OutlineType include_block_overflows,
                        OutlineRectCollector& collector) const;
 
   PositionWithAffinity PositionForPoint(PhysicalOffset) const;
@@ -393,7 +393,7 @@ class CORE_EXPORT NGPhysicalBoxFragment final : public NGPhysicalFragment {
   }
 
   const BlockBreakToken* GetBreakToken() const {
-    return To<BlockBreakToken>(NGPhysicalFragment::GetBreakToken());
+    return To<BlockBreakToken>(PhysicalFragment::GetBreakToken());
   }
 
   // Return true if this is the first fragment generated from a node.
@@ -489,7 +489,7 @@ class CORE_EXPORT NGPhysicalBoxFragment final : public NGPhysicalFragment {
 
   class MutableForCloning {
     STACK_ALLOCATED();
-    friend class NGFragmentRepeater;
+    friend class FragmentRepeater;
     friend class NGPhysicalBoxFragment;
 
    public:
@@ -532,7 +532,7 @@ class CORE_EXPORT NGPhysicalBoxFragment final : public NGPhysicalFragment {
 #endif
 
  protected:
-  friend class NGPhysicalFragment;
+  friend class PhysicalFragment;
   void Dispose();
 
  private:
@@ -602,11 +602,11 @@ class CORE_EXPORT NGPhysicalBoxFragment final : public NGPhysicalFragment {
   PhysicalRect ComputeSelfInkOverflow() const;
 
   void AddOutlineRects(const PhysicalOffset& additional_offset,
-                       NGOutlineType include_block_overflows,
+                       OutlineType include_block_overflows,
                        bool inline_container_relative,
                        OutlineRectCollector& collector) const;
   void AddOutlineRectsForInlineBox(PhysicalOffset additional_offset,
-                                   NGOutlineType include_block_overflows,
+                                   OutlineType include_block_overflows,
                                    bool inline_container_relative,
                                    OutlineRectCollector& collector) const;
 
@@ -639,8 +639,8 @@ class CORE_EXPORT NGPhysicalBoxFragment final : public NGPhysicalFragment {
 
 template <>
 struct DowncastTraits<NGPhysicalBoxFragment> {
-  static bool AllowFrom(const NGPhysicalFragment& fragment) {
-    return fragment.Type() == NGPhysicalFragment::kFragmentBox;
+  static bool AllowFrom(const PhysicalFragment& fragment) {
+    return fragment.Type() == PhysicalFragment::kFragmentBox;
   }
 };
 

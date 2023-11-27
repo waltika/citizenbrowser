@@ -182,6 +182,8 @@ struct PartitionOptions {
 
   size_t scheduler_loop_quarantine_capacity_in_bytes = 0;
 
+  EnableToggle zapping_by_free_flags = kDisabled;
+
   struct {
     EnableToggle enabled = kDisabled;
     TagViolationReportingMode reporting_mode =
@@ -272,6 +274,7 @@ struct PA_ALIGNAS(64) PA_COMPONENT_EXPORT(PARTITION_ALLOC) PartitionRoot {
 #endif  // PA_CONFIG(ENABLE_MAC11_MALLOC_SIZE_HACK)
 #endif  // BUILDFLAG(ENABLE_BACKUP_REF_PTR_SUPPORT)
     bool use_configurable_pool = false;
+    bool zapping_by_free_flags = false;
 #if PA_CONFIG(HAS_MEMORY_TAGGING)
     bool memory_tagging_enabled_ = false;
     TagViolationReportingMode memory_tagging_reporting_mode_ =
@@ -1390,10 +1393,13 @@ PA_ALWAYS_INLINE void PartitionRoot::FreeInline(void* object) {
   }
 
   if constexpr (ContainsFlags(flags, FreeFlags::kZap)) {
-    SlotSpan* slot_span = SlotSpan::FromObject(object);
-    uintptr_t slot_start = ObjectToSlotStart(object);
-    internal::SecureMemset(internal::SlotStartAddr2Ptr(slot_start),
-                           internal::kFreedByte, GetSlotUsableSize(slot_span));
+    if (settings.zapping_by_free_flags) {
+      SlotSpan* slot_span = SlotSpan::FromObject(object);
+      uintptr_t slot_start = ObjectToSlotStart(object);
+      internal::SecureMemset(internal::SlotStartAddr2Ptr(slot_start),
+                             internal::kFreedByte,
+                             GetSlotUsableSize(slot_span));
+    }
   }
   // TODO(https://crbug.com/1497380): Collecting objects for
   // `kSchedulerLoopQuarantine` here means it "delays" other checks (BRP
@@ -2304,9 +2310,8 @@ PA_ALWAYS_INLINE void* PartitionRoot::AlignedAllocInline(
   // don't pass anything less, because it'll mess up callee's calculations.
   size_t slot_span_alignment =
       std::max(alignment, internal::PartitionPageSize());
-  // TODO(mikt): Investigate why all flags except kNoHooks are ignored here.
-  void* object = AllocInternal<flags & AllocFlags::kNoHooks>(
-      adjusted_size, slot_span_alignment, nullptr);
+  void* object =
+      AllocInternal<flags>(adjusted_size, slot_span_alignment, nullptr);
 
   // |alignment| is a power of two, but the compiler doesn't necessarily know
   // that. A regular % operation is very slow, make sure to use the equivalent,

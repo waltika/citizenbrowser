@@ -30,7 +30,7 @@ TableSectionLayoutAlgorithm::TableSectionLayoutAlgorithm(
 // |  +--------------------+  |
 // |       vspacing           |
 // +--------------------------+
-const NGLayoutResult* TableSectionLayoutAlgorithm::Layout() {
+const LayoutResult* TableSectionLayoutAlgorithm::Layout() {
   const auto& constraint_space = GetConstraintSpace();
   const TableConstraintSpaceData& table_data = *constraint_space.TableData();
   const auto& section =
@@ -48,8 +48,8 @@ const NGLayoutResult* TableSectionLayoutAlgorithm::Layout() {
   Vector<LayoutUnit> row_offsets = {LayoutUnit()};
   wtf_size_t actual_start_row_index = 0u;
 
-  NGBlockChildIterator child_iterator(Node().FirstChild(), GetBreakToken(),
-                                      /* calculate_child_idx */ true);
+  BlockChildIterator child_iterator(Node().FirstChild(), GetBreakToken(),
+                                    /* calculate_child_idx */ true);
   for (auto entry = child_iterator.NextChild();
        BlockNode row = To<BlockNode>(entry.node);
        entry = child_iterator.NextChild()) {
@@ -87,7 +87,7 @@ const NGLayoutResult* TableSectionLayoutAlgorithm::Layout() {
     }
 
     ConstraintSpace row_space = row_space_builder.ToConstraintSpace();
-    const NGLayoutResult* row_result = row.Layout(row_space, row_break_token);
+    const LayoutResult* row_result = row.Layout(row_space, row_break_token);
 
     if (constraint_space.HasBlockFragmentation()) {
       LayoutUnit fragmentainer_block_offset =
@@ -106,7 +106,7 @@ const NGLayoutResult* TableSectionLayoutAlgorithm::Layout() {
     }
 
     const auto& physical_fragment =
-        To<NGPhysicalBoxFragment>(row_result->PhysicalFragment());
+        To<NGPhysicalBoxFragment>(row_result->GetPhysicalFragment());
     const LogicalBoxFragment fragment(table_data.table_writing_direction,
                                       physical_fragment);
 

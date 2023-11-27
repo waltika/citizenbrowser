@@ -71,7 +71,7 @@ bool FragmentItems::IsSubSpan(const Span& span) const {
 }
 
 void FragmentItems::FinalizeAfterLayout(
-    const HeapVector<Member<const NGLayoutResult>, 1>& results,
+    const HeapVector<Member<const LayoutResult>, 1>& results,
     LayoutBlockFlow& container) {
   struct LastItem {
     const FragmentItem* item;
@@ -94,7 +94,7 @@ void FragmentItems::FinalizeAfterLayout(
 
   for (const auto& result : results) {
     const auto& fragment =
-        To<NGPhysicalBoxFragment>(result->PhysicalFragment());
+        To<NGPhysicalBoxFragment>(result->GetPhysicalFragment());
     const FragmentItems* fragment_items = fragment.Items();
     if (UNLIKELY(!fragment_items)) {
       may_be_non_contiguous_ifc = true;
@@ -250,7 +250,7 @@ const FragmentItem* FragmentItems::EndOfReusableItems(
     const PhysicalLineBoxFragment& line_box_fragment = *item.LineBoxFragment();
 
     // Abort if the line propagated its descendants to outside of the line.
-    // They are propagated through NGLayoutResult, which we don't cache.
+    // They are propagated through LayoutResult, which we don't cache.
     if (line_box_fragment.HasPropagatedDescendants())
       return &item;
 

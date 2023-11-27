@@ -67,15 +67,15 @@ bool LayoutBox::IsUserScrollable() const {
   return HasScrollableOverflowX() || HasScrollableOverflowY();
 }
 
-const NGLayoutResult* LayoutBox::CachedLayoutResult(
+const LayoutResult* LayoutBox::CachedLayoutResult(
     const ConstraintSpace& new_space,
     const BlockBreakToken* break_token,
     const EarlyBreak* early_break,
     const ColumnSpannerPath* column_spanner_path,
     absl::optional<FragmentGeometry>* initial_fragment_geometry,
-    NGLayoutCacheStatus* out_cache_status) {
+    LayoutCacheStatus* out_cache_status) {
   NOT_DESTROYED();
-  *out_cache_status = NGLayoutCacheStatus::kNeedsLayout;
+  *out_cache_status = LayoutCacheStatus::kNeedsLayout;
 
   if (SelfNeedsFullLayout()) {
     return nullptr;
@@ -84,7 +84,7 @@ const NGLayoutResult* LayoutBox::CachedLayoutResult(
   const bool use_layout_cache_slot =
       new_space.CacheSlot() == LayoutResultCacheSlot::kLayout &&
       !layout_results_.empty();
-  const NGLayoutResult* cached_layout_result =
+  const LayoutResult* cached_layout_result =
       use_layout_cache_slot ? GetCachedLayoutResult(break_token)
                             : GetCachedMeasureResult();
 
@@ -98,13 +98,13 @@ const NGLayoutResult* LayoutBox::CachedLayoutResult(
     return nullptr;
   }
 
-  DCHECK_EQ(cached_layout_result->Status(), NGLayoutResult::kSuccess);
+  DCHECK_EQ(cached_layout_result->Status(), LayoutResult::kSuccess);
 
   // Set our initial temporary cache status to "hit".
-  NGLayoutCacheStatus cache_status = NGLayoutCacheStatus::kHit;
+  LayoutCacheStatus cache_status = LayoutCacheStatus::kHit;
 
   const NGPhysicalBoxFragment& physical_fragment =
-      To<NGPhysicalBoxFragment>(cached_layout_result->PhysicalFragment());
+      To<NGPhysicalBoxFragment>(cached_layout_result->GetPhysicalFragment());
 
   // No fun allowed for repeated content.
   if ((physical_fragment.GetBreakToken() &&
@@ -121,7 +121,7 @@ const NGLayoutResult* LayoutBox::CachedLayoutResult(
       !is_blocked_by_display_lock && ChildNeedsFullLayout();
 
   if (NeedsSimplifiedLayoutOnly()) {
-    cache_status = NGLayoutCacheStatus::kNeedsSimplifiedLayout;
+    cache_status = LayoutCacheStatus::kNeedsSimplifiedLayout;
   } else if (child_needs_layout) {
     // If we have inline children - we can potentially reuse some of the lines.
     if (!ChildrenInline()) {
@@ -150,18 +150,19 @@ const NGLayoutResult* LayoutBox::CachedLayoutResult(
       return nullptr;
     }
 
-    cache_status = NGLayoutCacheStatus::kCanReuseLines;
+    cache_status = LayoutCacheStatus::kCanReuseLines;
   }
 
   BlockNode node(this);
-  NGLayoutCacheStatus size_cache_status = CalculateSizeBasedLayoutCacheStatus(
+  LayoutCacheStatus size_cache_status = CalculateSizeBasedLayoutCacheStatus(
       node, break_token, *cached_layout_result, new_space,
       initial_fragment_geometry);
 
   // If our size may change (or we know a descendants size may change), we miss
   // the cache.
-  if (size_cache_status == NGLayoutCacheStatus::kNeedsLayout)
+  if (size_cache_status == LayoutCacheStatus::kNeedsLayout) {
     return nullptr;
+  }
 
   if (cached_layout_result->HasOrthogonalFallbackSizeDescendant() &&
       View()->AffectedByResizedInitialContainingBlock(*cached_layout_result)) {
@@ -176,18 +177,19 @@ const NGLayoutResult* LayoutBox::CachedLayoutResult(
   // since it will be used to iteration the invalid children when running
   // simplified layout.
   if (!physical_fragment.ChildrenValid() &&
-      (size_cache_status == NGLayoutCacheStatus::kNeedsSimplifiedLayout ||
-       cache_status == NGLayoutCacheStatus::kNeedsSimplifiedLayout)) {
+      (size_cache_status == LayoutCacheStatus::kNeedsSimplifiedLayout ||
+       cache_status == LayoutCacheStatus::kNeedsSimplifiedLayout)) {
     return nullptr;
   }
 
   // Update our temporary cache status, if the size cache check indicated we
   // might need simplified layout.
-  if (size_cache_status == NGLayoutCacheStatus::kNeedsSimplifiedLayout &&
-      cache_status == NGLayoutCacheStatus::kHit)
-    cache_status = NGLayoutCacheStatus::kNeedsSimplifiedLayout;
+  if (size_cache_status == LayoutCacheStatus::kNeedsSimplifiedLayout &&
+      cache_status == LayoutCacheStatus::kHit) {
+    cache_status = LayoutCacheStatus::kNeedsSimplifiedLayout;
+  }
 
-  if (cache_status == NGLayoutCacheStatus::kNeedsSimplifiedLayout) {
+  if (cache_status == LayoutCacheStatus::kNeedsSimplifiedLayout) {
     // Only allow simplified layout for non-replaced boxes.
     if (IsLayoutReplaced())
       return nullptr;
@@ -251,11 +253,12 @@ const NGLayoutResult* LayoutBox::CachedLayoutResult(
       // sibling.
       // The "simplified" layout algorithm doesn't have the required logic to
       // shift any added exclusions within the output exclusion space.
-      if (cache_status == NGLayoutCacheStatus::kNeedsSimplifiedLayout ||
-          cache_status == NGLayoutCacheStatus::kCanReuseLines)
+      if (cache_status == LayoutCacheStatus::kNeedsSimplifiedLayout ||
+          cache_status == LayoutCacheStatus::kCanReuseLines) {
         return nullptr;
+      }
 
-      DCHECK_EQ(cache_status, NGLayoutCacheStatus::kHit);
+      DCHECK_EQ(cache_status, LayoutCacheStatus::kHit);
 
       if (!MaySkipLayoutWithinBlockFormattingContext(
               *cached_layout_result, new_space, &bfc_block_offset,
@@ -269,8 +272,9 @@ const NGLayoutResult* LayoutBox::CachedLayoutResult(
       // Sometimes we perform simplified layout on a block-flow which is just
       // growing in block-size. When fragmentation is present we can't hit the
       // cache for these cases as we may grow past the fragmentation line.
-      if (cache_status != NGLayoutCacheStatus::kHit)
+      if (cache_status != LayoutCacheStatus::kHit) {
         return nullptr;
+      }
 
       // Miss the cache if we have nested multicol containers inside that also
       // have OOF descendants. OOFs in nested multicol containers are handled in
@@ -425,7 +429,7 @@ const NGLayoutResult* LayoutBox::CachedLayoutResult(
 
           // Check if we have content which might cross the fragmentation line.
           //
-          // NOTE: It's fine to use NGLayoutResult::BlockSizeForFragmentation()
+          // NOTE: It's fine to use LayoutResult::BlockSizeForFragmentation()
           // directly here, rather than the helper BlockSizeForFragmentation()
           // in ng_fragmentation_utils.cc, since what the latter does shouldn't
           // matter, since we're not monolithic content
@@ -467,31 +471,34 @@ const NGLayoutResult* LayoutBox::CachedLayoutResult(
     }
 
     // Simplified layout doesn't support fragmented nodes.
-    if (cache_status == NGLayoutCacheStatus::kNeedsSimplifiedLayout)
+    if (cache_status == LayoutCacheStatus::kNeedsSimplifiedLayout) {
       return nullptr;
+    }
   }
 
   // We've performed all of the cache checks at this point. If we need
   // "simplified" layout then abort now.
   *out_cache_status = cache_status;
-  if (cache_status == NGLayoutCacheStatus::kNeedsSimplifiedLayout ||
-      cache_status == NGLayoutCacheStatus::kCanReuseLines)
+  if (cache_status == LayoutCacheStatus::kNeedsSimplifiedLayout ||
+      cache_status == LayoutCacheStatus::kCanReuseLines) {
     return cached_layout_result;
+  }
 
   physical_fragment.CheckType();
 
-  DCHECK_EQ(*out_cache_status, NGLayoutCacheStatus::kHit);
+  DCHECK_EQ(*out_cache_status, LayoutCacheStatus::kHit);
 
   // For example, for elements with a transform change we can re-use the cached
   // result but we still need to recalculate the scrollable overflow.
   if (use_layout_cache_slot && !is_blocked_by_display_lock &&
       NeedsScrollableOverflowRecalc()) {
 #if DCHECK_IS_ON()
-    const NGLayoutResult* cloned_cached_layout_result =
-        NGLayoutResult::CloneWithPostLayoutFragments(*cached_layout_result);
+    const LayoutResult* cloned_cached_layout_result =
+        LayoutResult::CloneWithPostLayoutFragments(*cached_layout_result);
 #endif
-    if (!NGDisableSideEffectsScope::IsDisabled())
+    if (!DisableLayoutSideEffectsScope::IsDisabled()) {
       RecalcScrollableOverflow();
+    }
 
     // We need to update the cached layout result, as the call to
     // RecalcScrollableOverflow() might have modified it.
@@ -540,12 +547,14 @@ const NGLayoutResult* LayoutBox::CachedLayoutResult(
     return cached_layout_result;
   }
 
-  const NGLayoutResult* new_result = MakeGarbageCollected<NGLayoutResult>(
+  const auto* new_result = MakeGarbageCollected<LayoutResult>(
       *cached_layout_result, new_space, end_margin_strut, bfc_line_offset,
       bfc_block_offset, block_offset_delta);
 
-  if (needs_cached_result_update && !NGDisableSideEffectsScope::IsDisabled())
+  if (needs_cached_result_update &&
+      !DisableLayoutSideEffectsScope::IsDisabled()) {
     SetCachedLayoutResult(new_result, FragmentIndex(break_token));
+  }
 
   return new_result;
 }
@@ -553,7 +562,7 @@ const NGLayoutResult* LayoutBox::CachedLayoutResult(
 const NGPhysicalBoxFragment* LayoutBox::GetPhysicalFragment(
     wtf_size_t i) const {
   NOT_DESTROYED();
-  return &To<NGPhysicalBoxFragment>(layout_results_[i]->PhysicalFragment());
+  return &To<NGPhysicalBoxFragment>(layout_results_[i]->GetPhysicalFragment());
 }
 
 }  // namespace blink

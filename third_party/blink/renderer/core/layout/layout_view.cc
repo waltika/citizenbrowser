@@ -987,13 +987,13 @@ CompositingReasons LayoutView::AdditionalCompositingReasons() const {
 }
 
 bool LayoutView::AffectedByResizedInitialContainingBlock(
-    const NGLayoutResult& layout_result) {
+    const LayoutResult& layout_result) {
   NOT_DESTROYED();
   if (!initial_containing_block_resize_handled_list_) {
     return false;
   }
   const LayoutObject* layout_object =
-      layout_result.PhysicalFragment().GetLayoutObject();
+      layout_result.GetPhysicalFragment().GetLayoutObject();
   DCHECK(layout_object);
   auto add_result =
       initial_containing_block_resize_handled_list_->insert(layout_object);

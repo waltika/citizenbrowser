@@ -40,7 +40,7 @@ unsigned NGPhysicalBoxFragment::AllowPostLayoutScope::allow_count_ = 0;
 
 namespace {
 
-struct SameSizeAsNGPhysicalBoxFragment : NGPhysicalFragment {
+struct SameSizeAsNGPhysicalBoxFragment : PhysicalFragment {
   unsigned flags;
   LayoutUnit baseline;
   LayoutUnit last_baseline;
@@ -200,7 +200,7 @@ const NGPhysicalBoxFragment* NGPhysicalBoxFragment::Create(
   // We store the children list inline in the fragment as a flexible
   // array. Therefore, we need to make sure to allocate enough space for
   // that array here, which requires a manual allocation + placement new.
-  // The initialization of the array is done by NGPhysicalFragment;
+  // The initialization of the array is done by PhysicalFragment;
   // we pass the buffer as a constructor argument.
   return MakeGarbageCollected<NGPhysicalBoxFragment>(
       AdditionalBytes(byte_size), PassKey(), builder, has_scrollable_overflow,
@@ -304,10 +304,10 @@ NGPhysicalBoxFragment::NGPhysicalBoxFragment(
     const absl::optional<PhysicalRect>& inflow_bounds,
     bool has_fragment_items,
     WritingMode block_or_line_writing_mode)
-    : NGPhysicalFragment(builder,
-                         block_or_line_writing_mode,
-                         kFragmentBox,
-                         builder->BoxType()),
+    : PhysicalFragment(builder,
+                       block_or_line_writing_mode,
+                       kFragmentBox,
+                       builder->BoxType()),
       bit_field_(ConstHasFragmentItemsFlag::encode(has_fragment_items) |
                  HasDescendantsForTablePartFlag::encode(false) |
                  IsFragmentationContextRootFlag::encode(
@@ -407,7 +407,7 @@ NGPhysicalBoxFragment::NGPhysicalBoxFragment(
     const NGPhysicalBoxFragment& other,
     bool has_scrollable_overflow,
     const PhysicalRect& scrollable_overflow)
-    : NGPhysicalFragment(other),
+    : PhysicalFragment(other),
       bit_field_(other.bit_field_),
       first_baseline_(other.first_baseline_),
       last_baseline_(other.last_baseline_),
@@ -426,7 +426,7 @@ NGPhysicalBoxFragment::NGPhysicalBoxFragment(
 
 NGPhysicalBoxFragment::~NGPhysicalBoxFragment() {
   // Note: This function may not always be called because the dtor of
-  // NGPhysicalFragment is made non-virtual for memory efficiency.
+  // PhysicalFragment is made non-virtual for memory efficiency.
   SetInkOverflowType(ink_overflow_.Reset(InkOverflowType()));
 }
 
@@ -438,7 +438,7 @@ void NGPhysicalBoxFragment::Dispose() {
 }
 
 // TODO(kojii): Move to ng_physical_fragment.cc
-NGPhysicalFragment::OofData* NGPhysicalFragment::FragmentedOofDataFromBuilder(
+PhysicalFragment::OofData* PhysicalFragment::FragmentedOofDataFromBuilder(
     FragmentBuilder* builder) {
   DCHECK(has_fragmented_out_of_flow_data_);
   DCHECK_EQ(has_fragmented_out_of_flow_data_,
@@ -572,8 +572,9 @@ PhysicalOffset NGPhysicalBoxFragment::OffsetFromOwnerLayoutBox() const {
 const NGPhysicalBoxFragment* NGPhysicalBoxFragment::PostLayout() const {
   // While side effects are disabled, new fragments are not copied to
   // |LayoutBox|. Just return the given fragment.
-  if (NGDisableSideEffectsScope::IsDisabled())
+  if (DisableLayoutSideEffectsScope::IsDisabled()) {
     return this;
+  }
 
   const auto* layout_object = GetSelfOrContainerLayoutObject();
   if (UNLIKELY(!layout_object)) {
@@ -804,7 +805,7 @@ PhysicalRect NGPhysicalBoxFragment::ComputeRubyEmHeightBox() const {
   } else if (layout_object->IsLayoutInline()) {
     // Inline overflow is a union of child overflows.
     PhysicalRect overflow;
-    if (BoxType() != kInlineBox) {
+    if (GetBoxType() != kInlineBox) {
       overflow = PhysicalRect({}, Size());
     }
     for (const auto& child_fragment : PostLayoutChildren()) {
@@ -862,7 +863,7 @@ PhysicalRect NGPhysicalBoxFragment::ComputeRubyEmHeightBoxFromChildren() const {
     }
 
     void AddFloatingOrOutOfFlowPositionedChild(
-        const NGPhysicalFragment& child,
+        const PhysicalFragment& child,
         const PhysicalOffset& child_offset) {
       DCHECK(child.IsFloatingOrOutOfFlowPositioned());
       PhysicalRect child_scrollable_overflow =
@@ -1215,7 +1216,7 @@ PhysicalRect NGPhysicalBoxFragment::ComputeSelfInkOverflow() const {
     LayoutObject::OutlineInfo info;
     // The result rects are in coordinates of this object's border box.
     AddSelfOutlineRects(PhysicalOffset(),
-                        style.OutlineRectsShouldIncludeBlockVisualOverflow(),
+                        style.OutlineRectsShouldIncludeBlockInkOverflow(),
                         collector, &info);
     PhysicalRect rect = collector.Rect();
     rect.Inflate(LayoutUnit(OutlinePainter::OutlineOutsetExtent(style, info)));
@@ -1232,7 +1233,7 @@ void NGPhysicalBoxFragment::InvalidateInkOverflow() {
 
 void NGPhysicalBoxFragment::AddSelfOutlineRects(
     const PhysicalOffset& additional_offset,
-    NGOutlineType outline_type,
+    OutlineType outline_type,
     OutlineRectCollector& collector,
     LayoutObject::OutlineInfo* info) const {
   if (info) {
@@ -1242,9 +1243,9 @@ void NGPhysicalBoxFragment::AddSelfOutlineRects(
       *info = LayoutObject::OutlineInfo::GetFromStyle(Style());
   }
 
-  if (ShouldIncludeBlockVisualOverflow(outline_type) &&
+  if (ShouldIncludeBlockInkOverflow(outline_type) &&
       IsA<HTMLAnchorElement>(GetNode())) {
-    outline_type = NGOutlineType::kIncludeBlockVisualOverflowForAnchor;
+    outline_type = OutlineType::kIncludeBlockInkOverflowForAnchor;
   }
 
   AddOutlineRects(additional_offset, outline_type,
@@ -1253,7 +1254,7 @@ void NGPhysicalBoxFragment::AddSelfOutlineRects(
 
 void NGPhysicalBoxFragment::AddOutlineRects(
     const PhysicalOffset& additional_offset,
-    NGOutlineType outline_type,
+    OutlineType outline_type,
     OutlineRectCollector& collector) const {
   AddOutlineRects(additional_offset, outline_type,
                   /* container_relative */ true, collector);
@@ -1261,7 +1262,7 @@ void NGPhysicalBoxFragment::AddOutlineRects(
 
 void NGPhysicalBoxFragment::AddOutlineRects(
     const PhysicalOffset& additional_offset,
-    NGOutlineType outline_type,
+    OutlineType outline_type,
     bool inline_container_relative,
     OutlineRectCollector& collector) const {
   DCHECK_EQ(PostLayout(), this);
@@ -1285,8 +1286,8 @@ void NGPhysicalBoxFragment::AddOutlineRects(
     }
   }
 
-  if (ShouldIncludeBlockVisualOverflow(outline_type) &&
-      !HasNonVisibleOverflow() && !HasControlClip(*this)) {
+  if (ShouldIncludeBlockInkOverflow(outline_type) && !HasNonVisibleOverflow() &&
+      !HasControlClip(*this)) {
     // Tricky code ahead: we pass a 0,0 additional_offset to
     // AddOutlineRectsForNormalChildren, and add it in after the call.
     // This is necessary because AddOutlineRectsForNormalChildren expects
@@ -1299,7 +1300,7 @@ void NGPhysicalBoxFragment::AddOutlineRects(
         To<LayoutBoxModelObject>(GetLayoutObject()));
     collector.Combine(child_collector, additional_offset);
 
-    if (ShouldIncludeBlockVisualOverflowForAnchorOnly(outline_type)) {
+    if (ShouldIncludeBlockInkOverflowForAnchorOnly(outline_type)) {
       for (const auto& child : PostLayoutChildren()) {
         if (!child->IsOutOfFlowPositioned()) {
           continue;
@@ -1317,7 +1318,7 @@ void NGPhysicalBoxFragment::AddOutlineRects(
 
 void NGPhysicalBoxFragment::AddOutlineRectsForInlineBox(
     PhysicalOffset additional_offset,
-    NGOutlineType outline_type,
+    OutlineType outline_type,
     bool container_relative,
     OutlineRectCollector& collector) const {
   DCHECK_EQ(PostLayout(), this);
@@ -1381,7 +1382,7 @@ void NGPhysicalBoxFragment::AddOutlineRectsForInlineBox(
     additional_offset -= this_offset_in_container;
   collector.Combine(cursor_collector, additional_offset);
 
-  if (ShouldIncludeBlockVisualOverflowForAnchorOnly(outline_type) &&
+  if (ShouldIncludeBlockInkOverflowForAnchorOnly(outline_type) &&
       !HasNonVisibleOverflow() && !HasControlClip(*this)) {
     if (!RuntimeEnabledFeatures::LayoutNewContainingBlockEnabled() &&
         container->IsAnonymousBlock()) {
@@ -1857,7 +1858,7 @@ void NGPhysicalBoxFragment::TraceAfterDispatch(Visitor* visitor) const {
   // in ctor so they do not cause TOCTOU.
   if (HasItems())
     visitor->Trace(*ComputeItemsAddress());
-  NGPhysicalFragment::TraceAfterDispatch(visitor);
+  PhysicalFragment::TraceAfterDispatch(visitor);
 }
 
 }  // namespace blink

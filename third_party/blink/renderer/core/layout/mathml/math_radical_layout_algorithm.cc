@@ -61,7 +61,7 @@ void MathRadicalLayoutAlgorithm::GatherChildren(
   }
 }
 
-const NGLayoutResult* MathRadicalLayoutAlgorithm::Layout() {
+const LayoutResult* MathRadicalLayoutAlgorithm::Layout() {
   DCHECK(!GetBreakToken());
   DCHECK(IsValidMathMLRadical(Node()));
 
@@ -77,8 +77,8 @@ const NGLayoutResult* MathRadicalLayoutAlgorithm::Layout() {
   BlockNode index = nullptr;
   GatherChildren(&base, &index, &container_builder_);
 
-  const NGLayoutResult* base_layout_result = nullptr;
-  const NGLayoutResult* index_layout_result = nullptr;
+  const LayoutResult* base_layout_result = nullptr;
+  const LayoutResult* index_layout_result = nullptr;
   if (base) {
     // Handle layout of base child. For <msqrt> the base is anonymous and uses
     // the row layout algorithm.
@@ -86,7 +86,7 @@ const NGLayoutResult* MathRadicalLayoutAlgorithm::Layout() {
         Node(), ChildAvailableSize(), GetConstraintSpace(), base);
     base_layout_result = base.Layout(constraint_space);
     const auto& base_fragment =
-        To<NGPhysicalBoxFragment>(base_layout_result->PhysicalFragment());
+        To<NGPhysicalBoxFragment>(base_layout_result->GetPhysicalFragment());
     base_margins =
         ComputeMarginsFor(constraint_space, base.Style(), GetConstraintSpace());
     LogicalBoxFragment fragment(GetConstraintSpace().GetWritingDirection(),
@@ -102,7 +102,7 @@ const NGLayoutResult* MathRadicalLayoutAlgorithm::Layout() {
         Node(), ChildAvailableSize(), GetConstraintSpace(), index);
     index_layout_result = index.Layout(constraint_space);
     const auto& index_fragment =
-        To<NGPhysicalBoxFragment>(index_layout_result->PhysicalFragment());
+        To<NGPhysicalBoxFragment>(index_layout_result->GetPhysicalFragment());
     index_margins = ComputeMarginsFor(constraint_space, index.Style(),
                                       GetConstraintSpace());
     LogicalBoxFragment fragment(GetConstraintSpace().GetWritingDirection(),

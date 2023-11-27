@@ -151,7 +151,7 @@ void MathFractionLayoutAlgorithm::GatherChildren(BlockNode* numerator,
   DCHECK(*denominator);
 }
 
-const NGLayoutResult* MathFractionLayoutAlgorithm::Layout() {
+const LayoutResult* MathFractionLayoutAlgorithm::Layout() {
   DCHECK(!GetBreakToken());
 
   BlockNode numerator = nullptr;
@@ -160,23 +160,25 @@ const NGLayoutResult* MathFractionLayoutAlgorithm::Layout() {
 
   const auto numerator_space = CreateConstraintSpaceForMathChild(
       Node(), ChildAvailableSize(), GetConstraintSpace(), numerator);
-  const NGLayoutResult* numerator_layout_result =
+  const LayoutResult* numerator_layout_result =
       numerator.Layout(numerator_space);
   const auto numerator_margins = ComputeMarginsFor(
       numerator_space, numerator.Style(), GetConstraintSpace());
   const auto denominator_space = CreateConstraintSpaceForMathChild(
       Node(), ChildAvailableSize(), GetConstraintSpace(), denominator);
-  const NGLayoutResult* denominator_layout_result =
+  const LayoutResult* denominator_layout_result =
       denominator.Layout(denominator_space);
   const auto denominator_margins = ComputeMarginsFor(
       denominator_space, denominator.Style(), GetConstraintSpace());
 
   const LogicalBoxFragment numerator_fragment(
       GetConstraintSpace().GetWritingDirection(),
-      To<NGPhysicalBoxFragment>(numerator_layout_result->PhysicalFragment()));
+      To<NGPhysicalBoxFragment>(
+          numerator_layout_result->GetPhysicalFragment()));
   const LogicalBoxFragment denominator_fragment(
       GetConstraintSpace().GetWritingDirection(),
-      To<NGPhysicalBoxFragment>(denominator_layout_result->PhysicalFragment()));
+      To<NGPhysicalBoxFragment>(
+          denominator_layout_result->GetPhysicalFragment()));
   const auto baseline_type = Style().GetFontBaseline();
 
   const LayoutUnit numerator_ascent =

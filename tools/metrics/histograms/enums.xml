@@ -15526,12 +15526,12 @@ Called by update_document_policy_enum.py.-->
 
 <enum name="DownloadBubbleSubpageAction">
   <int value="0" label="Subpage shown"/>
-  <int value="1" label="Checkbox shown"/>
+  <int value="1" label="(Obsolete) Checkbox shown"/>
   <int value="2" label="Secondary Button shown"/>
   <int value="3" label="Primary Button shown"/>
   <int value="4" label="Back button pressed"/>
   <int value="5" label="Subpage closed"/>
-  <int value="6" label="Checkbox clicked"/>
+  <int value="6" label="(Obsolete) Checkbox clicked"/>
   <int value="7" label="Secondary button pressed"/>
   <int value="8" label="Primary button pressed"/>
 </enum>
@@ -25257,6 +25257,8 @@ Called by update_use_counter_feature_enum.py.-->
   <int value="4745" label="SubtleCryptoDeriveBitsZeroLength"/>
   <int value="4746" label="SubtleCryptoDeriveBitsTruncation"/>
   <int value="4747" label="TextDirectiveInShadowDOM"/>
+  <int value="4748" label="PseudoFirstLetterOnRt"/>
+  <int value="4749" label="PseudoFirstLineOnRt"/>
 </enum>
 
 <enum name="FeaturePolicyFeature">
@@ -35169,6 +35171,7 @@ from previous Chrome versions.
   <int value="-1157991559" label="CloudApAuthAttachAsHeader:enabled"/>
   <int value="-1156950420"
       label="CryptAuthV2DeviceActivityStatusUseConnectivity:enabled"/>
+  <int value="-1156639003" label="ArcResizeCompat:enabled"/>
   <int value="-1156179600" label="OmniboxRichEntitySuggestions:enabled"/>
   <int value="-1155543191" label="CopylessPaste:disabled"/>
   <int value="-1155411808" label="HoldingSpacePredictability:enabled"/>
@@ -41965,6 +41968,7 @@ from previous Chrome versions.
   <int value="2088061188" label="LibinputHandleTouchpad:enabled"/>
   <int value="2088438916" label="CrosShortstand:disabled"/>
   <int value="2088446947" label="enable-ephemeral-guest-profiles-on-desktop"/>
+  <int value="2088963066" label="ArcResizeCompat:disabled"/>
   <int value="2089897928" label="enable-audio-focus"/>
   <int value="2089901626" label="QuickSettingsPWA:enabled"/>
   <int value="2089934964" label="QuickActionShowBubbleLauncher:enabled"/>

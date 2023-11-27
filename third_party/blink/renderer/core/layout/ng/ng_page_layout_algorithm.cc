@@ -19,7 +19,7 @@ namespace blink {
 PageLayoutAlgorithm::PageLayoutAlgorithm(const LayoutAlgorithmParams& params)
     : LayoutAlgorithm(params) {}
 
-const NGLayoutResult* PageLayoutAlgorithm::Layout() {
+const LayoutResult* PageLayoutAlgorithm::Layout() {
   DCHECK(!GetBreakToken());
   auto writing_direction = GetConstraintSpace().GetWritingDirection();
   const BlockBreakToken* break_token = nullptr;
@@ -98,9 +98,9 @@ const NGPhysicalBoxFragment* PageLayoutAlgorithm::LayoutPage(
       CalculateInitialFragmentGeometry(child_space, Node(), GetBreakToken());
   BlockLayoutAlgorithm child_algorithm(
       {Node(), fragment_geometry, child_space, break_token});
-  child_algorithm.SetBoxType(NGPhysicalFragment::kPageBox);
-  const NGLayoutResult* result = child_algorithm.Layout();
-  return &To<NGPhysicalBoxFragment>(result->PhysicalFragment());
+  child_algorithm.SetBoxType(PhysicalFragment::kPageBox);
+  const LayoutResult* result = child_algorithm.Layout();
+  return &To<NGPhysicalBoxFragment>(result->GetPhysicalFragment());
 }
 
 ConstraintSpace PageLayoutAlgorithm::CreateConstraintSpaceForPages(

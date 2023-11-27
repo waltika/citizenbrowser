@@ -21,10 +21,10 @@ struct ResultWithOffset {
   DISALLOW_NEW();
 
  public:
-  Member<const NGLayoutResult> result;
+  Member<const LayoutResult> result;
   LogicalOffset offset;
 
-  ResultWithOffset(const NGLayoutResult* result, LogicalOffset offset)
+  ResultWithOffset(const LayoutResult* result, LogicalOffset offset)
       : result(result), offset(offset) {}
 
   void Trace(Visitor* visitor) const { visitor->Trace(result); }
@@ -34,7 +34,7 @@ TableRowLayoutAlgorithm::TableRowLayoutAlgorithm(
     const LayoutAlgorithmParams& params)
     : LayoutAlgorithm(params) {}
 
-const NGLayoutResult* TableRowLayoutAlgorithm::Layout() {
+const LayoutResult* TableRowLayoutAlgorithm::Layout() {
   const TableConstraintSpaceData& table_data =
       *GetConstraintSpace().TableData();
   const auto& row = table_data.rows[GetConstraintSpace().TableRowIndex()];
@@ -138,8 +138,8 @@ const NGLayoutResult* TableRowLayoutAlgorithm::Layout() {
     results.clear();
     has_inflow_break_inside = false;
 
-    NGBlockChildIterator child_iterator(Node().FirstChild(), GetBreakToken(),
-                                        /* calculate_child_idx */ true);
+    BlockChildIterator child_iterator(Node().FirstChild(), GetBreakToken(),
+                                      /* calculate_child_idx */ true);
     for (auto entry = child_iterator.NextChild();
          BlockNode cell = To<BlockNode>(entry.node);
          entry = child_iterator.NextChild()) {
@@ -155,9 +155,9 @@ const NGLayoutResult* TableRowLayoutAlgorithm::Layout() {
       const auto cell_space = CreateCellConstraintSpace(
           cell, cell_break_token, cell_data, row_block_size, row_baseline,
           min_block_size_should_encompass_intrinsic_size);
-      const NGLayoutResult* cell_result =
+      const LayoutResult* cell_result =
           cell.Layout(cell_space, cell_break_token);
-      DCHECK_EQ(cell_result->Status(), NGLayoutResult::kSuccess);
+      DCHECK_EQ(cell_result->Status(), LayoutResult::kSuccess);
 
       const LogicalOffset offset(
           table_data.column_locations[cell_data.start_column].offset -
@@ -181,7 +181,7 @@ const NGLayoutResult* TableRowLayoutAlgorithm::Layout() {
 
       bool has_rowspan = cell_data.rowspan_block_size != kIndefiniteSize;
       const auto& physical_fragment =
-          To<NGPhysicalBoxFragment>(cell_result->PhysicalFragment());
+          To<NGPhysicalBoxFragment>(cell_result->GetPhysicalFragment());
       const LogicalBoxFragment fragment(table_data.table_writing_direction,
                                         physical_fragment);
       row_baseline_tabulator.ProcessCell(

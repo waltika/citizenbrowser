@@ -204,16 +204,16 @@ bool HasBlockSizeDependentGridItem(const GridItems& grid_items) {
 
 }  // namespace
 
-const NGLayoutResult* GridLayoutAlgorithm::Layout() {
+const LayoutResult* GridLayoutAlgorithm::Layout() {
   const auto* result = LayoutInternal();
-  if (result->Status() == NGLayoutResult::kDisableFragmentation) {
+  if (result->Status() == LayoutResult::kDisableFragmentation) {
     DCHECK(GetConstraintSpace().HasBlockFragmentation());
     return RelayoutWithoutFragmentation<GridLayoutAlgorithm>();
   }
   return result;
 }
 
-const NGLayoutResult* GridLayoutAlgorithm::LayoutInternal() {
+const LayoutResult* GridLayoutAlgorithm::LayoutInternal() {
   PaintLayerScrollableArea::DelayScrollOffsetClampScope delay_clamp_scope;
 
   LayoutUnit intrinsic_block_size;
@@ -320,7 +320,7 @@ const NGLayoutResult* GridLayoutAlgorithm::LayoutInternal() {
         node, constraint_space, border_padding.block_end,
         FragmentainerSpaceLeft(constraint_space), &container_builder_);
     if (status == BreakStatus::kDisableFragmentation) {
-      return container_builder_.Abort(NGLayoutResult::kDisableFragmentation);
+      return container_builder_.Abort(LayoutResult::kDisableFragmentation);
     }
     DCHECK_EQ(status, BreakStatus::kContinue);
   } else {
@@ -999,7 +999,7 @@ LayoutUnit GridLayoutAlgorithm::ComputeIntrinsicBlockSizeIgnoringChildren()
 
 namespace {
 
-const NGLayoutResult* LayoutGridItemForMeasure(
+const LayoutResult* LayoutGridItemForMeasure(
     const GridItemData& grid_item,
     const ConstraintSpace& constraint_space,
     SizingConstraint sizing_constraint) {
@@ -1012,7 +1012,7 @@ const NGLayoutResult* LayoutGridItemForMeasure(
   // TODO(ikilpatrick): For subgrid, ideally we don't want to disable side
   // effects as it may impact performance significantly; this issue can be
   // avoided by introducing additional cache slots (see crbug.com/1272533).
-  absl::optional<NGDisableSideEffectsScope> disable_side_effects;
+  absl::optional<DisableLayoutSideEffectsScope> disable_side_effects;
   if (!node.GetLayoutBox()->NeedsLayout() &&
       (sizing_constraint != SizingConstraint::kLayout ||
        grid_item.is_subgridded_to_parent_grid)) {
@@ -1203,7 +1203,7 @@ LayoutUnit GridLayoutAlgorithm::ContributionSizeForGridItem(
     if (is_for_columns)
       grid_item->is_sizing_dependent_on_block_size = true;
 
-    const NGLayoutResult* result = nullptr;
+    const LayoutResult* result = nullptr;
     if (space.AvailableSize().inline_size == kIndefiniteSize) {
       // If we are orthogonal grid item, resolving against an indefinite size,
       // set our inline size to our max-content contribution size.
@@ -1221,7 +1221,7 @@ LayoutUnit GridLayoutAlgorithm::ContributionSizeForGridItem(
 
     LogicalBoxFragment baseline_fragment(
         grid_item->BaselineWritingDirection(track_direction),
-        To<NGPhysicalBoxFragment>(result->PhysicalFragment()));
+        To<NGPhysicalBoxFragment>(result->GetPhysicalFragment()));
 
     if (grid_item->IsBaselineAligned(track_direction)) {
       CalculateBaselineShim(
@@ -1633,7 +1633,7 @@ void GridLayoutAlgorithm::ComputeGridItemBaselines(
         grid_item.BaselineWritingDirection(track_direction);
     const LogicalBoxFragment baseline_fragment(
         baseline_writing_direction,
-        To<NGPhysicalBoxFragment>(result->PhysicalFragment()));
+        To<NGPhysicalBoxFragment>(result->GetPhysicalFragment()));
 
     const bool has_synthesized_baseline =
         !baseline_fragment.FirstBaseline().has_value();
@@ -3569,7 +3569,7 @@ void GridLayoutAlgorithm::PlaceGridItems(
 
     auto* result = grid_item.node.Layout(space);
     const auto& physical_fragment =
-        To<NGPhysicalBoxFragment>(result->PhysicalFragment());
+        To<NGPhysicalBoxFragment>(result->GetPhysicalFragment());
     LogicalBoxFragment fragment(container_writing_direction, physical_fragment);
 
     auto BaselineOffset = [&](GridTrackSizingDirection track_direction,
@@ -3670,14 +3670,14 @@ struct ResultAndOffsets {
   DISALLOW_NEW();
 
  public:
-  ResultAndOffsets(const NGLayoutResult* result,
+  ResultAndOffsets(const LayoutResult* result,
                    LogicalOffset offset,
                    LogicalOffset relative_offset)
       : result(result), offset(offset), relative_offset(relative_offset) {}
 
   void Trace(Visitor* visitor) const { visitor->Trace(result); }
 
-  Member<const NGLayoutResult> result;
+  Member<const LayoutResult> result;
   LogicalOffset offset;
   LogicalOffset relative_offset;
 };
@@ -3864,7 +3864,7 @@ void GridLayoutAlgorithm::PlaceGridItemsForFragmentation(
           // Although we know that this item isn't going to fit here, we're
           // inside balanced multicol, so we need to figure out how much more
           // fragmentainer space we'd need to fit more content.
-          NGDisableSideEffectsScope disable_side_effects;
+          DisableLayoutSideEffectsScope disable_side_effects;
           auto* result = grid_item.node.Layout(space, break_token);
           PropagateSpaceShortage(constraint_space, result,
                                  fragment_relative_block_offset,
@@ -3877,7 +3877,7 @@ void GridLayoutAlgorithm::PlaceGridItemsForFragmentation(
         continue;
 
       auto* result = grid_item.node.Layout(space, break_token);
-      DCHECK_EQ(result->Status(), NGLayoutResult::kSuccess);
+      DCHECK_EQ(result->Status(), LayoutResult::kSuccess);
       result_and_offsets.emplace_back(
           result,
           LogicalOffset(item_placement_data.offset.inline_offset,
@@ -3886,7 +3886,7 @@ void GridLayoutAlgorithm::PlaceGridItemsForFragmentation(
 
       const LogicalBoxFragment fragment(
           container_writing_direction,
-          To<NGPhysicalBoxFragment>(result->PhysicalFragment()));
+          To<NGPhysicalBoxFragment>(result->GetPhysicalFragment()));
       baseline_accumulator.Accumulate(grid_item, fragment,
                                       fragment_relative_block_offset);
 
@@ -3966,7 +3966,7 @@ void GridLayoutAlgorithm::PlaceGridItemsForFragmentation(
         }
 
         LayoutUnit item_expansion;
-        if (result->PhysicalFragment().GetBreakToken()) {
+        if (result->GetPhysicalFragment().GetBreakToken()) {
           // This item may have a break, and will want to expand into the next
           // fragmentainer, (causing the row to expand into the next
           // fragmentainer). We can't use the size of the fragment, as we don't

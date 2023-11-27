@@ -1265,7 +1265,7 @@ static inline bool ObjectIsRelayoutBoundary(const LayoutObject* object) {
   }
 
   // We need a previous layout result to begin layout at a subtree root.
-  const NGLayoutResult* layout_result = box->GetCachedLayoutResult(nullptr);
+  const LayoutResult* layout_result = box->GetCachedLayoutResult(nullptr);
   if (!layout_result) {
     return false;
   }
@@ -1307,7 +1307,7 @@ static inline bool ObjectIsRelayoutBoundary(const LayoutObject* object) {
   }
 
   // Make sure our fragment is safe to use.
-  const NGPhysicalFragment& fragment = layout_result->PhysicalFragment();
+  const auto& fragment = layout_result->GetPhysicalFragment();
   if (fragment.IsLayoutObjectDestroyedOrMoved()) {
     return false;
   }
@@ -1533,22 +1533,22 @@ void LayoutObject::MarkContainerChainForLayout(bool schedule_relayout) {
 
 // LayoutNG has different OOF-positioned handling compared to the existing
 // layout system. To correctly determine the static-position of the object,
-// LayoutNG "bubbles" up the static-position inside the NGLayoutResult.
-// See: |NGLayoutResult::OutOfFlowPositionedDescendants()|.
+// LayoutNG "bubbles" up the static-position inside the LayoutResult.
+// See: |LayoutResult::OutOfFlowPositionedDescendants()|.
 //
 // Column spanners also have a bubbling mechanism, and therefore also need to
 // mark ancestors between the element itself and the containing block (the
 // multicol container).
 //
 // Whenever an OOF-positioned object is added/removed we need to invalidate
-// layout for all the layout objects which may have stored a NGLayoutResult
+// layout for all the layout objects which may have stored a LayoutResult
 // with this object contained in that list.
 //
 // In the future it may be possible to optimize this, e.g.
 //  - For the removal case, add a pass which modifies the layout result to
 //    remove the OOF-positioned descendant.
 //  - For the adding case, if the OOF-positioned doesn't require a
-//    static-position, simply insert the object up the NGLayoutResult chain with
+//    static-position, simply insert the object up the LayoutResult chain with
 //    an invalid static-position.
 void LayoutObject::MarkParentForSpannerOrOutOfFlowPositionedChange() {
   NOT_DESTROYED();
@@ -1575,7 +1575,7 @@ void LayoutObject::MarkParentForSpannerOrOutOfFlowPositionedChange() {
     object = object->Parent();
   }
   // Finally mark the parent block for layout. This will mark everything which
-  // has an OOF-positioned object or column spanner in a NGLayoutResult as
+  // has an OOF-positioned object or column spanner in a LayoutResult as
   // needing layout.
   if (object)
     object->SetChildNeedsLayout();
@@ -4194,6 +4194,11 @@ const ComputedStyle* LayoutObject::FirstLineStyleWithoutFallback() const {
         if (const ComputedStyle* cached =
                 first_line_block->GetCachedPseudoElementStyle(
                     kPseudoIdFirstLine)) {
+          // TODO(crbug.com/1501719): See
+          // LayoutObject::BehavesLikeBlockContainer().
+          if (IsRubyText() && IsA<HTMLRTElement>(GetNode())) {
+            UseCounter::Count(GetDocument(), WebFeature::kPseudoFirstLineOnRt);
+          }
           return cached;
         }
         continue;
@@ -4971,7 +4976,7 @@ bool LayoutObject::CanBeSelectionLeaf() const {
 }
 
 Vector<PhysicalRect> LayoutObject::CollectOutlineRectsAndAdvance(
-    NGOutlineType outline_type,
+    OutlineType outline_type,
     AccompaniedFragmentIterator& iterator) const {
   NOT_DESTROYED();
   Vector<PhysicalRect> outline_rects;
@@ -5018,7 +5023,7 @@ Vector<PhysicalRect> LayoutObject::CollectOutlineRectsAndAdvance(
 Vector<PhysicalRect> LayoutObject::OutlineRects(
     OutlineInfo* info,
     const PhysicalOffset& additional_offset,
-    NGOutlineType outline_type) const {
+    OutlineType outline_type) const {
   NOT_DESTROYED();
   VectorOutlineRectCollector collector;
   AddOutlineRects(collector, info, additional_offset, outline_type);

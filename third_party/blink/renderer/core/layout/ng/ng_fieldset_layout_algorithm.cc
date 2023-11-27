@@ -68,7 +68,7 @@ FieldsetLayoutAlgorithm::FieldsetLayoutAlgorithm(
   border_box_size_ = container_builder_.InitialBorderBoxSize();
 }
 
-const NGLayoutResult* FieldsetLayoutAlgorithm::Layout() {
+const LayoutResult* FieldsetLayoutAlgorithm::Layout() {
   // Layout of a fieldset container consists of two parts: Create a child
   // fragment for the rendered legend (if any), and create a child fragment for
   // the fieldset contents anonymous box (if any).
@@ -92,7 +92,7 @@ const NGLayoutResult* FieldsetLayoutAlgorithm::Layout() {
   BreakStatus break_status = LayoutChildren();
   if (break_status == BreakStatus::kNeedsEarlierBreak) {
     // We need to abort the layout. No fragment will be generated.
-    return container_builder_.Abort(NGLayoutResult::kNeedsEarlierBreak);
+    return container_builder_.Abort(LayoutResult::kNeedsEarlierBreak);
   }
 
   intrinsic_block_size_ = ClampIntrinsicBlockSize(
@@ -250,12 +250,12 @@ void FieldsetLayoutAlgorithm::LayoutLegend(BlockNode& legend) {
 
   auto legend_space = CreateConstraintSpaceForLegend(
       legend, ChildAvailableSize(), percentage_size);
-  const NGLayoutResult* result = legend.Layout(legend_space, GetBreakToken());
+  const LayoutResult* result = legend.Layout(legend_space, GetBreakToken());
 
   // Legends are monolithic, so abortions are not expected.
-  DCHECK_EQ(result->Status(), NGLayoutResult::kSuccess);
+  DCHECK_EQ(result->Status(), LayoutResult::kSuccess);
 
-  const auto& physical_fragment = result->PhysicalFragment();
+  const auto& physical_fragment = result->GetPhysicalFragment();
 
   LayoutUnit legend_border_box_block_size =
       LogicalFragment(writing_direction_, physical_fragment).BlockSize();
@@ -288,7 +288,7 @@ void FieldsetLayoutAlgorithm::LayoutLegend(BlockNode& legend) {
 
   LayoutUnit legend_inline_start = ComputeLegendInlineOffset(
       legend.Style(),
-      LogicalFragment(writing_direction_, result->PhysicalFragment())
+      LogicalFragment(writing_direction_, result->GetPhysicalFragment())
           .InlineSize(),
       legend_margins, Style(), BorderScrollbarPadding().inline_start,
       ChildAvailableSize().inline_size);
@@ -340,7 +340,7 @@ BreakStatus FieldsetLayoutAlgorithm::LayoutFieldsetContent(
     }
   }
 
-  const NGLayoutResult* result = nullptr;
+  const LayoutResult* result = nullptr;
   bool is_past_end = GetBreakToken() && GetBreakToken()->IsAtBlockEnd();
 
   LayoutUnit max_content_block_size = LayoutUnit::Max();
@@ -367,7 +367,7 @@ BreakStatus FieldsetLayoutAlgorithm::LayoutFieldsetContent(
   // - The intrinsic block-size of the content is larger than the
   //   max-block-size.
   if (max_content_block_size != LayoutUnit::Max() &&
-      (!result || result->Status() == NGLayoutResult::kSuccess)) {
+      (!result || result->Status() == LayoutResult::kSuccess)) {
     DCHECK_EQ(adjusted_padding_box_size.block_size, kIndefiniteSize);
     if (max_content_block_size > Padding().BlockSum()) {
       // intrinsic_block_size_ is
@@ -379,7 +379,7 @@ BreakStatus FieldsetLayoutAlgorithm::LayoutFieldsetContent(
     }
 
     if (result) {
-      const auto& fragment = result->PhysicalFragment();
+      const auto& fragment = result->GetPhysicalFragment();
       LayoutUnit total_block_size =
           LogicalFragment(writing_direction_, fragment).BlockSize();
       if (content_break_token)
@@ -409,12 +409,12 @@ BreakStatus FieldsetLayoutAlgorithm::LayoutFieldsetContent(
   }
 
   if (break_status == BreakStatus::kContinue) {
-    DCHECK_EQ(result->Status(), NGLayoutResult::kSuccess);
+    DCHECK_EQ(result->Status(), LayoutResult::kSuccess);
     LogicalOffset offset(Borders().inline_start, intrinsic_block_size_);
     container_builder_.AddResult(*result, offset);
 
     const auto& fragment =
-        To<NGPhysicalBoxFragment>(result->PhysicalFragment());
+        To<NGPhysicalBoxFragment>(result->GetPhysicalFragment());
     if (auto first_baseline = fragment.FirstBaseline()) {
       container_builder_.SetFirstBaseline(offset.block_offset +
                                           *first_baseline);

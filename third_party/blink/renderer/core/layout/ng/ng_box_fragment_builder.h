@@ -32,7 +32,7 @@
 
 namespace blink {
 
-class NGPhysicalFragment;
+class PhysicalFragment;
 
 class CORE_EXPORT BoxFragmentBuilder final : public FragmentBuilder {
   STACK_ALLOCATED();
@@ -146,7 +146,7 @@ class CORE_EXPORT BoxFragmentBuilder final : public FragmentBuilder {
   LayoutUnit IntrinsicBlockSize() const { return intrinsic_block_size_; }
   const BoxStrut& Borders() const {
     DCHECK(initial_fragment_geometry_);
-    DCHECK_NE(BoxType(), NGPhysicalFragment::kInlineBox);
+    DCHECK_NE(BoxType(), PhysicalFragment::kInlineBox);
     return initial_fragment_geometry_->border;
   }
   const BoxStrut& Scrollbar() const {
@@ -189,7 +189,7 @@ class CORE_EXPORT BoxFragmentBuilder final : public FragmentBuilder {
   // that's passed to the function, but if this is a line box with a block
   // inside (aka. block-in-inline), it will return the layout result for the
   // block instead.
-  const NGLayoutResult& LayoutResultForPropagation(const NGLayoutResult&) const;
+  const LayoutResult& LayoutResultForPropagation(const LayoutResult&) const;
 
   // Add a break token for a child that doesn't yet have any fragments, because
   // its first fragment is to be produced in the next fragmentainer. This will
@@ -210,20 +210,20 @@ class CORE_EXPORT BoxFragmentBuilder final : public FragmentBuilder {
   // |inline_container| is passed when adding an OOF that is contained by a
   // non-atomic inline.
   void AddResult(
-      const NGLayoutResult&,
+      const LayoutResult&,
       const LogicalOffset,
       absl::optional<const BoxStrut> margins,
       absl::optional<LogicalOffset> relative_offset = absl::nullopt,
       const OofInlineContainer<LogicalOffset>* inline_container = nullptr);
   // AddResult() with the default margin computation.
-  void AddResult(const NGLayoutResult& child_layout_result,
+  void AddResult(const LayoutResult& child_layout_result,
                  const LogicalOffset offset);
 
   // Add a child fragment and propagate info from it. Called by AddResult().
   // Other callers should call AddResult() instead of this when possible, since
   // there is information in the layout result that might need to be propagated.
   void AddChild(
-      const NGPhysicalFragment&,
+      const PhysicalFragment&,
       const LogicalOffset&,
       const MarginStrut* margin_strut = nullptr,
       bool is_self_collapsing = false,
@@ -414,7 +414,7 @@ class CORE_EXPORT BoxFragmentBuilder final : public FragmentBuilder {
 
   // See |NGPhysicalBoxFragment::InflowBounds|.
   void SetInflowBounds(const LogicalRect& inflow_bounds) {
-    DCHECK_NE(box_type_, NGPhysicalBoxFragment::NGBoxType::kInlineBox);
+    DCHECK_NE(box_type_, PhysicalFragment::BoxType::kInlineBox);
     DCHECK(Node().IsScrollContainer());
 #if DCHECK_IS_ON()
     is_inflow_bounds_explicitly_set_ = true;
@@ -432,15 +432,15 @@ class CORE_EXPORT BoxFragmentBuilder final : public FragmentBuilder {
   }
 
   // Creates the fragment. Can only be called once.
-  const NGLayoutResult* ToBoxFragment() {
-    DCHECK_NE(BoxType(), NGPhysicalFragment::kInlineBox);
+  const LayoutResult* ToBoxFragment() {
+    DCHECK_NE(BoxType(), PhysicalFragment::kInlineBox);
     return ToBoxFragment(GetWritingMode());
   }
-  const NGLayoutResult* ToInlineBoxFragment() {
+  const LayoutResult* ToInlineBoxFragment() {
     // The logical coordinate for inline box uses line-relative writing-mode,
     // not
     // flow-relative.
-    DCHECK_EQ(BoxType(), NGPhysicalFragment::kInlineBox);
+    DCHECK_EQ(BoxType(), PhysicalFragment::kInlineBox);
     return ToBoxFragment(ToLineWritingMode(GetWritingMode()));
   }
 
@@ -624,15 +624,15 @@ class CORE_EXPORT BoxFragmentBuilder final : public FragmentBuilder {
   }
 
   // Propagate the break-before/break-after of the child (if applicable).
-  void PropagateChildBreakValues(const NGLayoutResult& child_layout_result);
+  void PropagateChildBreakValues(const LayoutResult& child_layout_result);
 
  private:
   // Propagate fragmentation details. This includes checking whether we have
   // fragmented in this flow, break appeal, column spanner detection, and column
   // balancing hints.
-  void PropagateBreakInfo(const NGLayoutResult&, LogicalOffset);
+  void PropagateBreakInfo(const LayoutResult&, LogicalOffset);
 
-  const NGLayoutResult* ToBoxFragment(WritingMode);
+  const LayoutResult* ToBoxFragment(WritingMode);
 
   const FragmentGeometry* initial_fragment_geometry_ = nullptr;
   BoxStrut border_padding_;
@@ -721,7 +721,7 @@ class CORE_EXPORT BoxFragmentBuilder final : public FragmentBuilder {
 
   friend class BlockBreakToken;
   friend class NGPhysicalBoxFragment;
-  friend class NGLayoutResult;
+  friend class LayoutResult;
   friend class PhysicalFragmentRareData;
 };
 
