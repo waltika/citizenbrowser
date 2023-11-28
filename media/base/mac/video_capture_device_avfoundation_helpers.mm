@@ -25,8 +25,13 @@ NSArray<AVCaptureDevice*>* GetVideoCaptureDevices() {
   // before. See crbug.com/1484830.
   if (@available(macOS 14.0, *)) {
     if (base::FeatureList::IsEnabled(kUseAVCaptureDeviceTypeExternal)) {
+#ifdef AVCaptureDeviceTypeExternal
       captureDeviceTypes =
           [captureDeviceTypes arrayByAddingObject:AVCaptureDeviceTypeExternal];
+#else
+        captureDeviceTypes =
+            [captureDeviceTypes arrayByAddingObject:AVCaptureDeviceTypeExternalUnknown];
+#endif
     } else {
       // @available needs to be alone in an if statement, so we need to
       // duplicate the else case here.
