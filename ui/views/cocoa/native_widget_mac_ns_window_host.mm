@@ -816,7 +816,8 @@ void NativeWidgetMacNSWindowHost::SetVisibilityState(
   // On macOS 14 an application can't generally activate themselves. If we're
   // trying to activate a window in a remote application host, this yield
   // should make sure this works as long as chrome is the currently active
-  // application.
+  // application
+#ifdef yieldActivationToApplicationWithBundleIdentifier
   if (@available(macOS 14, *)) {
     if (application_host_ &&
         new_state == WindowVisibilityState::kShowAndActivateWindow) {
@@ -824,6 +825,7 @@ void NativeWidgetMacNSWindowHost::SetVisibilityState(
                  base::SysUTF8ToNSString(application_host_->bundle_id())];
     }
   }
+#endif
   GetNSWindowMojo()->SetVisibilityState(new_state);
 }
 
