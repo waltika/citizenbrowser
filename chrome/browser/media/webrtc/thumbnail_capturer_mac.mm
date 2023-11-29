@@ -397,6 +397,7 @@ void ScreenshotManagerCapturer::SCScreenshotCaptureWindow(SCWindow* window) {
     config.width = std::round(thumbnail_size_.height() * window_aspect_ratio);
   }
 
+#ifdef SCScreenshotManager
   SCContentFilter* filter =
       [[SCContentFilter alloc] initWithDesktopIndependentWindow:window];
 
@@ -412,7 +413,6 @@ void ScreenshotManagerCapturer::SCScreenshotCaptureWindow(SCWindow* window) {
     captured_frame_callback.Run(scopedImage, [window windowID]);
   };
 
-#ifdef SCScreenshotManager
   [SCScreenshotManager captureImageWithFilter:filter
                                 configuration:config
                             completionHandler:handler];
