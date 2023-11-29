@@ -412,9 +412,11 @@ void ScreenshotManagerCapturer::SCScreenshotCaptureWindow(SCWindow* window) {
     captured_frame_callback.Run(scopedImage, [window windowID]);
   };
 
+#ifdef SCScreenshotManager
   [SCScreenshotManager captureImageWithFilter:filter
                                 configuration:config
                             completionHandler:handler];
+#endif
 }
 
 class API_AVAILABLE(macos(13.2)) ThumbnailCapturerMac
