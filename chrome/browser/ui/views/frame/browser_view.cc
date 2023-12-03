@@ -53,6 +53,7 @@
 #include "chrome/browser/segmentation_platform/segmentation_platform_service_factory.h"
 #include "chrome/browser/sessions/tab_restore_service_factory.h"
 #include "chrome/browser/sharing_hub/sharing_hub_features.h"
+#include "chrome/browser/citizen_x/citizen_x_features.h"
 #include "chrome/browser/signin/chrome_signin_helper.h"
 #include "chrome/browser/sync/sync_service_factory.h"
 #include "chrome/browser/themes/theme_properties.h"
@@ -81,6 +82,8 @@
 #include "chrome/browser/ui/sad_tab_helper.h"
 #include "chrome/browser/ui/sharing_hub/sharing_hub_bubble_controller.h"
 #include "chrome/browser/ui/sharing_hub/sharing_hub_bubble_view.h"
+#include "chrome/browser/ui/citizen_x/citizen_x_bubble_controller.h"
+#include "chrome/browser/ui/citizen_x/citizen_x_bubble_view.h"
 #include "chrome/browser/ui/side_panel/side_panel_ui.h"
 #include "chrome/browser/ui/side_search/side_search_utils.h"
 #include "chrome/browser/ui/sync/bubble_sync_promo_delegate.h"
@@ -143,6 +146,8 @@
 #include "chrome/browser/ui/views/sharing_hub/screenshot/screenshot_captured_bubble.h"
 #include "chrome/browser/ui/views/sharing_hub/sharing_hub_bubble_view_impl.h"
 #include "chrome/browser/ui/views/sharing_hub/sharing_hub_icon_view.h"
+#include "chrome/browser/ui/views/citizen_x/citizen_x_bubble_view_impl.h"
+#include "chrome/browser/ui/views/citizen_x/citizen_x_icon_view.h"
 #include "chrome/browser/ui/views/side_panel/side_panel.h"
 #include "chrome/browser/ui/views/side_panel/side_panel_coordinator.h"
 #include "chrome/browser/ui/views/side_panel/side_panel_registry.h"
@@ -2883,6 +2888,7 @@ SharingDialog* BrowserView::ShowSharingDialog(
   return dialog_view;
 }
 
+
 send_tab_to_self::SendTabToSelfBubbleView*
 BrowserView::ShowSendTabToSelfDevicePickerBubble(
     content::WebContents* web_contents) {
@@ -2933,6 +2939,11 @@ views::Button* BrowserView::GetSharingHubIconButton() {
       PageActionIconType::kSharingHub);
 }
 
+views::Button* BrowserView::GetCitizenXIconButton() {
+  return toolbar_button_provider()->GetPageActionIconView(
+      PageActionIconType::kCitizenX);
+}
+
 void BrowserView::ToggleMultitaskMenu() const {
   auto* frame_view =
       static_cast<BrowserNonClientFrameViewChromeOS*>(frame_->GetFrameView());
@@ -2965,6 +2976,27 @@ sharing_hub::SharingHubBubbleView* BrowserView::ShowSharingHubBubble(
 
   return bubble;
 }
+
+citizen_x::CitizenXBubbleView* BrowserView::ShowCitizenXBubble(
+    share::ShareAttempt attempt) {
+  auto* bubble = new citizen_x::CitizenXBubbleViewImpl(
+      toolbar_button_provider()->GetAnchorView(PageActionIconType::kCitizenX),
+      attempt,
+      citizen_x::CitizenXBubbleController::CreateOrGetFromWebContents(
+          attempt.web_contents.get()));
+  PageActionIconView* icon_view =
+      toolbar_button_provider()->GetPageActionIconView(
+          PageActionIconType::kCitizenX);
+  if (icon_view)
+    bubble->SetHighlightedButton(icon_view);
+
+  views::BubbleDialogDelegateView::CreateBubble(bubble);
+  // This is always triggered due to a user gesture, c.f. method documentation.
+  bubble->ShowForReason(citizen_x::CitizenXBubbleViewImpl::USER_GESTURE);
+
+  return bubble;
+}
+
 #endif  // BUILDFLAG(IS_CHROMEOS)
 
 ShowTranslateBubbleResult BrowserView::ShowTranslateBubble(

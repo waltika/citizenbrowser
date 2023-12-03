@@ -103,6 +103,8 @@ enum ViewID {
 
   // The header in the App Identity Update dialog.
   VIEW_ID_APP_IDENTITY_UPDATE_HEADER,
+    
+  VIEW_ID_CITIZEN_X_BUTTON,
 
   // Used in chrome/browser/ui/cocoa/view_id_util_browsertest.mm.
   // If you add new ids, make sure the above test passes.

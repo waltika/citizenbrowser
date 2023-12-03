@@ -4773,6 +4773,8 @@ static_library("ui") {
       "sharing_hub/screenshot/screenshot_captured_bubble_controller.h",
       "sharing_hub/sharing_hub_bubble_controller.h",
       "sharing_hub/sharing_hub_bubble_view.h",
+      "citizen_x/citizen_x_bubble_controller.h",
+      "citizen_x/citizen_x_bubble_view.h",
       "side_panel/companion/companion_side_panel_controller_utils.h",
       "side_panel/companion/companion_tab_helper.cc",
       "side_panel/companion/companion_tab_helper.h",
@@ -5677,6 +5679,10 @@ static_library("ui") {
       "views/sharing_hub/sharing_hub_bubble_util.h",
       "views/sharing_hub/sharing_hub_icon_view.cc",
       "views/sharing_hub/sharing_hub_icon_view.h",
+      "views/citizen_x/citizen_x_bubble_action_button.cc",
+      "views/citizen_x/citizen_x_bubble_action_button.h",
+      "views/citizen_x/citizen_x_icon_view.cc",
+      "views/citizen_x/citizen_x_icon_view.h",
       "views/shopping_bubble/shopping_prompt_impl.cc",
       "views/shopping_bubble/shopping_prompt_impl.h",
       "views/side_panel/bookmarks/bookmarks_side_panel_coordinator.cc",
@@ -6275,6 +6281,8 @@ static_library("ui") {
         "idle_dialog.h",
         "sharing_hub/sharing_hub_bubble_controller_desktop_impl.cc",
         "sharing_hub/sharing_hub_bubble_controller_desktop_impl.h",
+        "citizen_x/citizen_x_bubble_controller_desktop_impl.cc",
+        "citizen_x/citizen_x_bubble_controller_desktop_impl.h",
         "views/frame/opaque_browser_frame_view.cc",
         "views/frame/opaque_browser_frame_view.h",
         "views/frame/opaque_browser_frame_view_layout.cc",
@@ -6286,6 +6294,8 @@ static_library("ui") {
         "views/screen_capture_notification_ui_views.cc",
         "views/sharing_hub/sharing_hub_bubble_view_impl.cc",
         "views/sharing_hub/sharing_hub_bubble_view_impl.h",
+        "views/citizen_x/citizen_x_bubble_view_impl.cc",
+        "views/citizen_x/citizen_x_bubble_view_impl.h",
       ]
       deps += [ "//ui/views/window/vector_icons" ]
     }

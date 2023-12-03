@@ -38,7 +38,8 @@ enum class PageActionIconType {
   kMandatoryReauth,
   kPriceInsights,
   kReadAnything,
-  kMaxValue = kReadAnything,
+  kCitizenX,
+  kMaxValue = kCitizenX,
 };
 
 static_assert(static_cast<int>(PageActionIconType::kBookmarkStar) == 0);

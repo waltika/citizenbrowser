@@ -377,6 +377,7 @@ void LocationBarView::Init() {
     if (sharing_hub::HasPageAction(profile_, is_popup_mode_) &&
         !features::IsChromeRefresh2023()) {
       params.types_enabled.push_back(PageActionIconType::kSharingHub);
+      params.types_enabled.push_back(PageActionIconType::kCitizenX);
     }
   }
   if (browser_ && !is_popup_mode_)

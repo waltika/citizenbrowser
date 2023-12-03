@@ -111,6 +111,7 @@ DialogActivationLocationAndCastMode GetActivationLocationAndCastMode(
       break;
     // |OVERFLOW_MENU| refers to extension icons hidden in the app menu. That
     // mode is no longer available for the Cast toolbar icon.
+    case MediaRouterDialogActivationLocation::CITIZEN_X:
     case MediaRouterDialogActivationLocation::OVERFLOW_MENU:
     case MediaRouterDialogActivationLocation::SYSTEM_TRAY:
     case MediaRouterDialogActivationLocation::TOTAL_COUNT:

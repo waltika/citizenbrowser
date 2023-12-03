@@ -583,6 +583,8 @@ class BrowserView : public BrowserWindow,
 #else
   sharing_hub::SharingHubBubbleView* ShowSharingHubBubble(
       share::ShareAttempt attempt) override;
+  citizen_x::CitizenXBubbleView* ShowCitizenXBubble(share::ShareAttempt attempt) override;
+                        
 #endif  // BUILDFLAG(IS_CHROMEOS)
   ShowTranslateBubbleResult ShowTranslateBubble(
       content::WebContents* contents,

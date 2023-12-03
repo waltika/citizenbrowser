@@ -34,6 +34,56 @@
 #include "base/android/build_info.h"
 #endif
 
+class OmniboxPedalCitizenX : public OmniboxPedal {
+ public:
+    OmniboxPedalCitizenX()
+      : OmniboxPedal(
+            OmniboxPedalId::CITIZEN_X,
+            LabelStrings(IDS_OMNIBOX_PEDAL_CLEAR_BROWSING_DATA_HINT,
+                         IDS_OMNIBOX_PEDAL_CLEAR_BROWSING_DATA_SUGGESTION_CONTENTS,
+                         IDS_ACC_OMNIBOX_PEDAL_CLEAR_BROWSING_DATA_SUFFIX,
+                         IDS_ACC_OMNIBOX_PEDAL_CLEAR_BROWSING_DATA), //TODO: change to proper labels
+            GURL()) {}
+
+  std::vector<SynonymGroupSpec> SpecifySynonymGroups(
+      bool locale_is_english) const override {
+    if (locale_is_english) {
+      return {
+          {
+              true,
+              true,
+              IDS_OMNIBOX_PEDAL_SYNONYMS_SHARE_THIS_PAGE_ONE_REQUIRED_SHARE_LINK_WITH_QR_CODE,
+          },
+      };
+    } else {
+      return {
+          {
+              true,
+              true,
+              IDS_OMNIBOX_PEDAL_SYNONYMS_SHARE_THIS_PAGE_ONE_REQUIRED_SHARE_THIS_PAGE,
+          },
+      };
+    }
+  }
+
+  const gfx::VectorIcon& GetVectorIcon() const override {
+    return GetCitizenXVectorIcon();
+  }
+
+  bool IsReadyToTrigger(
+      const AutocompleteInput& input,
+      const AutocompleteProviderClient& client) const override {
+    return client.IsSharingHubAvailable();
+  }
+
+  void Execute(ExecutionContext& context) const override {
+    context.client_->OpenSharingHub();
+  }
+
+ protected:
+  ~OmniboxPedalCitizenX() override = default;
+};
+
 // =============================================================================
 
 class OmniboxPedalClearBrowsingData : public OmniboxPedal {
@@ -2006,6 +2056,10 @@ const gfx::VectorIcon& GetSharingHubVectorIcon() {
              ? omnibox::kShareChromeRefreshIcon
              : omnibox::kShareIcon;
 #endif
+}
+
+const gfx::VectorIcon& GetCitizenXVectorIcon() {
+  return omnibox::kCitizenXIcon;
 }
 
 // NOTE: When `testing` is true, all platform-appropriate pedals should be

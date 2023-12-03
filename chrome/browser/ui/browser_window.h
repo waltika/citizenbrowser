@@ -83,6 +83,10 @@ class ScreenshotCapturedBubble;
 class SharingHubBubbleView;
 }  // namespace sharing_hub
 
+namespace citizen_x {
+class CitizenXBubbleView;
+}  // namespace citizen_x
+
 namespace signin_metrics {
 enum class AccessPoint;
 }
@@ -388,7 +392,7 @@ class BrowserWindow : public ui::BaseWindow {
   // Shows the dialog for a sharing feature.
   virtual SharingDialog* ShowSharingDialog(content::WebContents* contents,
                                            SharingDialogData data) = 0;
-
+    
   // Shows the Update Recommended dialog box.
   virtual void ShowUpdateChromeDialog() = 0;
 
@@ -452,6 +456,11 @@ class BrowserWindow : public ui::BaseWindow {
   // of user action.
   virtual sharing_hub::SharingHubBubbleView* ShowSharingHubBubble(
       share::ShareAttempt attempt) = 0;
+    
+  virtual citizen_x::CitizenXBubbleView* ShowCitizenXBubble(
+      share::ShareAttempt attempt) = 0;
+
+
 #endif  // BUILDFLAG(IS_CHROMEOS)
 
   // Shows the Full Page Translate bubble.

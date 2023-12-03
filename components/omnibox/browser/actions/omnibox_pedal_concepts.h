@@ -55,6 +55,7 @@ enum class OmniboxPedalId {
   CUSTOMIZE_SEARCH_ENGINES = 38,
   MANAGE_CHROMEOS_ACCESSIBILITY = 39,
   SET_CHROME_AS_DEFAULT_BROWSER = 40,
+  CITIZEN_X = 41,
 
   // Last value, used to track the upper bounds when recording type histograms.
   // This intentionally does not have an assigned value to ensure that it's

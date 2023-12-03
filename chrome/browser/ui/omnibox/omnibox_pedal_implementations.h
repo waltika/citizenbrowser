@@ -23,5 +23,7 @@ GetPedalImplementations(bool incognito, bool guest, bool testing);
 // (Chrome Action button) in the omnibox. It returns the sharing hub icon,
 // taking platform into account.
 const gfx::VectorIcon& GetSharingHubVectorIcon();
+const gfx::VectorIcon& GetCitizenXVectorIcon();
+
 
 #endif  // CHROME_BROWSER_UI_OMNIBOX_OMNIBOX_PEDAL_IMPLEMENTATIONS_H_

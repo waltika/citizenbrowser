@@ -62,11 +62,12 @@ enum class DialogActivationLocationAndCastMode {
   kPageAndRemotePlayback,
   kAppMenuAndRemotePlayback,
   kSharingHubAndRemotePlayback,
+  kCitizenX,
 
   // NOTE: Do not reorder existing entries, and add entries only immediately
   // above this line. Remember to also update
   // tools/metrics/histograms/enums.xml.
-  kMaxValue = kSharingHubAndRemotePlayback,
+  kMaxValue = kCitizenX,
 };
 
 // These values are persisted to logs. Entries should not be renumbered and
@@ -80,10 +81,11 @@ enum class MediaRouterDialogActivationLocation {
   APP_MENU = 4,
   SYSTEM_TRAY = 5,
   SHARING_HUB = 6,
+  CITIZEN_X = 7,
 
   // NOTE: Add entries only immediately above this line. Remember to also update
   // tools/metrics/histograms/enums.xml.
-  TOTAL_COUNT = 7
+  TOTAL_COUNT = 8
 };
 
 enum class PresentationUrlType {
