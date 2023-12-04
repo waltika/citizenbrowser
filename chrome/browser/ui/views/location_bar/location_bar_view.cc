@@ -374,10 +374,10 @@ void LocationBarView::Init() {
   params.types_enabled.push_back(PageActionIconType::kSaveAutofillAddress);
 
   if (browser_) {
+    params.types_enabled.push_back(PageActionIconType::kCitizenX);
     if (sharing_hub::HasPageAction(profile_, is_popup_mode_) &&
         !features::IsChromeRefresh2023()) {
       params.types_enabled.push_back(PageActionIconType::kSharingHub);
-      params.types_enabled.push_back(PageActionIconType::kCitizenX);
     }
   }
   if (browser_ && !is_popup_mode_)
