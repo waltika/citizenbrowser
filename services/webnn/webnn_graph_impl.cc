@@ -36,6 +36,10 @@ size_t GetBytesPerElement(mojom::Operand::DataType operand_type) {
       return sizeof(int32_t);
     case mojom::Operand::DataType::kUint32:
       return sizeof(uint32_t);
+    case mojom::Operand::DataType::kInt64:
+      return sizeof(int64_t);
+    case mojom::Operand::DataType::kUint64:
+      return sizeof(uint64_t);
     case mojom::Operand::DataType::kInt8:
       return sizeof(int8_t);
     case mojom::Operand::DataType::kUint8:
@@ -55,6 +59,10 @@ webnn::Operand::DataType MojoOperandTypeToComponent(
       return webnn::Operand::DataType::kInt32;
     case mojom::Operand::DataType::kUint32:
       return webnn::Operand::DataType::kUint32;
+    case mojom::Operand::DataType::kInt64:
+      return webnn::Operand::DataType::kInt64;
+    case mojom::Operand::DataType::kUint64:
+      return webnn::Operand::DataType::kUint64;
     case mojom::Operand::DataType::kInt8:
       return webnn::Operand::DataType::kInt8;
     case mojom::Operand::DataType::kUint8:
@@ -160,6 +168,27 @@ const mojom::Operand* GetMojoOperand(const IdToOperandMap& id_to_operand_map,
     return nullptr;
   }
   return operand_iterator->second.get();
+}
+
+webnn::BatchNormalizationAttributes ConvertToBatchNormalizationAttributes(
+    const IdToOperandMap& id_to_operand_map,
+    const mojom::BatchNormalizationPtr& batch_normalization) {
+  webnn::BatchNormalizationAttributes component_attributes;
+  const auto& scale_operand_id = batch_normalization->scale_operand_id;
+  if (scale_operand_id) {
+    const mojom::OperandPtr& scale_operand =
+        id_to_operand_map.at(scale_operand_id.value());
+    component_attributes.scale = ConvertToComponentOperand(scale_operand.get());
+  }
+  const auto& bias_operand_id = batch_normalization->bias_operand_id;
+  if (bias_operand_id) {
+    const mojom::OperandPtr& bias_operand =
+        id_to_operand_map.at(bias_operand_id.value());
+    component_attributes.bias = ConvertToComponentOperand(bias_operand.get());
+  }
+  component_attributes.axis = batch_normalization->axis;
+
+  return component_attributes;
 }
 
 template <typename Conv2dAttributesType>
@@ -334,6 +363,57 @@ bool ValidateCastOperation(const IdToOperandMap& id_to_operand_map,
     // The output shape is not expected.
     return false;
   }
+
+  return true;
+}
+
+bool ValidateBatchNormalization(
+    const IdToOperandMap& id_to_operand_map,
+    const mojom::BatchNormalizationPtr& batch_normalization) {
+  const auto* input =
+      GetMojoOperand(id_to_operand_map, batch_normalization->input_operand_id);
+  const auto* mean =
+      GetMojoOperand(id_to_operand_map, batch_normalization->mean_operand_id);
+  const auto* variance = GetMojoOperand(
+      id_to_operand_map, batch_normalization->variance_operand_id);
+  const auto* output =
+      GetMojoOperand(id_to_operand_map, batch_normalization->output_operand_id);
+  if (!input || !mean || !variance || !output || output == input ||
+      output == mean || output == variance) {
+    // The batchNormalization operator is invalid.
+    return false;
+  }
+  const auto& scale_operand_id = batch_normalization->scale_operand_id;
+  if (scale_operand_id &&
+      !id_to_operand_map.contains(scale_operand_id.value())) {
+    // The scale operand is invalid.
+    return false;
+  }
+  const auto& bias_operand_id = batch_normalization->bias_operand_id;
+  if (bias_operand_id && !id_to_operand_map.contains(bias_operand_id.value())) {
+    // The bias operand is invalid.
+    return false;
+  }
+
+  // Validate the activation if the option is configured.
+  const auto& activation = batch_normalization->activation;
+  if (activation && !ValidateActivation(activation)) {
+    // The activation is invalid.
+    return false;
+  }
+
+  const auto validated_output = ValidateBatchNormalizationAndInferOutput(
+      ConvertToComponentOperand(input), ConvertToComponentOperand(mean),
+      ConvertToComponentOperand(variance),
+      ConvertToBatchNormalizationAttributes(id_to_operand_map,
+                                            batch_normalization));
+  if (!validated_output.has_value()) {
+    return false;
+  }
+  if (validated_output != ConvertToComponentOperand(output)) {
+    return false;
+  }
+
   return true;
 }
 
@@ -580,6 +660,29 @@ bool ValidateExpand(const IdToOperandMap& id_to_operand_map,
     return false;
   }
   CHECK(output_shape.value() == output->dimensions);
+
+  return true;
+}
+
+bool ValidateGather(const IdToOperandMap& id_to_operand_map,
+                    const mojom::GatherPtr& gather) {
+  auto* input = GetMojoOperand(id_to_operand_map, gather->input_operand_id);
+  auto* output = GetMojoOperand(id_to_operand_map, gather->output_operand_id);
+  auto* indices = GetMojoOperand(id_to_operand_map, gather->indices_operand_id);
+  if (!input || !output || !indices || output == input || output == indices) {
+    // The gather operator is invalid.
+    return false;
+  }
+
+  auto validated_output = ValidateGatherAndInferOutput(
+      ConvertToComponentOperand(input), ConvertToComponentOperand(indices),
+      gather->axis);
+  if (!validated_output.has_value()) {
+    return false;
+  }
+  if (validated_output != ConvertToComponentOperand(output)) {
+    return false;
+  }
 
   return true;
 }
@@ -892,6 +995,35 @@ bool ValidateTranspose(const IdToOperandMap& id_to_operand_map,
   return true;
 }
 
+bool ValidateWhere(const IdToOperandMap& id_to_operand_map,
+                   const mojom::WherePtr& where) {
+  auto* condition =
+      GetMojoOperand(id_to_operand_map, where->condition_operand_id);
+  auto* true_value =
+      GetMojoOperand(id_to_operand_map, where->true_value_operand_id);
+  auto* false_value =
+      GetMojoOperand(id_to_operand_map, where->false_value_operand_id);
+  auto* output = GetMojoOperand(id_to_operand_map, where->output_operand_id);
+  if (!condition || !true_value || !false_value || !output ||
+      output == condition || output == true_value || output == false_value) {
+    // The where operator is invalid.
+    return false;
+  }
+
+  auto validated_output =
+      ValidateWhereAndInferOutput(ConvertToComponentOperand(condition),
+                                  ConvertToComponentOperand(true_value),
+                                  ConvertToComponentOperand(false_value));
+  if (!validated_output.has_value()) {
+    return false;
+  }
+  if (validated_output != ConvertToComponentOperand(output)) {
+    return false;
+  }
+
+  return true;
+}
+
 bool ValidateReduce(const IdToOperandMap& id_to_operand_map,
                     const mojom::ReducePtr& reduce) {
   auto* input = GetMojoOperand(id_to_operand_map, reduce->input_operand_id);
@@ -937,6 +1069,9 @@ base::flat_map<std::string, size_t> CreateByteLengthMap(
 bool ValidateOperation(const IdToOperandMap& id_to_operand_map,
                        const mojom::OperationPtr& operation) {
   switch (operation->which()) {
+    case mojom::Operation::Tag::kBatchNormalization:
+      return ValidateBatchNormalization(id_to_operand_map,
+                                        operation->get_batch_normalization());
     case mojom::Operation::Tag::kClamp:
       return ValidateClamp(id_to_operand_map, operation->get_clamp());
     case mojom::Operation::Tag::kConcat:
@@ -953,6 +1088,8 @@ bool ValidateOperation(const IdToOperandMap& id_to_operand_map,
                                       operation->get_element_wise_unary());
     case mojom::Operation::Tag::kExpand:
       return ValidateExpand(id_to_operand_map, operation->get_expand());
+    case mojom::Operation::Tag::kGather:
+      return ValidateGather(id_to_operand_map, operation->get_gather());
     case mojom::Operation::Tag::kGemm:
       return ValidateGemm(id_to_operand_map, operation->get_gemm());
     case mojom::Operation::Tag::kLeakyRelu:
@@ -988,6 +1125,8 @@ bool ValidateOperation(const IdToOperandMap& id_to_operand_map,
                                     DataTypeConstraint::kFloat);
     case mojom::Operation::Tag::kTranspose:
       return ValidateTranspose(id_to_operand_map, operation->get_transpose());
+    case mojom::Operation::Tag::kWhere:
+      return ValidateWhere(id_to_operand_map, operation->get_where());
   }
   NOTREACHED_NORETURN();
 }

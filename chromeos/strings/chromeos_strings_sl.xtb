@@ -31,7 +31,6 @@
 <translation id="1181037720776840403">Odstrani</translation>
 <translation id="1191518099344003522">APN je omogočen.</translation>
 <translation id="1195447618553298278">Neznana napaka.</translation>
-<translation id="1195784767091936222">Vklop samodejnega temnega načina</translation>
 <translation id="1196959502276349371">Različica <ph name="VERSION" /></translation>
 <translation id="1199355487114804640">Predvajanje/začasna zaustavitev</translation>
 <translation id="1201402288615127009">Naprej</translation>
@@ -152,7 +151,6 @@
 <translation id="1923388006036088459">Barve poudarka</translation>
 <translation id="1947737735496445907">Natisnjeno</translation>
 <translation id="1951012854035635156">Pomočnik</translation>
-<translation id="1954687945444914660">fotografija</translation>
 <translation id="1962550982027027473">Privzeti APN je obvezen</translation>
 <translation id="1973886230221301399">ChromeVox</translation>
 <translation id="1977994649430373166">Fotografija za profil v Googlu</translation>
@@ -261,6 +259,7 @@
 <translation id="2872961005593481000">Zaustavitev</translation>
 <translation id="2873483161362553159">Premikanje po brskalniku</translation>
 <translation id="2874939134665556319">Prejšnja skladba</translation>
+<translation id="2875812231449496375">Če želite najboljše rezultate s tem zaslonskim ozadjem, vklopite to nastavitev. Kadar koli jo lahko izklopite.</translation>
 <translation id="2878387241690264070">Izpraznjeno: <ph name="RATE" /> v <ph name="NUM_SECONDS" /> s.</translation>
 <translation id="2880569433548999039">Ohranjevalnik zaslona premika oblakov</translation>
 <translation id="2926057806159140518">Vnesite uporabniško ime in geslo ali optično preberite kodo QR.</translation>
@@ -281,7 +280,6 @@
 <translation id="3122464029669770682">CPE</translation>
 <translation id="3124039320086536031">Naprava je povezana.</translation>
 <translation id="3127341325625468058">{PAGE_NUMBER,plural, =0{Želite odstrani stran?}=1{Želite odstraniti {PAGE_NUMBER}. stran?}one{Želite odstraniti {PAGE_NUMBER}. stran?}two{Želite odstraniti {PAGE_NUMBER}. stran?}few{Želite odstraniti {PAGE_NUMBER}. stran?}other{Želite odstraniti {PAGE_NUMBER}. stran?}}</translation>
-<translation id="3136905423678675159">Želite vklopiti samodejni temni način?</translation>
 <translation id="3146655726035122603">Na voljo samo v napravi <ph name="PRODUCT_NAME" /></translation>
 <translation id="315116470104423982">Prenos podatkov v mobilnih omrežjih</translation>
 <translation id="3156846309055100599">Optično branje <ph name="PAGE_NUMBER" />. strani ...</translation>
@@ -362,7 +360,6 @@
 <translation id="3740976234706877572"><ph name="AVERAGE_SCORE" /> ★ (število mnenj: <ph name="AGGREGATED_COUNT" />)</translation>
 <translation id="3748026146096797577">Povezava ni vzpostavljena</translation>
 <translation id="3749289110408117711">Ime datoteke</translation>
-<translation id="3754384069690464321">Če želite najboljše rezultate s tem zaslonskim ozadjem, vklopite samodejni temni način. Kadar koli ga lahko znova povrnete v aplikaciji.</translation>
 <translation id="3771294271822695279">Videodatoteke</translation>
 <translation id="3784455785234192852">Zakleni</translation>
 <translation id="380097101658023925">Kontrolniki za RGB</translation>
@@ -555,6 +552,7 @@
 <translation id="5090362543162270857">IPsec (IKEv2)</translation>
 <translation id="5137451382116112100">Cel zaslon</translation>
 <translation id="5142961317498132443">Preverjanje pristnosti</translation>
+<translation id="5145081769226915336">Želite samodejno vklopiti temni način?</translation>
 <translation id="5154917547274118687">Pomnilnik</translation>
 <translation id="5160857336552977725">Prijavite se v napravo <ph name="DEVICE_TYPE" /></translation>
 <translation id="5166918508782100047">Nastavitve hitrih odgovorov</translation>
@@ -596,7 +594,6 @@
 <translation id="5389224261615877010">Mavrica</translation>
 <translation id="5400907029458559844">Naprava se povezuje.</translation>
 <translation id="5401938042319910061">Izvedi vse rutine</translation>
-<translation id="540604120278030498">New York</translation>
 <translation id="5423849171846380976">Aktivirano</translation>
 <translation id="5430931332414098647">Takojšnji internet prek mobilnega telefona</translation>
 <translation id="5431318178759467895">Barvno</translation>
@@ -806,7 +803,6 @@
 <translation id="7046522406494308071">Želite ponastaviti vse bližnjice na privzete vrednosti?</translation>
 <translation id="7058278511608979688">Končaj in shrani</translation>
 <translation id="7059230779847288458">Polnjenje; do napolnjenosti še <ph name="TIME_VALUE" /></translation>
-<translation id="7065364575846974659">Pariz</translation>
 <translation id="7066538517128343186">ključ <ph name="KEY" /></translation>
 <translation id="7068619307603204412">Pripravite napravo</translation>
 <translation id="708426984172631313">USTAVLJENO</translation>
@@ -947,7 +943,6 @@
 <translation id="8094062939584182041">Googlu dovolite, da se po e-pošti obrne na vas glede te težave</translation>
 <translation id="8104083085214006426">Uporabljate odprto omrežje, ki ni varno.</translation>
 <translation id="8111706652656628199">Bližnjica ni na voljo. Pritisnite novo bližnjico s tipko Shift in še 1 modifikatorsko tipko (ctrl, alt, iskanje ali zaganjalnik).</translation>
-<translation id="8112538018114444149">Park v kraju <ph name="CHIP_CITY" /> v tem slogu: <ph name="CHIP_STYLE" />.</translation>
 <translation id="811820734797650957">Prehod je mogoče preveriti (Android)</translation>
 <translation id="8129620843620772246"><ph name="TEMPERATURE_C" /> °C</translation>
 <translation id="8132480444149501833">Zahtevaj števce prometa</translation>
@@ -1082,7 +1077,6 @@
 <translation id="9058932992221914855">IPv6</translation>
 <translation id="9062831201344759865">Razreševanje DNS ima veliko zakasnitev.</translation>
 <translation id="9065203028668620118">Uredi</translation>
-<translation id="9068296451330120661">akvarel</translation>
 <translation id="9073281213608662541">PAP</translation>
 <translation id="9074739597929991885">Bluetooth</translation>
 <translation id="9082718469794970195">Uporabi ta videoposnetek</translation>

@@ -88,7 +88,7 @@
 #include "components/grit/components_scaled_resources.h"
 #include "components/heap_profiling/in_process/heap_profiler_controller.h"
 #include "components/history_clusters/core/config.h"
-#include "components/metrics/call_stack_profile_builder.h"
+#include "components/metrics/call_stacks/call_stack_profile_builder.h"
 #include "components/network_hints/renderer/web_prescient_networking_impl.h"
 #include "components/no_state_prefetch/renderer/no_state_prefetch_client.h"
 #include "components/no_state_prefetch/renderer/no_state_prefetch_helper.h"
@@ -315,8 +315,8 @@ void AppendParams(
         WebString::FromUTF16(additional_params[i].value);
   }
 
-  existing_names->Swap(names);
-  existing_values->Swap(values);
+  existing_names->swap(names);
+  existing_values->swap(values);
 }
 #endif  // BUILDFLAG(ENABLE_PLUGINS)
 

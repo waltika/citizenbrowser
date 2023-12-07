@@ -4,14 +4,14 @@
 
 #include "third_party/blink/renderer/core/layout/mathml/math_row_layout_algorithm.h"
 
+#include "third_party/blink/renderer/core/layout/block_break_token.h"
+#include "third_party/blink/renderer/core/layout/fragmentation_utils.h"
 #include "third_party/blink/renderer/core/layout/inline/inline_child_layout_context.h"
+#include "third_party/blink/renderer/core/layout/length_utils.h"
+#include "third_party/blink/renderer/core/layout/logical_box_fragment.h"
 #include "third_party/blink/renderer/core/layout/mathml/math_layout_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_block_break_token.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_box_fragment.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_fragmentation_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_length_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_out_of_flow_layout_part.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_physical_box_fragment.h"
+#include "third_party/blink/renderer/core/layout/out_of_flow_layout_part.h"
+#include "third_party/blink/renderer/core/layout/physical_box_fragment.h"
 #include "third_party/blink/renderer/core/mathml/mathml_element.h"
 #include "third_party/blink/renderer/core/mathml/mathml_operator_element.h"
 
@@ -69,7 +69,7 @@ void MathRowLayoutAlgorithm::LayoutRowItems(ChildrenVector* children,
         [&](const LayoutResult* result) {
           LogicalBoxFragment fragment(
               constraint_space.GetWritingDirection(),
-              To<NGPhysicalBoxFragment>(result->GetPhysicalFragment()));
+              To<PhysicalBoxFragment>(result->GetPhysicalFragment()));
           LayoutUnit ascent = fragment.FirstBaselineOrSynthesize(baseline_type);
           stretch_sizes.ascent = std::max(stretch_sizes.ascent, ascent),
           stretch_sizes.descent =
@@ -154,7 +154,7 @@ void MathRowLayoutAlgorithm::LayoutRowItems(ChildrenVector* children,
     if (should_add_space)
       DetermineOperatorSpacing(To<BlockNode>(child), &lspace, &rspace);
     const auto& physical_fragment =
-        To<NGPhysicalBoxFragment>(child_layout_result->GetPhysicalFragment());
+        To<PhysicalBoxFragment>(child_layout_result->GetPhysicalFragment());
     LogicalBoxFragment fragment(constraint_space.GetWritingDirection(),
                                 physical_fragment);
 

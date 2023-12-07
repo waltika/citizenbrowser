@@ -111,12 +111,11 @@ BASE_FEATURE(kAllowSyncXHRInPageDismissal,
              "AllowSyncXHRInPageDismissal",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-// Enables URN URLs like those produced by FLEDGE auctions to be displayed by
-// iframes (instead of requiring fenced frames). This is only intended to be
-// enabled as part of the FLEDGE origin trial.
+// Enables URN URLs like those produced by Protected Audience auctions to be
+// displayed by iframes (instead of requiring fenced frames).
 BASE_FEATURE(kAllowURNsInIframes,
              "AllowURNsInIframes",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Anchor Element Interaction
 BASE_FEATURE(kAnchorElementInteraction,
@@ -150,7 +149,7 @@ BASE_FEATURE(kAutofillSendUnidentifiedKeyAfterFill,
 // instead of static counters.
 BASE_FEATURE(kAutofillUseDomNodeIdForRendererId,
              "AutofillUseDomNodeIdForRendererId",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Apply lazy-loading to ad frames which have embeds likely impacting Core Web
 // Vitals.
@@ -164,6 +163,8 @@ BASE_FEATURE(kAutoSpeculationRules,
              base::FEATURE_DISABLED_BY_DEFAULT);
 const base::FeatureParam<std::string> kAutoSpeculationRulesConfig{
     &kAutoSpeculationRules, "config", "{}"};
+const base::FeatureParam<bool> kAutoSpeculationRulesHoldback{
+    &kAutoSpeculationRules, "holdback", false};
 
 // The timeout value that forces loading iframes that are lazy loaded by
 // LazyAds. After this timeout, the frame loading is triggered even when the
@@ -256,11 +257,9 @@ const base::FeatureParam<std::string>
 
 // See https://github.com/WICG/turtledove/blob/main/FLEDGE.md
 // Feature flag to enable debug reporting APIs.
-// Due to an issue in how prevWins were stored this flag should not be enabled
-// until July 2023.
 BASE_FEATURE(kBiddingAndScoringDebugReportingAPI,
              "BiddingAndScoringDebugReportingAPI",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Blink garbage collection.
 // Enables compaction of backing stores on Blink's heap.
@@ -507,6 +506,11 @@ BASE_FEATURE(kClientHintsSaveData,
 BASE_FEATURE(kClientHintsViewportWidth,
              "ClientHintsViewportWidth",
              base::FEATURE_ENABLED_BY_DEFAULT);
+
+// Enable `form-factor` client hint for XR devices.
+BASE_FEATURE(kClientHintsXRFormFactor,
+             "ClientHintsXRFormFactor",
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Enable legacy `viewport-width` client hint.
 BASE_FEATURE(kClientHintsViewportWidth_DEPRECATED,
@@ -778,12 +782,16 @@ BASE_FEATURE(kFencedFramesM120FeaturesPart1,
 // enabled.)
 // Part 2:
 // * Support leaving interest group from ad components.
-// * Relax the attestation requirement of post-impression beacons from Protected
-// Audience only to either Protected Audience or Attribution Reporting.
 // * Split off the `reserved.top_navigation` automatic beacon type into
 //   `reserved.top_navigation_start` and `reserved.top_navigation_commit.
 BASE_FEATURE(kFencedFramesM120FeaturesPart2,
              "FencedFramesM120FeaturesPart2",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+// Relax the attestation requirement of post-impression beacons from Protected
+// Audience only to either Protected Audience or Attribution Reporting.
+BASE_FEATURE(kFencedFramesReportingAttestationsChanges,
+             "FencedFramesReportingAttestationsChanges",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Temporarily un-disable credentials on fenced frame automatic beacons until
@@ -819,7 +827,7 @@ BASE_FEATURE(kFilteringScrollPrediction,
 
 BASE_FEATURE(kFixGestureScrollQueuingBug,
              "FixGestureScrollQueuingBug",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // See https://github.com/WICG/turtledove/blob/main/FLEDGE.md
 // Enables FLEDGE implementation. See https://crbug.com/1186444.
@@ -845,7 +853,7 @@ BASE_FEATURE(kFledgeEnforceKAnonymity,
 
 BASE_FEATURE(kFledgePassKAnonStatusToReportWin,
              "FledgePassKAnonStatusToReportWin",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 BASE_FEATURE(kFledgePassRecencyToGenerateBid,
              "FledgePassRecencyToGenerateBid",
@@ -997,7 +1005,7 @@ const char kIntensiveWakeUpThrottling_GracePeriodSeconds_Name[] =
 // API exposure will be disabled regardless of the OT config.
 BASE_FEATURE(kInterestGroupStorage,
              "InterestGroupStorage",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 // TODO(crbug.com/1197209): Adjust these limits in response to usage.
 const base::FeatureParam<int> kInterestGroupStorageMaxOwners{
     &kInterestGroupStorage, "max_owners", 1000};
@@ -1025,7 +1033,7 @@ const base::FeatureParam<IsolateSandboxedIframesGrouping>::Option
 const base::FeatureParam<IsolateSandboxedIframesGrouping>
     kIsolateSandboxedIframesGroupingParam{
         &kIsolateSandboxedIframes, "grouping",
-        IsolateSandboxedIframesGrouping::kPerSite,
+        IsolateSandboxedIframesGrouping::kPerOrigin,
         &isolated_sandboxed_iframes_grouping_types};
 
 BASE_FEATURE(kKalmanDirectionCutOff,
@@ -1287,14 +1295,11 @@ BASE_FEATURE(kMemoryCacheStrongReferenceSingleUnload,
 // If kNavigationPredictor is enabled, then metrics of anchor elements
 // in the first viewport after the page load and the metrics of the clicked
 // anchor element will be extracted and recorded.
+// Note that the desktop roll out is being done separately from android. See
+// https://crbug.com/1419556
 BASE_FEATURE(kNavigationPredictor,
              "NavigationPredictor",
-#if BUILDFLAG(IS_ANDROID)
-             base::FEATURE_ENABLED_BY_DEFAULT
-#else
-             base::FEATURE_DISABLED_BY_DEFAULT
-#endif
-);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 BASE_FEATURE(kNewBaseUrlInheritanceBehavior,
              "NewBaseUrlInheritanceBehavior",
@@ -1512,6 +1517,10 @@ BASE_FEATURE(kPrivateAggregationApiMultipleCloudProviders,
              "PrivateAggregationApiMultipleCloudProviders",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
+BASE_FEATURE(kPrivateNetworkAccessNullIpAddress,
+             "PrivateNetworkAccessNullIpAddress",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
 BASE_FEATURE(kProcessHtmlDataImmediately,
              "ProcessHtmlDataImmediately",
              base::FEATURE_DISABLED_BY_DEFAULT);
@@ -1551,7 +1560,7 @@ BASE_FEATURE(kLocalCompileHints,
 
 BASE_FEATURE(kQueueBlockingGestureScrolls,
              "QueueBlockingGestureScrolls",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 BASE_FEATURE(kQuoteEmptySecChUaStringHeadersConsistently,
              "QuoteEmptySecChUaStringHeadersConsistently",
@@ -1694,8 +1703,7 @@ BASE_FEATURE(kSendCnameAliasesToSubresourceFilterFromRenderer,
 
 BASE_FEATURE(kSerializeAccessibilityPostLifecycle,
              "SerializeAccessibilityPostLifecycle",
-             base::FEATURE_ENABLED_BY_DEFAULT
-);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Experiment of the delay from navigation to starting an update of a service
 // worker's script.
@@ -2007,6 +2015,14 @@ BASE_FEATURE(kUACHOverrideBlank,
              "UACHOverrideBlank",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
+// If enabled, the body of `EmulateLoadStartedForInspector` is executed only
+// once per Resource per ResourceFetcher, and thus duplicated network load
+// entries in DevTools caused by `EmulateLoadStartedForInspector` are removed.
+// https://crbug.com/1502591
+BASE_FEATURE(kEmulateLoadStartedForInspectorOncePerResource,
+             "kEmulateLoadStartedForInspectorOncePerResource",
+             base::FEATURE_ENABLED_BY_DEFAULT);
+
 BASE_FEATURE(kUseBlinkSchedulerTaskRunnerWithCustomDeleter,
              "UseBlinkSchedulerTaskRunnerWithCustomDeleter",
              base::FEATURE_ENABLED_BY_DEFAULT);
@@ -2274,6 +2290,9 @@ BASE_FEATURE(kExpandCompositedCullRect,
 const base::FeatureParam<int> kPixelDistanceToExpand(&kExpandCompositedCullRect,
                                                      "pixels",
                                                      4000);
+BASE_FEATURE(kTreatHTTPExpiresHeaderValueZeroAsExpiredInBlink,
+             "TreatHTTPExpiresHeaderValueZeroAsExpiredInBlink",
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 }  // namespace features
 }  // namespace blink

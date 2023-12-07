@@ -102,6 +102,26 @@ chromium-metrics-reviews@google.com.
                of Autofill UKM metrics per origin based on origin popularity."/>
   <variant name="BloomFilterValidation"
       summary="Validates bloom filer allowlist/blocklist based hints"/>
+  <variant name="CapitalOneCreditCardDiningBenefits"
+      summary="This optimization provides information about whether a
+               merchant url is eligible for dining credit card benefits.
+               Applies to only Capital One credit cards that support benefits
+               on Chrome"/>
+  <variant name="CapitalOneCreditCardEntertainmentBenefits"
+      summary="This optimization provides information about whether a
+               merchant url is eligible for entertainment credit card
+               benefits. Applies to only Capital One credit cards that
+               support benefits on Chrome"/>
+  <variant name="CapitalOneCreditCardGroceryBenefits"
+      summary="This optimization provides information about whether a
+               merchant url is eligible for grocery credit card benefits.
+               Applies to only Capital One credit cards that support benefits
+               on Chrome"/>
+  <variant name="CapitalOneCreditCardStreamingBenefits"
+      summary="This optimization provides information about whether a
+               merchant url is eligible for streaming credit card benefits.
+               Applies to only Capital One credit cards that support benefits
+               on Chrome"/>
   <variant name="Compose"
       summary="Returns suitability of this page for compose."/>
   <variant name="CompressPublicImages" summary="Compresses public images"/>
@@ -151,6 +171,32 @@ chromium-metrics-reviews@google.com.
       summary="Returns price related data for shopping websites"/>
   <variant name="SalientImage"
       summary="Provides information about images for a URL."/>
+  <variant name="SharedCreditCardDiningBenefits"
+      summary="This optimization provides information about whether a
+               merchant url is eligible for dining credit card benefits.
+               Applies to all credit cards that support benefits on Chrome"/>
+  <variant name="SharedCreditCardEntertainmentBenefits"
+      summary="This optimization provides information about whether a
+               merchant url is eligible for entertainment credit card
+               benefits. Applies to all credit cards that support benefits on
+               Chrome"/>
+  <variant name="SharedCreditCardFlightBenefits"
+      summary="This optimization provides information about whether a
+               merchant url is eligible for flight credit card benefits.
+               Applies to all credit cards that support benefits on Chrome"/>
+  <variant name="SharedCreditCardGroceryBenefits"
+      summary="This optimization provides information about whether a
+               merchant url is eligible for grocery credit card benefits.
+               Applies to all credit cards that support benefits on Chrome"/>
+  <variant name="SharedCreditCardStreamingBenefits"
+      summary="This optimization provides information about whether a
+               merchant url is eligible for streamining credit card benefits.
+               Applies to all credit cards that support benefits on Chrome"/>
+  <variant name="SharedCreditCardSubscriptionBenefits"
+      summary="This optimization provides information about whether a
+               merchant url is eligible for subscription credit card
+               benefits. Applies to all credit cards that support benefits on
+               Chrome"/>
   <variant name="ShoppingDiscounts"
       summary="This optimization provides information about shopping
                discounts for a URL."/>
@@ -457,6 +503,19 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram
+    name="OptimizationGuide.ModelExecution.ContextStartToExecutionTime.{ModelExecutionFeature}"
+    units="ms" expires_after="2024-05-29">
+  <owner>cduvall@chromium.org</owner>
+  <owner>sophiechang@chromium.org</owner>
+  <summary>
+    Records time from when context was first added to the session to when the
+    first execute call was made. Recorded on the first execute call for a
+    session following a new context being added.
+  </summary>
+  <token key="ModelExecutionFeature" variants="ModelExecutionFeature"/>
+</histogram>
+
+<histogram
     name="OptimizationGuide.ModelExecution.FeatureCurrentlyEnabledResult.{ModelExecutionFeature}"
     enum="FeatureCurrentlyEnabledResult" expires_after="2024-05-12">
   <owner>tbansal@chromium.org</owner>
@@ -464,6 +523,68 @@ chromium-metrics-reviews@google.com.
   <summary>
     Records whether a feature is currently enabled. Recorded everytime the
     feature status is queried.
+  </summary>
+  <token key="ModelExecutionFeature" variants="ModelExecutionFeature"/>
+</histogram>
+
+<histogram
+    name="OptimizationGuide.ModelExecution.OnDeviceAddContextResult.{ModelExecutionFeature}"
+    enum="OptimizationGuideOnDeviceAddContextResult" expires_after="2024-05-29">
+  <owner>sky@chromium.org</owner>
+  <owner>sophiechang@chromium.org</owner>
+  <summary>
+    Captures the possible outcomes of Session::AddContext(). Recorded everytime
+    Session::AddContext() is called. context.
+  </summary>
+  <token key="ModelExecutionFeature" variants="ModelExecutionFeature"/>
+</histogram>
+
+<histogram
+    name="OptimizationGuide.ModelExecution.OnDeviceContextTokensProcessed.{ModelExecutionFeature}"
+    units="tokens" expires_after="2024-05-29">
+  <owner>cduvall@chromium.org</owner>
+  <owner>sophiechang@chromium.org</owner>
+  <summary>
+    Records the number of context tokens available when the on device model is
+    executed. Recorded for each execution of the on device model.
+  </summary>
+  <token key="ModelExecutionFeature" variants="ModelExecutionFeature"/>
+</histogram>
+
+<histogram
+    name="OptimizationGuide.ModelExecution.OnDeviceDestroyedWhileWaitingForResponseTime.{ModelExecutionFeature}"
+    units="ms" expires_after="2024-05-29">
+  <owner>sky@chromium.org</owner>
+  <owner>sophiechang@chromium.org</owner>
+  <summary>
+    Records time from execute call to the Session destroyed. Recorded when the
+    Session is destroyed, but only if the complete response was not received.
+  </summary>
+  <token key="ModelExecutionFeature" variants="ModelExecutionFeature"/>
+</histogram>
+
+<histogram
+    name="OptimizationGuide.ModelExecution.OnDeviceExecuteModelResult.{ModelExecutionFeature}"
+    enum="OptimizationGuideOnDeviceExecuteModelResult"
+    expires_after="2024-05-29">
+  <owner>sky@chromium.org</owner>
+  <owner>sophiechang@chromium.org</owner>
+  <summary>
+    Captures the possible outcomes of Session::ExecuteModel(). Recorded
+    everytime Session::ExecuteModel() is called. context.
+  </summary>
+  <token key="ModelExecutionFeature" variants="ModelExecutionFeature"/>
+</histogram>
+
+<histogram
+    name="OptimizationGuide.ModelExecution.OnDeviceFirstResponseTime.{ModelExecutionFeature}"
+    units="ms" expires_after="2024-05-29">
+  <owner>cduvall@chromium.org</owner>
+  <owner>sophiechang@chromium.org</owner>
+  <summary>
+    Records time to the first response after an execute call to the on device
+    model. Recorded for every execute call to the on device model that returns a
+    response.
   </summary>
   <token key="ModelExecutionFeature" variants="ModelExecutionFeature"/>
 </histogram>
@@ -477,6 +598,40 @@ chromium-metrics-reviews@google.com.
   <summary>
     Records whether the on-device model was eligible to be used and if not, why
     not. Recorded once at the start of each execution session.
+  </summary>
+  <token key="ModelExecutionFeature" variants="ModelExecutionFeature"/>
+</histogram>
+
+<histogram name="OptimizationGuide.ModelExecution.OnDeviceModelLoadResult"
+    enum="OnDeviceModelLoadResult" expires_after="2024-05-29">
+  <owner>cduvall@chromium.org</owner>
+  <owner>sophiechang@chromium.org</owner>
+  <summary>
+    Records the result of loading a model from OnDeviceModelService. This is
+    recorded for every model load.
+  </summary>
+</histogram>
+
+<histogram
+    name="OptimizationGuide.ModelExecution.OnDeviceModelPerformanceClass"
+    enum="OnDeviceModelPerformanceClass" expires_after="2024-05-29">
+  <owner>cduvall@chromium.org</owner>
+  <owner>sophiechang@chromium.org</owner>
+  <summary>
+    Records the estimated performance class of this device based on a
+    microbenchmark. This is recorded once on startup after a delay.
+  </summary>
+</histogram>
+
+<histogram
+    name="OptimizationGuide.ModelExecution.OnDeviceResponseCompleteTime.{ModelExecutionFeature}"
+    units="ms" expires_after="2024-05-29">
+  <owner>cduvall@chromium.org</owner>
+  <owner>sophiechang@chromium.org</owner>
+  <summary>
+    Records time until the response is completed after an execute call to the on
+    device model. Recorded for every execute call to the on device model that
+    completes.
   </summary>
   <token key="ModelExecutionFeature" variants="ModelExecutionFeature"/>
 </histogram>
@@ -737,6 +892,27 @@ chromium-metrics-reviews@google.com.
   <token key="OptimizationTarget" variants="OptimizationTarget"/>
 </histogram>
 
+<histogram
+    name="OptimizationGuide.ModelQualityLogsUploaderService.NetErrorCode"
+    enum="NetErrorCodes" expires_after="2024-05-10">
+  <owner>sreejakshetty@chromium.org</owner>
+  <owner>sophiechang@chromium.org</owner>
+  <summary>
+    Net error codes for each model quality logs upload, recorded on success and
+    failure.
+  </summary>
+</histogram>
+
+<histogram name="OptimizationGuide.ModelQualityLogsUploaderService.Status"
+    enum="HttpResponseCode" expires_after="2024-05-10">
+  <owner>sophiechang@chromium.org</owner>
+  <owner>sreejakshetty@chromium.org</owner>
+  <summary>
+    The HTTP response code for each model quality logs upload, recorded on
+    success and failure.
+  </summary>
+</histogram>
+
 <histogram name="OptimizationGuide.OptimizationFilterStatus.{OptimizationType}"
     enum="OptimizationGuideOptimizationFilterStatus" expires_after="2024-05-12">
   <owner>mcrouse@chromium.org</owner>
@@ -813,7 +989,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram
     name="OptimizationGuide.PageContentAnnotations.GoogleSearchMetadataExtracted"
-    enum="Boolean" expires_after="2024-03-24">
+    enum="Boolean" expires_after="2024-05-26">
   <owner>sophiechang@chromium.org</owner>
   <owner>chrome-intelligence-core@google.com</owner>
   <summary>
@@ -924,7 +1100,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram
     name="OptimizationGuide.PageContentAnnotationsService.RelatedSearchesCache.CacheHit"
-    enum="BooleanCacheHit" expires_after="2023-12-10">
+    enum="BooleanCacheHit" expires_after="2024-04-28">
   <owner>khalidpeer@chromium.org</owner>
   <owner>sophiechang@chromium.org</owner>
   <summary>
@@ -1211,7 +1387,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram
     name="OptimizationGuide.PredictionModelFetcher.GetModelsResponse.NetErrorCode"
-    enum="NetErrorCodes" expires_after="2024-03-24">
+    enum="NetErrorCodes" expires_after="2024-05-26">
   <owner>mcrouse@chromium.org</owner>
   <owner>sophiechang@chromium.org</owner>
   <summary>
@@ -1241,7 +1417,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram
     name="OptimizationGuide.PredictionModelFetcher.GetModelsResponse.Status"
-    enum="HttpResponseCode" expires_after="2024-03-24">
+    enum="HttpResponseCode" expires_after="2024-05-26">
   <owner>mcrouse@chromium.org</owner>
   <owner>sophiechang@chromium.org</owner>
   <summary>

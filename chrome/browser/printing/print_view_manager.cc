@@ -37,7 +37,7 @@
 #endif
 
 #if BUILDFLAG(ENABLE_PRINT_CONTENT_ANALYSIS)
-#include "chrome/browser/enterprise/connectors/analysis/print_content_analysis_utils.h"
+#include "chrome/browser/enterprise/data_protection/print_utils.h"
 #endif
 
 using content::BrowserThread;
@@ -297,9 +297,9 @@ void PrintViewManager::RejectPrintPreviewRequestIfRestrictedByContentAnalysis(
     content::GlobalRenderFrameHostId rfh_id,
     base::OnceCallback<void(bool should_proceed)> callback) {
   absl::optional<enterprise_connectors::ContentAnalysisDelegate::Data>
-      scanning_data = enterprise_connectors::GetPrintAnalysisData(
+      scanning_data = enterprise_data_protection::GetPrintAnalysisData(
           web_contents(),
-          enterprise_connectors::PrintScanningContext::kBeforePreview);
+          enterprise_data_protection::PrintScanningContext::kBeforePreview);
   content::RenderFrameHost* rfh = content::RenderFrameHost::FromID(rfh_id);
   if (rfh && scanning_data) {
     GetPrintRenderFrame(rfh)->SnapshotForContentAnalysis(base::BindOnce(
@@ -452,7 +452,7 @@ void PrintViewManager::OnScriptedPrintPreviewCallback(
   // Running a dialog causes an exit to webpage-initiated fullscreen.
   // http://crbug.com/728276
   if (web_contents()->IsFullscreen())
-    web_contents()->ExitFullscreen();
+    web_contents()->ExitFullscreen(true);
 
   auto* dialog_controller = PrintPreviewDialogController::GetInstance();
   CHECK(dialog_controller);

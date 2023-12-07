@@ -227,7 +227,15 @@ void TargetDeviceBootstrapController::OnStartAdvertisingResult(bool success) {
 }
 
 void TargetDeviceBootstrapController::OnStopAdvertising() {
-  UpdateStatus(/*step=*/Step::NONE, /*payload=*/absl::monostate());
+  // If we are just in the advertising stage, set status back to NONE to
+  // indicate we are no longer performing any work. By contrast, if we are
+  // connected or we got here due to an error, we don't want to update the
+  // status.
+  if (status_.step == Step::ADVERTISING_WITH_QR_CODE ||
+      status_.step == Step::ADVERTISING_WITHOUT_QR_CODE) {
+    UpdateStatus(/*step=*/Step::NONE, /*payload=*/absl::monostate());
+  }
+
   CleanupIfNeeded();
 }
 
@@ -383,12 +391,7 @@ void TargetDeviceBootstrapController::OnFidoAssertionReceived(
   }
 
   quick_start::QS_LOG(INFO) << "Received FIDO assertion.";
-  // Store the FIDO assertion and set the client_data field.
   fido_assertion_ = assertion.value();
-  auto client_data =
-      quick_start::AccountTransferClientData(challenge_bytes_).CreateJson();
-  fido_assertion_.client_data =
-      std::vector<uint8_t>(client_data.begin(), client_data.end());
 
   auth_broker_->FetchAttestationCertificate(
       fido_assertion_.credential_id,

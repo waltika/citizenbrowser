@@ -32,7 +32,6 @@ import org.chromium.chrome.browser.ntp.NewTabPageUma;
 import org.chromium.chrome.browser.ntp.RecentTabsManager;
 import org.chromium.chrome.browser.ntp.RecentTabsPage;
 import org.chromium.chrome.browser.profiles.Profile;
-import org.chromium.chrome.browser.settings.SettingsLauncherImpl;
 import org.chromium.chrome.browser.share.ShareDelegate;
 import org.chromium.chrome.browser.tab.Tab;
 import org.chromium.chrome.browser.tab.TabLaunchType;
@@ -124,7 +123,7 @@ public class NativePageFactory {
     private NewTabPageUma getNewTabPageUma() {
         if (mNewTabPageUma == null) {
             mNewTabPageUma = new NewTabPageUma(mTabModelSelector);
-            mNewTabPageUma.monitorNTPCreation();
+            mNewTabPageUma.monitorNtpCreation();
         }
         return mNewTabPageUma;
     }
@@ -200,7 +199,6 @@ public class NativePageFactory {
                     mWindowAndroid,
                     mJankTracker,
                     mToolbarSupplier,
-                    new SettingsLauncherImpl(),
                     mHomeSurfaceTracker,
                     mTabContentManagerSupplier);
         }

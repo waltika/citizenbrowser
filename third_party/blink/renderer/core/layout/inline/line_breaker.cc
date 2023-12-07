@@ -7,6 +7,11 @@
 #include "base/containers/adapters.h"
 #include "base/ranges/algorithm.h"
 #include "third_party/blink/renderer/core/frame/web_feature.h"
+#include "third_party/blink/renderer/core/layout/block_break_token.h"
+#include "third_party/blink/renderer/core/layout/constraint_space.h"
+#include "third_party/blink/renderer/core/layout/constraint_space_builder.h"
+#include "third_party/blink/renderer/core/layout/floats_utils.h"
+#include "third_party/blink/renderer/core/layout/fragmentation_utils.h"
 #include "third_party/blink/renderer/core/layout/inline/inline_break_token.h"
 #include "third_party/blink/renderer/core/layout/inline/inline_cursor.h"
 #include "third_party/blink/renderer/core/layout/inline/inline_item_segment.h"
@@ -15,18 +20,13 @@
 #include "third_party/blink/renderer/core/layout/inline/line_info.h"
 #include "third_party/blink/renderer/core/layout/inline/ruby_utils.h"
 #include "third_party/blink/renderer/core/layout/layout_text_combine.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_block_break_token.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_constraint_space.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_constraint_space_builder.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_floats_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_fragment.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_fragmentation_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_length_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_physical_box_fragment.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_positioned_float.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_space_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_unpositioned_float.h"
+#include "third_party/blink/renderer/core/layout/length_utils.h"
+#include "third_party/blink/renderer/core/layout/logical_fragment.h"
+#include "third_party/blink/renderer/core/layout/physical_box_fragment.h"
+#include "third_party/blink/renderer/core/layout/positioned_float.h"
+#include "third_party/blink/renderer/core/layout/space_utils.h"
 #include "third_party/blink/renderer/core/layout/svg/resolved_text_layout_attributes_iterator.h"
+#include "third_party/blink/renderer/core/layout/unpositioned_float.h"
 #include "third_party/blink/renderer/core/style/computed_style.h"
 #include "third_party/blink/renderer/core/svg/svg_text_content_element.h"
 #include "third_party/blink/renderer/platform/fonts/shaping/shape_result_view.h"
@@ -58,7 +58,7 @@ inline LineBreakStrictness StrictnessFromLineBreak(LineBreak line_break) {
 // Returns smallest negative left and right bearing in `box_fragment`.
 // This function is used for calculating side bearing.
 LineBoxStrut ComputeNegativeSideBearings(
-    const NGPhysicalBoxFragment& box_fragment) {
+    const PhysicalBoxFragment& box_fragment) {
   const auto get_shape_result =
       [](const InlineCursor cursor) -> const ShapeResultView* {
     if (!cursor)
@@ -156,7 +156,7 @@ LineBoxStrut ComputeNegativeSideBearings(
 // Note: We don't apply inline kerning for vertical writing mode with text
 // orientation other than `sideways` because characters are laid out vertically.
 // [1] https://drafts.csswg.org/css-inline/#initial-letter-inline-position
-bool ShouldApplyInlineKerning(const NGPhysicalBoxFragment& box_fragment) {
+bool ShouldApplyInlineKerning(const PhysicalBoxFragment& box_fragment) {
   if (!box_fragment.Borders().IsZero() || !box_fragment.Padding().IsZero())
     return false;
   const ComputedStyle& style = box_fragment.Style();
@@ -2596,7 +2596,7 @@ void LineBreaker::HandleAtomicInline(const InlineItem& item,
                                 /* use_first_line_style */ false,
                                 baseline_algorithm_type);
 
-    const auto& physical_box_fragment = To<NGPhysicalBoxFragment>(
+    const auto& physical_box_fragment = To<PhysicalBoxFragment>(
         item_result->layout_result->GetPhysicalFragment());
     item_result->inline_size =
         LogicalFragment(constraint_space_.GetWritingDirection(),
@@ -3665,7 +3665,7 @@ const InlineBreakToken* LineBreaker::CreateBreakToken(
     // Look for a break token inside the block-in-inline, so that we can add it
     // to the inline break token that we're about to create.
     const auto& block_in_inline_fragment =
-        To<NGPhysicalBoxFragment>(block_in_inline->GetPhysicalFragment());
+        To<PhysicalBoxFragment>(block_in_inline->GetPhysicalFragment());
     sub_break_token = block_in_inline_fragment.GetBreakToken();
   }
 

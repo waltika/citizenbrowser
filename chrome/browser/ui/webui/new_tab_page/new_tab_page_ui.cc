@@ -544,6 +544,8 @@ content::WebUIDataSource* CreateAndAddNewTabPageUiHtmlSource(Profile* profile) {
       {"modulesJourneysCartTileLabelDefault",
        IDS_NTP_MODULES_QUEST_CART_TILE_LABEL_DEFAULT},
       {"modulesMoreActions", IDS_NTP_MODULES_MORE_ACTIONS},
+      {"modulesTabResumptionTitle", IDS_NTP_TAB_RESUMPTION_TITLE},
+      {"modulesTabResumptionInfo", IDS_NTP_MODULES_TAB_RESUMPTION_INFO},
 
       // Middle slot promo.
       {"undoDismissPromoButtonToast", IDS_NTP_UNDO_DISMISS_PROMO_BUTTON_TOAST},
@@ -897,7 +899,7 @@ void NewTabPageUI::BindInterface(
     mojo::PendingReceiver<ntp::tab_resumption::mojom::PageHandler>
         pending_page_handler) {
   tab_resumption_handler_ = std::make_unique<TabResumptionPageHandler>(
-      std::move(pending_page_handler), profile_, web_contents());
+      std::move(pending_page_handler), web_contents());
 }
 
 void NewTabPageUI::BindInterface(

@@ -27,7 +27,6 @@
 #include "ash/webui/file_manager/file_manager_ui.h"
 #include "ash/webui/files_internals/files_internals_ui.h"
 #include "ash/webui/firmware_update_ui/firmware_update_app_ui.h"
-#include "ash/webui/guest_os_installer/guest_os_installer_ui.h"
 #include "ash/webui/help_app_ui/help_app_ui.h"
 #include "ash/webui/media_app_ui/media_app_ui.h"
 #include "ash/webui/os_feedback_ui/os_feedback_ui.h"
@@ -38,8 +37,8 @@
 #include "ash/webui/shortcut_customization_ui/shortcut_customization_app_ui.h"
 #include "ash/webui/status_area_internals/status_area_internals_ui.h"
 #include "ash/webui/system_extensions_internals_ui/system_extensions_internals_ui.h"
+#include "ash/webui/vc_background_ui/vc_background_ui.h"
 #include "chrome/browser/ash/eche_app/eche_app_manager_factory.h"
-#include "chrome/browser/ash/guest_os/public/installer_delegate_factory.h"
 #include "chrome/browser/ash/multidevice_debug/proximity_auth_ui_config.h"
 #include "chrome/browser/ash/net/network_health/network_health_manager.h"
 #include "chrome/browser/ash/os_feedback/chrome_os_feedback_delegate.h"
@@ -200,17 +199,6 @@ std::unique_ptr<content::WebUIConfig> MakeEcheAppUIConfig() {
   return std::make_unique<eche_app::EcheAppUIConfig>(create_controller_func);
 }
 
-std::unique_ptr<content::WebUIConfig> MakeGuestOSInstallerUIConfig() {
-  CreateWebUIControllerFunc create_controller_func = base::BindRepeating(
-      [](content::WebUI* web_ui,
-         const GURL& url) -> std::unique_ptr<content::WebUIController> {
-        return std::make_unique<GuestOSInstallerUI>(
-            web_ui, base::BindRepeating(&guest_os::InstallerDelegateFactory));
-      });
-
-  return std::make_unique<GuestOSInstallerUIConfig>(create_controller_func);
-}
-
 void RegisterAshChromeWebUIConfigs() {
   // Add `WebUIConfig`s for Ash ChromeOS to the list here.
   //
@@ -255,7 +243,6 @@ void RegisterAshChromeWebUIConfigs() {
                                       file_manager::FileManagerUI,
                                       ChromeFileManagerUIDelegate>());
   map.AddWebUIConfig(std::make_unique<FirmwareUpdateAppUIConfig>());
-  map.AddWebUIConfig(MakeGuestOSInstallerUIConfig());
   map.AddWebUIConfig(std::make_unique<HealthdInternalsUIConfig>());
   map.AddWebUIConfig(
       MakeComponentConfigWithDelegate<HelpAppUIConfig, HelpAppUI,
@@ -321,6 +308,8 @@ void RegisterAshChromeWebUIConfigs() {
       std::make_unique<UrgentPasswordExpiryNotificationUIConfig>());
   map.AddWebUIConfig(std::make_unique<VcTrayTesterUIConfig>());
   map.AddWebUIConfig(std::make_unique<VmUIConfig>());
+  map.AddWebUIConfig(
+      std::make_unique<vc_background_ui::VcBackgroundUIConfig>());
 #if !defined(OFFICIAL_BUILD)
   map.AddWebUIConfig(std::make_unique<SampleSystemWebAppUIConfig>());
   map.AddWebUIConfig(std::make_unique<StatusAreaInternalsUIConfig>());

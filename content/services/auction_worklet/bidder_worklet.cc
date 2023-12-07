@@ -325,6 +325,7 @@ BidderWorklet::BidderWorklet(
                      auction_network_events_handler_),
                  /*automatically_send_requests=*/false, top_window_origin,
                  *trusted_bidding_signals_url, experiment_group_id,
+                 /*trusted_bidding_signals_slot_size_param=*/std::string(),
                  v8_helper_.get())
            : nullptr);
 
@@ -826,8 +827,9 @@ void BidderWorklet::V8State::ReportWin(
            static_cast<double>(*browser_signal_modeling_signals))) ||
       !browser_signals_dict.Set(
           "joinCount", static_cast<double>(browser_signal_join_count)) ||
-      !browser_signals_dict.Set("recency",
-                                static_cast<double>(browser_signal_recency)) ||
+      (!is_for_additional_bid &&
+       !browser_signals_dict.Set(
+           "recency", static_cast<double>(browser_signal_recency))) ||
       !browser_signals_dict.Set("highestScoringOtherBid",
                                 browser_signal_highest_scoring_other_bid) ||
       !browser_signals_dict.Set(

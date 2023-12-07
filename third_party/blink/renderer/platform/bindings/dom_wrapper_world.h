@@ -118,7 +118,8 @@ class PLATFORM_EXPORT DOMWrapperWorld : public RefCounted<DOMWrapperWorld> {
     return number_of_non_main_worlds_in_main_thread_;
   }
 
-  static void AllWorldsInCurrentThread(
+  static void AllWorldsInIsolate(
+      v8::Isolate* isolate,
       Vector<scoped_refptr<DOMWrapperWorld>>& worlds);
 
   static DOMWrapperWorld& World(v8::Local<v8::Context> context) {
@@ -130,10 +131,6 @@ class PLATFORM_EXPORT DOMWrapperWorld : public RefCounted<DOMWrapperWorld> {
   }
 
   static DOMWrapperWorld& MainWorld(v8::Isolate* isolate);
-
-  // Deprecated : Use variant with v8::Isolate*.
-  static DOMWrapperWorld& MainWorld();
-  static void InitMainWorldOnMainThread(DOMWrapperWorld&);
 
   static void SetNonMainWorldStableId(int32_t world_id, const String&);
   String NonMainWorldStableId() const;

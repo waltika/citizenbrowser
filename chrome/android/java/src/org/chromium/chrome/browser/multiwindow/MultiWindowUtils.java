@@ -38,10 +38,13 @@ import org.chromium.base.shared_preferences.SharedPreferencesManager;
 import org.chromium.chrome.browser.ChromeTabbedActivity;
 import org.chromium.chrome.browser.ChromeTabbedActivity2;
 import org.chromium.chrome.browser.IntentHandler;
+import org.chromium.chrome.browser.app.tabmodel.TabWindowManagerSingleton;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
+import org.chromium.chrome.browser.partnercustomizations.PartnerBrowserCustomizations;
 import org.chromium.chrome.browser.preferences.ChromePreferenceKeys;
 import org.chromium.chrome.browser.preferences.ChromeSharedPreferences;
 import org.chromium.chrome.browser.tab.Tab;
+import org.chromium.chrome.browser.tabmodel.TabModelSelector;
 import org.chromium.chrome.browser.tabmodel.TabWindowManager;
 import org.chromium.chrome.browser.util.AndroidTaskUtils;
 import org.chromium.components.ukm.UkmRecorder;
@@ -63,6 +66,8 @@ public class MultiWindowUtils implements ActivityStateListener {
     public static final int INVALID_TASK_ID = -1; // Defined in android.app.ActivityTaskManager.
 
     private static MultiWindowUtils sInstance = new MultiWindowUtils();
+
+    private static Integer sMaxInstancesForTesting;
 
     private final boolean mMultiInstanceApi31Enabled;
 
@@ -143,9 +148,11 @@ public class MultiWindowUtils implements ActivityStateListener {
     }
 
     public static int getMaxInstances() {
-        return isMultiInstanceApi31Enabled()
-                ? TabWindowManager.MAX_SELECTORS_S
-                : TabWindowManager.MAX_SELECTORS_LEGACY;
+        return sMaxInstancesForTesting != null
+                ? sMaxInstancesForTesting
+                : (isMultiInstanceApi31Enabled()
+                        ? TabWindowManager.MAX_SELECTORS_S
+                        : TabWindowManager.MAX_SELECTORS_LEGACY);
     }
 
     /** Returns the singleton instance of MultiWindowUtils. */
@@ -178,16 +185,36 @@ public class MultiWindowUtils implements ActivityStateListener {
         ResettersForTesting.register(() -> mIsInMultiWindowModeForTesting = false);
     }
 
-    /**
-     * Returns whether the given activity currently supports opening tabs in or moving tabs to the
-     * other window.
-     */
+    /** Returns whether the given activity currently supports opening tabs to the other window. */
     public boolean isOpenInOtherWindowSupported(Activity activity) {
         if (!isInMultiWindowMode(activity) && !isInMultiDisplayMode(activity)) return false;
         // Automotive is currently restricted to a single window.
         if (BuildInfo.getInstance().isAutomotive) return false;
 
         return getOpenInOtherWindowActivity(activity) != null;
+    }
+
+    /**
+     * @param activity that is initiating tab move.
+     * @param tabModelSelector {@link TabModelSelector} to get total tab count. Returns whether the
+     *     given activity currently supports moving tabs to the other window.
+     */
+    public boolean isMoveToOtherWindowSupported(
+            Activity activity, TabModelSelector tabModelSelector) {
+        // Not supported on automotive devices.
+        if (BuildInfo.getInstance().isAutomotive) return false;
+
+        boolean hasAtMostOneTab = tabModelSelector.getTotalTabCount() <= 1;
+        boolean partnerHomepageEnabled =
+                PartnerBrowserCustomizations.getInstance().isHomepageProviderAvailableAndEnabled();
+        // Do not allow move for last tab when partner homepage enabled.
+        if (hasAtMostOneTab && partnerHomepageEnabled) return false;
+        if (instanceSwitcherEnabled()) {
+            // Moving tabs should be possible to any other instance.
+            return getInstanceCount() > 1;
+        } else {
+            return isOpenInOtherWindowSupported(activity);
+        }
     }
 
     /**
@@ -765,5 +792,35 @@ public class MultiWindowUtils implements ActivityStateListener {
      */
     public static void launchIntentInInstance(Intent intent, int instanceId) {
         MultiInstanceManagerApi31.launchIntentInInstance(intent, instanceId);
+    }
+
+    /**
+     * @param activity The {@link Activity} associated with the current context.
+     * @return The instance ID of the Chrome window where the link intent will be launched.
+     *     INVALID_INSTANCE_ID will be returned if fewer than the maximum number of instances are
+     *     open. The instance ID associated with the specified, valid activity will be returned if
+     *     the maximum number of instances is open.
+     */
+    public static int getInstanceIdForLinkIntent(Activity activity) {
+        // INVALID_INSTANCE_ID indicates that a new instance will be used to launch the link intent.
+        if (getInstanceCount() < getMaxInstances()) return INVALID_INSTANCE_ID;
+        int windowId = TabWindowManagerSingleton.getInstance().getIndexForWindow(activity);
+        assert windowId != INVALID_INSTANCE_ID
+                : "A valid instance ID was not found for the specified activity.";
+        return windowId;
+    }
+
+    public static void setInstanceForTesting(MultiWindowUtils instance) {
+        var oldValue = sInstance;
+        sInstance = instance;
+        ResettersForTesting.register(() -> sInstance = oldValue);
+    }
+
+    public static void setMaxInstancesForTesting(int maxInstances) {
+        sMaxInstancesForTesting = maxInstances;
+        ResettersForTesting.register(
+                () -> {
+                    sMaxInstancesForTesting = null;
+                });
     }
 }

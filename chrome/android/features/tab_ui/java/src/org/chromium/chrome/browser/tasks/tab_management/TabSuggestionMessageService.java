@@ -9,6 +9,7 @@ import static org.chromium.chrome.browser.tasks.tab_management.suggestions.TabSu
 import static org.chromium.chrome.browser.tasks.tab_management.suggestions.TabSuggestionFeedback.TabSuggestionResponse.NOT_CONSIDERED;
 
 import android.content.Context;
+import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.VisibleForTesting;
@@ -33,7 +34,8 @@ import java.util.Set;
 /**
  * One of the concrete {@link MessageService} that only serve {@link MessageType#TAB_SUGGESTION}.
  */
-public class TabSuggestionMessageService extends MessageService implements TabSuggestionsObserver {
+public class TabSuggestionMessageService extends MessageService
+        implements TabSuggestionsObserver, CustomMessageCardProvider {
     private static boolean sSuggestionAvailableForTesting;
 
     /** This is the data type that this MessageService is serving to its Observer. */
@@ -105,50 +107,50 @@ public class TabSuggestionMessageService extends MessageService implements TabSu
 
     private final Context mContext;
     private final TabModelSelector mTabModelSelector;
-    private final Supplier<TabSelectionEditorCoordinator.TabSelectionEditorController>
-            mTabSelectionEditorControllerSupplier;
+    private final Supplier<TabListEditorCoordinator.TabListEditorController>
+            mTabListEditorControllerSupplier;
 
     public TabSuggestionMessageService(
             Context context,
             TabModelSelector tabModelSelector,
-            Supplier<TabSelectionEditorCoordinator.TabSelectionEditorController>
-                    tabSelectionEditorControllerSupplier) {
+            Supplier<TabListEditorCoordinator.TabListEditorController>
+                    tabListEditorControllerSupplier) {
         super(MessageType.TAB_SUGGESTION);
         mContext = context;
         mTabModelSelector = tabModelSelector;
-        mTabSelectionEditorControllerSupplier = tabSelectionEditorControllerSupplier;
+        mTabListEditorControllerSupplier = tabListEditorControllerSupplier;
     }
 
     @VisibleForTesting
     void review(
             @NonNull TabSuggestion tabSuggestion,
             @NonNull Callback<TabSuggestionFeedback> feedbackCallback) {
-        TabSelectionEditorCoordinator.TabSelectionEditorController tabSelectionEditorController =
-                mTabSelectionEditorControllerSupplier.get();
-        assert tabSelectionEditorController != null;
+        TabListEditorCoordinator.TabListEditorController tabListEditorController =
+                mTabListEditorControllerSupplier.get();
+        assert tabListEditorController != null;
 
-        tabSelectionEditorController.configureToolbarWithMenuItems(
+        tabListEditorController.configureToolbarWithMenuItems(
                 Collections.singletonList(getAction(tabSuggestion, feedbackCallback)),
                 getNavigationProvider(tabSuggestion, feedbackCallback));
 
-        tabSelectionEditorController.show(
+        tabListEditorController.show(
                 getTabListFromSuggestion(tabSuggestion),
                 tabSuggestion.getTabsInfo().size(),
                 /* recyclerViewPosition= */ null);
     }
 
     @VisibleForTesting
-    TabSelectionEditorAction getAction(
+    TabListEditorAction getAction(
             TabSuggestion tabSuggestion, Callback<TabSuggestionFeedback> feedbackCallback) {
-        TabSelectionEditorAction action;
+        TabListEditorAction action;
         switch (tabSuggestion.getAction()) {
             case TabSuggestion.TabSuggestionAction.CLOSE:
                 action =
-                        TabSelectionEditorCloseAction.createAction(
+                        TabListEditorCloseAction.createAction(
                                 mContext,
-                                TabSelectionEditorAction.ShowMode.IF_ROOM,
-                                TabSelectionEditorAction.ButtonType.TEXT,
-                                TabSelectionEditorAction.IconPosition.END);
+                                TabListEditorAction.ShowMode.IF_ROOM,
+                                TabListEditorAction.ButtonType.TEXT,
+                                TabListEditorAction.IconPosition.END);
                 break;
             default:
                 assert false;
@@ -156,7 +158,7 @@ public class TabSuggestionMessageService extends MessageService implements TabSu
         }
 
         action.addActionObserver(
-                new TabSelectionEditorAction.ActionObserver() {
+                new TabListEditorAction.ActionObserver() {
                     @Override
                     public void preProcessSelectedTabs(List<Tab> selectedTabs) {
                         int totalTabCountBeforeProcess =
@@ -176,11 +178,11 @@ public class TabSuggestionMessageService extends MessageService implements TabSu
     }
 
     @VisibleForTesting
-    TabSelectionEditorCoordinator.TabSelectionEditorNavigationProvider getNavigationProvider(
+    TabListEditorCoordinator.TabListEditorNavigationProvider getNavigationProvider(
             TabSuggestion tabSuggestion,
             @NonNull Callback<TabSuggestionFeedback> feedbackCallback) {
-        return new TabSelectionEditorCoordinator.TabSelectionEditorNavigationProvider(
-                mContext, mTabSelectionEditorControllerSupplier.get()) {
+        return new TabListEditorCoordinator.TabListEditorNavigationProvider(
+                mContext, mTabListEditorControllerSupplier.get()) {
             @Override
             public void goBack() {
                 super.goBack();
@@ -262,5 +264,27 @@ public class TabSuggestionMessageService extends MessageService implements TabSu
 
     public static boolean isSuggestionAvailableForTesting() {
         return sSuggestionAvailableForTesting;
+    }
+
+    // CustomMessageCardProvider implementation
+    @Override
+    public View getCustomView() {
+        // TODO(crbug.com/1487664): Return the UI for custom message card entrypoint.
+        return null;
+    }
+
+    @Override
+    public int getMessageCardVisibilityControl() {
+        return MessageCardViewProperties.MessageCardScope.REGULAR;
+    }
+
+    @Override
+    public int getCardType() {
+        return TabListModel.CardProperties.ModelType.MESSAGE;
+    }
+
+    @Override
+    public void setIsIncognito(boolean isIncognito) {
+        // Intentional noop - this card will not appear on incognito.
     }
 }

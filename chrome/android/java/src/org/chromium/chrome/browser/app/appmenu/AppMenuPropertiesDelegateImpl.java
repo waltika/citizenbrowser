@@ -54,7 +54,6 @@ import org.chromium.chrome.browser.multiwindow.MultiWindowModeStateDispatcher;
 import org.chromium.chrome.browser.multiwindow.MultiWindowUtils;
 import org.chromium.chrome.browser.night_mode.WebContentsDarkModeController;
 import org.chromium.chrome.browser.omaha.UpdateMenuItemHelper;
-import org.chromium.chrome.browser.partnercustomizations.PartnerBrowserCustomizations;
 import org.chromium.chrome.browser.profiles.Profile;
 import org.chromium.chrome.browser.quick_delete.QuickDeleteController;
 import org.chromium.chrome.browser.readaloud.ReadAloudController;
@@ -73,7 +72,7 @@ import org.chromium.chrome.browser.ui.appmenu.AppMenuUtil;
 import org.chromium.chrome.browser.ui.appmenu.CustomViewBinder;
 import org.chromium.chrome.browser.util.BrowserUiUtils;
 import org.chromium.chrome.browser.util.BrowserUiUtils.HostSurface;
-import org.chromium.chrome.browser.util.BrowserUiUtils.ModuleTypeOnStartAndNTP;
+import org.chromium.chrome.browser.util.BrowserUiUtils.ModuleTypeOnStartAndNtp;
 import org.chromium.chrome.browser.webapps.WebappRegistry;
 import org.chromium.chrome.features.start_surface.StartSurface;
 import org.chromium.chrome.features.start_surface.StartSurfaceState;
@@ -749,19 +748,8 @@ public class AppMenuPropertiesDelegateImpl implements AppMenuPropertiesDelegate 
      * @return Whether the "Move to other window" menu item should be displayed.
      */
     protected boolean shouldShowMoveToOtherWindow() {
-        // Hide the menu on automotive devices.
-        if (BuildInfo.getInstance().isAutomotive) return false;
-
         if (!instanceSwitcherEnabled() && shouldShowNewWindow()) return false;
-        boolean hasMoreThanOneTab = mTabModelSelector.getTotalTabCount() > 1;
-        boolean showAlsoForSingleTab = !isPartnerHomepageEnabled();
-        if (!hasMoreThanOneTab && !showAlsoForSingleTab) return false;
-        if (instanceSwitcherEnabled()) {
-            // Moving tabs should be possible to any other instance.
-            return getInstanceCount() > 1;
-        } else {
-            return mMultiWindowModeStateDispatcher.isOpenInOtherWindowSupported();
-        }
+        return mMultiWindowModeStateDispatcher.isMoveToOtherWindowSupported(mTabModelSelector);
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
@@ -773,11 +761,6 @@ public class AppMenuPropertiesDelegateImpl implements AppMenuPropertiesDelegate 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     public boolean isTabletSizeScreen() {
         return mIsTablet;
-    }
-
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    public boolean isPartnerHomepageEnabled() {
-        return PartnerBrowserCustomizations.getInstance().isHomepageProviderAvailableAndEnabled();
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
@@ -1319,15 +1302,15 @@ public class AppMenuPropertiesDelegateImpl implements AppMenuPropertiesDelegate 
     public void onMenuShown() {
         if (isInStartSurfaceHomepage()) {
             BrowserUiUtils.recordModuleClickHistogram(
-                    HostSurface.START_SURFACE, ModuleTypeOnStartAndNTP.MENU_BUTTON);
+                    HostSurface.START_SURFACE, ModuleTypeOnStartAndNtp.MENU_BUTTON);
             return;
         }
         Tab currentTab = mActivityTabProvider.get();
         if (currentTab != null
-                && UrlUtilities.isNTPUrl(currentTab.getUrl())
+                && UrlUtilities.isNtpUrl(currentTab.getUrl())
                 && !currentTab.isIncognito()) {
             BrowserUiUtils.recordModuleClickHistogram(
-                    HostSurface.NEW_TAB_PAGE, ModuleTypeOnStartAndNTP.MENU_BUTTON);
+                    HostSurface.NEW_TAB_PAGE, ModuleTypeOnStartAndNtp.MENU_BUTTON);
         }
     }
 }

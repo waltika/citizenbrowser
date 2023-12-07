@@ -12,6 +12,7 @@
 #include "base/android/jni_android.h"
 #include "base/android/jni_weak_ref.h"
 #include "base/containers/flat_map.h"
+#include "base/gtest_prod_util.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "base/scoped_observation.h"
@@ -23,17 +24,14 @@
 #include "chrome/browser/profiles/profile_observer.h"
 #include "chrome/browser/reading_list/android/reading_list_manager.h"
 #include "components/bookmarks/browser/base_bookmark_model_observer.h"
+#include "components/bookmarks/browser/bookmark_model.h"
+#include "components/bookmarks/browser/scoped_group_bookmark_actions.h"
 #include "components/bookmarks/common/android/bookmark_id.h"
+#include "components/bookmarks/managed/managed_bookmark_service.h"
 #include "components/prefs/pref_change_registrar.h"
 #include "url/android/gurl_android.h"
 
-namespace bookmarks {
-class BookmarkModel;
-class ManagedBookmarkService;
-class ScopedGroupBookmarkActions;
-}  // namespace bookmarks
-
-class Profile;
+class BookmarkBridgeTest;
 
 // The delegate to fetch bookmarks information for the Android native
 // bookmark page. This fetches the bookmarks, title, urls, folder
@@ -233,6 +231,10 @@ class BookmarkBridge : public bookmarks::BaseBookmarkModelObserver,
   base::android::ScopedJavaGlobalRef<jobject> GetJavaBookmarkModel();
 
  private:
+  FRIEND_TEST_ALL_PREFIXES(BookmarkBridgeTest, GetChildIdsMobileShowsPartner);
+
+  std::vector<const bookmarks::BookmarkNode*> GetChildIdsImpl(
+      const bookmarks::BookmarkNode* parent);
   base::android::ScopedJavaLocalRef<jobject> CreateJavaBookmark(
       const bookmarks::BookmarkNode* node);
   void ExtractBookmarkNodeInformation(
@@ -254,6 +256,14 @@ class BookmarkBridge : public bookmarks::BaseBookmarkModelObserver,
   bool IsLoaded() const;
   bool IsFolderAvailable(const bookmarks::BookmarkNode* folder) const;
   void NotifyIfDoneLoading();
+  // Filters `nodes` on `IsReachable` and adds the result to the given
+  // `j_result_obj`.
+  void AddBookmarkNodesToBookmarkIdList(
+      JNIEnv* env,
+      const base::android::JavaParamRef<jobject>& j_result_obj,
+      const std::vector<const bookmarks::BookmarkNode*>& nodes);
+  void FilterUnreachableBookmarks(
+      std::vector<const bookmarks::BookmarkNode*>* nodes);
 
   // Override bookmarks::BaseBookmarkModelObserver.
   // Called when there are changes to the bookmark model that don't trigger

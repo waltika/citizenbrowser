@@ -8,6 +8,7 @@
 
 #include "ash/display/mouse_cursor_event_filter.h"
 #include "ash/public/cpp/shell_window_ids.h"
+#include "ash/root_window_controller.h"
 #include "ash/screen_util.h"
 #include "ash/shell.h"
 #include "ash/wm/desks/cros_next_desk_icon_button.h"
@@ -26,7 +27,6 @@
 #include "ash/wm/splitview/split_view_constants.h"
 #include "ash/wm/splitview/split_view_drag_indicators.h"
 #include "ash/wm/splitview/split_view_utils.h"
-#include "ash/wm/tablet_mode/tablet_mode_controller.h"
 #include "ash/wm/window_positioning_utils.h"
 #include "ash/wm/window_util.h"
 #include "base/debug/crash_logging.h"
@@ -39,6 +39,7 @@
 #include "ui/compositor/layer.h"
 #include "ui/compositor/presentation_time_recorder.h"
 #include "ui/display/display.h"
+#include "ui/display/screen.h"
 #include "ui/gfx/geometry/rect.h"
 #include "ui/gfx/geometry/rect_conversions.h"
 #include "ui/wm/core/coordinate_conversion.h"
@@ -357,12 +358,16 @@ void OverviewWindowDragController::StartNormalDragMode(
   auto* overview_grid = item_->overview_grid();
   overview_grid->AddDropTargetForDraggingFromThisGrid(item_);
 
-  // Expand desks bar when normal drag starts and desks bar is in zero state.
-  // The bar may be null if we have no desks in tablet mode.
-  if (auto* desks_bar_view = overview_grid->desks_bar_view();
-      desks_bar_view && desks_bar_view->IsZeroState()) {
-    desks_bar_view->UpdateNewMiniViews(/*initializing_bar_view=*/false,
-                                       /*expanding_bar_view=*/true);
+  // Expand all desks bars on all displays when normal drag starts if it is in
+  // zero state.
+  for (const std::unique_ptr<OverviewGrid>& grid :
+       overview_session_->grid_list()) {
+    // The bar may be null if we have no desks in tablet mode.
+    if (auto* desks_bar_view = grid->desks_bar_view();
+        desks_bar_view && desks_bar_view->IsZeroState()) {
+      desks_bar_view->UpdateNewMiniViews(/*initializing_bar_view=*/false,
+                                         /*expanding_bar_view=*/true);
+    }
   }
 
   item_->UpdateShadowTypeForDrag(/*is_dragging=*/true);
@@ -467,6 +472,15 @@ void OverviewWindowDragController::ActivateDraggedWindow() {
     // Explicitly set `item_` to null to avoid being accessed after been
     // released in `OverviewGrid::RemoveItem()`. See UaF reported in
     // b/301368132.
+    item_ = nullptr;
+    event_source_item_ = nullptr;
+  } else if (auto* split_view_overview_session =
+                 RootWindowController::ForWindow(item_->GetWindow())
+                     ->split_view_overview_session();
+             split_view_overview_session &&
+             split_view_overview_session->auto_snap_controller()) {
+    // If `SplitViewOverviewSession` is active, let it handle the autosnap.
+    overview_session_->SelectWindow(event_source_item_);
     item_ = nullptr;
     event_source_item_ = nullptr;
   } else if (split_view_controller->CanSnapWindow(item_->GetWindow())) {
@@ -946,20 +960,14 @@ SplitViewController::SnapPosition OverviewWindowDragController::GetSnapPosition(
   if (!split_view_controller->CanSnapWindow(item_->GetWindow()))
     return SplitViewController::SnapPosition::kNone;
   if (split_view_controller->InSplitViewMode()) {
-    const int position =
-        base::ClampRound(SplitViewController::IsLayoutHorizontal(root_window)
-                             ? location_in_screen.x() - area.x()
-                             : location_in_screen.y() - area.y());
-    SplitViewController::SnapPosition default_snap_position =
-        split_view_controller->default_snap_position();
     // If we're trying to snap to a position that already has a snapped window:
-    const bool is_default_snap_position_left_or_top =
-        SplitViewController::IsPhysicalLeftOrTop(default_snap_position,
-                                                 root_window);
-    const bool is_drag_position_left_or_top =
-        position < split_view_controller->divider_position();
-    if (is_default_snap_position_left_or_top == is_drag_position_left_or_top)
-      return default_snap_position;
+    aura::Window* default_snapped_window =
+        split_view_controller->GetDefaultSnappedWindow();
+    if (gfx::RectF(default_snapped_window->GetBoundsInScreen())
+            .Contains(location_in_screen)) {
+      return split_view_controller->GetPositionOfSnappedWindow(
+          default_snapped_window);
+    }
   }
 
   return ::ash::GetSnapPosition(
@@ -1004,7 +1012,7 @@ OverviewGrid* OverviewWindowDragController::GetCurrentGrid() const {
 void OverviewWindowDragController::RecordNormalDrag(
     NormalDragAction action,
     bool is_dragged_to_other_display) const {
-  const bool is_tablet = Shell::Get()->tablet_mode_controller()->InTabletMode();
+  const bool is_tablet = display::Screen::GetScreen()->InTabletMode();
   if (is_dragged_to_other_display) {
     DCHECK(!is_touch_dragging_);
     if (!is_tablet) {
@@ -1046,7 +1054,7 @@ void OverviewWindowDragController::RecordDragToClose(
       OverviewDragAction::kSwipeToCloseSuccessfulTabletTouch,
       OverviewDragAction::kSwipeToCloseCanceledTabletTouch,
       OverviewDragAction::kFlingToCloseTabletTouch};
-  RecordDrag(Shell::Get()->tablet_mode_controller()->InTabletMode()
+  RecordDrag(display::Screen::GetScreen()->InTabletMode()
                  ? kTabletDrag[action]
                  : kClamshellDrag[action]);
 }

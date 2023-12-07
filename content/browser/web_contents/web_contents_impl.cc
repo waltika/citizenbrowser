@@ -256,6 +256,11 @@ BASE_FEATURE(kBackNavigationPredictionMetrics,
              "BackNavigationPredictionMetrics",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
+// Kill switch for crash immediately on dangling BrowserContext.
+BASE_FEATURE(kCrashOnDanglingBrowserContext,
+             "CrashOnDanglingBrowserContext",
+             base::FEATURE_ENABLED_BY_DEFAULT);
+
 using LifecycleState = RenderFrameHost::LifecycleState;
 using LifecycleStateImpl = RenderFrameHostImpl::LifecycleStateImpl;
 
@@ -1030,11 +1035,18 @@ class WebContentsOfBrowserContext : public base::SupportsUserData::Data {
           env, web_contents_with_dangling_ptr_to_browser_context);
 #endif  // BUILDFLAG(IS_ANDROID)
 
-      NOTREACHED()
-          << "BrowserContext is getting destroyed without first closing all "
-          << "WebContents (for more info see https://crbug.com/1376879#c44); "
-          << "creator = " << creator;
-      base::debug::DumpWithoutCrashing();
+      if (base::FeatureList::IsEnabled(kCrashOnDanglingBrowserContext)) {
+        LOG(FATAL)
+            << "BrowserContext is getting destroyed without first closing all "
+            << "WebContents (for more info see https://crbug.com/1376879#c44); "
+            << "creator = " << creator;
+      } else {
+        NOTREACHED()
+            << "BrowserContext is getting destroyed without first closing all "
+            << "WebContents (for more info see https://crbug.com/1376879#c44); "
+            << "creator = " << creator;
+        base::debug::DumpWithoutCrashing();
+      }
     }
   }
 
@@ -1124,7 +1136,7 @@ WebContentsImpl::WebContentsImpl(BrowserContext* browser_context)
 #endif
 
 #if BUILDFLAG(IS_ANDROID)
-  display_cutout_host_impl_ = std::make_unique<DisplayCutoutHostImpl>(this);
+  safe_area_insets_host_ = SafeAreaInsetsHost::Create(this);
 #endif
 
   ui::NativeTheme* native_theme = ui::NativeTheme::GetInstanceForWeb();
@@ -2121,9 +2133,8 @@ bool WebContentsImpl::ShouldOverrideUserAgentForRendererInitiatedNavigation() {
   return false;
 }
 
-void WebContentsImpl::EnableWebContentsOnlyAccessibilityMode() {
-  OPTIONAL_TRACE_EVENT0(
-      "content", "WebContentsImpl::EnableWebContentsOnlyAccessibilityMode");
+void WebContentsImpl::EnableAccessibilityMode(ui::AXMode mode) {
+  OPTIONAL_TRACE_EVENT0("content", "WebContentsImpl::EnableAccessibilityMode");
   // If accessibility is already enabled, we'll need to force a reset
   // in order to ensure new observers of accessibility events get the
   // full accessibility tree from scratch.
@@ -2132,7 +2143,7 @@ void WebContentsImpl::EnableWebContentsOnlyAccessibilityMode() {
   ui::AXMode desired_mode =
       GetContentClient()->browser()->GetAXModeForBrowserContext(
           GetBrowserContext());
-  desired_mode |= ui::kAXModeWebContentsOnly;
+  desired_mode |= mode;
   AddAccessibilityMode(desired_mode);
 
   // Accessibility mode updates include speculative RFH's as well as any inner
@@ -2156,8 +2167,8 @@ bool WebContentsImpl::IsFullAccessibilityModeForTesting() {
 
 void WebContentsImpl::SetDisplayCutoutSafeArea(gfx::Insets insets) {
   OPTIONAL_TRACE_EVENT0("content", "WebContentsImpl::SetDisplayCutoutSafeArea");
-  if (display_cutout_host_impl_) {
-    display_cutout_host_impl_->SetDisplayCutoutSafeArea(insets);
+  if (safe_area_insets_host_) {
+    safe_area_insets_host_->SetDisplayCutoutSafeArea(insets);
   }
 }
 
@@ -3131,10 +3142,6 @@ const blink::web_pref::WebPreferences WebContentsImpl::ComputeWebPreferences() {
 
 #if BUILDFLAG(IS_ANDROID)
   prefs.device_scale_adjustment = GetDeviceScaleAdjustment(min_width_in_dp);
-
-  if (base::FeatureList::IsEnabled(features::kForceOffTextAutosizing)) {
-    prefs.text_autosizing_enabled = false;
-  }
 #endif  // BUILDFLAG(IS_ANDROID)
 
   // GuestViews in the same StoragePartition need to find each other's frames.
@@ -3856,12 +3863,14 @@ void WebContentsImpl::EnterFullscreenMode(
   }
 
   observers_.NotifyObservers(
-      &WebContentsObserver::DidToggleFullscreenModeForTab, IsFullscreen());
+      &WebContentsObserver::DidToggleFullscreenModeForTab, IsFullscreen(),
+      false);
   FullscreenContentsSet(GetBrowserContext())->insert(this);
 }
 
-void WebContentsImpl::ExitFullscreenMode() {
-  OPTIONAL_TRACE_EVENT0("content", "WebContentsImpl::ExitFullscreenMode");
+void WebContentsImpl::ExitFullscreenMode(bool will_cause_resize) {
+  OPTIONAL_TRACE_EVENT1("content", "WebContentsImpl::ExitFullscreenMode",
+                        "will_cause_resize", will_cause_resize);
   // When WebView is the `delegate_` we can end up with VisualProperties changes
   // synchronously. Notify the view ahead so it can handle the transition.
   if (auto* view = GetRenderWidgetHostView()) {
@@ -3884,19 +3893,22 @@ void WebContentsImpl::ExitFullscreenMode() {
   // entering "tab fullscreen". Exiting the contents "tab fullscreen" then won't
   // have the side effect of the view resizing, hence the explicit call here is
   // required.
-  if (RenderWidgetHostView* rwhv = GetRenderWidgetHostView()) {
-    if (RenderWidgetHost* render_widget_host = rwhv->GetRenderWidgetHost()) {
-      render_widget_host->SynchronizeVisualProperties();
+  if (!will_cause_resize) {
+    if (RenderWidgetHostView* rwhv = GetRenderWidgetHostView()) {
+      if (RenderWidgetHost* render_widget_host = rwhv->GetRenderWidgetHost()) {
+        render_widget_host->SynchronizeVisualProperties();
+      }
     }
   }
 
   current_fullscreen_frame_id_ = GlobalRenderFrameHostId();
 
   observers_.NotifyObservers(
-      &WebContentsObserver::DidToggleFullscreenModeForTab, IsFullscreen());
+      &WebContentsObserver::DidToggleFullscreenModeForTab, IsFullscreen(),
+      will_cause_resize);
 
-  if (display_cutout_host_impl_) {
-    display_cutout_host_impl_->DidExitFullscreen();
+  if (safe_area_insets_host_) {
+    safe_area_insets_host_->DidExitFullscreen();
   }
 
   FullscreenContentsSet(GetBrowserContext())->erase(this);
@@ -4011,8 +4023,8 @@ void WebContentsImpl::FullscreenFrameSetUpdated() {
 
   observers_.NotifyObservers(&WebContentsObserver::DidAcquireFullscreen,
                              new_fullscreen_frame);
-  if (display_cutout_host_impl_) {
-    display_cutout_host_impl_->DidAcquireFullscreen(new_fullscreen_frame);
+  if (safe_area_insets_host_) {
+    safe_area_insets_host_->DidAcquireFullscreen(new_fullscreen_frame);
   }
 }
 
@@ -6021,12 +6033,12 @@ bool WebContentsImpl::WasEverAudible() {
   return was_ever_audible_;
 }
 
-void WebContentsImpl::ExitFullscreen() {
+void WebContentsImpl::ExitFullscreen(bool will_cause_resize) {
   OPTIONAL_TRACE_EVENT0("content", "WebContentsImpl::ExitFullscreen");
   // Clean up related state and initiate the fullscreen exit.
   GetRenderViewHost()->GetWidget()->RejectMouseLockOrUnlockIfNecessary(
       blink::mojom::PointerLockResult::kUserRejected);
-  ExitFullscreenMode();
+  ExitFullscreenMode(will_cause_resize);
 }
 
 base::ScopedClosureRunner WebContentsImpl::ForSecurityDropFullscreen(
@@ -6057,7 +6069,7 @@ base::ScopedClosureRunner WebContentsImpl::ForSecurityDropFullscreen(
     if (is_fullscreen(fullscreen_contents, display_id)) {
       auto opener_contentses = GetAllOpeningWebContents(fullscreen_contents);
       if (opener_contentses.count(this)) {
-        fullscreen_contents->ExitFullscreen();
+        fullscreen_contents->ExitFullscreen(true);
       }
     }
   }
@@ -6073,7 +6085,7 @@ base::ScopedClosureRunner WebContentsImpl::ForSecurityDropFullscreen(
 
   for (auto* opener : GetAllOpeningWebContents(this)) {
     if (is_fullscreen(opener, display_id)) {
-      opener->ExitFullscreen();
+      opener->ExitFullscreen(true);
     }
 
     // ...block the WebContents from entering fullscreen until further notice.
@@ -6251,8 +6263,8 @@ void WebContentsImpl::DidFinishNavigation(NavigationHandle* navigation_handle) {
     observers_.NotifyObservers(&WebContentsObserver::DidFinishNavigation,
                                navigation_handle);
   }
-  if (display_cutout_host_impl_) {
-    display_cutout_host_impl_->DidFinishNavigation(navigation_handle);
+  if (safe_area_insets_host_) {
+    safe_area_insets_host_->DidFinishNavigation(navigation_handle);
   }
 
   if (navigation_handle->HasCommitted()) {
@@ -6417,7 +6429,7 @@ void WebContentsImpl::DidNavigateMainFramePreCommit(
   }
 
   if (IsFullscreen()) {
-    ExitFullscreen();
+    ExitFullscreen(false);
   }
 
   if (base::FeatureList::IsEnabled(
@@ -7451,8 +7463,8 @@ void WebContentsImpl::RenderFrameCreated(
   }
   render_frame_host->UpdateAccessibilityMode();
 
-  if (display_cutout_host_impl_) {
-    display_cutout_host_impl_->RenderFrameCreated(render_frame_host);
+  if (safe_area_insets_host_) {
+    safe_area_insets_host_->RenderFrameCreated(render_frame_host);
   }
 }
 
@@ -7469,8 +7481,8 @@ void WebContentsImpl::RenderFrameDeleted(
   pepper_playback_observer_->RenderFrameDeleted(render_frame_host);
 #endif
 
-  if (display_cutout_host_impl_) {
-    display_cutout_host_impl_->RenderFrameDeleted(render_frame_host);
+  if (safe_area_insets_host_) {
+    safe_area_insets_host_->RenderFrameDeleted(render_frame_host);
   }
 
   // Remove any fullscreen state that the frame has stored.
@@ -7969,7 +7981,7 @@ void WebContentsImpl::RenderViewTerminated(RenderViewHost* rvh,
   // Ensure fullscreen mode is exited in the |delegate_| since a crashed
   // renderer may not have made a clean exit.
   if (IsFullscreen()) {
-    ExitFullscreenMode();
+    ExitFullscreenMode(false);
   }
 
   // Ensure any video or document in Picture-in-Picture is exited in the
@@ -8157,11 +8169,6 @@ void WebContentsImpl::DidStartLoading(FrameTreeNode* frame_tree_node) {
       GetPrimaryFrameTree().root()->frame_tree_node_id());
   SCOPED_UMA_HISTOGRAM_TIMER("WebContentsObserver.DidStartLoading");
   observers_.NotifyObservers(&WebContentsObserver::DidStartLoading);
-
-  // TODO(avi): Remove. http://crbug.com/170921
-  NotificationService::current()->Notify(
-      NOTIFICATION_LOAD_START, Source<NavigationController>(&GetController()),
-      NotificationService::NoDetails());
 
   // Reset the focus state from DidStartNavigation to false if a new load starts
   // afterward, in case loading logic triggers a FocusLocationBarByDefault call.
@@ -8356,9 +8363,9 @@ void WebContentsImpl::WebAuthnAssertionRequestSucceeded(
 void WebContentsImpl::BindDisplayCutoutHost(
     RenderFrameHostImpl* render_frame_host,
     mojo::PendingAssociatedReceiver<blink::mojom::DisplayCutoutHost> receiver) {
-  if (display_cutout_host_impl_) {
-    display_cutout_host_impl_->BindReceiver(std::move(receiver),
-                                            render_frame_host);
+  if (safe_area_insets_host_) {
+    safe_area_insets_host_->BindReceiver(std::move(receiver),
+                                         render_frame_host);
   }
 }
 
@@ -9777,33 +9784,6 @@ void WebContentsImpl::OnFrameIsCapturingMediaStreamChanged(
   observers_.NotifyObservers(
       &WebContentsObserver::OnFrameIsCapturingMediaStreamChanged, host,
       is_capturing_media_stream);
-}
-
-media::MediaMetricsProvider::RecordAggregateWatchTimeCallback
-WebContentsImpl::GetRecordAggregateWatchTimeCallback(
-    const GURL& page_main_frame_last_committed_url) {
-  OPTIONAL_TRACE_EVENT0("content",
-                        "WebContentsImpl::RecordAggregateWatchTimeCallback");
-  if (!delegate_ || !delegate_->GetDelegateWeakPtr()) {
-    return base::DoNothing();
-  }
-
-  return base::BindRepeating(
-      [](base::WeakPtr<WebContentsDelegate> delegate,
-         GURL page_main_frame_last_committed_url,
-         base::TimeDelta total_watch_time, base::TimeDelta time_stamp,
-         bool has_video, bool has_audio) {
-        content::MediaPlayerWatchTime watch_time(
-            page_main_frame_last_committed_url,
-            page_main_frame_last_committed_url.DeprecatedGetOriginAsURL(),
-            total_watch_time, time_stamp, has_video, has_audio);
-
-        // Save the watch time if the delegate is still alive.
-        if (delegate) {
-          delegate->MediaWatchTimeChanged(watch_time);
-        }
-      },
-      delegate_->GetDelegateWeakPtr(), page_main_frame_last_committed_url);
 }
 
 // Cf. `GetProspectiveOuterDocument` which applies to the same situation, but is

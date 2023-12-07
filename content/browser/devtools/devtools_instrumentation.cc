@@ -584,6 +584,57 @@ void OnNavigationResponseReceived(const NavigationRequest& nav_request,
                    *head_info, frame_id);
 }
 
+void OnFetchKeepAliveRequestWillBeSent(
+    FrameTreeNode* frame_tree_node,
+    const std::string& request_id,
+    const network::ResourceRequest& request,
+    absl::optional<
+        std::pair<const GURL&,
+                  const network::mojom::URLResponseHeadDevToolsInfo&>>
+        redirect_info) {
+  CHECK(frame_tree_node);
+
+  auto timestamp = base::TimeTicks::Now();
+  std::string frame_token =
+      frame_tree_node->current_frame_host()->devtools_frame_token().ToString();
+  GURL initiator_url;
+  if (request.request_initiator.has_value()) {
+    initiator_url = request.request_initiator->GetURL();
+  }
+  DispatchToAgents(frame_tree_node,
+                   &protocol::NetworkHandler::FetchKeepAliveRequestWillBeSent,
+                   request_id, request, initiator_url, frame_token, timestamp,
+                   redirect_info);
+}
+
+void OnFetchKeepAliveResponseReceived(
+    FrameTreeNode* frame_tree_node,
+    const std::string& request_id,
+    const GURL& url,
+    const network::mojom::URLResponseHead& head) {
+  CHECK(frame_tree_node);
+
+  std::string frame_token =
+      frame_tree_node->current_frame_host()->devtools_frame_token().ToString();
+  network::mojom::URLResponseHeadDevToolsInfoPtr head_info =
+      network::ExtractDevToolsInfo(head);
+  DispatchToAgents(frame_tree_node, &protocol::NetworkHandler::ResponseReceived,
+                   request_id, request_id, url,
+                   protocol::Network::ResourceTypeEnum::Fetch, *head_info,
+                   frame_token);
+}
+
+void OnFetchKeepAliveRequestComplete(
+    FrameTreeNode* frame_tree_node,
+    const std::string& request_id,
+    const network::URLLoaderCompletionStatus& status) {
+  CHECK(frame_tree_node);
+
+  DispatchToAgents(frame_tree_node, &protocol::NetworkHandler::LoadingComplete,
+                   request_id, protocol::Network::ResourceTypeEnum::Fetch,
+                   status);
+}
+
 void BackForwardCacheNotUsed(
     const NavigationRequest* nav_request,
     const BackForwardCacheCanStoreDocumentResult* result,
@@ -2186,10 +2237,10 @@ void CleanUpDeviceRequestPrompt(RenderFrameHost* render_frame_host,
                    prompt_info);
 }
 
-void WillSendFedCmRequest(RenderFrameHost* render_frame_host,
+void WillSendFedCmRequest(RenderFrameHost& render_frame_host,
                           bool* intercept,
                           bool* disable_delay) {
-  FrameTreeNode* ftn = FrameTreeNode::From(render_frame_host);
+  FrameTreeNode* ftn = FrameTreeNode::From(&render_frame_host);
   if (!ftn) {
     return;
   }
@@ -2197,20 +2248,28 @@ void WillSendFedCmRequest(RenderFrameHost* render_frame_host,
                    disable_delay);
 }
 
-void WillShowFedCmDialog(RenderFrameHost* render_frame_host, bool* intercept) {
-  FrameTreeNode* ftn = FrameTreeNode::From(render_frame_host);
+void WillShowFedCmDialog(RenderFrameHost& render_frame_host, bool* intercept) {
+  FrameTreeNode* ftn = FrameTreeNode::From(&render_frame_host);
   if (!ftn) {
     return;
   }
   DispatchToAgents(ftn, &protocol::FedCmHandler::WillShowDialog, intercept);
 }
 
-void OnFedCmDialogShown(RenderFrameHost* render_frame_host) {
-  FrameTreeNode* ftn = FrameTreeNode::From(render_frame_host);
+void DidShowFedCmDialog(RenderFrameHost& render_frame_host) {
+  FrameTreeNode* ftn = FrameTreeNode::From(&render_frame_host);
   if (!ftn) {
     return;
   }
-  DispatchToAgents(ftn, &protocol::FedCmHandler::OnDialogShown);
+  DispatchToAgents(ftn, &protocol::FedCmHandler::DidShowDialog);
+}
+
+void DidCloseFedCmDialog(RenderFrameHost& render_frame_host) {
+  FrameTreeNode* ftn = FrameTreeNode::From(&render_frame_host);
+  if (!ftn) {
+    return;
+  }
+  DispatchToAgents(ftn, &protocol::FedCmHandler::DidCloseDialog);
 }
 
 void OnFencedFrameReportRequestSent(int initiator_frame_tree_node_id,

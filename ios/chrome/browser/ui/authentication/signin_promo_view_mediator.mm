@@ -716,14 +716,27 @@ id<SystemIdentity> GetDisplayedIdentity(
     }
     DCHECK(self.displayedIdentity)
         << base::SysNSStringToUTF8([self description]);
-    return [[SigninPromoViewConfigurator alloc]
-        initWithSigninPromoViewMode:
-            SigninPromoViewModeSignedInWithPrimaryAccount
-                          userEmail:self.displayedIdentity.userEmail
-                      userGivenName:self.displayedIdentity.userGivenName
-                          userImage:self.displayedIdentityAvatar
-                     hasCloseButton:hasCloseButton
-                   hasSignInSpinner:self.showSpinner];
+    SigninPromoViewConfigurator* configurator =
+        [[SigninPromoViewConfigurator alloc]
+            initWithSigninPromoViewMode:
+                SigninPromoViewModeSignedInWithPrimaryAccount
+                              userEmail:self.displayedIdentity.userEmail
+                          userGivenName:self.displayedIdentity.userGivenName
+                              userImage:self.displayedIdentityAvatar
+                         hasCloseButton:hasCloseButton
+                       hasSignInSpinner:self.showSpinner];
+    switch (self.signinPromoAction) {
+      case SigninPromoAction::kSync:
+      case SigninPromoAction::kSigninSheet:
+      case SigninPromoAction::kInstantSignin:
+      case SigninPromoAction::kSigninWithNoDefaultIdentity:
+        break;
+      case SigninPromoAction::kReviewAccountSettings:
+        configurator.primaryButtonTitleOverride =
+            l10n_util::GetNSString(IDS_IOS_SIGNIN_PROMO_REVIEW_SETTINGS_BUTTON);
+        break;
+    }
+    return configurator;
   }
   if (self.displayedIdentity) {
     return [[SigninPromoViewConfigurator alloc]
@@ -744,9 +757,11 @@ id<SystemIdentity> GetDisplayedIdentity(
                      hasSignInSpinner:self.showSpinner];
   switch (self.signinPromoAction) {
     case SigninPromoAction::kSync:
+    case SigninPromoAction::kReviewAccountSettings:
       break;
     case SigninPromoAction::kSigninSheet:
     case SigninPromoAction::kInstantSignin:
+    case SigninPromoAction::kSigninWithNoDefaultIdentity:
       configurator.primaryButtonTitleOverride =
           l10n_util::GetNSString(IDS_IOS_CONSISTENCY_PROMO_SIGN_IN);
       break;
@@ -1006,14 +1021,10 @@ id<SystemIdentity> GetDisplayedIdentity(
 - (void)optInBookmarkReadingListAccountStorage {
   bool bookmarksAccountStorageEnabled =
       base::FeatureList::IsEnabled(syncer::kEnableBookmarksAccountStorage);
-  bool dualReadingListModelEnabled = base::FeatureList::IsEnabled(
-      syncer::kReadingListEnableDualReadingListModel);
   bool readingListTransportUponSignInEnabled = base::FeatureList::IsEnabled(
       syncer::kReadingListEnableSyncTransportModeUponSignIn);
-  CHECK(bookmarksAccountStorageEnabled ||
-        (dualReadingListModelEnabled && readingListTransportUponSignInEnabled))
+  CHECK(bookmarksAccountStorageEnabled || readingListTransportUponSignInEnabled)
       << "bookmarksAccountStorageEnabled: " << bookmarksAccountStorageEnabled
-      << ", dualReadingListModelEnabled: " << dualReadingListModelEnabled
       << ", readingListTransportUponSignInEnabled: "
       << readingListTransportUponSignInEnabled;
   _syncService->GetUserSettings()
@@ -1066,6 +1077,7 @@ id<SystemIdentity> GetDisplayedIdentity(
       signin_metrics::PromoAction::PROMO_ACTION_NEW_ACCOUNT_NO_EXISTING_ACCOUNT;
   signin_metrics::RecordSigninUserActionForAccessPoint(self.accessPoint);
   switch (self.signinPromoAction) {
+    case SigninPromoAction::kSigninWithNoDefaultIdentity:
     case SigninPromoAction::kInstantSignin:
       [self showSigninWithIdentity:nil
                          operation:AuthenticationOperation::kInstantSignin
@@ -1081,35 +1093,45 @@ id<SystemIdentity> GetDisplayedIdentity(
                          operation:AuthenticationOperation::kSigninOnly
                        promoAction:promoAction];
       return;
+    case SigninPromoAction::kReviewAccountSettings:
+      NOTREACHED() << "This action is only valid for a signed in account.";
+      return;
   }
 }
 
-- (void)signinPromoViewDidTapSigninWithDefaultAccount:
+- (void)signinPromoViewDidTapPrimaryButtonWithDefaultAccount:
     (SigninPromoView*)signinPromoView {
   DCHECK(self.displayedIdentity) << base::SysNSStringToUTF8([self description]);
   DCHECK(self.signinPromoViewVisible)
       << base::SysNSStringToUTF8([self description]);
   DCHECK(!self.invalidClosedOrNeverVisible)
       << base::SysNSStringToUTF8([self description]);
-  [self sendImpressionsTillSigninButtonsHistogram];
   switch (self.signinPromoAction) {
     case SigninPromoAction::kInstantSignin:
+      [self sendImpressionsTillSigninButtonsHistogram];
       [self showSigninWithIdentity:self.displayedIdentity
                          operation:AuthenticationOperation::kInstantSignin
                        promoAction:signin_metrics::PromoAction::
                                        PROMO_ACTION_WITH_DEFAULT];
       return;
     case SigninPromoAction::kSync:
+      [self sendImpressionsTillSigninButtonsHistogram];
       [self showSigninWithIdentity:self.displayedIdentity
                          operation:AuthenticationOperation::kSigninAndSync
                        promoAction:signin_metrics::PromoAction::
                                        PROMO_ACTION_WITH_DEFAULT];
       return;
+    case SigninPromoAction::kSigninWithNoDefaultIdentity:
     case SigninPromoAction::kSigninSheet:
+      [self sendImpressionsTillSigninButtonsHistogram];
       [self showSigninWithIdentity:nil
                          operation:AuthenticationOperation::kSigninOnly
                        promoAction:signin_metrics::PromoAction::
                                        PROMO_ACTION_WITH_DEFAULT];
+      return;
+    case SigninPromoAction::kReviewAccountSettings:
+      // TODO(crbug.com/1459255): Record metrics for this promo action.
+      [self showAccountSettings];
       return;
   }
 }
@@ -1142,6 +1164,13 @@ id<SystemIdentity> GetDisplayedIdentity(
                          operation:AuthenticationOperation::kSigninOnly
                        promoAction:signin_metrics::PromoAction::
                                        PROMO_ACTION_NOT_DEFAULT];
+      return;
+    case SigninPromoAction::kReviewAccountSettings:
+      NOTREACHED() << "This action is only valid for a signed in account.";
+      return;
+    case SigninPromoAction::kSigninWithNoDefaultIdentity:
+      NOTREACHED() << "The user should not be able to explicitly select "
+                      "\"other account\".";
       return;
   }
 }

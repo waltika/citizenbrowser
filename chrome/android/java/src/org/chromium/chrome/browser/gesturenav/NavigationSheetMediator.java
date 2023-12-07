@@ -151,8 +151,8 @@ class NavigationSheetMediator {
                 Drawable drawable;
                 if (favicon == null) {
                     drawable =
-                            UrlUtilities.isNTPUrl(pageUrl)
-                                    ? getNTPIcon()
+                            UrlUtilities.isNtpUrl(pageUrl)
+                                    ? getNtpIcon()
                                     : new BitmapDrawable(
                                             mIconGenerator.generateIconForUrl(pageUrl));
                 } else {
@@ -165,17 +165,17 @@ class NavigationSheetMediator {
 
     private String getEntryText(NavigationEntry entry) {
         String entryText = entry.getTitle();
-        if (UrlUtilities.isNTPUrl(entry.getUrl())) entryText = getNTPText();
+        if (UrlUtilities.isNtpUrl(entry.getUrl())) entryText = getNtpText();
         if (TextUtils.isEmpty(entryText)) entryText = entry.getVirtualUrl().getSpec();
         if (TextUtils.isEmpty(entryText)) entryText = entry.getUrl().getSpec();
         return entryText;
     }
 
-    private Drawable getNTPIcon() {
+    private Drawable getNtpIcon() {
         return mProfile.isOffTheRecord() ? mIncognitoIcon : mDefaultIcon;
     }
 
-    private String getNTPText() {
+    private String getNtpText() {
         return mProfile.isOffTheRecord() ? mNewIncognitoTabText : mNewTabText;
     }
 }

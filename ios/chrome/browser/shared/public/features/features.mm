@@ -327,6 +327,10 @@ BASE_FEATURE(kTabGridCompositionalLayout,
              "TabGridCompositionalLayout",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
+bool IsTabGridCompositionalLayoutEnabled() {
+  return base::FeatureList::IsEnabled(kTabGridCompositionalLayout);
+}
+
 BASE_FEATURE(kTabGridRefactoring,
              "TabGridRefactoring",
              base::FEATURE_DISABLED_BY_DEFAULT);
@@ -416,6 +420,10 @@ BASE_FEATURE(kFullscreenImprovement,
 
 BASE_FEATURE(kTabGroupsInGrid,
              "TabGroupsInGrid",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+BASE_FEATURE(kIOSExternalActionURLs,
+             "IOSExternalActionURLs",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Key for NSUserDefaults containing a bool indicating whether the next run
@@ -815,4 +823,8 @@ bool ShouldHideIrrelevantModules() {
 int TimeUntilShowingCompactedSetUpList() {
   return base::GetFieldTrialParamByFeatureAsInt(
       kMagicStack, kSetUpListCompactedTimeThresholdDays, 3);
+}
+
+bool IsExternalActionSchemeHandlingEnabled() {
+  return base::FeatureList::IsEnabled(kIOSExternalActionURLs);
 }

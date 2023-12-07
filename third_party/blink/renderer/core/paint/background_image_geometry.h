@@ -13,14 +13,13 @@
 namespace blink {
 
 class ComputedStyle;
-class Document;
 class FillLayer;
 class ImageResourceObserver;
 class LayoutBox;
 class LayoutBoxModelObject;
 class LayoutTableCell;
 class LayoutView;
-class NGPhysicalBoxFragment;
+class PhysicalBoxFragment;
 struct PaintInfo;
 
 struct SnappedAndUnsnappedOutsets {
@@ -46,7 +45,7 @@ class BackgroundImageGeometry {
                           const LayoutBox& table_part,
                           PhysicalSize table_part_size);
 
-  explicit BackgroundImageGeometry(const NGPhysicalBoxFragment&);
+  explicit BackgroundImageGeometry(const PhysicalBoxFragment&);
 
   // Compute the initial position area based on the geometry for the object
   // this BackgroundImageGeometry was created for.
@@ -101,10 +100,7 @@ class BackgroundImageGeometry {
   }
 
   const ImageResourceObserver& ImageClient() const;
-  const Document& ImageDocument() const;
   const ComputedStyle& ImageStyle(const ComputedStyle& fragment_style) const;
-  InterpolationQuality ImageInterpolationQuality() const;
-  cc::PaintFlags::DynamicRangeLimit DynamicRangeLimit() const;
 
   bool CanCompositeBackgroundAttachmentFixed() const;
 
@@ -167,6 +163,12 @@ class BackgroundImageGeometry {
   void CalculateFillTileSize(const FillLayer&,
                              const PhysicalSize&,
                              const PhysicalSize&);
+  void CalculateRepeatAndPosition(
+      const FillLayer&,
+      const PhysicalSize& unsnapped_positioning_area_size,
+      const PhysicalSize& snapped_positioning_area_size,
+      const PhysicalOffset& unsnapped_box_offset,
+      const PhysicalOffset& snapped_box_offset);
 
   PhysicalBoxStrut VisualOverflowOutsets() const;
   PhysicalBoxStrut InnerBorderOutsets(
@@ -186,11 +188,8 @@ class BackgroundImageGeometry {
   // 2. a table cell using its row/column's background (box_ is the table cell,
   //    and positioning_box_ is the row/column).
   // When they are different:
-  // - ImageDocument() uses box_;
   // - ImageClient() uses box_ if painting view, otherwise positioning_box_;
   // - ImageStyle() uses positioning_box_;
-  // - ImageInterpolationQuality() uses box_;
-  // - DynamicRangeLimit() uses box_;
   // - FillLayers come from box_ if painting view, otherwise positioning_box_.
   const LayoutBoxModelObject* const box_;
 

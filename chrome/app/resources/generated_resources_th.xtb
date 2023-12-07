@@ -610,7 +610,6 @@
 <translation id="1477654881618305065">องค์กรของคุณไม่อนุญาตให้แชร์เนื้อหานี้ หากต้องการความช่วยเหลือ โปรดติดต่อผู้ดูแลระบบ</translation>
 <translation id="1478340334823509079">รายละเอียด: <ph name="FILE_NAME" /></translation>
 <translation id="1478607704480248626">ไม่ได้เปิดใช้การติดตั้ง</translation>
-<translation id="1480571698637441426">หากต้องการคำตอบที่ปรับเปลี่ยนให้เหมาะกับคุณเมื่อถามคำถาม โปรดอนุญาตให้ Assistant เข้าถึงภาพสิ่งที่อยู่บนหน้าจอ ซึ่งอาจรวมถึงข้อมูลเกี่ยวกับเพลงหรือวิดีโอที่กำลังเล่นอยู่ด้วย</translation>
 <translation id="1480663089572535854">คุณสามารถกลับไปเปลี่ยนการกำหนดของ "เลือก" และปิดการสแกนอัตโนมัติได้ทุกเมื่อในการตั้งค่า</translation>
 <translation id="1481537595330271162">เกิดข้อผิดพลาดในการปรับขนาดดิสก์</translation>
 <translation id="1482626744466814421">บุ๊กมาร์กแท็บนี้...</translation>
@@ -1113,7 +1112,6 @@
 <translation id="1848219224579402567">ออกจากระบบเมื่อปิดฝา</translation>
 <translation id="184862733444771842">คำขอฟีเจอร์</translation>
 <translation id="1849016657376805933">อุปกรณ์ HID ทั้งหมด</translation>
-<translation id="1849186935225320012">หน้านี้มีสิทธิ์ควบคุมอุปกรณ์ MIDI เต็มรูปแบบ</translation>
 <translation id="1850145825777333687">ข้อมูลเข้าสู่ระบบอุปกรณ์</translation>
 <translation id="1850508293116537636">หมุน&amp;ตามเข็มนาฬิกา</translation>
 <translation id="185111092974636561"><ph name="BEGIN_PARAGRAPH1" />ก่อนลงทะเบียน คุณต้องล้างข้อมูลใน TPM เพื่อให้ <ph name="DEVICE_OS" /> เข้าเป็นเจ้าของอุปกรณ์ได้<ph name="END_PARAGRAPH1" />
@@ -1610,7 +1608,6 @@
 <translation id="2224444042887712269">การตั้งค่านี้เป็นของ <ph name="OWNER_EMAIL" /></translation>
 <translation id="2224551243087462610">แก้ไขชื่อโฟลเดอร์</translation>
 <translation id="2225927550500503913">เปิดบัตรเสมือนแล้ว</translation>
-<translation id="2226449515541314767">ไซต์นี้ถูกบล็อกจากการมีสิทธิ์ควบคุมอุปกรณ์ MIDI เต็มรูปแบบ</translation>
 <translation id="2226826835915474236">ทางลัดที่ไม่ได้ใช้งาน</translation>
 <translation id="2226907662744526012">ปลดล็อกโดยอัตโนมัติเมื่อมีการป้อน PIN</translation>
 <translation id="2227179592712503583">นำคำแนะนำออก</translation>
@@ -1778,6 +1775,7 @@
 <translation id="2344032937402519675">เชื่อมต่อกับเซิร์ฟเวอร์ไม่สำเร็จ ตรวจสอบการเชื่อมต่อเครือข่ายแล้วลองอีกครั้ง หากยังประสบปัญหาอยู่ ให้ลองรีสตาร์ท Chromebook</translation>
 <translation id="234559068082989648">แอป Chrome เวอร์ชันเก่าจะเปิดใช้งานไม่ได้แล้วหลังจากเดือนธันวาคม 2022 โปรดแจ้งให้ผู้ดูแลระบบทำการอัปเดตเป็นเวอร์ชันใหม่หรือนำแอปนี้ออก</translation>
 <translation id="2345723121311404059">พิมพ์ 1 หน้าไปยัง <ph name="PRINTER_NAME" /></translation>
+<translation id="2347930112185157300">ผู้ให้บริการเครือข่ายมือถือล็อกอยู่</translation>
 <translation id="2348176352564285430">แอป: <ph name="ARC_PROCESS_NAME" /></translation>
 <translation id="2348729153658512593"><ph name="WINDOW_TITLE" /> - ขอสิทธิ์ กด Ctrl + ไปข้างหน้าเพื่อตอบกลับ</translation>
 <translation id="234889437187286781">เกิดข้อผิดพลาดขณะโหลดข้อมูล</translation>
@@ -1919,7 +1917,6 @@
 <translation id="2450849356604136918">ไม่มีมุมมองที่เปิดอยู่</translation>
 <translation id="2451298179137331965">2x</translation>
 <translation id="245322989586167203">โดยปกติแล้วเว็บไซต์จะเชื่อมต่อกับพอร์ตอนุกรมเพื่อดำเนินการตามฟีเจอร์ในการโอนข้อมูล เช่น การตั้งค่าเครือข่าย</translation>
-<translation id="2453706416476934374">หากต้องการคำตอบที่ปรับเปลี่ยนให้เหมาะกับบุตรหลานเมื่อ <ph name="SUPERVISED_USER_NAME" /> ถามคำถาม โปรดอนุญาตให้ Assistant เข้าถึงภาพสิ่งที่อยู่บนหน้าจอของ <ph name="SUPERVISED_USER_NAME" /> ซึ่งอาจรวมถึงข้อมูลเกี่ยวกับเพลงหรือวิดีโอที่กำลังเล่นอยู่ด้วย</translation>
 <translation id="2453860139492968684">เสร็จสิ้น</translation>
 <translation id="2454206500483040640">แบ่งพาร์ติชันแล้ว</translation>
 <translation id="2454247629720664989">คีย์เวิร์ด</translation>
@@ -2092,7 +2089,6 @@
 <translation id="2580889980133367162">อนุญาตให้ <ph name="HOST" /> ดาวน์โหลดไฟล์หลายไฟล์เสมอ</translation>
 <translation id="258095186877893873">ยาว</translation>
 <translation id="2581455244799175627">ข้อมูลเพิ่มเติมเกี่ยวกับการอนุญาตคุกกี้ของบุคคลที่สาม</translation>
-<translation id="2581992808349413349">ใช้การเชื่อมต่อที่ปลอดภัยเพื่อค้นหาที่อยู่ IP ของเว็บไซต์ใน DNS (ระบบชื่อโดเมน) การดำเนินการนี้ใช้ผู้ให้บริการที่มีการจัดการที่ <ph name="DNS_SERVER_TEMPLATE_WITH_IDENTIFIER" /></translation>
 <translation id="2582253231918033891"><ph name="PRODUCT_NAME" /> <ph name="PRODUCT_VERSION" /> (แพลตฟอร์ม <ph name="PLATFORM_VERSION" />) <ph name="DEVICE_SERIAL_NUMBER" /></translation>
 <translation id="2584109212074498965">ดึงข้อมูลตั๋ว Kerberos ไม่สำเร็จ ลองอีกครั้ง หรือติดต่อผู้ดูแลระบบอุปกรณ์ขององค์กร (รหัสข้อผิดพลาด <ph name="ERROR_CODE" />)</translation>
 <translation id="2586561813241011046">ติดตั้ง <ph name="APP_NAME" /> ไม่ได้ โปรดลองอีกครั้งหรือติดต่อผู้ดูแลระบบ รหัสข้อผิดพลาด: <ph name="ERROR_CODE" /></translation>
@@ -2547,11 +2543,11 @@
 <translation id="2927017729816812676">พื้นที่เก็บข้อมูลแคช</translation>
 <translation id="2928795416630981206">ได้รับอนุญาตให้ติดตามตำแหน่งของกล้อง</translation>
 <translation id="2931157624143513983">พอดีกับพื้นที่ที่พิมพ์ได้</translation>
+<translation id="2931342457001070961">ไม่มีไมโครโฟนเชื่อมต่ออยู่</translation>
 <translation id="2932085390869194046">แนะนำรหัสผ่าน...</translation>
 <translation id="2932483646085333864">ออกจากระบบแล้วลงชื่อเข้าใช้อีกครั้งเพื่อเริ่มการซิงค์</translation>
 <translation id="2932883381142163287">รายงานการละเมิด</translation>
 <translation id="2933632078076743449">อัปเดตล่าสุด</translation>
-<translation id="2934999512438267372">อนุญาตให้ควบคุมอุปกรณ์ MIDI โดยสมบูรณ์</translation>
 <translation id="2935225303485967257">จัดการโปรไฟล์ต่างๆ</translation>
 <translation id="2935314715123552088">ปิดใช้โปรไฟล์ eSIM ที่ใช้งานอยู่</translation>
 <translation id="2935654492420446828">เพิ่มบัญชีโรงเรียนภายหลัง</translation>
@@ -2938,7 +2934,6 @@
 <translation id="3262986719682892278">มีขนาดใหญ่เกินไป</translation>
 <translation id="3264544094376351444">แบบอักษร Sans-Serif</translation>
 <translation id="3264582393905923483">บริบท</translation>
-<translation id="3265032511221679826">เปิดการเข้าถึงตำแหน่งที่แน่นอนไหม</translation>
 <translation id="3265459715026181080">ปิดหน้าต่าง</translation>
 <translation id="3266022278425892773">สภาพแวดล้อมในการพัฒนาซอฟต์แวร์ Linux</translation>
 <translation id="3266274118485960573">กำลังดำเนินการตรวจสอบความปลอดภัย</translation>
@@ -3896,6 +3891,7 @@
 <translation id="4005817994523282006">วิธีการตรวจหาเขตเวลา</translation>
 <translation id="4007856537951125667">ซ่อนทางลัด</translation>
 <translation id="4008291085758151621">ข้อมูลไซต์ไม่พร้อมใช้งานใน VR</translation>
+<translation id="4010746393007464819">มีการอัปเกรดเป็น Debian 12 (Bookworm) พร้อมใช้งาน</translation>
 <translation id="4010917659463429001">หากต้องการรับบุ๊กมาร์กบนอุปกรณ์เคลื่อนที่ ให้<ph name="GET_IOS_APP_LINK" /></translation>
 <translation id="4014432863917027322">ต้องการซ่อม "<ph name="EXTENSION_NAME" />" ไหม</translation>
 <translation id="4015163439792426608">หากมีส่วนขยายหลายรายการ คุณจะ<ph name="BEGIN_LINK" />จัดการส่วนขยาย<ph name="END_LINK" />ได้โดยง่ายในที่เดียว</translation>
@@ -3988,7 +3984,6 @@
 <translation id="4087089424473531098">สร้างส่วนขยายแล้ว:
 
 <ph name="EXTENSION_FILE" /></translation>
-<translation id="408721682677442104">ปฏิเสธไม่ให้ควบคุมอุปกรณ์ MIDI โดยสมบูรณ์</translation>
 <translation id="4087328411748538168">แสดงทางด้านขวา</translation>
 <translation id="4089235344645910861">บันทึกการตั้งค่าและเริ่มซิงค์แล้ว</translation>
 <translation id="4089817585533500276">Shift + <ph name="TOP_ROW_KEY" /></translation>
@@ -4498,7 +4493,6 @@
 <translation id="4507128560633489176">ล้างข้อมูลแล้ว</translation>
 <translation id="4507373251891673233">คุณได้บล็อกส่วนขยายทั้งหมดจาก <ph name="HOST" /></translation>
 <translation id="4507401683427517298">คลิก "เพิ่มทางลัด"</translation>
-<translation id="4508032221004253235">การดำเนินการนี้ช่วยให้แอปและเว็บไซต์ที่มีสิทธิ์เข้าถึงตำแหน่งและ ChromeOS ใช้ตำแหน่งที่ระบุโดย Wi-Fi หรือเครือข่ายมือถือได้ <ph name="LINK_BEGIN" />ดูข้อมูลเพิ่มเติม<ph name="LINK_END" /></translation>
 <translation id="4508150454272293946">อนุญาตให้แอปและหน้าเว็บใช้กล้องที่เชื่อมต่อกับอุปกรณ์นี้ หากยังประสบปัญหาเกี่ยวกับกล้อง ให้ลองรีสตาร์ทแอปหรือรีเฟรชหน้าเว็บ</translation>
 <translation id="450867954911715010">การตั้งค่าการเข้าถึง</translation>
 <translation id="4508765956121923607">ดู&amp;ต้นฉบับ</translation>
@@ -4680,6 +4674,7 @@
 <translation id="4647836961514597010">ตัวเลือกสี</translation>
 <translation id="4648491805942548247">สิทธิ์ไม่เพียงพอ</translation>
 <translation id="4650037136970677721">ประหยัดหน่วยความจำแล้ว</translation>
+<translation id="4650364565596261010">ค่าเริ่มต้นของระบบ</translation>
 <translation id="4650591383426000695">ยกเลิกการเชื่อมต่อโทรศัพท์จาก <ph name="DEVICE_TYPE" /></translation>
 <translation id="4651484272688821107">โหลดองค์ประกอบออนไลน์ที่มีทรัพยากรโหมดสาธิตไม่ได้</translation>
 <translation id="4651921906638302153">ลงชื่อเข้าใช้ด้วยบัญชีนี้ไม่ได้</translation>
@@ -4916,6 +4911,7 @@
 <translation id="4839303808932127586">บั&amp;นทึกวิดีโอเป็น...</translation>
 <translation id="4839910546484524995">ตรวจสอบอุปกรณ์</translation>
 <translation id="4840096453115567876">ต้องการออกจากโหมดไม่ระบุตัวตนไหม</translation>
+<translation id="4841475798258477260">อุปกรณ์นี้เชื่อมต่อเครือข่ายมือถือได้เฉพาะบางเครือข่ายเท่านั้น <ph name="BEGIN_LINK_LEARN_MORE" />ดูข้อมูลเพิ่มเติม<ph name="END_LINK_LEARN_MORE" /></translation>
 <translation id="4841741146571978176">ไม่มีเครื่องเสมือนที่จำเป็น โปรดลองตั้งค่า <ph name="VM_TYPE" /> เพื่อดำเนินการต่อ</translation>
 <translation id="4842976633412754305">หน้านี้พยายามโหลดสคริปต์จากแหล่งที่มาที่ไม่มีการรับรอง</translation>
 <translation id="4844333629810439236">แป้นพิมพ์อื่นๆ</translation>
@@ -5011,7 +5007,6 @@
 <translation id="4907161631261076876">ไฟล์นี้ไม่ได้มีการดาวน์โหลดเป็นที่แพร่หลายและอาจเป็นอันตราย</translation>
 <translation id="4908811072292128752">เปิดแท็บใหม่เพื่อเรียกดูไซต์ 2 ไซต์พร้อมกัน</translation>
 <translation id="4909038193460299775">เนื่องจากบัญชีนี้มีการจัดการโดย <ph name="DOMAIN" /> บุ๊กมาร์ก ประวัติการเข้าชม รหัสผ่าน และการตั้งค่าอื่นๆ จะถูกล้างออกจากอุปกรณ์เครื่องนี้ แต่ข้อมูลจะยังจัดเก็บอยู่ในบัญชี Google และสามารถจัดการได้ใน<ph name="BEGIN_LINK" />แดชบอร์ด Google<ph name="END_LINK" /></translation>
-<translation id="4911572142453926213">ใช้การเชื่อมต่อที่ปลอดภัยเพื่อค้นหาที่อยู่ IP ของเว็บไซต์ใน DNS (ระบบชื่อโดเมน)</translation>
 <translation id="4912643508233590958">ไม่ใช้งานการปลุก</translation>
 <translation id="4913209098186576320">ไฟล์นี้อาจเป็นอันตราย<ph name="LINE_BREAK" />การตรวจสอบนี้ใช้เวลานานกว่าปกติ...</translation>
 <translation id="4915961947098019832">ได้รับอนุญาตให้แสดงรูปภาพ</translation>
@@ -6056,6 +6051,7 @@
 <translation id="5782040878821624922">ใช้งานได้ในทุกอุปกรณ์</translation>
 <translation id="5782227691023083829">กำลังแปล...</translation>
 <translation id="57838592816432529">ปิดเสียง</translation>
+<translation id="5784291589716625675">เปลี่ยนภาษาของแอป</translation>
 <translation id="5785583009707899920">ยูทิลิตีไฟล์ของ Chrome</translation>
 <translation id="5787146423283493983">ข้อตกลงเกี่ยวกับคีย์</translation>
 <translation id="5787420647064736989">ชื่ออุปกรณ์</translation>
@@ -6464,6 +6460,7 @@
 <translation id="6104068876731806426">บัญชี Google</translation>
 <translation id="6104311680260824317">นำอุปกรณ์เข้าร่วมโดเมนไม่ได้ เซิร์ฟเวอร์ไม่รองรับประเภทการเข้ารหัส Kerberos ที่ระบุ ดูการตั้งค่าการเข้ารหัสได้จาก "ตัวเลือกเพิ่มเติม"</translation>
 <translation id="6104796831253957966">คิวเครื่องพิมพ์เต็ม</translation>
+<translation id="610487644502954950">เลิกปักหมุดแผงด้านข้างแล้ว</translation>
 <translation id="6104929924898022309">ใช้แป้นค้นหาเพื่อเปลี่ยนลักษณะการทำงานของแป้นฟังก์ชัน</translation>
 <translation id="6106167152849320869">หากคุณเลือกที่จะส่งข้อมูลการวินิจฉัยและการใช้งานด้วยในขั้นตอนก่อนหน้า ระบบจะเก็บรวบรวมข้อมูลดังกล่าวสำหรับแอปที่ติดตั้ง</translation>
 <translation id="6111718295497931251">นำสิทธิ์เข้าถึง Google ไดรฟ์ออก</translation>
@@ -6529,6 +6526,7 @@
 <translation id="6151323131516309312">กด <ph name="SEARCH_KEY" /> เพื่อค้นหา <ph name="SITE_NAME" /></translation>
 <translation id="6151771661215463137">มีไฟล์นี้อยู่แล้วในโฟลเดอร์ดาวน์โหลด</translation>
 <translation id="6152918902620844577">กำลังรอการดำเนินการถัดไป</translation>
+<translation id="6153439704237222699">ดูข้อมูลเพิ่มเติมเกี่ยวกับ Do Not Track</translation>
 <translation id="6154240335466762404">นำพอร์ตทั้งหมดออก</translation>
 <translation id="615436196126345398">โปรโตคอล</translation>
 <translation id="6155141482566063812">แท็บพื้นหลังกำลังแชร์หน้าจอ</translation>
@@ -6867,7 +6865,6 @@
 <translation id="6434325376267409267">คุณต้องอัปเดตอุปกรณ์ก่อนจึงจะใช้ <ph name="APP_NAME" /> ได้</translation>
 <translation id="6435339218366409950">เลือกภาษาเป้าหมายของคำบรรยาย</translation>
 <translation id="6436164536244065364">ดูในเว็บสโตร์</translation>
-<translation id="6436610005579237680">หากต้องการคำตอบที่ปรับเปลี่ยนให้เหมาะกับคุณมากขึ้น โปรดอนุญาตให้ Google Assistant เข้าถึงภาพสิ่งที่อยู่บนหน้าจอเมื่อถามคำถาม Assistant อาจใช้ข้อมูลเกี่ยวกับเพลงหรือวิดีโอที่กำลังเล่นอยู่</translation>
 <translation id="6436778875248895551">ผู้ดูแลระบบได้บล็อกส่วนขยาย "<ph name="EXTENSION_NAME" />"</translation>
 <translation id="6438234780621650381">รีเซ็ตการตั้งค่า</translation>
 <translation id="6438475350605608554">คุณนำเข้ารหัสผ่านในแท็บอื่นแล้ว</translation>
@@ -7051,14 +7048,12 @@
 <translation id="6586099239452884121">การท่องเว็บในโหมดผู้มาเยือน</translation>
 <translation id="6586213706115310390">เข้าถึง Assistant ได้เมื่อพูดว่า "Ok Google"</translation>
 <translation id="6586451623538375658">สลับปุ่มเมาส์หลัก</translation>
-<translation id="6588043302623806746">ใช้ DNS ที่ปลอดภัย</translation>
 <translation id="659005207229852190">ตรวจสอบความปลอดภัยเสร็จสิ้นแล้ว</translation>
 <translation id="6590458744723262880">เปลี่ยนชื่อโฟลเดอร์</translation>
 <translation id="6592267180249644460">บันทึก WebRTC ที่จับภาพ <ph name="WEBRTC_LOG_CAPTURE_TIME" /></translation>
 <translation id="6592808042417736307">บันทึกลายนิ้วมือของคุณได้แล้ว</translation>
 <translation id="6593881952206664229">สื่อที่มีลิขสิทธิ์อาจไม่เล่น</translation>
 <translation id="6594011207075825276">กำลังค้นหาอุปกรณ์พอร์ตซีเรียล...</translation>
-<translation id="6595187330192059106">บล็อก <ph name="HOST" /> ไม่ให้ควบคุมอุปกรณ์ MIDI โดยสมบูรณ์เสมอ</translation>
 <translation id="6595322909015878027">ไม่ได้รับอนุญาตให้เข้าสู่การแสดงภาพซ้อนภาพโดยอัตโนมัติ</translation>
 <translation id="6595408197871512625">{COUNT,plural, =1{เปลี่ยนรหัสผ่านที่ถูกละเมิดเรียบร้อยแล้ว
 
@@ -7932,7 +7927,6 @@
 <translation id="7299337219131431707">เปิดใช้งานการท่องเว็บในโหมดผู้มาเยือน</translation>
 <translation id="7299515639584427954">เปลี่ยนแอปเริ่มต้นสำหรับลิงก์ที่รองรับใช่ไหม</translation>
 <translation id="7299588179200441056"><ph name="URL" /> - <ph name="FOLDER" /></translation>
-<translation id="7301470816294041580">คุณสามารถถามว่า "Ok Google นี่เพลงอะไร" หรือ "Ok Google มีอะไรบนหน้าจอของฉัน"</translation>
 <translation id="7301812050652048720">ลบพาสคีย์แล้ว</translation>
 <translation id="730289542559375723">{NUM_APPLICATIONS,plural, =1{แอปพลิเคชันนี้อาจทำให้ Chrome ทำงานไม่ถูกต้อง}other{แอปพลิเคชันเหล่านี้อาจทำให้ Chrome ทำงานไม่ถูกต้อง}}</translation>
 <translation id="7303281435234579599">อ๊ะ! เกิดข้อผิดพลาดขณะตั้งค่าโหมดสาธิต</translation>
@@ -8530,6 +8524,7 @@
 <translation id="7757787379047923882">ข้อความที่แชร์จาก <ph name="DEVICE_NAME" /></translation>
 <translation id="7758143121000533418">Family Link</translation>
 <translation id="7758450972308449809">ปรับขอบเขตของการแสดงผล</translation>
+<translation id="7759809451544302770">ไม่บังคับ</translation>
 <translation id="7762024824096060040">ใช้บัญชีนี้ไม่ได้</translation>
 <translation id="7762243782113123335">ขออภัย มีข้อผิดพลาดเกิดขึ้น โปรดส่งความคิดเห็นพร้อมใส่ #bruschetta ในคำอธิบาย รหัสข้อผิดพลาดคือ <ph name="ERROR" /></translation>
 <translation id="7764225426217299476">เพิ่มที่อยู่</translation>
@@ -8820,7 +8815,6 @@
 <translation id="7968982339740310781">ดูรายละเอียด</translation>
 <translation id="7969046989155602842">Command</translation>
 <translation id="7970673414865679092">รายละเอียดอีเทอร์เน็ต</translation>
-<translation id="7970882136539140748">บันทึกบัตรไม่ได้ในตอนนี้</translation>
 <translation id="7972714317346275248">PKCS #1 SHA-384 พร้อมการเข้ารหัส RSA</translation>
 <translation id="7973776233567882054">ข้อใดต่อไปนี้อธิบายเครือข่ายของคุณได้ดีที่สุด</translation>
 <translation id="797394244396603170">เลือกอุปกรณ์ที่คุณต้องการแชร์ไฟล์ด้วย</translation>
@@ -8847,6 +8841,7 @@
 <translation id="7988805580376093356">ใช้ระบบปฏิบัติการของคุณต่อไปและเรียกใช้ <ph name="DEVICE_OS" /> จาก USB</translation>
 <translation id="7988876720343145286">การตั้งค่าและสิทธิ์เพิ่มเติมสำหรับ Android</translation>
 <translation id="7990863024647916394"><ph name="DISPLAY_NAME" /> เสียง <ph name="COUNT" /></translation>
+<translation id="7990958035181555539">โอน Wi-Fi จากโทรศัพท์ Android โดยอัตโนมัติ</translation>
 <translation id="7991296728590311172">การตั้งค่าการเข้าถึงด้วยสวิตช์</translation>
 <translation id="7992203134935383159">การสังเคราะห์เสียง</translation>
 <translation id="7994515119120860317">แปลข้อความในรูปภาพด้วย <ph name="VISUAL_SEARCH_PROVIDER" /></translation>
@@ -8923,7 +8918,6 @@
 <translation id="8050038245906040378">การรับรองรหัสเชิงพาณิชย์ของ Microsoft</translation>
 <translation id="8050191834453426339">ยืนยันอีกครั้ง</translation>
 <translation id="8051193500142930381">ฟีเจอร์ที่ต้องใช้กล้องจะไม่ทำงาน</translation>
-<translation id="8051390370038326517">อนุญาตให้ <ph name="HOST" /> ควบคุมอุปกรณ์ MIDI โดยสมบูรณ์เสมอ</translation>
 <translation id="8052218774860457016">จัดการการซิงค์เบราว์เซอร์</translation>
 <translation id="8053278772142718589">ไฟล์ PKCS #12</translation>
 <translation id="8053390638574070785">โหลดหน้านี้ใหม่</translation>
@@ -9003,7 +8997,6 @@
 <translation id="8109109153262930486">รูปโปรไฟล์เริ่มต้น</translation>
 <translation id="8110393529211831722">การสมัครใช้บริการจะติดตั้งในอุปกรณ์นี้เท่านั้น และไม่ซิงค์กับอุปกรณ์อื่นๆ ภายใต้บัญชีของคุณ <ph name="LINK_BEGIN" />ดูข้อมูลเพิ่มเติม<ph name="LINK_END" /></translation>
 <translation id="8110489095782891123">กำลังดาวน์โหลดข้อมูลรายชื่อติดต่อ...</translation>
-<translation id="8113476325385351118">บล็อกเว็บไซต์นี้ไม่ให้มีสิทธิ์ควบคุมอุปกรณ์ MIDI โดยสมบูรณ์ต่อไป</translation>
 <translation id="8115139559594092084">จาก Google ไดรฟ์</translation>
 <translation id="8116972784401310538">ตั&amp;วจัดการบุ๊กมาร์ก</translation>
 <translation id="8118276691321086429"><ph name="PASSWORD_MANAGER_BRAND" /> จะจดจำวิธีลงชื่อเข้าใช้และลงชื่อเข้าใช้ให้คุณโดยอัตโนมัติเมื่อเป็นไปได้ หากปิดการตั้งค่านี้ ระบบจะขอให้คุณยืนยันทุกครั้ง</translation>
@@ -9156,6 +9149,7 @@
 <translation id="8241040075392580210">เชดดี้</translation>
 <translation id="8241806945692107836">กำลังกำหนดการกำหนดค่าอุปกรณ์...</translation>
 <translation id="8241868517363889229">อ่านและเปลี่ยนแปลงบุ๊กมาร์กของคุณ</translation>
+<translation id="8242273718576931540">อุปกรณ์ของคุณเชื่อมต่อกับเครือข่ายนี้ไม่ได้ <ph name="BEGIN_LINK_LEARN_MORE" />ดูข้อมูลเพิ่มเติม<ph name="END_LINK_LEARN_MORE" /></translation>
 <translation id="8242370300221559051">เปิดใช้ Play Store</translation>
 <translation id="8242426110754782860">ดำเนินการต่อ</translation>
 <translation id="8243948765190375130">คุณภาพของสื่ออาจลดลง</translation>
@@ -9399,7 +9393,6 @@
 <translation id="8425492902634685834">กำหนดลงบนทาสก์บาร์</translation>
 <translation id="8425768983279799676">คุณใช้ PIN เพื่อปลดล็อกอุปกรณ์ได้</translation>
 <translation id="8426111352542548860">บันทึกกลุ่ม</translation>
-<translation id="8426713856918551002">กำลังเปิดใช้</translation>
 <translation id="8427213022735114808">การพิมพ์ตามคำบอกจะส่งเสียงของคุณไปยัง Google เพื่อให้พิมพ์ด้วยเสียงในช่องข้อความต่างๆ</translation>
 <translation id="8427292751741042100">ฝังในโฮสต์ใดก็ได้</translation>
 <translation id="8428213095426709021">การตั้งค่า</translation>
@@ -9608,7 +9601,6 @@
 <translation id="8608618451198398104">เพิ่มตั๋ว Kerberos</translation>
 <translation id="8609465669617005112">เลื่อนขึ้น</translation>
 <translation id="8610103157987623234">รูปแบบไม่ถูกต้อง โปรดลองอีกครั้ง</translation>
-<translation id="8611682088849615761">อนุญาตให้เว็บไซต์นี้มีสิทธิ์ควบคุมอุปกรณ์ MIDI โดยสมบูรณ์ต่อไป</translation>
 <translation id="8613164732773110792">อักขระตัวพิมพ์เล็ก ตัวเลข ขีดล่าง หรือขีดกลางเท่านั้น</translation>
 <translation id="8613504115484579584">วิธีลงชื่อเข้าใช้</translation>
 <translation id="8613645710357126807">ไม่อนุญาตให้ใช้ส่วนขยาย</translation>
@@ -9644,6 +9636,7 @@
 <translation id="8636284842992792762">กำลังเริ่มการทำงานของส่วนขยาย...</translation>
 <translation id="8636323803535540285">เพิ่มทางลัดไปยัง <ph name="BRAND" /> เพื่อให้มาที่นี่ได้เร็วขึ้น</translation>
 <translation id="8636500887554457830">ไม่อนุญาตให้เว็บไซต์ส่งป๊อปอัปหรือใช้การเปลี่ยนเส้นทาง</translation>
+<translation id="8636514272606969031">ปักหมุดแผงด้านข้างแล้ว</translation>
 <translation id="8637688295594795546">มีอัปเดตระบบพร้อมใช้งาน กำลังเตรียมการดาวน์โหลด…</translation>
 <translation id="8638719155236856752">สถานภาพเครือข่าย ChromeOS</translation>
 <translation id="8639635302972078117">ส่งข้อมูลการใช้งานและการวินิจฉัย ปัจจุบันอุปกรณ์นี้ส่งข้อมูลการวินิจฉัย อุปกรณ์ และการใช้งานแอปไปยัง Google โดยอัตโนมัติ โดยจะไม่มีการใช้ข้อมูลนี้ในการระบุชื่อบุตรหลานของคุณ และจะช่วยให้แอปและระบบมีความเสถียร พร้อมทั้งปรับปรุงด้านอื่นๆ ข้อมูลที่รวบรวมมาบางส่วนจะมีประโยชน์ต่อแอปและพาร์ทเนอร์ของ Google ด้วย เช่น นักพัฒนาแอป Android หากเปิดการตั้งค่ากิจกรรมเพิ่มเติมบนเว็บและแอปสำหรับบุตรหลาน ระบบอาจบันทึกข้อมูลนี้ไว้ในบัญชี Google ของบุตรหลาน</translation>
@@ -9783,6 +9776,7 @@
 <translation id="8729133765463465108">ใช้กล้องเพื่อสแกนคิวอาร์โค้ด</translation>
 <translation id="8730621377337864115">เสร็จสิ้น</translation>
 <translation id="8731029916209785242">สิทธิ์ (<ph name="FORMATTED_ORIGIN" />)</translation>
+<translation id="8731268612289859741">รหัสความปลอดภัย</translation>
 <translation id="8731629443331803108"><ph name="SITE_NAME" /> ต้องการ<ph name="PERMISSION" /></translation>
 <translation id="8731787661154643562">หมายเลขพอร์ต</translation>
 <translation id="8732030010853991079">ใช้ส่วนขยายนี้โดยคลิกที่ไอคอนนี้</translation>
@@ -9794,6 +9788,7 @@
 <translation id="8736288397686080465">มีการอัปเดตไซต์นี้ในพื้นหลัง</translation>
 <translation id="8737709691285775803">Shill</translation>
 <translation id="8737914367566358838">เลือกภาษาปลายทางของหน้าเว็บ</translation>
+<translation id="8738418093147087440">ค้นหาตามประเทศ ภาษา หรือชื่อการป้อนข้อมูล</translation>
 <translation id="8740086188450289493">ใช้รหัสผ่านของบัญชี Google</translation>
 <translation id="8740247629089392745">คุณส่งมอบ Chromebook เครื่องนี้ให้ <ph name="SUPERVISED_USER_NAME" /> ได้ การตั้งค่าใกล้เสร็จแล้ว จากนั้นก็ได้เวลาแห่งการสำรวจ</translation>
 <translation id="8740672167979365981">ต้องอัปเดต Chrome OS Flex</translation>
@@ -10434,7 +10429,6 @@
 <translation id="936646668635477464">กล้องถ่ายรูปและไมโครโฟน</translation>
 <translation id="936801553271523408">ข้อมูลวินิจฉัยระบบ</translation>
 <translation id="93766956588638423">ซ่อมส่วนขยาย</translation>
-<translation id="938568644810664664">ลองถามว่า "Ok Google นี่เพลงอะไร" หรือ "Ok Google มีอะไรบนหน้าจอของฉัน"</translation>
 <translation id="938623846785894166">ไฟล์ที่ไม่แพร่หลาย</translation>
 <translation id="939401694733344652">บัญชีเหล่านี้ไม่ได้ใช้กับแอป Android อยู่ในขณะนี้ หากคุณเลือกบัญชีที่จะใช้แอป Android นี้ บัญชีดังกล่าวจะใช้กับแอป Android อื่นๆ ด้วย คุณเปลี่ยนแปลงสิทธิ์เข้าถึงของแอป Android ได้ใน<ph name="LINK_BEGIN" />การตั้งค่า &gt; บัญชี<ph name="LINK_END" /></translation>
 <translation id="939553663881639126">เลือกว่าจะรับคำแนะนำการค้นหาเพิ่มเติมหรือไม่</translation>

@@ -9,7 +9,7 @@
 #include "third_party/blink/renderer/core/layout/inline/inline_item_result.h"
 #include "third_party/blink/renderer/core/layout/inline/line_info.h"
 #include "third_party/blink/renderer/core/layout/inline/logical_line_item.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_physical_box_fragment.h"
+#include "third_party/blink/renderer/core/layout/physical_box_fragment.h"
 #include "third_party/blink/renderer/platform/fonts/font_baseline.h"
 #include "third_party/blink/renderer/platform/fonts/shaping/harfbuzz_shaper.h"
 #include "third_party/blink/renderer/platform/fonts/shaping/shape_result_view.h"
@@ -409,7 +409,7 @@ void LineTruncator::HideChild(LogicalLineItem* child) {
   if (const LayoutResult* layout_result = child->layout_result) {
     // Need to propagate OOF descendants in this inline-block child.
     const auto& fragment =
-        To<NGPhysicalBoxFragment>(layout_result->GetPhysicalFragment());
+        To<PhysicalBoxFragment>(layout_result->GetPhysicalFragment());
     if (fragment.HasOutOfFlowPositionedDescendants())
       return;
 

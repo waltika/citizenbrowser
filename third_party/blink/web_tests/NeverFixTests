@@ -66,6 +66,15 @@
 [ Linux ] virtual/text-antialias/mac-system-ui-weight.html [ Skip ]
 [ Win ] virtual/text-antialias/mac-system-ui-weight.html [ Skip ]
 
+# Tests Mac system font specific width variations.
+[ Linux ] virtual/text-antialias/mac-system-ui-width.html [ Skip ]
+[ Win ] virtual/text-antialias/mac-system-ui-width.html [ Skip ]
+[ Mac10.15 ] virtual/text-antialias/mac-system-ui-width.html [ Skip ]
+
+# Tests Mac system font oblique faces.
+[ Linux ] virtual/text-antialias/mac-system-ui-slant.html [ Skip ]
+[ Win ] virtual/text-antialias/mac-system-ui-slant.html [ Skip ]
+
  # Mac's popup behavior is different.
 [ Mac ] fast/forms/select/menulist-onchange-fired-with-key-up-down.html [ Skip ]
 [ Mac ] fast/forms/select/popup-with-display-none-optgroup.html [ Skip ]
@@ -2085,6 +2094,7 @@ crbug.com/1197087 [ Debug ] external/wpt/web-animations/interfaces/Animation/fin
 # many failures in the folders below, skip for now
 crbug.com/1499775 [ Chrome ] external/wpt/html/cross-origin-opener-policy/* [ Skip ]
 crbug.com/1499775 [ Chrome ] external/wpt/attribution-reporting/* [ Skip ]
+crbug.com/1499775 [ Chrome ] external/wpt/css/css-ui/compute-kind-widget-generated/* [ Skip ]
 [ Chrome ] external/wpt/speculation-rules/prerender/* [ Skip ]
 [ Chrome ] external/wpt/speculation-rules/prerender/credentialed-prerender-not-opt-in.html [ Pass ]
 [ Chrome ] external/wpt/speculation-rules/prerender/csp-script-src-self.html?target_hint=_self [ Pass ]

@@ -2,19 +2,19 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "third_party/blink/renderer/core/layout/ng/ng_base_layout_algorithm_test.h"
+#include "third_party/blink/renderer/core/layout/base_layout_algorithm_test.h"
 
 #include "third_party/blink/renderer/bindings/core/v8/v8_binding_for_testing.h"
+#include "third_party/blink/renderer/core/layout/box_fragment_builder.h"
+#include "third_party/blink/renderer/core/layout/constraint_space_builder.h"
 #include "third_party/blink/renderer/core/layout/inline/inline_break_token.h"
 #include "third_party/blink/renderer/core/layout/inline/inline_cursor.h"
 #include "third_party/blink/renderer/core/layout/inline/inline_node.h"
 #include "third_party/blink/renderer/core/layout/inline/line_breaker.h"
 #include "third_party/blink/renderer/core/layout/inline/line_info.h"
-#include "third_party/blink/renderer/core/layout/ng/layout_ng_block_flow.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_box_fragment_builder.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_constraint_space_builder.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_positioned_float.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_unpositioned_float.h"
+#include "third_party/blink/renderer/core/layout/layout_ng_block_flow.h"
+#include "third_party/blink/renderer/core/layout/positioned_float.h"
+#include "third_party/blink/renderer/core/layout/unpositioned_float.h"
 #include "third_party/blink/renderer/core/testing/mock_hyphenation.h"
 #include "third_party/blink/renderer/platform/fonts/shaping/shape_result_view.h"
 #include "third_party/blink/renderer/platform/testing/runtime_enabled_features_test_helpers.h"
@@ -208,7 +208,7 @@ TEST_F(LineBreakerTest, TextCombineCloseTag) {
   EXPECT_EQ(1u, lines.size());
   // |LineBreaker::auto_wrap_| doesn't care about CSS "white-space" property
   // in the element with "text-combine-upright:all".
-  //  NGInlineItemResult
+  //  InlineItemResult
   //    [0] kText 0-3 can_break_after_=false
   //    [1] kOpenTag 3-3 can_break_after_=false
   //    [2] kStartTag 3-3 can_break_after _= fasle
@@ -547,7 +547,7 @@ struct WhitespaceStateTestData {
     // The most common cases.
     {"12", "normal", LineBreaker::WhitespaceState::kNone},
     {"1234 5678", "normal", LineBreaker::WhitespaceState::kCollapsed},
-    // |NGInlineItemsBuilder| collapses trailing spaces of a block, so
+    // |InlineItemsBuilder| collapses trailing spaces of a block, so
     // |LineBreaker| computes to `none`.
     {"12 ", "normal", LineBreaker::WhitespaceState::kNone},
     // pre/pre-wrap should preserve trailing spaces if exists.

@@ -5,15 +5,15 @@
 #include "third_party/blink/renderer/core/layout/layout_box.h"
 
 #include "third_party/blink/renderer/core/editing/editing_utilities.h"
+#include "third_party/blink/renderer/core/layout/constraint_space.h"
+#include "third_party/blink/renderer/core/layout/disable_layout_side_effects_scope.h"
+#include "third_party/blink/renderer/core/layout/fragmentation_utils.h"
 #include "third_party/blink/renderer/core/layout/geometry/fragment_geometry.h"
 #include "third_party/blink/renderer/core/layout/layout_block.h"
+#include "third_party/blink/renderer/core/layout/layout_result.h"
+#include "third_party/blink/renderer/core/layout/layout_utils.h"
 #include "third_party/blink/renderer/core/layout/layout_view.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_constraint_space.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_disable_side_effects_scope.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_fragmentation_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_layout_result.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_layout_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_physical_box_fragment.h"
+#include "third_party/blink/renderer/core/layout/physical_box_fragment.h"
 
 namespace blink {
 
@@ -81,30 +81,32 @@ const LayoutResult* LayoutBox::CachedLayoutResult(
     return nullptr;
   }
 
+  if (ShouldSkipLayoutCache()) {
+    return nullptr;
+  }
+
+  if (early_break) {
+    return nullptr;
+  }
+
   const bool use_layout_cache_slot =
       new_space.CacheSlot() == LayoutResultCacheSlot::kLayout &&
       !layout_results_.empty();
   const LayoutResult* cached_layout_result =
-      use_layout_cache_slot ? GetCachedLayoutResult(break_token)
-                            : GetCachedMeasureResult();
+      use_layout_cache_slot
+          ? GetCachedLayoutResult(break_token)
+          : GetCachedMeasureResult(new_space, initial_fragment_geometry);
 
   if (!cached_layout_result)
     return nullptr;
-
-  if (early_break)
-    return nullptr;
-
-  if (ShouldSkipLayoutCache()) {
-    return nullptr;
-  }
 
   DCHECK_EQ(cached_layout_result->Status(), LayoutResult::kSuccess);
 
   // Set our initial temporary cache status to "hit".
   LayoutCacheStatus cache_status = LayoutCacheStatus::kHit;
 
-  const NGPhysicalBoxFragment& physical_fragment =
-      To<NGPhysicalBoxFragment>(cached_layout_result->GetPhysicalFragment());
+  const PhysicalBoxFragment& physical_fragment =
+      To<PhysicalBoxFragment>(cached_layout_result->GetPhysicalFragment());
 
   // No fun allowed for repeated content.
   if ((physical_fragment.GetBreakToken() &&
@@ -154,9 +156,13 @@ const LayoutResult* LayoutBox::CachedLayoutResult(
   }
 
   BlockNode node(this);
-  LayoutCacheStatus size_cache_status = CalculateSizeBasedLayoutCacheStatus(
-      node, break_token, *cached_layout_result, new_space,
-      initial_fragment_geometry);
+  LayoutCacheStatus size_cache_status = LayoutCacheStatus::kHit;
+  if (use_layout_cache_slot ||
+      !RuntimeEnabledFeatures::LayoutNewMeasureCacheEnabled()) {
+    size_cache_status = CalculateSizeBasedLayoutCacheStatus(
+        node, break_token, *cached_layout_result, new_space,
+        initial_fragment_geometry);
+  }
 
   // If our size may change (or we know a descendants size may change), we miss
   // the cache.
@@ -431,7 +437,7 @@ const LayoutResult* LayoutBox::CachedLayoutResult(
           //
           // NOTE: It's fine to use LayoutResult::BlockSizeForFragmentation()
           // directly here, rather than the helper BlockSizeForFragmentation()
-          // in ng_fragmentation_utils.cc, since what the latter does shouldn't
+          // in fragmentation_utils.cc, since what the latter does shouldn't
           // matter, since we're not monolithic content
           // (HasBlockFragmentation() is true), and we're not a line box.
           LayoutUnit block_size_for_fragmentation =
@@ -513,7 +519,7 @@ const LayoutResult* LayoutBox::CachedLayoutResult(
 #endif
   }
 
-  // Optimization: NGTableConstraintSpaceData can be large, and it is shared
+  // Optimization: TableConstraintSpaceData can be large, and it is shared
   // between all the rows in a table. Make constraint space table data for
   // reused row fragment be identical to the one used by other row fragments.
   if (IsTableRow() && IsLayoutNGObject()) {
@@ -559,10 +565,9 @@ const LayoutResult* LayoutBox::CachedLayoutResult(
   return new_result;
 }
 
-const NGPhysicalBoxFragment* LayoutBox::GetPhysicalFragment(
-    wtf_size_t i) const {
+const PhysicalBoxFragment* LayoutBox::GetPhysicalFragment(wtf_size_t i) const {
   NOT_DESTROYED();
-  return &To<NGPhysicalBoxFragment>(layout_results_[i]->GetPhysicalFragment());
+  return &To<PhysicalBoxFragment>(layout_results_[i]->GetPhysicalFragment());
 }
 
 }  // namespace blink

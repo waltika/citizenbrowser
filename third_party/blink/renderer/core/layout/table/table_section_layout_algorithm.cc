@@ -4,13 +4,13 @@
 
 #include "third_party/blink/renderer/core/layout/table/table_section_layout_algorithm.h"
 
-#include "third_party/blink/renderer/core/layout/ng/ng_block_break_token.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_block_child_iterator.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_box_fragment.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_constraint_space_builder.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_fragmentation_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_out_of_flow_layout_part.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_physical_box_fragment.h"
+#include "third_party/blink/renderer/core/layout/block_break_token.h"
+#include "third_party/blink/renderer/core/layout/block_child_iterator.h"
+#include "third_party/blink/renderer/core/layout/constraint_space_builder.h"
+#include "third_party/blink/renderer/core/layout/fragmentation_utils.h"
+#include "third_party/blink/renderer/core/layout/logical_box_fragment.h"
+#include "third_party/blink/renderer/core/layout/out_of_flow_layout_part.h"
+#include "third_party/blink/renderer/core/layout/physical_box_fragment.h"
 
 namespace blink {
 
@@ -106,7 +106,7 @@ const LayoutResult* TableSectionLayoutAlgorithm::Layout() {
     }
 
     const auto& physical_fragment =
-        To<NGPhysicalBoxFragment>(row_result->GetPhysicalFragment());
+        To<PhysicalBoxFragment>(row_result->GetPhysicalFragment());
     const LogicalBoxFragment fragment(table_data.table_writing_direction,
                                       physical_fragment);
 

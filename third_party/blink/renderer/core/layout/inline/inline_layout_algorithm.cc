@@ -12,6 +12,11 @@
 #include "third_party/blink/public/mojom/use_counter/metrics/web_feature.mojom-shared.h"
 #include "third_party/blink/renderer/core/css/resolver/style_resolver.h"
 #include "third_party/blink/renderer/core/html/forms/html_input_element.h"
+#include "third_party/blink/renderer/core/layout/block_break_token.h"
+#include "third_party/blink/renderer/core/layout/constraint_space.h"
+#include "third_party/blink/renderer/core/layout/disable_layout_side_effects_scope.h"
+#include "third_party/blink/renderer/core/layout/floats_utils.h"
+#include "third_party/blink/renderer/core/layout/fragmentation_utils.h"
 #include "third_party/blink/renderer/core/layout/inline/initial_letter_utils.h"
 #include "third_party/blink/renderer/core/layout/inline/inline_box_state.h"
 #include "third_party/blink/renderer/core/layout/inline/inline_break_token.h"
@@ -26,22 +31,17 @@
 #include "third_party/blink/renderer/core/layout/inline/paragraph_line_breaker.h"
 #include "third_party/blink/renderer/core/layout/inline/ruby_utils.h"
 #include "third_party/blink/renderer/core/layout/inline/score_line_breaker.h"
+#include "third_party/blink/renderer/core/layout/layout_result.h"
 #include "third_party/blink/renderer/core/layout/layout_text_combine.h"
+#include "third_party/blink/renderer/core/layout/length_utils.h"
 #include "third_party/blink/renderer/core/layout/list/layout_outside_list_marker.h"
 #include "third_party/blink/renderer/core/layout/list/unpositioned_list_marker.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_block_break_token.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_box_fragment.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_constraint_space.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_disable_side_effects_scope.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_floats_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_fragmentation_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_layout_result.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_length_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_positioned_float.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_relative_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_space_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_unpositioned_float.h"
+#include "third_party/blink/renderer/core/layout/logical_box_fragment.h"
+#include "third_party/blink/renderer/core/layout/positioned_float.h"
+#include "third_party/blink/renderer/core/layout/relative_utils.h"
+#include "third_party/blink/renderer/core/layout/space_utils.h"
 #include "third_party/blink/renderer/core/layout/svg/layout_svg_inline_text.h"
+#include "third_party/blink/renderer/core/layout/unpositioned_float.h"
 #include "third_party/blink/renderer/core/style/computed_style.h"
 #include "third_party/blink/renderer/platform/fonts/shaping/shape_result_spacing.h"
 #include "third_party/blink/renderer/platform/fonts/shaping/shape_result_view.h"
@@ -310,7 +310,7 @@ void InlineLayoutAlgorithm::PrepareBoxStates(
     return;
   }
 
-  // Check if the box states in NGChildLayoutContext is valid for this line.
+  // Check if the box states in InlineChildLayoutContext is valid for this line.
   // If the previous line was ::first-line, always rebuild because box states
   // have ::first-line styles.
   const HeapVector<InlineItem>& items = line_info.ItemsData().items;
@@ -712,7 +712,7 @@ void InlineLayoutAlgorithm::CreateLine(const LineLayoutOpportunity& opportunity,
   //
   // For SVG <text>, the block offset of the initial 'current text position'
   // should be 0. As for the inline offset, see
-  // NGSvgTextLayoutAttributesBuilder::Build().
+  // SvgTextLayoutAttributesBuilder::Build().
   //
   // For text-combine-upright:all, the block offset should be zero to make
   // combined text in 1em x 1em box.
@@ -815,7 +815,7 @@ InlineBoxState* InlineLayoutAlgorithm::PlaceAtomicInline(
     const auto& style = layout_object->Parent()->StyleRef();
     box->ComputeTextMetrics(style, style.GetFont(), baseline_type_);
     // Note: |item_result->spacing_before| is non-zero if this |item_result|
-    // is |LayoutNGTextCombine| and after CJK character.
+    // is |LayoutTextCombine| and after CJK character.
     // See "text-combine-justify.html".
     const LayoutUnit inline_offset =
         box->margin_inline_start + item_result->spacing_before;
@@ -839,7 +839,7 @@ void InlineLayoutAlgorithm::PlaceLayoutResult(InlineItemResult* item_result,
   DCHECK(item.Style());
   FontHeight metrics =
       LogicalBoxFragment(GetConstraintSpace().GetWritingDirection(),
-                         To<NGPhysicalBoxFragment>(
+                         To<PhysicalBoxFragment>(
                              item_result->layout_result->GetPhysicalFragment()))
           .BaselineMetrics(item_result->margins, baseline_type_);
   if (box)
@@ -864,7 +864,7 @@ void InlineLayoutAlgorithm::PlaceBlockInInline(const InlineItem& item,
   DCHECK(item_result->layout_result);
   const LayoutResult& result = *item_result->layout_result;
   const auto& box_fragment =
-      To<NGPhysicalBoxFragment>(result.GetPhysicalFragment());
+      To<PhysicalBoxFragment>(result.GetPhysicalFragment());
   LogicalBoxFragment fragment(GetConstraintSpace().GetWritingDirection(),
                               box_fragment);
 
@@ -1136,7 +1136,7 @@ absl::optional<LayoutUnit> InlineLayoutAlgorithm::ApplyJustify(
   const UChar kTextCombineItemMarker = 0x3042;  // U+3042 Hiragana Letter A
 
   // Note: |line_info->StartOffset()| can be different from
-  // |NGItemsResults[0].StartOffset()|, e.g. <b><input> <input></b> when
+  // |ItemsResults[0].StartOffset()|, e.g. <b><input> <input></b> when
   // line break before space (leading space). See http://crbug.com/1240791
   const unsigned line_text_start_offset =
       line_info->Results().front().StartOffset();

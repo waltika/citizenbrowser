@@ -31,7 +31,6 @@
 <translation id="1181037720776840403">हटाएं</translation>
 <translation id="1191518099344003522">एपीएन चालू है.</translation>
 <translation id="1195447618553298278">अज्ञात गड़बड़ी.</translation>
-<translation id="1195784767091936222">गहरे रंग वाला मोड अपने-आप चालू होने की सुविधा चालू करें</translation>
 <translation id="1196959502276349371">वर्शन <ph name="VERSION" /></translation>
 <translation id="1199355487114804640">चलाएं/रोकें वाला बटन</translation>
 <translation id="1201402288615127009">अगला</translation>
@@ -152,7 +151,6 @@
 <translation id="1923388006036088459">एक्सेंट के रंग</translation>
 <translation id="1947737735496445907">प्रिंट किया गया</translation>
 <translation id="1951012854035635156">Assistant</translation>
-<translation id="1954687945444914660">फ़ोटोग्राफ़ी</translation>
 <translation id="1962550982027027473">डिफ़ॉल्ट एपीएन चालू करना ज़रूरी है</translation>
 <translation id="1973886230221301399">ChromeVox</translation>
 <translation id="1977994649430373166">Google खाते पर प्रोफ़ाइल फ़ोटो</translation>
@@ -261,6 +259,7 @@
 <translation id="2872961005593481000">शट डाउन करें</translation>
 <translation id="2873483161362553159">ब्राउज़र नेविगेशन</translation>
 <translation id="2874939134665556319">पिछला ट्रैक</translation>
+<translation id="2875812231449496375">इस वॉलपेपर से जुड़े बेहतरीन नतीजे पाने के लिए, इसे चालू करें. इस सेटिंग को कभी भी बंद किया जा सकता है.</translation>
 <translation id="2878387241690264070"><ph name="NUM_SECONDS" /> सेकंड में <ph name="RATE" /> डिस्चार्ज हुई.</translation>
 <translation id="2880569433548999039">क्लाउड फ़्लो स्क्रीन सेवर</translation>
 <translation id="2926057806159140518">अपना उपयोगकर्ता नाम और पासवर्ड डालें या अपना क्यूआर कोड स्कैन करें</translation>
@@ -281,7 +280,6 @@
 <translation id="3122464029669770682">CPU</translation>
 <translation id="3124039320086536031">डिवाइस कनेक्ट है.</translation>
 <translation id="3127341325625468058">{PAGE_NUMBER,plural, =0{पेज को हटाना चाहते हैं?}=1{पेज {PAGE_NUMBER} को हटाना चाहते हैं?}one{पेज {PAGE_NUMBER} को हटाना चाहते हैं?}other{पेज {PAGE_NUMBER} को हटाना चाहते हैं?}}</translation>
-<translation id="3136905423678675159">क्या आपको गहरे रंग वाला मोड अपने-आप चालू होने की सुविधा चालू करनी है?</translation>
 <translation id="3146655726035122603">सिर्फ़ <ph name="PRODUCT_NAME" /> पर उपलब्ध</translation>
 <translation id="315116470104423982">मोबाइल डेटा</translation>
 <translation id="3156846309055100599">पेज <ph name="PAGE_NUMBER" /> को स्कैन किया जा रहा है...</translation>
@@ -362,7 +360,6 @@
 <translation id="3740976234706877572"><ph name="AVERAGE_SCORE" /> ★ (<ph name="AGGREGATED_COUNT" /> समीक्षाएं)</translation>
 <translation id="3748026146096797577">कनेक्ट नहीं है</translation>
 <translation id="3749289110408117711">फ़ाइल नाम</translation>
-<translation id="3754384069690464321">कृपया गहरे रंग वाला मोड चालू करें, ताकि यह वॉलपेपर बेहतर दिखे. ऐप्लिकेशन में जाकर, किसी भी समय इस सेटिंग को फिर से बदला जा सकता है.</translation>
 <translation id="3771294271822695279">वीडियो फ़ाइलें</translation>
 <translation id="3784455785234192852">लॉक चालू है</translation>
 <translation id="380097101658023925">आरजीबी के लिए कंट्रोल</translation>
@@ -555,6 +552,7 @@
 <translation id="5090362543162270857">IPsec (IKEv2)</translation>
 <translation id="5137451382116112100">फ़ुलस्क्रीन मोड</translation>
 <translation id="5142961317498132443">पुष्टि करना</translation>
+<translation id="5145081769226915336">क्या गहरे रंग वाले मोड के अपने-आप चालू होने की सुविधा चालू करनी है?</translation>
 <translation id="5154917547274118687">मेमोरी</translation>
 <translation id="5160857336552977725">अपने <ph name="DEVICE_TYPE" /> में साइन इन करें</translation>
 <translation id="5166918508782100047">हाज़िर जवाब की सेटिंग</translation>
@@ -596,7 +594,6 @@
 <translation id="5389224261615877010">इंद्रधनुष</translation>
 <translation id="5400907029458559844">डिवाइस कनेक्ट हो रहा है.</translation>
 <translation id="5401938042319910061">सभी रूटीन चलाएं</translation>
-<translation id="540604120278030498">न्यूयॉर्क</translation>
 <translation id="5423849171846380976">सक्रिय हुआ</translation>
 <translation id="5430931332414098647">इंस्टैंट टेदरिंग</translation>
 <translation id="5431318178759467895">रंग</translation>
@@ -806,7 +803,6 @@
 <translation id="7046522406494308071">क्या आपको सभी शॉर्टकट डिफ़ॉल्ट पर रीसेट करने हैं?</translation>
 <translation id="7058278511608979688">बंद करें और सेव करें</translation>
 <translation id="7059230779847288458">चार्ज हो रहा है, पूरा चार्ज होने में <ph name="TIME_VALUE" /> लगेंगे</translation>
-<translation id="7065364575846974659">पेरिस</translation>
 <translation id="7066538517128343186"><ph name="KEY" /> कुंजी</translation>
 <translation id="7068619307603204412">अपने डिवाइस को तैयार करें</translation>
 <translation id="708426984172631313">रोका गया</translation>
@@ -947,7 +943,6 @@
 <translation id="8094062939584182041">Google को इस समस्या के बारे में ईमेल भेजने की अनुमति दें</translation>
 <translation id="8104083085214006426">आप एक ओपन नेटवर्क का इस्तेमाल कर रहे हैं जो सुरक्षित नहीं है</translation>
 <translation id="8111706652656628199">शॉर्टकट उपलब्ध नहीं है. कार्रवाई बदलने वाली एक और कुंजी (ctrl, alt, shift, खोज बटन या लॉन्चर) के साथ-साथ shift इस्तेमाल करके नया शॉर्टकट दबाएं.</translation>
-<translation id="8112538018114444149"><ph name="CHIP_CITY" /> में <ph name="CHIP_STYLE" /> की स्टाइल का पार्क.</translation>
 <translation id="811820734797650957">(Android) गेटवे को पिंग किया जा सकता है</translation>
 <translation id="8129620843620772246"><ph name="TEMPERATURE_C" />° C</translation>
 <translation id="8132480444149501833">ट्रैफ़िक काउंटर का अनुरोध करें</translation>
@@ -1082,7 +1077,6 @@
 <translation id="9058932992221914855">IPv6</translation>
 <translation id="9062831201344759865">डीएनएस रिज़ॉल्यूशन के इंतज़ार का समय ज़्यादा है</translation>
 <translation id="9065203028668620118">बदलाव करें</translation>
-<translation id="9068296451330120661">वॉटरकलर</translation>
 <translation id="9073281213608662541">PAP</translation>
 <translation id="9074739597929991885">ब्लूटूथ</translation>
 <translation id="9082718469794970195">इस वीडियो का इस्तेमाल करें</translation>

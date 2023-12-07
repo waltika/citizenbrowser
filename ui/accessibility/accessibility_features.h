@@ -51,6 +51,11 @@ AX_BASE_EXPORT bool IsAblateSendPendingAccessibilityEventsEnabled();
 AX_BASE_EXPORT BASE_DECLARE_FEATURE(kAccessibilityFocusHighlight);
 AX_BASE_EXPORT bool IsAccessibilityFocusHighlightEnabled();
 
+// Enable PDF OCR for Select-to-Speak. It will be disabled by default on
+// platforms other than ChromeOS as STS is available only on ChromeOS.
+AX_BASE_EXPORT BASE_DECLARE_FEATURE(kAccessibilityPdfOcrForSelectToSpeak);
+AX_BASE_EXPORT bool IsAccessibilityPdfOcrForSelectToSpeakEnabled();
+
 // Augment existing images labels in addition to unlabeled images.
 AX_BASE_EXPORT BASE_DECLARE_FEATURE(kAugmentExistingImageLabels);
 AX_BASE_EXPORT bool IsAugmentExistingImageLabelsEnabled();
@@ -168,6 +173,11 @@ IsExperimentalAccessibilityGoogleTtsHighQualityVoicesEnabled();
 AX_BASE_EXPORT BASE_DECLARE_FEATURE(
     kExperimentalAccessibilityGoogleTtsLanguagePacks);
 AX_BASE_EXPORT bool IsExperimentalAccessibilityGoogleTtsLanguagePacksEnabled();
+
+// Whether the extra-large cursor size feature is enabled.
+AX_BASE_EXPORT BASE_DECLARE_FEATURE(kAccessibilityExtraLargeCursor);
+AX_BASE_EXPORT bool IsAccessibilityExtraLargeCursorEnabled();
+
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
 #if BUILDFLAG(IS_ANDROID)

@@ -129,6 +129,7 @@ import org.chromium.chrome.browser.toolbar.menu_button.MenuButtonCoordinator;
 import org.chromium.chrome.browser.toolbar.menu_button.MenuButtonState;
 import org.chromium.chrome.browser.toolbar.top.ActionModeController;
 import org.chromium.chrome.browser.toolbar.top.ActionModeController.ActionBarDelegate;
+import org.chromium.chrome.browser.toolbar.top.TabStripTransitionCoordinator.TabStripHeightObserver;
 import org.chromium.chrome.browser.toolbar.top.ToggleTabStackButton;
 import org.chromium.chrome.browser.toolbar.top.ToggleTabStackButtonCoordinator;
 import org.chromium.chrome.browser.toolbar.top.Toolbar;
@@ -151,7 +152,7 @@ import org.chromium.chrome.browser.user_education.IPHCommandBuilder;
 import org.chromium.chrome.browser.user_education.UserEducationHelper;
 import org.chromium.chrome.browser.util.BrowserUiUtils;
 import org.chromium.chrome.browser.util.BrowserUiUtils.HostSurface;
-import org.chromium.chrome.browser.util.BrowserUiUtils.ModuleTypeOnStartAndNTP;
+import org.chromium.chrome.browser.util.BrowserUiUtils.ModuleTypeOnStartAndNtp;
 import org.chromium.chrome.browser.util.ChromeAccessibilityUtil;
 import org.chromium.chrome.features.start_surface.StartSurface;
 import org.chromium.chrome.features.start_surface.StartSurfaceState;
@@ -199,7 +200,6 @@ public class ToolbarManager
                 ChromeAccessibilityUtil.Observer,
                 TabObscuringHandler.Observer {
     private final IncognitoStateProvider mIncognitoStateProvider;
-    private final TabCountProvider mTabCountProvider;
     private final TopUiThemeColorProvider mTopUiThemeColorProvider;
     private final Supplier<EphemeralTabCoordinator> mEphemeralTabCoordinatorSupplier;
     private AppThemeColorProvider mAppThemeColorProvider;
@@ -310,6 +310,9 @@ public class ToolbarManager
     private OverlayPanelManagerObserver mOverlayPanelManagerObserver;
     private ObservableSupplierImpl<Boolean> mOverlayPanelVisibilitySupplier =
             new ObservableSupplierImpl<>();
+    private ObservableSupplierImpl<Integer> mTabStripHeightSupplier =
+            new ObservableSupplierImpl<>();
+    private TabStripHeightObserver mTabStripHeightObserver;
 
     private TabGroupUi mTabGroupUi;
 
@@ -621,7 +624,6 @@ public class ToolbarManager
         mActivity.registerComponentCallbacks(mComponentCallbacks);
 
         mIncognitoStateProvider = new IncognitoStateProvider();
-        mTabCountProvider = new TabCountProvider();
         mTopUiThemeColorProvider = topUiThemeColorProvider;
         mTopUiThemeColorProvider.addThemeColorObserver(this);
 
@@ -741,9 +743,9 @@ public class ToolbarManager
                         initializeWithIncognitoColors,
                         startSurfaceLogoClickedCallback,
                         mConstraintsProxy);
+        mTabStripHeightSupplier.set(mToolbar.getTabStripHeight());
         mActionModeController =
                 new ActionModeController(mActivity, mActionBarDelegate, toolbarActionModeCallback);
-
         mActionModeController.setTabStripHeight(mToolbar.getTabStripHeight());
 
         tabObscuringHandler.addObserver(this);
@@ -822,7 +824,8 @@ public class ToolbarManager
                             BackPressManager.isEnabled() ? backPressManager : null,
                             scrollListener,
                             openHistoryClustersDelegate,
-                            tabModelSelectorSupplier);
+                            tabModelSelectorSupplier,
+                            /* forcePhoneStyleOmnibox= */ false);
             toolbarLayout.setLocationBarCoordinator(locationBarCoordinator);
             toolbarLayout.setBrowserControlsVisibilityDelegate(mControlsVisibilityDelegate);
             mLocationBar = locationBarCoordinator;
@@ -979,7 +982,7 @@ public class ToolbarManager
                         onBackPressStateChanged();
                         NewTabPage ntp = getNewTabPageForCurrentTab();
                         if (ntp == null) return;
-                        if (!UrlUtilities.isNTPUrl(params.getUrl())
+                        if (!UrlUtilities.isNtpUrl(params.getUrl())
                                 && loadType != Tab.TabLoadStatus.PAGE_LOAD_FAILED) {
                             ntp.setUrlFocusAnimationsDisabled(true);
                             onTabOrModelChanged();
@@ -997,7 +1000,7 @@ public class ToolbarManager
                         NavigationEntry pendingEntry = navigationController.getPendingEntry();
                         if (pendingEntry == null) return false;
 
-                        return !UrlUtilities.isNTPUrl(pendingEntry.getUrl());
+                        return !UrlUtilities.isNtpUrl(pendingEntry.getUrl());
                     }
 
                     @Override
@@ -1211,7 +1214,6 @@ public class ToolbarManager
                     }
                 };
 
-        mToolbar.setTabCountProvider(mTabCountProvider);
         mToolbar.setIncognitoStateProvider(mIncognitoStateProvider);
 
         ChromeAccessibilityUtil.get().addObserver(this);
@@ -1411,7 +1413,7 @@ public class ToolbarManager
         HomepageManager.getInstance().onMenuClick(context);
         if (isNtp) {
             BrowserUiUtils.recordModuleLongClickHistogram(
-                    HostSurface.NEW_TAB_PAGE, ModuleTypeOnStartAndNTP.HOME_BUTTON);
+                    HostSurface.NEW_TAB_PAGE, ModuleTypeOnStartAndNtp.HOME_BUTTON);
         }
     }
 
@@ -1479,13 +1481,13 @@ public class ToolbarManager
             }
 
             NewTabPage ntp = getNewTabPageForCurrentTab();
-            return ntp != null && ntp.isLocationBarShownInNTP();
+            return ntp != null && ntp.isLocationBarShownInNtp();
         }
 
         @Override
         public boolean transitioningAwayFromLocationBar() {
             return mVisibleNtp != null
-                    && mVisibleNtp.isLocationBarShownInNTP()
+                    && mVisibleNtp.isLocationBarShownInNtp()
                     && !isLocationBarShown();
         }
 
@@ -1546,7 +1548,7 @@ public class ToolbarManager
             return new ToolbarNtpDelegate() {
                 @Override
                 protected boolean shouldUpdateListener() {
-                    return mVisibleNtp.isLocationBarShownInNTP();
+                    return mVisibleNtp.isLocationBarShownInNtp();
                 }
             };
         } else if (toolbarLayout instanceof ToolbarTablet) {
@@ -1686,6 +1688,7 @@ public class ToolbarManager
                 mActivityTabProvider,
                 mBrowserControlsSizer,
                 mTopUiThemeColorProvider);
+        mTabStripHeightSupplier.set(mToolbar.getTabStripHeight());
 
         mAttachStateChangeListener =
                 new OnAttachStateChangeListener() {
@@ -1709,6 +1712,14 @@ public class ToolbarManager
         if (stripLayoutHelperManager != null) {
             mControlContainer.setToolbarContainerDragListener(
                     stripLayoutHelperManager.getDragListener());
+            stripLayoutHelperManager.setIsTabStripHidden(mToolbar.getTabStripHeight() == 0);
+            mTabStripHeightObserver =
+                    newHeight -> {
+                        if (mTabStripHeightSupplier == null) return;
+                        mTabStripHeightSupplier.set(newHeight);
+                        stripLayoutHelperManager.setIsTabStripHidden(newHeight == 0);
+                    };
+            mToolbar.addTabStripHeightObserver(mTabStripHeightObserver);
         }
 
         if (mMenuStateObserver != null) {
@@ -1725,7 +1736,6 @@ public class ToolbarManager
         maybeShowUrlBarCursorIfHardwareKeyboardAvailable();
         if (mTabModelSelector.isTabStateInitialized()) mTabRestoreCompleted = true;
         handleTabRestoreCompleted();
-        mTabCountProvider.setTabModelSelector(mTabModelSelector);
         mIncognitoStateProvider.setTabModelSelector(mTabModelSelector);
         mAppThemeColorProvider.setIncognitoStateProvider(mIncognitoStateProvider);
 
@@ -1864,11 +1874,15 @@ public class ToolbarManager
             mToolbar.removeOnAttachStateChangeListener(mAttachStateChangeListener);
             mAttachStateChangeListener = null;
         }
+        if (mTabStripHeightObserver != null) {
+            mToolbar.removeTabStripHeightObserver(mTabStripHeightObserver);
+            mTabStripHeightObserver = null;
+        }
+        mTabStripHeightSupplier = null;
         mToolbar.removeUrlExpansionObserver(mStatusBarColorController);
         mToolbar.destroy();
 
         mIncognitoStateProvider.destroy();
-        mTabCountProvider.destroy();
 
         mLocationBarModel.destroy();
         mHandler.removeCallbacksAndMessages(null); // Cancel delayed tasks.
@@ -2045,6 +2059,11 @@ public class ToolbarManager
         mUrlFocusChangedCallback.onResult(hasFocus);
     }
 
+    /** Get the supplier for the current height of the tab strip. */
+    public ObservableSupplier<Integer> getTabStripHeightSupplier() {
+        return mTabStripHeightSupplier;
+    }
+
     /**
      * Updates the primary color used by the model to the given color.
      * @param color The primary color for the current tab.
@@ -2114,8 +2133,12 @@ public class ToolbarManager
     private int getToolbarExtraYOffset() {
         int toolbarHairlineHeight =
                 mControlContainer.findViewById(R.id.toolbar_hairline).getHeight();
-        return mBrowserControlsSizer.getTopControlsHeight()
-                - (mControlContainer.getHeight() - toolbarHairlineHeight);
+        int extraYOffset =
+                mBrowserControlsSizer.getTopControlsHeight()
+                        - (mControlContainer.getHeight() - toolbarHairlineHeight);
+        // There are cases where extraYOffset can be negative e.g. during tab strip transitioning
+        // from invisible -> visible.
+        return Math.max(0, extraYOffset);
     }
 
     /**
@@ -2476,7 +2499,7 @@ public class ToolbarManager
         Tab tab = mLocationBarModel.getTab();
         if (tab == null) return;
         NativePage nativePage = tab.getNativePage();
-        boolean onNtp = UrlUtilities.isNTPUrl(tab.getUrl());
+        boolean onNtp = UrlUtilities.isNtpUrl(tab.getUrl());
 
         if (ChromeAccessibilityUtil.get().isAccessibilityEnabled()
                 && nativePage instanceof NewTabPage) {
@@ -2498,7 +2521,7 @@ public class ToolbarManager
 
     private void maybeShowUrlBarCursorIfHardwareKeyboardAvailable() {
         if (!DeviceFormFactor.isNonMultiDisplayContextOnTablet(mActivity)) return;
-        if (!UrlUtilities.isNTPUrl(mLocationBarModel.getCurrentGurl())) return;
+        if (!UrlUtilities.isNtpUrl(mLocationBarModel.getCurrentGurl())) return;
         if (!ChromeFeatureList.isEnabled(ChromeFeatureList.ADVANCED_PERIPHERALS_SUPPORT)) return;
 
         if (mActivity.getResources().getConfiguration().keyboard == Configuration.KEYBOARD_QWERTY) {
@@ -2545,7 +2568,8 @@ public class ToolbarManager
             }
             var msg =
                     String.format(
-                            "BottomCtrl %s %s; actTab %s %s; urlBarTab %s, sTab %s, layout %s, interval %s",
+                            "BottomCtrl %s %s; actTab %s %s; urlBarTab %s, sTab %s, layout %s,"
+                                + " interval %s",
                             bc,
                             bc != null
                                     && Boolean.TRUE.equals(
@@ -2596,6 +2620,11 @@ public class ToolbarManager
 
     public ToolbarTabController getToolbarTabControllerForTesting() {
         return mToolbarTabController;
+    }
+
+    /** Return the TabStripTransitionCoordinator as component callback. */
+    ComponentCallbacks getTabStripTransitionCoordinatorForTesting() {
+        return mToolbar.getTabStripTransitionCoordinatorForTesting(); // IN-TEST
     }
 
     /**

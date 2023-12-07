@@ -31,7 +31,6 @@
 <translation id="1181037720776840403">Verwijderen</translation>
 <translation id="1191518099344003522">APN staat aan.</translation>
 <translation id="1195447618553298278">Onbekende fout</translation>
-<translation id="1195784767091936222">Automatische donkere modus aanzetten</translation>
 <translation id="1196959502276349371">Versie <ph name="VERSION" /></translation>
 <translation id="1199355487114804640">Afspelen/Onderbreken</translation>
 <translation id="1201402288615127009">Volgende</translation>
@@ -152,7 +151,6 @@
 <translation id="1923388006036088459">Accentkleuren</translation>
 <translation id="1947737735496445907">Afgedrukt</translation>
 <translation id="1951012854035635156">Assistent</translation>
-<translation id="1954687945444914660">fotografie</translation>
 <translation id="1962550982027027473">Een standaard APN is vereist</translation>
 <translation id="1973886230221301399">ChromeVox</translation>
 <translation id="1977994649430373166">Google-profielfoto</translation>
@@ -261,6 +259,7 @@
 <translation id="2872961005593481000">Afsluiten</translation>
 <translation id="2873483161362553159">Browsernavigatie</translation>
 <translation id="2874939134665556319">Vorig nummer</translation>
+<translation id="2875812231449496375">Zet dit aan voor de beste resultaten met deze achtergrond. Je kunt deze instelling altijd uitzetten.</translation>
 <translation id="2878387241690264070"><ph name="RATE" /> ontladen in <ph name="NUM_SECONDS" /> seconden.</translation>
 <translation id="2880569433548999039">Screensaver Wolkenstroom</translation>
 <translation id="2926057806159140518">Geef je gebruikersnaam en wachtwoord op of scan je QR-code</translation>
@@ -281,7 +280,6 @@
 <translation id="3122464029669770682">CPU</translation>
 <translation id="3124039320086536031">Apparaat is verbonden.</translation>
 <translation id="3127341325625468058">{PAGE_NUMBER,plural, =0{Pagina verwijderen?}=1{Pagina {PAGE_NUMBER} verwijderen?}other{Pagina {PAGE_NUMBER} verwijderen?}}</translation>
-<translation id="3136905423678675159">Automatische donkere modus aanzetten?</translation>
 <translation id="3146655726035122603">Exclusief voor <ph name="PRODUCT_NAME" /></translation>
 <translation id="315116470104423982">Mobiele data</translation>
 <translation id="3156846309055100599">Pagina <ph name="PAGE_NUMBER" /> scannen…</translation>
@@ -362,7 +360,6 @@
 <translation id="3740976234706877572"><ph name="AVERAGE_SCORE" /> ★ (<ph name="AGGREGATED_COUNT" /> reviews)</translation>
 <translation id="3748026146096797577">Niet verbonden</translation>
 <translation id="3749289110408117711">Bestandsnaam</translation>
-<translation id="3754384069690464321">Zet de automatische donkere modus aan voor de beste resultaten met deze achtergrond. Je kunt dit altijd weer wijzigen in de app.</translation>
 <translation id="3771294271822695279">Videobestanden</translation>
 <translation id="3784455785234192852">Vergrendelen</translation>
 <translation id="380097101658023925">rgb-bedieningselementen</translation>
@@ -555,6 +552,7 @@
 <translation id="5090362543162270857">IPsec (IKEv2)</translation>
 <translation id="5137451382116112100">Volledig</translation>
 <translation id="5142961317498132443">Verificatie</translation>
+<translation id="5145081769226915336">Donkere modus automatisch aanzetten?</translation>
 <translation id="5154917547274118687">Geheugen</translation>
 <translation id="5160857336552977725">Log in bij je <ph name="DEVICE_TYPE" /></translation>
 <translation id="5166918508782100047">Instellingen voor Snelle antwoorden</translation>
@@ -596,7 +594,6 @@
 <translation id="5389224261615877010">Regenboog</translation>
 <translation id="5400907029458559844">Apparaat maakt verbinding.</translation>
 <translation id="5401938042319910061">Alle routines uitvoeren</translation>
-<translation id="540604120278030498">New York</translation>
 <translation id="5423849171846380976">Geactiveerd</translation>
 <translation id="5430931332414098647">Instant tethering</translation>
 <translation id="5431318178759467895">Kleur</translation>
@@ -806,7 +803,6 @@
 <translation id="7046522406494308071">Alle sneltoetsen resetten naar standaardinstellingen?</translation>
 <translation id="7058278511608979688">Stoppen en opslaan</translation>
 <translation id="7059230779847288458">Opladen, vol over <ph name="TIME_VALUE" /></translation>
-<translation id="7065364575846974659">Parijs</translation>
 <translation id="7066538517128343186">de <ph name="KEY" />-toets</translation>
 <translation id="7068619307603204412">Je apparaat voorbereiden</translation>
 <translation id="708426984172631313">GESTOPT</translation>
@@ -947,7 +943,6 @@
 <translation id="8094062939584182041">Toestaan dat Google je e-mail stuurt over dit probleem</translation>
 <translation id="8104083085214006426">Je gebruikt een open of niet-beveiligd netwerk</translation>
 <translation id="8111706652656628199">Sneltoets niet beschikbaar. Druk op een nieuwe sneltoets met Shift en nog 1 functietoets (Ctrl, Alt, Zoeken of Launcher).</translation>
-<translation id="8112538018114444149">Een park in <ph name="CHIP_CITY" /> in de stijl van <ph name="CHIP_STYLE" />.</translation>
 <translation id="811820734797650957">(Android) Gateway kan worden gepingd</translation>
 <translation id="8129620843620772246"><ph name="TEMPERATURE_C" /> °C</translation>
 <translation id="8132480444149501833">Verkeerstellers aanvragen</translation>
@@ -1082,7 +1077,6 @@
 <translation id="9058932992221914855">IPv6</translation>
 <translation id="9062831201344759865">DNS-omzetting heeft een lange vertraging</translation>
 <translation id="9065203028668620118">Bewerken</translation>
-<translation id="9068296451330120661">aquarel</translation>
 <translation id="9073281213608662541">PAP</translation>
 <translation id="9074739597929991885">Bluetooth</translation>
 <translation id="9082718469794970195">Deze video gebruiken</translation>

@@ -4,13 +4,14 @@
 
 #include "third_party/blink/renderer/core/layout/table/table_row_layout_algorithm.h"
 
-#include "third_party/blink/renderer/core/layout/ng/ng_block_break_token.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_block_child_iterator.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_box_fragment.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_constraint_space_builder.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_fragmentation_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_out_of_flow_layout_part.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_physical_box_fragment.h"
+#include "third_party/blink/renderer/core/layout/block_break_token.h"
+#include "third_party/blink/renderer/core/layout/block_child_iterator.h"
+#include "third_party/blink/renderer/core/layout/block_layout_algorithm_utils.h"
+#include "third_party/blink/renderer/core/layout/constraint_space_builder.h"
+#include "third_party/blink/renderer/core/layout/fragmentation_utils.h"
+#include "third_party/blink/renderer/core/layout/logical_box_fragment.h"
+#include "third_party/blink/renderer/core/layout/out_of_flow_layout_part.h"
+#include "third_party/blink/renderer/core/layout/physical_box_fragment.h"
 #include "third_party/blink/renderer/core/layout/table/layout_table_cell.h"
 #include "third_party/blink/renderer/core/layout/table/table_layout_utils.h"
 #include "third_party/blink/renderer/core/layout/table/table_row_break_token_data.h"
@@ -181,11 +182,12 @@ const LayoutResult* TableRowLayoutAlgorithm::Layout() {
 
       bool has_rowspan = cell_data.rowspan_block_size != kIndefiniteSize;
       const auto& physical_fragment =
-          To<NGPhysicalBoxFragment>(cell_result->GetPhysicalFragment());
+          To<PhysicalBoxFragment>(cell_result->GetPhysicalFragment());
       const LogicalBoxFragment fragment(table_data.table_writing_direction,
                                         physical_fragment);
       row_baseline_tabulator.ProcessCell(
-          fragment, cell_style.VerticalAlign(), has_rowspan,
+          fragment, ComputeContentAlignmentForTableCell(cell_style),
+          has_rowspan,
           cell_data.has_descendant_that_depends_on_percentage_block_size);
       if (min_block_size_should_encompass_intrinsic_size) {
         max_cell_block_size =

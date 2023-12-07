@@ -4,18 +4,18 @@
 
 #include "third_party/blink/renderer/core/layout/table/table_layout_algorithm.h"
 
+#include "third_party/blink/renderer/core/layout/block_break_token.h"
+#include "third_party/blink/renderer/core/layout/constraint_space_builder.h"
+#include "third_party/blink/renderer/core/layout/disable_layout_side_effects_scope.h"
+#include "third_party/blink/renderer/core/layout/fragmentation_utils.h"
 #include "third_party/blink/renderer/core/layout/geometry/writing_mode_converter.h"
+#include "third_party/blink/renderer/core/layout/layout_result.h"
+#include "third_party/blink/renderer/core/layout/length_utils.h"
+#include "third_party/blink/renderer/core/layout/logical_box_fragment.h"
 #include "third_party/blink/renderer/core/layout/mathml/math_layout_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_block_break_token.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_box_fragment.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_constraint_space_builder.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_disable_side_effects_scope.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_fragmentation_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_layout_result.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_length_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_out_of_flow_layout_part.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_physical_box_fragment.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_space_utils.h"
+#include "third_party/blink/renderer/core/layout/out_of_flow_layout_part.h"
+#include "third_party/blink/renderer/core/layout/physical_box_fragment.h"
+#include "third_party/blink/renderer/core/layout/space_utils.h"
 #include "third_party/blink/renderer/core/layout/table/layout_table.h"
 #include "third_party/blink/renderer/core/layout/table/layout_table_caption.h"
 #include "third_party/blink/renderer/core/layout/table/layout_table_cell.h"
@@ -1335,7 +1335,7 @@ const LayoutResult* TableLayoutAlgorithm::GenerateFragment(
       child_inline_offset = section_inline_offset;
 
       border_spacing_after_last_section = border_spacing.block_size;
-      if (To<NGPhysicalBoxFragment>(child_result->GetPhysicalFragment())
+      if (To<PhysicalBoxFragment>(child_result->GetPhysicalFragment())
               .HasDescendantsForTablePart()) {
         // We want to add border-spacing after this section, but not if the
         // current fragment is past the block-end of the section. This might
@@ -1373,7 +1373,7 @@ const LayoutResult* TableLayoutAlgorithm::GenerateFragment(
     }
 
     const auto& physical_fragment =
-        To<NGPhysicalBoxFragment>(child_result->GetPhysicalFragment());
+        To<PhysicalBoxFragment>(child_result->GetPhysicalFragment());
     LogicalBoxFragment fragment(table_writing_direction, physical_fragment);
     if (child.IsTableSection()) {
       if (!is_repeated_section) {

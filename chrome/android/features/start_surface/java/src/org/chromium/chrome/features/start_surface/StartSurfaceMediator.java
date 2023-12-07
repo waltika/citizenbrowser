@@ -158,6 +158,8 @@ class StartSurfaceMediator
     private final boolean mUseMagicSpace;
     private final boolean mIsSurfacePolishEnabled;
 
+    private boolean mShouldIgnoreTabSelecting;
+
     // Boolean histogram used to record whether cached
     // ChromePreferenceKeys.FEED_ARTICLES_LIST_VISIBLE is consistent with
     // Pref.ARTICLES_LIST_VISIBLE.
@@ -401,7 +403,7 @@ class StartSurfaceMediator
                                 if (mUseMagicSpace) return;
 
                                 if (type == TabSelectionType.FROM_CLOSE
-                                        && UrlUtilities.isNTPUrl(tab.getUrl())) {
+                                        && UrlUtilities.isNtpUrl(tab.getUrl())) {
                                     setTabCarouselVisibility(false);
                                 }
                             }
@@ -1081,11 +1083,11 @@ class StartSurfaceMediator
         boolean isOnHomepage = isHomepageShown();
 
         // When the SecondaryTasksSurface is shown, the TabGridDialog is controlled by
-        // mSecondaryTasksSurfaceController, while the TabSelectionEditor dialog is controlled
+        // mSecondaryTasksSurfaceController, while the TabListEditor dialog is controlled
         // by mController. Therefore, we need to check both controllers whether any dialog is
         // visible. If so, the corresponding controller will handle the back button.
         // When the Start surface is shown, tapping "Group Tabs" from menu will also show the
-        // the TabSelectionEditor dialog. Therefore, we need to check both controllers as well.
+        // the TabListEditor dialog. Therefore, we need to check both controllers as well.
         if (mSecondaryTasksSurfaceController != null
                 && mSecondaryTasksSurfaceController.isDialogVisible()) {
             boolean ret = mSecondaryTasksSurfaceController.onBackPressed();
@@ -1308,8 +1310,16 @@ class StartSurfaceMediator
             mHideOverviewOnTabSelecting = true;
             return;
         }
+        // Because there are multiple upstream tab selection listeners that attempt to re-trigger
+        // the onTabSelecting in response to TabModelObserver#didSelectTab it is necessary to treat
+        // this as a non-rentrant method until the original operation finishes.
+        // TODO(crbug/1495121): This can be removed once StartSurfaceRefactor is cleaned up.
+        if (mShouldIgnoreTabSelecting) return;
+        mShouldIgnoreTabSelecting = true;
+
         assert mOnTabSelectingListener != null;
         mOnTabSelectingListener.onTabSelecting(tabId);
+        mShouldIgnoreTabSelecting = false;
     }
 
     // LogoCoordinator.VisibilityObserver
@@ -1492,7 +1502,7 @@ class StartSurfaceMediator
         // If the single tab switcher is shown and the current selected tab is a new tab page, we
         // shouldn't show the tab switcher layout on Start.
         boolean shouldShowTabCarousel =
-                isVisible && !(isSingleTabSwitcher() && isCurrentSelectedTabNTP());
+                isVisible && !(isSingleTabSwitcher() && isCurrentSelectedTabNtp());
 
         if (shouldShowTabCarousel == mPropertyModel.get(IS_TAB_CAROUSEL_VISIBLE)) return;
 
@@ -1616,12 +1626,12 @@ class StartSurfaceMediator
         }
     }
 
-    private boolean isCurrentSelectedTabNTP() {
+    private boolean isCurrentSelectedTabNtp() {
         Tab currentTab = mTabModelSelector.getCurrentTab();
         return mTabModelSelector.isTabStateInitialized()
                         && currentTab != null
                         && currentTab.getUrl() != null
-                ? UrlUtilities.isNTPUrl(currentTab.getUrl())
+                ? UrlUtilities.isNtpUrl(currentTab.getUrl())
                 : ChromeSharedPreferences.getInstance()
                                 .readInt(
                                         ChromePreferenceKeys.APP_LAUNCH_LAST_KNOWN_ACTIVE_TAB_STATE)

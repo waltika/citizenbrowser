@@ -31,6 +31,7 @@
 namespace metrics::structured {
 namespace {
 
+#if BUILDFLAG(IS_CHROMEOS)
 // Platforms for which the StructuredMetricsClient will be initialized for.
 enum class StructuredMetricsPlatform {
   kUninitialized = 0,
@@ -44,12 +45,7 @@ void LogInitializationInStructuredMetrics(StructuredMetricsPlatform platform) {
       .SetPlatform(static_cast<int64_t>(platform))
       .Record();
 }
-
-#if BUILDFLAG(IS_CHROMEOS_ASH)
-// The path used to store events before the start of a user session.
-constexpr char kAshPreUserStorePath[] =
-    "/var/lib/metrics/structured/chromium/events";
-#endif
+#endif  // BUILDFLAG(IS_CHROMEOS)
 
 }  // namespace
 
@@ -101,12 +97,6 @@ void ChromeStructuredMetricsRecorder::Initialize() {
               service, GetOobeEventUploadCount()));
     }
   }
-
-  // Initialize the key data provider and event storage.
-  service->recorder()->InitializeKeyDataProvider(
-      std::make_unique<KeyDataProviderAsh>());
-  service->recorder()->InitializeEventStorage(std::make_unique<AshEventStorage>(
-      AshEventStorage::kSaveDelay, base::FilePath(kAshPreUserStorePath)));
 
   Recorder::GetInstance()->AddEventsProcessor(
       std::make_unique<MetadataProcessorAsh>());

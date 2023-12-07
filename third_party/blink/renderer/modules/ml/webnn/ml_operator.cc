@@ -58,6 +58,8 @@ String MLOperator::OperatorKindToString(MLOperator::OperatorKind kind) {
       return "reciprocal";
     case MLOperator::OperatorKind::kSqrt:
       return "sqrt";
+    case MLOperator::OperatorKind::kCast:
+      return "cast";
     case MLOperator::OperatorKind::kLeakyRelu:
       return "leakyRelu";
     case MLOperator::OperatorKind::kMax:
@@ -68,6 +70,8 @@ String MLOperator::OperatorKindToString(MLOperator::OperatorKind kind) {
       return "elu";
     case MLOperator::OperatorKind::kExpand:
       return "expand";
+    case MLOperator::OperatorKind::kGather:
+      return "gather";
     case MLOperator::OperatorKind::kGemm:
       return "gemm";
     case MLOperator::OperatorKind::kHardSwish:

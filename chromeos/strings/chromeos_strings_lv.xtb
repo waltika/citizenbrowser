@@ -31,7 +31,6 @@
 <translation id="1181037720776840403">Noņemt</translation>
 <translation id="1191518099344003522">APN ir iespējots.</translation>
 <translation id="1195447618553298278">Nezināma kļūda.</translation>
-<translation id="1195784767091936222">Ieslēgt automātisku tumšo režīmu</translation>
 <translation id="1196959502276349371">Versija <ph name="VERSION" /></translation>
 <translation id="1199355487114804640">Atskaņot/pārtraukt</translation>
 <translation id="1201402288615127009">Tālāk</translation>
@@ -152,7 +151,6 @@
 <translation id="1923388006036088459">Izcēluma krāsas</translation>
 <translation id="1947737735496445907">Izdrukāts</translation>
 <translation id="1951012854035635156">Asistents</translation>
-<translation id="1954687945444914660">fotografēšana</translation>
 <translation id="1962550982027027473">Jānorāda noklusējuma APN.</translation>
 <translation id="1973886230221301399">ChromeVox</translation>
 <translation id="1977994649430373166">Google profila fotoattēls</translation>
@@ -261,6 +259,7 @@
 <translation id="2872961005593481000">Beidzēt</translation>
 <translation id="2873483161362553159">Navigācija pārlūkā</translation>
 <translation id="2874939134665556319">Iepriekšējais ieraksts</translation>
+<translation id="2875812231449496375">Ieslēdziet šo iestatījumu, lai šī fona tapete darbotos optimāli. Jebkurā laikā varat iestatījumu izslēgt.</translation>
 <translation id="2878387241690264070">Izlādes apjoms <ph name="NUM_SECONDS" /> s laikā: <ph name="RATE" />.</translation>
 <translation id="2880569433548999039">Ekrānsaudzētājs Peldošie mākoņi</translation>
 <translation id="2926057806159140518">Ievadiet savu lietotājvārdu un paroli vai skenējiet kvadrātkodu</translation>
@@ -281,7 +280,6 @@
 <translation id="3122464029669770682">Maksa par daļas vienību</translation>
 <translation id="3124039320086536031">Ierīce ir pievienota.</translation>
 <translation id="3127341325625468058">{PAGE_NUMBER,plural, =0{Vai noņemt lapu?}=1{Vai noņemt {PAGE_NUMBER}. lapu?}zero{Vai noņemt {PAGE_NUMBER}. lapu?}one{Vai noņemt {PAGE_NUMBER}. lapu?}other{Vai noņemt {PAGE_NUMBER}. lapu?}}</translation>
-<translation id="3136905423678675159">Vai ieslēgt automātisku tumšo režīmu?</translation>
 <translation id="3146655726035122603">Tikai šeit: <ph name="PRODUCT_NAME" /></translation>
 <translation id="315116470104423982">Mobilie dati</translation>
 <translation id="3156846309055100599">Notiek <ph name="PAGE_NUMBER" />. lapas skenēšana…</translation>
@@ -362,7 +360,6 @@
 <translation id="3740976234706877572"><ph name="AVERAGE_SCORE" /> ★ (atsauksmju skaits: <ph name="AGGREGATED_COUNT" />)</translation>
 <translation id="3748026146096797577">Nav izveidots savienojums</translation>
 <translation id="3749289110408117711">Faila nosaukums</translation>
-<translation id="3754384069690464321">Lai šī fona tapete darbotos optimāli, ieslēdziet automātisku tumšo režīmu. Jebkurā laikā varat to atkal mainīt lietotnē.</translation>
 <translation id="3771294271822695279">Video faili</translation>
 <translation id="3784455785234192852">Bloķēt</translation>
 <translation id="380097101658023925">RGB vadīklas</translation>
@@ -555,6 +552,7 @@
 <translation id="5090362543162270857">IPsec (IKEv2)</translation>
 <translation id="5137451382116112100">Pilnekrāna režīms</translation>
 <translation id="5142961317498132443">Autentifikācija</translation>
+<translation id="5145081769226915336">Vai automātiski ieslēgt tumšo režīmu?</translation>
 <translation id="5154917547274118687">Atmiņa</translation>
 <translation id="5160857336552977725">Pierakstieties ierīcē <ph name="DEVICE_TYPE" /></translation>
 <translation id="5166918508782100047">Ātro atbilžu iestatījumi</translation>
@@ -596,7 +594,6 @@
 <translation id="5389224261615877010">Varavīksne</translation>
 <translation id="5400907029458559844">Notiek ierīces pievienošana.</translation>
 <translation id="5401938042319910061">Izpildīt visas pārbaudes</translation>
-<translation id="540604120278030498">Ņujorka</translation>
 <translation id="5423849171846380976">Aktivizēts</translation>
 <translation id="5430931332414098647">Tūlītēja piesaiste</translation>
 <translation id="5431318178759467895">Krāsās</translation>
@@ -806,7 +803,6 @@
 <translation id="7046522406494308071">Vai visiem īsinājumtaustiņiem atiestatīt noklusējuma vērtības?</translation>
 <translation id="7058278511608979688">Beigt un saglabāt</translation>
 <translation id="7059230779847288458">Notiek uzlāde. Atlikušais laiks līdz pilnai uzlādei: <ph name="TIME_VALUE" /></translation>
-<translation id="7065364575846974659">Parīze</translation>
 <translation id="7066538517128343186">taustiņš <ph name="KEY" /></translation>
 <translation id="7068619307603204412">Ierīces sagatavošana</translation>
 <translation id="708426984172631313">APTURĒTA</translation>
@@ -947,7 +943,6 @@
 <translation id="8094062939584182041">Atļaut Google nosūtīt jums e-pasta ziņojumu par šo problēmu</translation>
 <translation id="8104083085214006426">Jūs izmantojat atvērtu un nedrošu tīklu</translation>
 <translation id="8111706652656628199">Īsinājumtaustiņš nav pieejams. Nospiediet jauno īsinājumtaustiņu, izmantojot taustiņu Shift un vēl vienu modificētājtaustiņu (Ctrl, Alt, meklēšanas vai palaidēja taustiņu).</translation>
-<translation id="8112538018114444149">Parks šeit: <ph name="CHIP_CITY" /> (šādā stilā: <ph name="CHIP_STYLE" />).</translation>
 <translation id="811820734797650957">(Android) Vārteju var ehotestēt</translation>
 <translation id="8129620843620772246"><ph name="TEMPERATURE_C" />° C</translation>
 <translation id="8132480444149501833">Pieprasīt datplūsmas skaitītājus</translation>
@@ -1082,7 +1077,6 @@
 <translation id="9058932992221914855">IPv6</translation>
 <translation id="9062831201344759865">DNS atrisei ir augsts latentums</translation>
 <translation id="9065203028668620118">Labot</translation>
-<translation id="9068296451330120661">akvarelis</translation>
 <translation id="9073281213608662541">PAP</translation>
 <translation id="9074739597929991885">Bluetooth</translation>
 <translation id="9082718469794970195">Izmantot šo videoklipu</translation>

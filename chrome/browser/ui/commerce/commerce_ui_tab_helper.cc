@@ -88,20 +88,8 @@ constexpr net::NetworkTrafficAnnotationTag kTrafficAnnotation =
 
 constexpr char kImageFetcherUmaClient[] = "ShoppingList";
 
-constexpr base::TimeDelta kDelayIconView = base::Seconds(1);
-
 // price tracking chip (assuming price insights isn't expanded).
 constexpr int64_t kAlwaysExpandChipPriceMicros = 100000000L;
-
-bool ShouldDelayChipUpdate() {
-  if (base::FeatureList::IsEnabled(commerce::kPriceInsights)) {
-    return commerce::kPriceInsightsDelayChip.Get();
-  }
-
-  return static_cast<commerce::PriceTrackingChipExperimentVariation>(
-             commerce::kCommercePriceTrackingChipExperimentVariation.Get()) ==
-         commerce::PriceTrackingChipExperimentVariation::kDelayChip;
-}
 }  // namespace
 
 CommerceUiTabHelper::CommerceUiTabHelper(
@@ -120,6 +108,9 @@ CommerceUiTabHelper::CommerceUiTabHelper(
 
   if (shopping_service_) {
     scoped_observation_.Observe(shopping_service_);
+    shopping_service_->WaitForReady(
+        base::BindOnce(&CommerceUiTabHelper::UpdateUiForShoppingServiceReady,
+                       weak_ptr_factory_.GetWeakPtr()));
   } else {
     CHECK_IS_TEST();
   }
@@ -131,6 +122,23 @@ CommerceUiTabHelper::~CommerceUiTabHelper() = default;
 void CommerceUiTabHelper::RegisterProfilePrefs(
     PrefRegistrySimple* registry) {
   registry->RegisterBooleanPref(prefs::kShouldShowPriceTrackFUEBubble, true);
+}
+
+void CommerceUiTabHelper::UpdateUiForShoppingServiceReady(
+    ShoppingService* service) {
+  // This will happen in tests that don't pass CHECK_IS_TEST.
+  if (!service) {
+    return;
+  }
+
+  if (service->IsShoppingListEligible()) {
+    // Fetching the image may have been blocked by the eligibility check, retry.
+    MaybeDoProductImageFetch(product_info_for_page_);
+    UpdatePriceTrackingIconView();
+  }
+  if (service->IsPriceInsightsEligible()) {
+    UpdatePriceInsightsIconView();
+  }
 }
 
 void CommerceUiTabHelper::DidFinishNavigation(
@@ -145,6 +153,7 @@ void CommerceUiTabHelper::DidFinishNavigation(
   // The page action icon may not have been used for the last page load. If
   // that's the case, make sure we record it.
   RecordPriceTrackingIconMetrics(/*from_icon_use=*/false);
+  RecordPriceInsightsIconMetrics(/*from_icon_use=*/false);
 
   previous_main_frame_url_ = navigation_handle->GetURL();
   last_fetched_image_ = gfx::Image();
@@ -161,9 +170,8 @@ void CommerceUiTabHelper::DidFinishNavigation(
   page_action_to_expand_ = absl::nullopt;
   page_action_expanded_ = absl::nullopt;
   pending_tracking_state_.reset();
-  is_first_load_for_nav_finished_ = false;
   price_insights_info_.reset();
-  icon_use_recorded_for_page_ = false;
+  icon_use_recorded_for_page_.clear();
   price_insights_label_type_ =
       PriceInsightsIconView::PriceInsightsIconLabelType::kNone;
 
@@ -209,57 +217,22 @@ bool CommerceUiTabHelper::IsSameDocumentWithSameCommittedUrl(
          navigation_handle->IsSameDocument();
 }
 
-void CommerceUiTabHelper::DidStopLoading() {
-  if (!web_contents()->IsDocumentOnLoadCompletedInPrimaryMainFrame() ||
-      !ShouldDelayChipUpdate() || is_first_load_for_nav_finished_) {
-    return;
-  }
-  is_first_load_for_nav_finished_ = true;
-
-  TriggerUpdateForIconView();
-}
-
 void CommerceUiTabHelper::WebContentsDestroyed() {
   // If the tab or browser is closed, try recording whether the price tracking
   // icon was used.
   RecordPriceTrackingIconMetrics(/*from_icon_use=*/false);
+  RecordPriceInsightsIconMetrics(/*from_icon_use=*/false);
 }
 
 void CommerceUiTabHelper::TriggerUpdateForIconView() {
-  if (!ShouldDelayChipUpdate()) {
-    if (shopping_service_->IsPriceInsightsEligible()) {
-      UpdatePriceInsightsIconView();
-    }
-    UpdatePriceTrackingIconView();
-  } else {
-    DelayUpdateForIconView();
-  }
-}
-
-void CommerceUiTabHelper::DelayUpdateForIconView() {
-  if (!is_first_load_for_nav_finished_) {
+  if (!shopping_service_) {
     return;
   }
 
   if (shopping_service_->IsPriceInsightsEligible()) {
-    content::GetUIThreadTaskRunner({base::TaskPriority::BEST_EFFORT})
-        ->PostDelayedTask(
-            FROM_HERE,
-            base::BindOnce(
-                &CommerceUiTabHelper::UpdatePriceInsightsIconView,
-                weak_ptr_factory_.GetWeakPtr()),
-            kDelayIconView);
+    UpdatePriceInsightsIconView();
   }
-
-  if (!last_fetched_image_.IsEmpty()) {
-    content::GetUIThreadTaskRunner({base::TaskPriority::BEST_EFFORT})
-        ->PostDelayedTask(
-            FROM_HERE,
-            base::BindOnce(
-                &CommerceUiTabHelper::UpdatePriceTrackingIconView,
-                weak_ptr_factory_.GetWeakPtr()),
-            kDelayIconView);
-  }
+  UpdatePriceTrackingIconView();
 }
 
 void CommerceUiTabHelper::UpdatePriceInsightsIconView() {
@@ -313,24 +286,14 @@ void CommerceUiTabHelper::SetImageFetcherForTesting(
 }
 
 bool CommerceUiTabHelper::ShouldShowPriceTrackingIconView() {
-  bool should_show = shopping_service_ &&
-                     shopping_service_->IsShoppingListEligible() &&
-                     !last_fetched_image_.IsEmpty() &&
-                     got_initial_subscription_status_for_page_;
-
-  return ShouldDelayChipUpdate()
-             ? should_show && is_first_load_for_nav_finished_
-             : should_show;
+  return shopping_service_ && shopping_service_->IsShoppingListEligible() &&
+         !last_fetched_image_.IsEmpty() &&
+         got_initial_subscription_status_for_page_;
 }
 
 bool CommerceUiTabHelper::ShouldShowPriceInsightsIconView() {
-  bool should_show = shopping_service_ &&
-                     shopping_service_->IsPriceInsightsEligible() &&
-                     price_insights_info_.has_value();
-
-  return ShouldDelayChipUpdate()
-             ? should_show && is_first_load_for_nav_finished_
-             : should_show;
+  return shopping_service_ && shopping_service_->IsPriceInsightsEligible() &&
+         price_insights_info_.has_value();
 }
 
 void CommerceUiTabHelper::HandleProductInfoResponse(
@@ -351,12 +314,7 @@ void CommerceUiTabHelper::HandleProductInfoResponse(
 
     // TODO(1360850): Delay this fetch by possibly waiting until page load has
     //                finished.
-    image_fetcher_->FetchImage(
-        info.value().image_url,
-        base::BindOnce(&CommerceUiTabHelper::HandleImageFetcherResponse,
-                       weak_ptr_factory_.GetWeakPtr(), info.value().image_url),
-        image_fetcher::ImageFetcherParams(kTrafficAnnotation,
-                                          kImageFetcherUmaClient));
+    MaybeDoProductImageFetch(info);
   }
 
   if (shopping_service_->IsPriceInsightsEligible()) {
@@ -371,6 +329,23 @@ void CommerceUiTabHelper::HandleProductInfoResponse(
       got_insights_response_for_page_ = true;
     }
   }
+}
+
+void CommerceUiTabHelper::MaybeDoProductImageFetch(
+    const absl::optional<ProductInfo>& info) {
+  if (!shopping_service_->IsShoppingListEligible() || !CanTrackPrice(info) ||
+      info->image_url.is_empty() || !this->last_fetched_image_.IsEmpty()) {
+    return;
+  }
+
+  // TODO(1360850): Delay this fetch by possibly waiting until page load has
+  //                finished.
+  image_fetcher_->FetchImage(
+      info.value().image_url,
+      base::BindOnce(&CommerceUiTabHelper::HandleImageFetcherResponse,
+                     weak_ptr_factory_.GetWeakPtr(), info.value().image_url),
+      image_fetcher::ImageFetcherParams(kTrafficAnnotation,
+                                        kImageFetcherUmaClient));
 }
 
 void CommerceUiTabHelper::HandlePriceInsightsInfoResponse(
@@ -515,6 +490,7 @@ void CommerceUiTabHelper::OnPriceInsightsIconClicked() {
           price_insights_info_->has_multiple_catalogs);
     }
   }
+  RecordPriceInsightsIconMetrics(true);
 }
 
 void CommerceUiTabHelper::UpdatePriceTrackingStateFromSubscriptions() {
@@ -780,16 +756,59 @@ void CommerceUiTabHelper::OnPriceTrackingIconClicked() {
   RecordPriceTrackingIconMetrics(/*from_icon_use=*/true);
 }
 
-void CommerceUiTabHelper::RecordPriceTrackingIconMetrics(
-    bool from_icon_use) {
-  // Ignore cases where these is no cluster ID or the metric was already
-  // recorded for the page.
-  if (!cluster_id_for_page_.has_value() || icon_use_recorded_for_page_) {
+void CommerceUiTabHelper::RecordIconMetrics(PageActionIconType page_action,
+                                            bool from_icon_use) {
+  if (icon_use_recorded_for_page_.contains(page_action)) {
     return;
   }
+  icon_use_recorded_for_page_.insert(page_action);
 
-  icon_use_recorded_for_page_ = true;
+  std::string histogram_name;
+  switch (page_action) {
+    case PageActionIconType::kPriceInsights:
+      histogram_name = "Commerce.PriceInsights.IconInteractionState";
+      break;
+    case PageActionIconType::kPriceTracking:
+      histogram_name = "Commerce.PriceTracking.IconInteractionState";
+      break;
+    default:
+      return;
+  }
 
+  bool expanded = page_action_expanded_.has_value() &&
+                  page_action_expanded_.value() == page_action;
+
+  if (from_icon_use) {
+    if (expanded) {
+      base::UmaHistogramEnumeration(
+          histogram_name, PageActionIconInteractionState::kClickedExpanded);
+    } else {
+      base::UmaHistogramEnumeration(histogram_name,
+                                    PageActionIconInteractionState::kClicked);
+    }
+  } else {
+    if (expanded) {
+      base::UmaHistogramEnumeration(
+          histogram_name, PageActionIconInteractionState::kNotClickedExpanded);
+    } else {
+      base::UmaHistogramEnumeration(
+          histogram_name, PageActionIconInteractionState::kNotClicked);
+    }
+  }
+}
+
+void CommerceUiTabHelper::RecordPriceInsightsIconMetrics(bool from_icon_use) {
+  if (ShouldShowPriceInsightsIconView()) {
+    RecordIconMetrics(PageActionIconType::kPriceInsights, from_icon_use);
+  }
+}
+
+void CommerceUiTabHelper::RecordPriceTrackingIconMetrics(
+    bool from_icon_use) {
+  // Ignore cases where these is no cluster ID.
+  if (!cluster_id_for_page_.has_value()) {
+    return;
+  }
   // Ignore any instances where the product is already tracked. This will not
   // stop cases where the icon is being used to newly track a product since
   // this logic will run prior to subscriptions updating.
@@ -797,34 +816,7 @@ void CommerceUiTabHelper::RecordPriceTrackingIconMetrics(
     return;
   }
 
-  std::string histogram_name = "Commerce.PriceTracking.IconInteractionState";
-
-  bool price_tracking_expanded =
-      page_action_expanded_.has_value() &&
-      page_action_expanded_.value() == PageActionIconType::kPriceTracking;
-
-  // Clicking the icon for a product that is already tracked does not
-  // immediately untrack the product. If we made it this far, we can assume the
-  // interaction was to track a product, otherwise we would have been blocked
-  // above.
-  if (from_icon_use) {
-    if (!price_tracking_expanded) {
-      base::UmaHistogramEnumeration(histogram_name,
-                                    PageActionIconInteractionState::kClicked);
-    } else {
-      base::UmaHistogramEnumeration(
-          histogram_name, PageActionIconInteractionState::kClickedExpanded);
-    }
-
-  } else {
-    if (!price_tracking_expanded) {
-      base::UmaHistogramEnumeration(
-          histogram_name, PageActionIconInteractionState::kNotClicked);
-    } else {
-      base::UmaHistogramEnumeration(
-          histogram_name, PageActionIconInteractionState::kNotClickedExpanded);
-    }
-  }
+  RecordIconMetrics(PageActionIconType::kPriceTracking, from_icon_use);
 }
 
 WEB_CONTENTS_USER_DATA_KEY_IMPL(CommerceUiTabHelper);

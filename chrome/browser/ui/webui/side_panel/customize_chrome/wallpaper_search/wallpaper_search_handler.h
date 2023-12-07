@@ -78,8 +78,16 @@ class WallpaperSearchHandler
   void SetBackgroundToWallpaperSearchResult(const base::Token& result_id,
                                             double time) override;
   void UpdateHistory() override;
+  void SetUserFeedback(side_panel::customize_chrome::mojom::UserFeedback
+                           selected_option) override;
+#if BUILDFLAG(IS_CHROMEOS)
+  void SkipShowFeedbackPageForTesting(bool should_skip_check) {
+    skip_show_feedback_page_for_testing_ = should_skip_check;
+  }
+#endif  // BUILDFLAG(IS_CHROMEOS)
 
  private:
+  void ShowFeedbackPage();
   void DecodeHistoryImage(image_fetcher::ImageDecodedCallback callback,
                           std::string image);
   void OnDescriptorsRetrieved(GetDescriptorsCallback callback,
@@ -95,10 +103,13 @@ class WallpaperSearchHandler
       std::unique_ptr<optimization_guide::ModelQualityLogEntry> log_entry);
   void OnWallpaperSearchResultsDecoded(
       GetWallpaperSearchResultsCallback callback,
+      base::ElapsedTimer processing_timer,
       std::vector<
           std::pair<optimization_guide::proto::WallpaperSearchImageQuality*,
                     SkBitmap>> bitmaps);
-  void SelectHistoryImage(const base::Token& id, const gfx::Image& image);
+  void SelectHistoryImage(const base::Token& id,
+                          base::ElapsedTimer timer,
+                          const gfx::Image& image);
 
   raw_ptr<Profile> profile_;
   PrefChangeRegistrar pref_change_registrar_;
@@ -121,6 +132,9 @@ class WallpaperSearchHandler
                  SkBitmap>>
       wallpaper_search_results_;
   const int64_t session_id_;
+#if BUILDFLAG(IS_CHROMEOS)
+  bool skip_show_feedback_page_for_testing_ = false;
+#endif  // BUILDFLAG(IS_CHROMEOS)
 
   mojo::Remote<side_panel::customize_chrome::mojom::WallpaperSearchClient>
       client_;

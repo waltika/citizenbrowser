@@ -186,7 +186,7 @@ class BrowserAutofillManager : public AutofillManager {
       mojom::ActionPersistence action_persistence,
       const FormData& form,
       const FormFieldData& field,
-      const CreditCard* credit_card,
+      const CreditCard& credit_card,
       const AutofillTriggerDetails& trigger_details);
 
   // Remove the credit card or Autofill profile that matches |backend_id|
@@ -228,21 +228,11 @@ class BrowserAutofillManager : public AutofillManager {
   // Upload the current pending form.
   void ProcessPendingFormForUpload();
 
-  // Checks whether a suggestion accepted by the user was hidden prior to
-  // landing the feature `kAutofillUseAddressRewriterInProfileSubsetComparison`.
-  // `field` is the one that triggered the suggestions. `backend_id` is the
-  // guid of the underlying profile, used to retrieve the suggestion itself.
-  // TODO(crbug/1439742): Remove when
-  // `kAutofillUseAddressRewriterInProfileSubsetComparison` launches.
-  bool WasSuggestionPreviouslyHidden(
-      const FormData& form,
-      const FormFieldData& field,
-      Suggestion::BackendId backend_id,
-      AutofillSuggestionTriggerSource trigger_source);
+  CreditCardAccessManager& GetCreditCardAccessManager();
+  const CreditCardAccessManager& GetCreditCardAccessManager() const;
 
   // AutofillManager:
   base::WeakPtr<AutofillManager> GetWeakPtr() override;
-  CreditCardAccessManager* GetCreditCardAccessManager() override;
   bool ShouldClearPreviewedForm() override;
   void OnFocusNoLongerOnFormImpl(bool had_interacted_form) override;
   void OnFocusOnFormFieldImpl(const FormData& form,
@@ -328,6 +318,11 @@ class BrowserAutofillManager : public AutofillManager {
   // autofilled. Returns NULL if the field cannot be autofilled.
   [[nodiscard]] AutofillField* GetAutofillField(const FormData& form,
                                                 const FormFieldData& field);
+
+  // Notifies the `BrowserAutofillManager` that `credit_card` has been fetched
+  // from the server. Opens a manual filling dialog for virtual credit cards.
+  // Caches the credit card data for server and virtual credit cards.
+  void OnCreditCardFetchedSuccessfully(const CreditCard& credit_card);
 
   autofill_metrics::AutocompleteUnrecognizedFallbackEventLogger&
   GetAutocompleteUnrecognizedFallbackEventLogger() {

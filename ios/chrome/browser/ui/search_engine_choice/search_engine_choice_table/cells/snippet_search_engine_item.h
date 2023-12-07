@@ -9,24 +9,27 @@
 
 #import "ios/chrome/browser/shared/ui/table_view/cells/table_view_item.h"
 
+@class FaviconAttributes;
 class GURL;
+enum class SnippetState;
 
-// SearchEngineItem contains the model data for a TableViewURLCell.
+// SearchEngineItem contains the model data for a SnippetSearchEngineCell.
 @interface SnippetSearchEngineItem : TableViewItem
 
-// The enabled/disabled state. If disabled, user interaction will be forbidden
-// and cell's alpha will be reduced.
-@property(nonatomic, assign) BOOL enabled;
-// The text for the title.
-@property(nonatomic, readwrite, copy) NSString* text;
-// The text for the subtitle.
-@property(nonatomic, readwrite, copy) NSString* detailText;
+// The name of the search engine.
+@property(nonatomic, copy) NSString* name;
+// The text for the search engine snippet.
+@property(nonatomic, copy) NSString* snippetDescription;
 // The URL to fetch the favicon. This can be the favicon's URL, or a "fake" web
 // page URL created by filling empty query word into the search engine's
 // searchable URL template(e.g. "http://www.google.com/?q=").
 @property(nonatomic, assign) GURL URL;
-// Identifier to match a URLItem with its URLCell.
-@property(nonatomic, readonly, copy) NSString* uniqueIdentifier;
+// Favicon attributes for the search engine.
+@property(nonatomic, strong) FaviconAttributes* faviconAttributes;
+// Set the snippet state (hidden or closed).
+@property(nonatomic, assign) SnippetState snippetState;
+// YES if the search engine has been chosen by the user.
+@property(nonatomic, assign) BOOL checked;
 
 @end
 

@@ -171,7 +171,6 @@
 #include "chrome/browser/ui/webui/web_app_internals/web_app_internals.mojom.h"
 #include "chrome/browser/ui/webui/web_app_internals/web_app_internals_ui.h"
 #include "components/omnibox/browser/omnibox.mojom.h"
-#include "services/on_device_model/public/cpp/features.h"
 #if !defined(OFFICIAL_BUILD)
 #include "chrome/browser/ui/webui/new_tab_page/foo/foo.mojom.h"  // nogncheck crbug.com/1125897
 #endif
@@ -225,8 +224,8 @@
 #include "chrome/browser/ui/webui/discards/discards.mojom.h"
 #include "chrome/browser/ui/webui/discards/discards_ui.h"
 #include "chrome/browser/ui/webui/discards/site_data.mojom.h"
-#include "chrome/common/companion/visual_search.mojom.h"
-#include "chrome/common/companion/visual_search/features.h"
+#include "chrome/common/companion/visual_query.mojom.h"
+#include "chrome/common/companion/visual_query/features.h"
 #endif  // BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX) ||
         // BUILDFLAG(IS_CHROMEOS)
 
@@ -266,8 +265,6 @@
 #include "ash/webui/files_internals/mojom/files_internals.mojom.h"
 #include "ash/webui/firmware_update_ui/firmware_update_app_ui.h"
 #include "ash/webui/firmware_update_ui/mojom/firmware_update.mojom.h"
-#include "ash/webui/guest_os_installer/guest_os_installer_ui.h"
-#include "ash/webui/guest_os_installer/mojom/guest_os_installer.mojom.h"
 #include "ash/webui/help_app_ui/help_app_ui.h"
 #include "ash/webui/help_app_ui/help_app_ui.mojom.h"
 #include "ash/webui/help_app_ui/help_app_untrusted_ui.h"
@@ -869,9 +866,9 @@ void BindScreen2xMainContentExtractor(
 void BindVisualSuggestionsModelProvider(
     content::RenderFrameHost* frame_host,
     mojo::PendingReceiver<
-        companion::visual_search::mojom::VisualSuggestionsModelProvider>
+        companion::visual_query::mojom::VisualSuggestionsModelProvider>
         receiver) {
-  companion::visual_search::VisualQuerySuggestionsServiceFactory::GetForProfile(
+  companion::visual_query::VisualQuerySuggestionsServiceFactory::GetForProfile(
       Profile::FromBrowserContext(
           frame_host->GetProcess()->GetBrowserContext()))
       ->BindModelReceiver(std::move(receiver));
@@ -1025,9 +1022,9 @@ void PopulateChromeFrameBinders(
         base::BindRepeating(&web_app::SubAppsServiceImpl::CreateIfAllowed));
   }
 
-  if (companion::visual_search::features::
-          IsVisualSearchSuggestionsAgentEnabled()) {
-    map->Add<companion::visual_search::mojom::VisualSuggestionsModelProvider>(
+  if (companion::visual_query::features::
+          IsVisualQuerySuggestionsAgentEnabled()) {
+    map->Add<companion::visual_query::mojom::VisualSuggestionsModelProvider>(
         base::BindRepeating(&BindVisualSuggestionsModelProvider));
   }
 #endif
@@ -1412,10 +1409,6 @@ void PopulateChromeWebUIFrameBinders(
       ash::NetworkUI, ash::OobeUI>(map);
 
   RegisterWebUIControllerInterfaceBinder<
-      ash::guest_os_installer::mojom::PageHandlerFactory,
-      ash::GuestOSInstallerUI>(map);
-
-  RegisterWebUIControllerInterfaceBinder<
       ash::borealis_installer::mojom::PageHandlerFactory,
       ash::BorealisInstallerUI>(map);
 
@@ -1727,7 +1720,7 @@ void PopulateChromeWebUIFrameBinders(
 
 #if !BUILDFLAG(IS_ANDROID)
   if (base::FeatureList::IsEnabled(
-          on_device_model::features::kOnDeviceModelService)) {
+          optimization_guide::features::kOptimizationGuideOnDeviceModel)) {
     RegisterWebUIControllerInterfaceBinder<::mojom::OnDeviceInternalsPage,
                                            OnDeviceInternalsUI>(map);
   }

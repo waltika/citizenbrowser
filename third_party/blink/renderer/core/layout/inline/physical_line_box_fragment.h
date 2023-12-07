@@ -6,7 +6,7 @@
 #define THIRD_PARTY_BLINK_RENDERER_CORE_LAYOUT_INLINE_PHYSICAL_LINE_BOX_FRAGMENT_H_
 
 #include "third_party/blink/renderer/core/core_export.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_physical_fragment.h"
+#include "third_party/blink/renderer/core/layout/physical_fragment.h"
 #include "third_party/blink/renderer/platform/fonts/font_height.h"
 #include "third_party/blink/renderer/platform/wtf/casting.h"
 
@@ -66,10 +66,10 @@ class CORE_EXPORT PhysicalLineBoxFragment final : public PhysicalFragment {
   // computed when LineBox is generated because it needs container dimensions
   // to resolve relative position of its children.
   PhysicalRect ComputeRubyEmHeightBox(
-      const NGPhysicalBoxFragment& container,
+      const PhysicalBoxFragment& container,
       const ComputedStyle& container_style) const;
   PhysicalRect ComputeRubyEmHeightBoxForLine(
-      const NGPhysicalBoxFragment& container,
+      const PhysicalBoxFragment& container,
       const ComputedStyle& container_style,
       const FragmentItem& line,
       const InlineCursor& cursor) const;

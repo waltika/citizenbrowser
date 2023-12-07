@@ -171,6 +171,7 @@ chromium-metrics-reviews@google.com.
 </variants>
 
 <variants name="Autofill.ServerCardUnmaskFlowType">
+  <variant name="DeviceUnlock" summary="Device unlock authentication"/>
   <variant name="Fido" summary="FIDO authentication only"/>
   <variant name="Otp" summary="OTP auth only"/>
   <variant name="OtpFallbackFromFido"
@@ -492,6 +493,17 @@ chromium-metrics-reviews@google.com.
     Logs if the filling of a field was accepted even though it had a
     NUMERIC_QUANTITY prediction. This metric is only emitted if the feature to
     grant the heuristic precedence is disabled. Emitted on submission time.
+  </summary>
+</histogram>
+
+<histogram name="Autofill.AcceptedPreviouslyHiddenSuggestion" enum="Boolean"
+    expires_after="2024-12-12">
+  <owner>jihadghanna@google.com</owner>
+  <owner>chrome-autofill-alerts@google.com</owner>
+  <summary>
+    Logs if the suggestion accepted by the user was previously hidden due to
+    address types being initially ignored in profile subset comparison. Emitted
+    every time a user accepts a `PopupItemId::kAddressEntry` suggestion.
   </summary>
 </histogram>
 
@@ -2416,7 +2428,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram
     name="Autofill.Leipzig.Duplication.NumberOfLocalSupersetProfilesOnStartup"
-    units="Profiles" expires_after="2024-03-24">
+    units="Profiles" expires_after="2024-05-26">
   <owner>koerber@google.com</owner>
   <owner>fleimgruber@google.com</owner>
   <owner>chrome-autofill-team@google.com</owner>
@@ -3135,18 +3147,23 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram
-    name="Autofill.PaymentMethods.MandatoryReauth.AuthEvent.SettingsPage.EditCard"
+    name="Autofill.PaymentMethods.MandatoryReauth.AuthEvent.SettingsPage.{ActionType}"
     enum="MandatoryReauthAuthEvent" expires_after="2024-07-01">
   <owner>koulvipul@google.com</owner>
   <owner>payments-autofill-team@google.com</owner>
   <summary>
-    Tracks the auth result when the user tries to edit a local card and
-    mandatory reauth feature is enabled. Whenever a user tries to edit the card
-    from the Settings page, we will log into the `flow started` bucket. The user
-    would then be challenged with an auth, where if the auth was successful, we
-    will log in the `flow succeded` bucket, else we will log in the `flow
-    failed` bucket.
+    Tracks the auth result when the user tries to {ActionType} and mandatory
+    reauth feature is enabled. Whenever a user tries to {ActionType}, we will
+    log into the `flow started` bucket. The user would then be challenged with
+    an auth, where if the auth was successful, we will log in the `flow
+    succeded` bucket, else we will log in the `flow failed` bucket.
   </summary>
+  <token key="ActionType">
+    <variant name="DeleteCard"
+        summary="delete a card from the payment methods settings"/>
+    <variant name="EditCard"
+        summary="edit a card on the payment methods settings"/>
+  </token>
 </histogram>
 
 <histogram
@@ -3342,6 +3359,17 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
+<histogram name="Autofill.PreviouslyHiddenSuggestionNumber" units="suggestions"
+    expires_after="2024-12-12">
+  <owner>jihadghanna@google.com</owner>
+  <owner>chrome-autofill-alerts@google.com</owner>
+  <summary>
+    Logs the number suggestion displayed to the user that were previously hidden
+    due to address types being initially ignored in profile subset comparison.
+    Emitted once per suggestion generation.
+  </summary>
+</histogram>
+
 <histogram name="Autofill.ProfileActionOnFormSubmitted"
     enum="AutofillProfileAction" expires_after="2024-12-12">
   <owner>battre@chromium.org</owner>
@@ -3372,7 +3400,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Autofill.ProfileImport.MigrateProfileDecision"
-    enum="AutofillProfileImportDecision" expires_after="2024-03-24">
+    enum="AutofillProfileImportDecision" expires_after="2024-05-26">
   <owner>koerber@google.com</owner>
   <owner>fleimgruber@google.com</owner>
   <owner>src/components/autofill/OWNERS</owner>
@@ -3540,7 +3568,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Autofill.ProfileImport.UpdateProfileEditedType"
-    enum="AutofillSettingsVisibleTypes" expires_after="2024-03-24">
+    enum="AutofillSettingsVisibleTypes" expires_after="2024-05-26">
   <owner>koerber@google.com</owner>
   <owner>src/components/autofill/OWNERS</owner>
   <summary>
@@ -3614,18 +3642,6 @@ chromium-metrics-reviews@google.com.
     Logs the number of fields that have been edited by the user in the process
     of succesfully updating an existing profile after an observed form
     submission.
-  </summary>
-</histogram>
-
-<histogram name="Autofill.ProfilesDifferOnAddressLineOnly" enum="Boolean"
-    expires_after="2024-05-19">
-  <owner>jihadghanna@chromium.org</owner>
-  <owner>chrome-autofill-alerts@google.com</owner>
-  <summary>
-    Given a field set S containing an address field type, logs whether two
-    profiles A and B, where A is a subset of B with respect to the field type
-    set S minus the address field types, have different values for those address
-    field types.
   </summary>
 </histogram>
 
@@ -3821,8 +3837,20 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
+<histogram name="Autofill.RiskBasedAuth.{CardType}.Attempt"
+    enum="BooleanAttempted" expires_after="2024-07-01">
+  <owner>junhuihe@google.com</owner>
+  <owner>payments-autofill-team@google.com</owner>
+  <summary>
+    Emits true when a risk-based authentication starts, and does not emit any
+    value otherwise. Currently, ServerCard and VirtualCard support risk-based
+    authentication.
+  </summary>
+  <token key="CardType" variants="Autofill.PaymentsRpcCardType"/>
+</histogram>
+
 <histogram name="Autofill.RiskBasedAuth.{CardType}.Result"
-    enum="AutofillRiskBasedAuthEvent" expires_after="2024-11-14">
+    enum="AutofillRiskBasedAuthEvent" expires_after="2024-07-01">
   <owner>junhuihe@google.com</owner>
   <owner>payments-autofill-team@google.com</owner>
   <summary>
@@ -5354,6 +5382,17 @@ chromium-metrics-reviews@google.com.
   <summary>Records the state of an autofill session.</summary>
 </histogram>
 
+<histogram name="Autofill.WebView.AutofillSessionWithBottomSheet"
+    enum="AutofillSessionStates" expires_after="2024-12-12">
+  <owner>jkeitel@chromium.org</owner>
+  <owner>src/android_webview/OWNERS</owner>
+  <summary>
+    Records the state of an autofill session in the presence of a bottom sheet.
+    Emitted at the end of a session (i.e. on submit, on start of a new session,
+    or on destruction of the WebContents).
+  </summary>
+</histogram>
+
 <histogram name="Autofill.WebView.AutofillState.NoVirtualStructureProvided"
     enum="BooleanEnabled" expires_after="2024-12-12">
   <owner>jihadghanna@google.com</owner>
@@ -5414,6 +5453,8 @@ chromium-metrics-reviews@google.com.
     session.
 
     Bit #6 is true iff a form submission was detected.
+
+    Bit #7 is true iff a bottom sheet was shown.
   </summary>
 </histogram>
 
@@ -5563,6 +5604,18 @@ chromium-metrics-reviews@google.com.
     AutoillProviderAndroid::OnDidFillAutofillFormData. Recorded right before
     returning early from the function if this happens, and at every function
     call.
+  </summary>
+</histogram>
+
+<histogram name="Autofill.WebView.PrefillRequestState"
+    enum="AndroidAutofillPrefillRequestState" expires_after="2024-10-31">
+  <owner>jkeitel@google.com</owner>
+  <owner>jihadghanna@google.com</owner>
+  <owner>elabadysayed@chromium.org</owner>
+  <summary>
+    Records the state of a prefill request (was a request sent, was it answered,
+    was a bottom sheet shown) for a form that was deemed cacheable. Emitted
+    whenever OnAskForValuesToFill is triggered on a cacheable form.
   </summary>
 </histogram>
 

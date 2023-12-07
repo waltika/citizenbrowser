@@ -94,8 +94,10 @@ class WebStateID;
 
 // A view controller that contains a grid of items.
 @interface BaseGridViewController : UIViewController <TabCollectionConsumer>
-// The gridView is accessible to manage the content inset behavior.
-@property(nonatomic, readonly) UIScrollView* gridView;
+// Whether the grid is scrolled to the top.
+@property(nonatomic, readonly, getter=isScrolledToTop) BOOL scrolledToTop;
+// Whether the grid is scrolled to the bottom.
+@property(nonatomic, readonly, getter=isScrolledToBottom) BOOL scrolledToBottom;
 // The view that is shown when there are no items.
 @property(nonatomic, strong) UIView<GridEmptyView>* emptyStateView;
 // Returns YES if the grid has no items.
@@ -130,9 +132,14 @@ class WebStateID;
     BOOL selectedCellVisible;
 // Provider of context menu configurations for the tabs in the grid.
 @property(nonatomic, weak) id<TabContextMenuProvider> menuProvider;
-
 // Opacity of grid cells that are not the selected tab.
 @property(nonatomic, assign) CGFloat notSelectedTabCellOpacity;
+// The insets to set on the collection view.
+// Setting content insets on the collection view is a workaround. Indeed,
+// ideally, grids would just honor the safe area. But since the 3 panes are part
+// of a scrollview, they don't all get the correct information when being laid
+// out. To that end, contentInsets are manually added.
+@property(nonatomic, assign) UIEdgeInsets contentInsets;
 
 // Returns the layout of the grid for use in an animated transition.
 - (LegacyGridTransitionLayout*)transitionLayout;

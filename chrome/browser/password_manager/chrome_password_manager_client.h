@@ -193,6 +193,7 @@ class ChromePasswordManagerClient
       password_manager::CredentialLeakType leak_type,
       const GURL& url,
       const std::u16string& username) override;
+  void NotifyKeychainError() override;
   void TriggerReauthForPrimaryAccount(
       signin_metrics::ReauthAccessPoint access_point,
       base::OnceCallback<void(ReauthSucceeded)> reauth_callback) override;
@@ -218,7 +219,8 @@ class ChromePasswordManagerClient
   const password_manager::PasswordFeatureManager* GetPasswordFeatureManager()
       const override;
   password_manager::HttpAuthManager* GetHttpAuthManager() override;
-  autofill::AutofillDownloadManager* GetAutofillDownloadManager() override;
+  autofill::AutofillCrowdsourcingManager* GetAutofillCrowdsourcingManager()
+      override;
   bool IsCommittedMainFrameSecure() const override;
   const GURL& GetLastCommittedURL() const override;
   url::Origin GetLastCommittedOrigin() const override;

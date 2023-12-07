@@ -1134,12 +1134,21 @@ void PartitionRoot::Init(PartitionOptions opts) {
 
 PartitionRoot::Settings::Settings() = default;
 
-PartitionRoot::PartitionRoot() : scheduler_loop_quarantine(this) {}
+PartitionRoot::PartitionRoot()
+    : scheduler_loop_quarantine_root(*this),
+      scheduler_loop_quarantine(
+          scheduler_loop_quarantine_root
+              .CreateBranch<internal::SchedulerLoopQuarantineBranch::
+                                kQuarantineCapacityCount>()) {}
 
 PartitionRoot::PartitionRoot(PartitionOptions opts)
-    : scheduler_loop_quarantine(
-          this,
-          opts.scheduler_loop_quarantine_capacity_in_bytes) {
+    : scheduler_loop_quarantine_root(
+          *this,
+          opts.scheduler_loop_quarantine_capacity_in_bytes),
+      scheduler_loop_quarantine(
+          scheduler_loop_quarantine_root
+              .CreateBranch<internal::SchedulerLoopQuarantineBranch::
+                                kQuarantineCapacityCount>()) {
   Init(opts);
 }
 
@@ -1318,7 +1327,7 @@ bool PartitionRoot::TryReallocInPlaceForNormalBuckets(void* object,
   // statistics (and cookie, if present).
   if (slot_span->CanStoreRawSize()) {
 #if BUILDFLAG(PUT_REF_COUNT_IN_PREVIOUS_SLOT) && BUILDFLAG(PA_DCHECK_IS_ON)
-    internal::PartitionRefCount* old_ref_count;
+    internal::PartitionRefCount* old_ref_count = nullptr;
     if (brp_enabled()) {
       old_ref_count = internal::PartitionRefCountPointer(slot_start);
     }
@@ -1441,7 +1450,7 @@ void PartitionRoot::DumpStats(const char* partition_name,
   }
   PartitionBucketMemoryStats bucket_stats[internal::kNumBuckets];
   size_t num_direct_mapped_allocations = 0;
-  PartitionMemoryStats stats = {0};
+  PartitionMemoryStats stats = {};
 
   stats.syscall_count = syscall_count.load(std::memory_order_relaxed);
   stats.syscall_total_time_ns =
@@ -1709,6 +1718,11 @@ EXPORT_TEMPLATE void* PartitionRoot::AlignedAlloc<AllocFlags::kNone>(size_t,
                                                                      size_t);
 #undef EXPORT_TEMPLATE
 
+// TODO(https://crbug.com/1500662) Stop ignoring the -Winvalid-offsetof warning.
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#endif
 static_assert(offsetof(PartitionRoot, sentinel_bucket) ==
                   offsetof(PartitionRoot, buckets) +
                       internal::kNumBuckets * sizeof(PartitionRoot::Bucket),
@@ -1717,5 +1731,8 @@ static_assert(offsetof(PartitionRoot, sentinel_bucket) ==
 static_assert(
     offsetof(PartitionRoot, lock_) >= 64,
     "The lock should not be on the same cacheline as the read-mostly flags");
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
 }  // namespace partition_alloc

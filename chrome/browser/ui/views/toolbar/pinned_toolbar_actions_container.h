@@ -47,6 +47,7 @@ class PinnedToolbarActionsContainer
     void AddHighlight();
     void ResetHighlight();
     void SetIconVisibility(bool visible);
+    void SetPinned(bool pinned);
 
     bool IsActive();
     bool IsInvokingAction();
@@ -71,6 +72,7 @@ class PinnedToolbarActionsContainer
     base::CallbackListSubscription action_changed_subscription_;
     // Used to ensure the button remains highlighted while active.
     absl::optional<Button::ScopedAnchorHighlight> anchor_higlight_;
+    bool pinned_ = false;
     bool invoking_action_ = false;
     raw_ptr<PinnedToolbarActionsContainer> container_;
   };
@@ -82,6 +84,7 @@ class PinnedToolbarActionsContainer
   ~PinnedToolbarActionsContainer() override;
 
   void UpdateActionState(actions::ActionId id, bool is_active);
+  void UpdateDividerFlexSpecification();
 
   // ToolbarIconContainerView:
   void UpdateAllIcons() override;

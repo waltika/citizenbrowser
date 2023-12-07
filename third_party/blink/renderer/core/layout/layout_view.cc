@@ -41,20 +41,19 @@
 #include "third_party/blink/renderer/core/html/plugin_document.h"
 #include "third_party/blink/renderer/core/input/event_handler.h"
 #include "third_party/blink/renderer/core/inspector/inspector_trace_events.h"
+#include "third_party/blink/renderer/core/layout/block_node.h"
+#include "third_party/blink/renderer/core/layout/constraint_space_builder.h"
 #include "third_party/blink/renderer/core/layout/geometry/transform_state.h"
 #include "third_party/blink/renderer/core/layout/hit_test_result.h"
 #include "third_party/blink/renderer/core/layout/layout_counter.h"
 #include "third_party/blink/renderer/core/layout/layout_embedded_content.h"
+#include "third_party/blink/renderer/core/layout/layout_result.h"
 #include "third_party/blink/renderer/core/layout/layout_view_transition_root.h"
 #include "third_party/blink/renderer/core/layout/list/layout_inline_list_item.h"
 #include "third_party/blink/renderer/core/layout/list/layout_list_item.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_block_node.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_constraint_space_builder.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_layout_result.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_physical_box_fragment.h"
+#include "third_party/blink/renderer/core/layout/physical_box_fragment.h"
 #include "third_party/blink/renderer/core/layout/svg/layout_svg_root.h"
 #include "third_party/blink/renderer/core/layout/svg/layout_svg_text.h"
-#include "third_party/blink/renderer/core/layout/view_fragmentation_context.h"
 #include "third_party/blink/renderer/core/page/chrome_client.h"
 #include "third_party/blink/renderer/core/page/page.h"
 #include "third_party/blink/renderer/core/page/scrolling/root_scroller_controller.h"
@@ -140,7 +139,6 @@ LayoutView::~LayoutView() = default;
 
 void LayoutView::Trace(Visitor* visitor) const {
   visitor->Trace(frame_view_);
-  visitor->Trace(fragmentation_context_);
   visitor->Trace(svg_text_descendants_);
   visitor->Trace(hit_test_cache_);
   visitor->Trace(initial_containing_block_resize_handled_list_);
@@ -738,12 +736,12 @@ AtomicString LayoutView::NamedPageAtIndex(wtf_size_t page_index) const {
     return AtomicString();
   }
   DCHECK_EQ(PhysicalFragmentCount(), 1u);
-  const NGPhysicalBoxFragment& view_fragment = *GetPhysicalFragment(0);
+  const PhysicalBoxFragment& view_fragment = *GetPhysicalFragment(0);
   const auto children = view_fragment.Children();
   if (page_index >= children.size()) {
     return AtomicString();
   }
-  const auto& page_fragment = To<NGPhysicalBoxFragment>(*children[page_index]);
+  const auto& page_fragment = To<PhysicalBoxFragment>(*children[page_index]);
   return page_fragment.PageName();
 }
 
@@ -813,12 +811,6 @@ void LayoutView::UpdateLayout() {
   NOT_DESTROYED();
   if (ShouldUsePrintingLayout()) {
     intrinsic_logical_widths_ = LogicalWidth();
-    if (!fragmentation_context_) {
-      fragmentation_context_ =
-          MakeGarbageCollected<ViewFragmentationContext>(*this);
-    }
-  } else if (fragmentation_context_) {
-    fragmentation_context_.Clear();
   }
 
 #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)

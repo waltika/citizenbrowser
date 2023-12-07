@@ -23,7 +23,6 @@ import android.view.ViewStub;
 import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
-import androidx.appcompat.content.res.AppCompatResources;
 import androidx.core.content.res.ResourcesCompat;
 
 import org.chromium.base.Callback;
@@ -46,7 +45,6 @@ import org.chromium.chrome.browser.toolbar.ToolbarCaptureType;
 import org.chromium.chrome.browser.toolbar.ToolbarFeatures;
 import org.chromium.chrome.browser.toolbar.ToolbarProgressBar;
 import org.chromium.chrome.browser.toolbar.top.CaptureReadinessResult.TopToolbarBlockCaptureReason;
-import org.chromium.components.browser_ui.styles.ChromeColors;
 import org.chromium.components.browser_ui.widget.ClipDrawableProgressBar.DrawingInfo;
 import org.chromium.components.browser_ui.widget.ViewResourceFrameLayout;
 import org.chromium.components.browser_ui.widget.gesture.SwipeGestureListener;
@@ -64,8 +62,6 @@ import java.util.function.BooleanSupplier;
 
 /** Layout for the browser controls (omnibox, menu, tab strip, etc..). */
 public class ToolbarControlContainer extends OptimizedFrameLayout implements ControlContainer {
-    private final float mTabStripHeight;
-
     private boolean mIncognito;
 
     private Toolbar mToolbar;
@@ -84,7 +80,6 @@ public class ToolbarControlContainer extends OptimizedFrameLayout implements Con
      */
     public ToolbarControlContainer(Context context, AttributeSet attrs) {
         super(context, attrs);
-        mTabStripHeight = context.getResources().getDimension(R.dimen.tab_strip_height);
     }
 
     @Override
@@ -150,50 +145,40 @@ public class ToolbarControlContainer extends OptimizedFrameLayout implements Con
     }
 
     private Drawable getTempTabStripDrawable(boolean incognito) {
-        if (ChromeFeatureList.sTabStripRedesign.isEnabled()) {
-            Drawable bgdColor =
-                    new ColorDrawable(
-                            TabUiThemeUtil.getTabStripBackgroundColor(getContext(), incognito));
-            Drawable bdgTabImage =
-                    ResourcesCompat.getDrawable(
-                            getContext().getResources(),
-                            TabUiThemeUtil.getTSRTabResource(),
-                            getContext().getTheme());
-            bdgTabImage.setTint(
-                    TabUiThemeUtil.getTabStripContainerColor(
-                            getContext(), incognito, true, false, false, false));
-            LayerDrawable backgroundDrawable =
-                    new LayerDrawable(new Drawable[] {bgdColor, bdgTabImage});
-            // Set image size to match tab size.
-            backgroundDrawable.setPadding(0, 0, 0, 0);
-            backgroundDrawable.setLayerSize(
-                    1,
-                    ViewUtils.dpToPx(getContext(), TabUiThemeUtil.getMaxTabStripTabWidthDp()),
-                    mToolbar.getTabStripHeight());
-            // Tab should show up at start of layer based on layout.
-            backgroundDrawable.setLayerGravity(1, Gravity.START);
+        Drawable bgdColor =
+                new ColorDrawable(
+                        TabUiThemeUtil.getTabStripBackgroundColor(getContext(), incognito));
+        Drawable bdgTabImage =
+                ResourcesCompat.getDrawable(
+                        getContext().getResources(),
+                        TabUiThemeUtil.getTabResource(),
+                        getContext().getTheme());
+        bdgTabImage.setTint(
+                TabUiThemeUtil.getTabStripContainerColor(
+                        getContext(), incognito, true, false, false, false));
+        LayerDrawable backgroundDrawable =
+                new LayerDrawable(new Drawable[] {bgdColor, bdgTabImage});
+        // Set image size to match tab size.
+        backgroundDrawable.setPadding(0, 0, 0, 0);
+        backgroundDrawable.setLayerSize(
+                1,
+                ViewUtils.dpToPx(getContext(), TabUiThemeUtil.getMaxTabStripTabWidthDp()),
+                mToolbar.getTabStripHeight());
+        // Tab should show up at start of layer based on layout.
+        backgroundDrawable.setLayerGravity(1, Gravity.START);
 
-            return backgroundDrawable;
-        } else {
-            final Drawable backgroundDrawable =
-                    AppCompatResources.getDrawable(getContext(), R.drawable.toolbar_background)
-                            .mutate();
-            backgroundDrawable.setTint(ChromeColors.getDefaultThemeColor(getContext(), incognito));
-            backgroundDrawable.setTintMode(PorterDuff.Mode.MULTIPLY);
-
-            return backgroundDrawable;
-        }
+        return backgroundDrawable;
     }
 
     /**
-     * @param toolbar The toolbar contained inside this control container. Should be called
-     *                after inflation is complete.
+     * @param toolbar The toolbar contained inside this control container. Should be called after
+     *     inflation is complete.
      * @param isIncognito Whether the toolbar should be initialized with incognito colors.
      * @param constraintsSupplier Used to access current constraints of the browser controls.
      * @param tabSupplier Used to access the current tab state.
      * @param compositorInMotionSupplier Whether there is an ongoing touch or gesture.
      * @param browserStateBrowserControlsVisibilityDelegate Used to keep controls locked when
-     *        captures are stale and not able to be taken.
+     *     captures are stale and not able to be taken.
      * @param layoutStateProviderSupplier Used to check the current layout type.
      * @param fullscreenManager Used to check whether in fullscreen.
      */
@@ -289,7 +274,9 @@ public class ToolbarControlContainer extends OptimizedFrameLayout implements Con
             return new ToolbarViewResourceAdapter(this, useHardwareBitmapDraw);
         }
 
-        /** @see ToolbarViewResourceAdapter#setPostInitializationDependencies. */
+        /**
+         * @see ToolbarViewResourceAdapter#setPostInitializationDependencies.
+         */
         public void setPostInitializationDependencies(
                 Toolbar toolbar,
                 ObservableSupplier<Integer> constraintsSupplier,
@@ -326,7 +313,7 @@ public class ToolbarControlContainer extends OptimizedFrameLayout implements Con
          * toolbar that is in motion, but the toolbar's handling of the compositor being in motion.
          * Treat this list as append only and keep it in sync with ToolbarInMotionStage in
          * enums.xml.
-         **/
+         */
         @IntDef({
             ToolbarInMotionStage.SUPPRESSION_ENABLED,
             ToolbarInMotionStage.READINESS_CHECKED,
@@ -347,7 +334,6 @@ public class ToolbarControlContainer extends OptimizedFrameLayout implements Con
                 this::onCompositorInMotionChange;
 
         @Nullable private Toolbar mToolbar;
-        private int mTabStripHeightPx;
         @Nullable private ConstraintsChecker mConstraintsObserver;
         @Nullable private Supplier<Tab> mTabSupplier;
         @Nullable private ObservableSupplier<Boolean> mCompositorInMotionSupplier;
@@ -370,12 +356,13 @@ public class ToolbarControlContainer extends OptimizedFrameLayout implements Con
 
         /**
          * Set the toolbar after it has been dynamically inflated.
+         *
          * @param toolbar The browser's toolbar.
          * @param constraintsSupplier Used to access current constraints of the browser controls.
          * @param tabSupplier Used to access the current tab state.
          * @param compositorInMotionSupplier Whether there is an ongoing touch or gesture.
          * @param browserStateBrowserControlsVisibilityDelegate Used to keep controls locked when
-         *        captures are stale and not able to be taken.
+         *     captures are stale and not able to be taken.
          * @param controlContainerIsVisibleSupplier Whether the toolbar is visible.
          * @param layoutStateProviderSupplier Used to check the current layout type.
          * @param fullscreenManager Used to check whether in fullscreen.
@@ -392,7 +379,6 @@ public class ToolbarControlContainer extends OptimizedFrameLayout implements Con
                 FullscreenManager fullscreenManager) {
             assert mToolbar == null;
             mToolbar = toolbar;
-            mTabStripHeightPx = mToolbar.getTabStripHeight();
 
             // These dependencies only matter when ChromeFeatureList.SUPPRESS_TOOLBAR_CAPTURES is
             // enabled. Unfortunately this method is often called before native is initialized,
@@ -529,7 +515,9 @@ public class ToolbarControlContainer extends OptimizedFrameLayout implements Con
             mLocationBarRect.offset(mTempPosition[0], mTempPosition[1]);
 
             int shadowHeight =
-                    mToolbarContainer.getHeight() - mToolbar.getHeight() - mTabStripHeightPx;
+                    mToolbarContainer.getHeight()
+                            - mToolbar.getHeight()
+                            - mToolbar.getTabStripHeight();
             return ResourceFactory.createToolbarContainerResource(
                     mToolbarRect, mLocationBarRect, shadowHeight);
         }
@@ -633,7 +621,7 @@ public class ToolbarControlContainer extends OptimizedFrameLayout implements Con
     }
 
     private boolean isOnTabStrip(MotionEvent e) {
-        return e.getY() <= mTabStripHeight;
+        return e.getY() <= mToolbar.getTabStripHeight();
     }
 
     /**

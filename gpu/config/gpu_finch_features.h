@@ -37,6 +37,7 @@ GPU_EXPORT BASE_DECLARE_FEATURE(kAggressiveSkiaGpuResourcePurge);
 GPU_EXPORT BASE_DECLARE_FEATURE(kDefaultEnableGpuRasterization);
 
 GPU_EXPORT BASE_DECLARE_FEATURE(kCanvasOopRasterization);
+GPU_EXPORT BASE_DECLARE_FEATURE(kCanvasOopWithoutGpuTileRaster);
 
 #if BUILDFLAG(IS_OZONE)
 GPU_EXPORT BASE_DECLARE_FEATURE(kEnablePerContextGLTextureCache);
@@ -62,6 +63,8 @@ GPU_EXPORT BASE_DECLARE_FEATURE(kDCompPresenter);
 #if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_IOS)
 GPU_EXPORT BASE_DECLARE_FEATURE(kAdjustGpuProcessPriority);
 #endif
+
+GPU_EXPORT BASE_DECLARE_FEATURE(kGenGpuDiskCacheKeyPrefixInGpuService);
 
 GPU_EXPORT BASE_DECLARE_FEATURE(kSharedImageManager);
 

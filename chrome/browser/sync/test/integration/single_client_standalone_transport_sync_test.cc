@@ -131,8 +131,7 @@ IN_PROC_BROWSER_TEST_F(SingleClientStandaloneTransportSyncTest,
       << syncer::ModelTypeSetToDebugString(bad_types);
 
   // Turn Sync-the-feature on.
-  ASSERT_TRUE(GetClient(0)->SignInPrimaryAccount(signin::ConsentLevel::kSync));
-  ASSERT_TRUE(GetClient(0)->EnableSyncFeature());
+  ASSERT_TRUE(GetClient(0)->SetupSync());
   ASSERT_EQ(syncer::SyncService::TransportState::ACTIVE,
             GetSyncService(0)->GetTransportState());
   EXPECT_TRUE(GetSyncService(0)->IsSyncFeatureEnabled());
@@ -520,8 +519,7 @@ class SingleClientStandaloneTransportReplaceSyncWithSigninMigrationSyncTest
     // `syncer::kEnableBookmarksAccountStorage` when possible.
     default_features_.InitWithFeatures(
         /*enabled_features=*/
-        {syncer::kReadingListEnableDualReadingListModel,
-         syncer::kReadingListEnableSyncTransportModeUponSignIn,
+        {syncer::kReadingListEnableSyncTransportModeUponSignIn,
          password_manager::features::kEnablePasswordsAccountStorage,
          syncer::kSyncEnableContactInfoDataTypeInTransportMode,
          syncer::kEnablePreferencesAccountStorage},
@@ -549,10 +547,10 @@ IN_PROC_BROWSER_TEST_F(
   ASSERT_TRUE(GetClient(0)->SignInPrimaryAccount());
   ASSERT_FALSE(GetSyncService(0)->IsSyncFeatureEnabled());
 
-  // E.g. Reading List and Payments are enabled by default (based on the
+  // E.g. Autofill and Payments are enabled by default (based on the
   // Features set by the fixture).
   ASSERT_TRUE(GetSyncService(0)->GetUserSettings()->GetSelectedTypes().Has(
-      syncer::UserSelectableType::kReadingList));
+      syncer::UserSelectableType::kAutofill));
   ASSERT_TRUE(GetSyncService(0)->GetUserSettings()->GetSelectedTypes().Has(
       syncer::UserSelectableType::kPayments));
   // Preferences is not supported in transport mode (based on the Features
@@ -582,10 +580,9 @@ IN_PROC_BROWSER_TEST_F(
   ASSERT_EQ(syncer::SyncService::TransportState::ACTIVE,
             GetSyncService(0)->GetTransportState());
 
-  // Reading List and Payments should still be enabled and disabled,
-  // respectively.
+  // Autofill and Payments should still be enabled and disabled, respectively.
   EXPECT_TRUE(GetSyncService(0)->GetUserSettings()->GetSelectedTypes().Has(
-      syncer::UserSelectableType::kReadingList));
+      syncer::UserSelectableType::kAutofill));
   EXPECT_FALSE(GetSyncService(0)->GetUserSettings()->GetSelectedTypes().Has(
       syncer::UserSelectableType::kPayments));
   // Preferences is supported in transport mode now but should've been disabled
@@ -616,9 +613,9 @@ IN_PROC_BROWSER_TEST_F(
                                     syncer::PassphraseType::kCustomPassphrase)
                   .Wait());
 
-  // E.g. ReadingList and Autofill are enabled by default.
+  // E.g. Payments and Autofill are enabled by default.
   ASSERT_TRUE(GetSyncService(0)->GetUserSettings()->GetSelectedTypes().Has(
-      syncer::UserSelectableType::kReadingList));
+      syncer::UserSelectableType::kPayments));
   ASSERT_TRUE(GetSyncService(0)->GetUserSettings()->GetSelectedTypes().Has(
       syncer::UserSelectableType::kAutofill));
   // Preferences is not supported without `kReplaceSyncPromosWithSignInPromos`.
@@ -639,11 +636,11 @@ IN_PROC_BROWSER_TEST_F(
   ASSERT_EQ(GetSyncService(0)->GetUserSettings()->GetPassphraseType(),
             syncer::PassphraseType::kCustomPassphrase);
 
-  // Reading List is still enabled (not affected by the migration).
+  // Payments is still enabled (not affected by the migration).
   ASSERT_TRUE(GetSyncService(0)->GetUserSettings()->GetSelectedTypes().Has(
-      syncer::UserSelectableType::kReadingList));
-  // Preferences got disabled by the migration (same as for
-  // non-custom-passphrase users).
+      syncer::UserSelectableType::kPayments));
+  // Preferences is supported now, but got disabled by the migration (same as
+  // for non-custom-passphrase users).
   ASSERT_FALSE(GetSyncService(0)->GetUserSettings()->GetSelectedTypes().Has(
       syncer::UserSelectableType::kPreferences));
   // Autofill should've been disabled specifically for custom passphrase users.

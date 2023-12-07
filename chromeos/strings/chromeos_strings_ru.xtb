@@ -31,7 +31,6 @@
 <translation id="1181037720776840403">Удалить</translation>
 <translation id="1191518099344003522">Точка доступа включена.</translation>
 <translation id="1195447618553298278">Неизвестная ошибка.</translation>
-<translation id="1195784767091936222">Включить автоматическую тёмную тему</translation>
 <translation id="1196959502276349371">Версия <ph name="VERSION" /></translation>
 <translation id="1199355487114804640">Воспроизведение/пауза</translation>
 <translation id="1201402288615127009">Далее</translation>
@@ -152,7 +151,6 @@
 <translation id="1923388006036088459">Акцентные цвета</translation>
 <translation id="1947737735496445907">Напечатано</translation>
 <translation id="1951012854035635156">Ассистент</translation>
-<translation id="1954687945444914660">фотография</translation>
 <translation id="1962550982027027473">Укажите точку доступа по умолчанию</translation>
 <translation id="1973886230221301399">ChromeVox</translation>
 <translation id="1977994649430373166">Фото профиля Google</translation>
@@ -261,6 +259,7 @@
 <translation id="2872961005593481000">Завершить работу</translation>
 <translation id="2873483161362553159">Навигация в браузере</translation>
 <translation id="2874939134665556319">Предыдущий трек</translation>
+<translation id="2875812231449496375">Для оптимальной работы обоев включите этот параметр. Вы сможете отключить его в любое время.</translation>
 <translation id="2878387241690264070">Батарея разрядилась на <ph name="RATE" /> за <ph name="NUM_SECONDS" /> сек.</translation>
 <translation id="2880569433548999039">Динамическая заставка с облаками</translation>
 <translation id="2926057806159140518">Введите имя пользователя и пароль или отсканируйте QR-код.</translation>
@@ -281,7 +280,6 @@
 <translation id="3122464029669770682">Процессор</translation>
 <translation id="3124039320086536031">Устройство подключено.</translation>
 <translation id="3127341325625468058">{PAGE_NUMBER,plural, =0{Удалить страницу?}=1{Удалить страницу {PAGE_NUMBER}?}one{Удалить страницу {PAGE_NUMBER}?}few{Удалить страницу {PAGE_NUMBER}?}many{Удалить страницу {PAGE_NUMBER}?}other{Удалить страницу {PAGE_NUMBER}?}}</translation>
-<translation id="3136905423678675159">Включить автоматическую тёмную тему?</translation>
 <translation id="3146655726035122603">Эксклюзивно для <ph name="PRODUCT_NAME" /></translation>
 <translation id="315116470104423982">Мобильное подключение</translation>
 <translation id="3156846309055100599">Сканирование страницы <ph name="PAGE_NUMBER" />…</translation>
@@ -362,7 +360,6 @@
 <translation id="3740976234706877572"><ph name="AVERAGE_SCORE" /> ★ (отзывов: <ph name="AGGREGATED_COUNT" />)</translation>
 <translation id="3748026146096797577">Нет соединения</translation>
 <translation id="3749289110408117711">Название файла</translation>
-<translation id="3754384069690464321">Для оптимальной работы этих обоев включите автоматическую тёмную тему. Вы в любой момент сможете изменить этот параметр в приложении.</translation>
 <translation id="3771294271822695279">Видеофайлы</translation>
 <translation id="3784455785234192852">Заблокировать</translation>
 <translation id="380097101658023925">настройки RGB</translation>
@@ -555,6 +552,7 @@
 <translation id="5090362543162270857">IPsec (IKEv2)</translation>
 <translation id="5137451382116112100">Полноэкранный режим</translation>
 <translation id="5142961317498132443">Аутентификация</translation>
+<translation id="5145081769226915336">Включать тёмную тему автоматически?</translation>
 <translation id="5154917547274118687">Память</translation>
 <translation id="5160857336552977725">Войдите в аккаунт на устройстве <ph name="DEVICE_TYPE" /></translation>
 <translation id="5166918508782100047">Настройка функции "Быстрые ответы"</translation>
@@ -596,7 +594,6 @@
 <translation id="5389224261615877010">Радуга</translation>
 <translation id="5400907029458559844">Устройство подключается.</translation>
 <translation id="5401938042319910061">Запустить все проверки</translation>
-<translation id="540604120278030498">Нью-Йорк</translation>
 <translation id="5423849171846380976">Активировано</translation>
 <translation id="5430931332414098647">Мгновенная точка доступа</translation>
 <translation id="5431318178759467895">Цветная печать</translation>
@@ -806,7 +803,6 @@
 <translation id="7046522406494308071">Восстановить сочетания клавиш по умолчанию?</translation>
 <translation id="7058278511608979688">Завершить и сохранить</translation>
 <translation id="7059230779847288458">Заряжается, осталось <ph name="TIME_VALUE" /></translation>
-<translation id="7065364575846974659">Париж</translation>
 <translation id="7066538517128343186">клавиша <ph name="KEY" /></translation>
 <translation id="7068619307603204412">Подготовьте устройство</translation>
 <translation id="708426984172631313">ОСТАНОВЛЕН</translation>
@@ -947,7 +943,6 @@
 <translation id="8094062939584182041">Разрешить Google отправлять вам сообщения об этой проблеме по электронной почте</translation>
 <translation id="8104083085214006426">Вы используете открытую небезопасную сеть.</translation>
 <translation id="8111706652656628199">Недопустимое сочетание клавиш. Чтобы выбрать новое, нажмите Shift и ещё одну клавишу-модификатор: Ctrl, Alt, клавишу поиска или панели запуска.</translation>
-<translation id="8112538018114444149">Парк в городе (<ph name="CHIP_CITY" />). Стиль – <ph name="CHIP_STYLE" />.</translation>
 <translation id="811820734797650957">Запрос ping к шлюзу (Android)</translation>
 <translation id="8129620843620772246"><ph name="TEMPERATURE_C" /> °C</translation>
 <translation id="8132480444149501833">Запросить счетчики трафика</translation>
@@ -1082,7 +1077,6 @@
 <translation id="9058932992221914855">IPv6</translation>
 <translation id="9062831201344759865">DNS-преобразование происходит с высокой задержкой.</translation>
 <translation id="9065203028668620118">Изменить</translation>
-<translation id="9068296451330120661">акварель</translation>
 <translation id="9073281213608662541">PAP</translation>
 <translation id="9074739597929991885">Bluetooth</translation>
 <translation id="9082718469794970195">Использовать это видео</translation>

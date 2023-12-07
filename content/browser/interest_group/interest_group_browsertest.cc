@@ -692,11 +692,11 @@ class InterestGroupBrowserTest : public ContentBrowserTest {
          blink::features::kFledgeNegativeTargeting,
          blink::features::kBiddingAndScoringDebugReportingAPI,
          blink::features::kFledgeDirectFromSellerSignalsHeaderAdSlot,
-         blink::features::kFledgeClearOriginJoinedAdInterestGroups,
          blink::features::kFencedFramesM120FeaturesPart1,
          features::kBackForwardCache, features::kFledgeUseInterestGroupCache},
         /*disabled_features=*/
-        {blink::features::kFencedFrames});
+        {blink::features::kFencedFrames,
+         blink::features::kFledgeEnforceKAnonymity});
   }
 
   ~InterestGroupBrowserTest() override { content_browser_client_.reset(); }
@@ -13859,7 +13859,8 @@ IN_PROC_BROWSER_TEST_F(InterestGroupPrivateNetworkBrowserTest,
 
   const network::URLLoaderCompletionStatus& bidder_status =
       url_loader_monitor.WaitForRequestCompletion(bidder_url);
-  EXPECT_EQ(net::ERR_FAILED, bidder_status.error_code);
+  EXPECT_EQ(net::ERR_BLOCKED_BY_PRIVATE_NETWORK_ACCESS_CHECKS,
+            bidder_status.error_code);
   EXPECT_THAT(bidder_status.cors_error_status,
               Optional(network::CorsErrorStatus(
                   network::mojom::CorsError::kPreflightMissingAllowOriginHeader,
@@ -13915,7 +13916,8 @@ IN_PROC_BROWSER_TEST_F(InterestGroupPrivateNetworkBrowserTest,
 
   const network::URLLoaderCompletionStatus& seller_status =
       url_loader_monitor.WaitForRequestCompletion(seller_url);
-  EXPECT_EQ(net::ERR_FAILED, seller_status.error_code);
+  EXPECT_EQ(net::ERR_BLOCKED_BY_PRIVATE_NETWORK_ACCESS_CHECKS,
+            seller_status.error_code);
   EXPECT_THAT(seller_status.cors_error_status,
               Optional(network::CorsErrorStatus(
                   network::mojom::CorsError::kPreflightMissingAllowOriginHeader,
@@ -13991,7 +13993,8 @@ IN_PROC_BROWSER_TEST_F(InterestGroupPrivateNetworkBrowserTest,
     SCOPED_TRACE(report_url.spec());
     const network::URLLoaderCompletionStatus& report_status =
         url_loader_monitor.WaitForRequestCompletion(report_url);
-    EXPECT_EQ(net::ERR_FAILED, report_status.error_code);
+    EXPECT_EQ(net::ERR_BLOCKED_BY_PRIVATE_NETWORK_ACCESS_CHECKS,
+              report_status.error_code);
     EXPECT_THAT(
         report_status.cors_error_status,
         Optional(network::CorsErrorStatus(
@@ -14183,7 +14186,7 @@ IN_PROC_BROWSER_TEST_F(InterestGroupPrivateNetworkBrowserTest,
     // The request should be blocked in the public address space case.
     if (public_address_space) {
       EXPECT_EQ(
-          net::ERR_FAILED,
+          net::ERR_BLOCKED_BY_PRIVATE_NETWORK_ACCESS_CHECKS,
           url_loader_monitor.WaitForRequestCompletion(update_url).error_code);
     } else {
       EXPECT_EQ(
@@ -14481,7 +14484,7 @@ IN_PROC_BROWSER_TEST_F(InterestGroupPrivateNetworkBrowserTest,
           request.trusted_params->client_security_state->ip_address_space);
       // The request should be blocked in the public address space case.
       EXPECT_EQ(
-          net::ERR_FAILED,
+          net::ERR_BLOCKED_BY_PRIVATE_NETWORK_ACCESS_CHECKS,
           url_loader_monitor.WaitForRequestCompletion(update_url).error_code);
     } else {
       EXPECT_EQ(
@@ -17423,19 +17426,23 @@ IN_PROC_BROWSER_TEST_F(InterestGroupBiddingAndAuctionServerBrowserTest,
 IN_PROC_BROWSER_TEST_F(InterestGroupBiddingAndAuctionServerBrowserTest,
                        DecisionLogicURLRequiredForComponent) {
   GURL test_url = https_server_->GetURL("a.test", "/interest_group/empty.html");
+  url::Origin test_origin = url::Origin::Create(test_url);
 
-  std::string auction_config = R"({
-    seller: "https://seller.example.com",
-    serverResponse: new Uint8Array(20),
-    requestId: "00000000-0000-0000-0000-000000000000",
-    componentAuctions: [{
-      seller: "https://seller2.example.com",
-      // No decision logic.
-      interestGroupBuyers: ["https://buyer.example.com"],
-      serverResponse: new Uint8Array(20),
-      requestId: "00000000-0000-0000-0000-000000000000",
-    }]
-  })";
+  std::string auction_config = JsReplace(
+      R"({
+        seller: $1,
+        decisionLogicURL: $2,
+        // Signal to the top-level seller to allow participation in a component
+        // auction.
+        auctionSignals: "sellerAllowsComponentAuction",
+        componentAuctions: [{
+          seller: $1,
+          // No decisionLogicURL
+          interestGroupBuyers: [$1],
+        }]
+      })",
+      test_origin,
+      https_server_->GetURL("a.test", "/interest_group/decision_logic.js"));
 
   ASSERT_TRUE(NavigateToURL(shell(), test_url));
 
@@ -17443,6 +17450,33 @@ IN_PROC_BROWSER_TEST_F(InterestGroupBiddingAndAuctionServerBrowserTest,
       "TypeError: Failed to execute 'runAdAuction' on 'Navigator': Missing "
       "required field ad auction config decisionLogicURL or serverResponse",
       RunAuctionAndWait(auction_config));
+}
+
+IN_PROC_BROWSER_TEST_F(InterestGroupBiddingAndAuctionServerBrowserTest,
+                       DecisionLogicURLNotRequiredForServerComponent) {
+  GURL test_url = https_server_->GetURL("a.test", "/interest_group/empty.html");
+  url::Origin test_origin = url::Origin::Create(test_url);
+
+  std::string auction_config = JsReplace(
+      R"({
+        seller: $1,
+        decisionLogicURL: $2,
+        // Signal to the top-level seller to allow participation in a component
+        // auction.
+        auctionSignals: "sellerAllowsComponentAuction",
+        componentAuctions: [{
+          seller: $1,
+          interestGroupBuyers: [$1],
+          serverResponse: new Uint8Array(20),
+          requestId: "00000000-0000-0000-0000-000000000000",
+        }]
+      })",
+      test_origin,
+      https_server_->GetURL("a.test", "/interest_group/decision_logic.js"));
+
+  ASSERT_TRUE(NavigateToURL(shell(), test_url));
+
+  EXPECT_EQ(nullptr, RunAuctionAndWait(auction_config));
 }
 
 // TODO(crbug.com/1474303): Re-enable this test
@@ -17749,16 +17783,8 @@ IN_PROC_BROWSER_TEST_F(
   }
 }
 
-// TODO(https://crbug.com/1502296): Fails too often on ChromeOS bots.
-// TODO(crbug/1502155): times out on Android bots.
-#if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_CHROMEOS)
-#define MAYBE_RunAdAuctionWithAdditionalBid \
-  DISABLED_RunAdAuctionWithAdditionalBid
-#else
-#define MAYBE_RunAdAuctionWithAdditionalBid RunAdAuctionWithAdditionalBid
-#endif
 IN_PROC_BROWSER_TEST_F(InterestGroupBrowserTest,
-                       MAYBE_RunAdAuctionWithAdditionalBid) {
+                       RunAdAuctionWithAdditionalBid) {
   URLLoaderMonitor url_loader_monitor;
 
   GURL test_url = https_server_->GetURL("a.test", "/page_with_iframe.html");
@@ -17845,6 +17871,64 @@ IN_PROC_BROWSER_TEST_F(InterestGroupBrowserTest,
   }
 }
 
+IN_PROC_BROWSER_TEST_F(InterestGroupBrowserTest,
+                       RunAdAuctionWithAdditionalBidNoRegularBids) {
+  URLLoaderMonitor url_loader_monitor;
+
+  GURL test_url = https_server_->GetURL("a.test", "/page_with_iframe.html");
+  ASSERT_TRUE(NavigateToURL(shell(), test_url));
+  url::Origin test_origin = url::Origin::Create(test_url);
+  GURL additional_bid_ad_url =
+      https_server_->GetURL("c.test", "/echo?render_horses");
+
+  AttachInterestGroupObserver();
+  ClearReceivedRequests();
+  ASSERT_TRUE(NavigateToURL(shell(), test_url));
+  std::string auction_nonce = CreateAuctionNonceAndWait();
+
+  GURL additional_bid_logic_url = https_server_->GetURL(
+      "b.test", "/interest_group/bidding_logic_additional_bid.js");
+  url::Origin additional_bid_origin =
+      url::Origin::Create(additional_bid_logic_url);
+
+  std::string auction_config = JsReplace(
+      R"({
+    seller: $1,
+    decisionLogicUrl: $2,
+    interestGroupBuyers: [$1, $6],
+    auctionNonce: $3,
+    additionalBids: provideAdditionalBids($1, $3, [JSON.stringify({
+        interestGroup: {
+          name: 'campaign123',
+          biddingLogicURL: $5,
+          owner:$6
+        },
+        bid: {
+          ad: ['ad'],
+          bid: 2,
+          render: $4,
+        },
+        auctionNonce: $3,
+        seller: $1,
+      })])})",
+      test_origin,
+      https_server_->GetURL("a.test", "/interest_group/decision_logic.js"),
+      auction_nonce, additional_bid_ad_url, additional_bid_logic_url,
+      additional_bid_origin);
+
+  RunAuctionAndWaitForURLAndNavigateIframe(auction_config,
+                                           additional_bid_ad_url);
+  WaitForUrl(https_server_->GetURL("a.test", "/echoall?report_seller"));
+  WaitForUrl(
+      https_server_->GetURL("a.test", "/echoall?report_bidder_additional"));
+  WaitForAccessObserved({
+      {TestInterestGroupObserver::kAdditionalBid, additional_bid_origin,
+       "campaign123"},
+      {TestInterestGroupObserver::kAdditionalBidWin, additional_bid_origin,
+       "campaign123"},
+  });
+}
+
 // Two additional bids, second one of which wins.
 IN_PROC_BROWSER_TEST_F(InterestGroupBrowserTest,
                        RunAdAuctionWithWinningAdditionalBidFromTwo) {
@@ -17922,20 +18006,10 @@ IN_PROC_BROWSER_TEST_F(InterestGroupBrowserTest,
       https_server_->GetURL("a.test", "/echoall?report_bidder")));
 }
 
-// TODO(https://crbug.com/1502296): Fails too often on ChromeOS bots.
-// TODO(crbug/1502155): times out on Android bots.
-#if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_CHROMEOS)
-#define MAYBE_RunAdAuctionWithWinningAdditionalBidFromTwoWithNT \
-  DISABLED_RunAdAuctionWithWinningAdditionalBidFromTwoWithNT
-#else
-#define MAYBE_RunAdAuctionWithWinningAdditionalBidFromTwoWithNT \
-  RunAdAuctionWithWinningAdditionalBidFromTwoWithNT
-#endif
 // Two additional bids, the lower one of which wins since the upper one is
 // disabled by negative targeting.
-IN_PROC_BROWSER_TEST_F(
-    InterestGroupBrowserTest,
-    MAYBE_RunAdAuctionWithWinningAdditionalBidFromTwoWithNT) {
+IN_PROC_BROWSER_TEST_F(InterestGroupBrowserTest,
+                       RunAdAuctionWithWinningAdditionalBidFromTwoWithNT) {
   URLLoaderMonitor url_loader_monitor;
 
   GURL test_url = https_server_->GetURL("a.test", "/page_with_iframe.html");

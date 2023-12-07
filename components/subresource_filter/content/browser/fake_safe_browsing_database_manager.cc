@@ -59,17 +59,21 @@ bool FakeSafeBrowsingDatabaseManager::CheckUrlForSubresourceFilter(
   checks_.insert(client);
   if (simulate_timeout_)
     return false;
-  content::GetIOThreadTaskRunner({})->PostTask(
-      FROM_HERE, base::BindOnce(&FakeSafeBrowsingDatabaseManager::
-                                    OnCheckUrlForSubresourceFilterComplete,
-                                weak_factory_.GetWeakPtr(),
-                                base::Unretained(client), url));
+  content::GetUIThreadTaskRunner({})->PostTask(
+      FROM_HERE,
+      base::BindOnce(&FakeSafeBrowsingDatabaseManager::
+                         OnCheckUrlForSubresourceFilterComplete,
+                     weak_factory_.GetWeakPtr(), client->GetWeakPtr(), url));
   return false;
 }
 
 void FakeSafeBrowsingDatabaseManager::OnCheckUrlForSubresourceFilterComplete(
-    Client* client,
+    base::WeakPtr<Client> client_weak_ptr,
     const GURL& url) {
+  if (!client_weak_ptr) {
+    return;
+  }
+  Client* client = client_weak_ptr.get();
   // Check to see if the request was cancelled to avoid use-after-free.
   if (checks_.find(client) == checks_.end())
     return;

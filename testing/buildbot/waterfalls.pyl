@@ -76,8 +76,6 @@
       'chromeos-brya-chrome-skylab': {
         'additional_compile_targets': [
           "chrome",
-          "linux_symbols",
-          "symupload",
         ],
         'test_suites': {
           'skylab_tests': 'chromeos_brya_skylab_tests',
@@ -260,7 +258,7 @@
         },
         'test_suites': {
           'gtest_tests': 'linux_chromeos_gtests',
-          'isolated_scripts': 'chrome_sizes',
+          'isolated_scripts': 'linux_chromeos_isolated_scripts',
         },
       },
       'mac-chrome': {
@@ -326,7 +324,7 @@
       'ChromeOS FYI Release Skylab (jacuzzi)': {
         'additional_compile_targets': [
           'chromiumos_preflight',
-          'nacl_helper_bootstrap',
+          'nacl_helper',
         ],
         'browser_config': 'cros-chrome',
         'os_type': 'chromeos',
@@ -346,7 +344,7 @@
       'Lacros FYI Release (jacuzzi)': {
         'additional_compile_targets': [
           'chrome',
-          'nacl_helper_bootstrap',
+          'nacl_helper',
         ],
         'os_type': 'chromeos',
         'browser_config': 'lacros-chrome',
@@ -363,7 +361,7 @@
       'Lacros FYI Release (octopus)': {
         'additional_compile_targets': [
           'chrome',
-          'nacl_helper_bootstrap',
+          'nacl_helper',
         ],
         'os_type': 'chromeos',
         'browser_config': 'lacros-chrome',
@@ -923,6 +921,7 @@
           'cronet_package',
           'cronet_perf_test_apk',
           'cronet_sample_test_apk',
+          'cronet_smoketests_apk',
           'cronet_smoketests_missing_native_library_instrumentation_apk',
           'cronet_smoketests_platform_only_instrumentation_apk',
           'cronet_test_instrumentation_apk',
@@ -944,7 +943,8 @@
         ],
         'os_type': 'android',
         'test_suites': {
-          'gtest_tests': 'cronet_gtests',
+          # TODO(b/314092564): Remove cronet_proguard_test once merged with cronet_gtests
+          'gtest_tests': 'cronet_gtests_and_proguarded_smoketest',
         },
       },
       'android-cronet-x64-dbg-13-tests': {
@@ -1711,6 +1711,7 @@
         ],
         'test_suites': {
           'gtest_tests': 'linux_chromeos_gtests',
+          'isolated_scripts': 'linux_chromeos_isolated_scripts',
         },
       },
       'linux-chromeos-rel': {
@@ -1723,6 +1724,7 @@
         ],
         'test_suites': {
           'gtest_tests': 'linux_chromeos_specific_and_lacros_dependent_gtests',
+          'isolated_scripts': 'linux_chromeos_isolated_scripts',
           'scripts': 'chromeos_annotation_scripts',
         },
       },
@@ -3456,6 +3458,15 @@
         },
         'os_type': 'chromeos',
       },
+      'chromeos-octopus-rel-skylab-fyi': {
+        'additional_compile_targets': [
+          'chrome',
+        ],
+        'test_suites': {
+          'skylab_tests': 'chromeos_octopus_rel_skylab_tests',
+        },
+        'os_type': 'chromeos',
+      },
 
       'ios-blink-dbg-fyi': {
         'additional_compile_targets': [
@@ -3801,6 +3812,15 @@
         },
         'use_swarming': False,
       },
+      'linux-wpt-chromium-rel': {
+        'mixins': [
+          'has_native_resultdb_integration',
+          'linux-jammy',
+        ],
+        'test_suites': {
+          'isolated_scripts': 'chromium_wpt_tests_isolated_scripts',
+        },
+      },
       'linux-wpt-content-shell-asan-fyi-rel': {
         'mixins': [
           'has_native_resultdb_integration',
@@ -3826,15 +3846,6 @@
         ],
         'test_suites': {
           'isolated_scripts': 'wpt_web_tests_enable_leak_detection',
-        },
-      },
-      'linux-wpt-fyi-rel': {
-        'mixins': [
-          'has_native_resultdb_integration',
-          'linux-jammy',
-        ],
-        'test_suites': {
-          'isolated_scripts': 'chromium_wpt_tests_isolated_scripts',
         },
       },
       'mac-fieldtrial-tester': {
@@ -3987,6 +3998,15 @@
           'isolated_scripts': 'upload_perfetto',
         },
         'use_swarming': False,
+      },
+      'win10-multiscreen-fyi-rel': {
+        'mixins': [
+          'x86-64',
+          'win10',
+        ],
+        'test_suites': {
+          'gtest_tests': 'chromium_win10_gtests_multiscreen_fyi',
+        },
       },
       'win10-rel-no-external-ip': {
         'mixins': [

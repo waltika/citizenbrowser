@@ -9,6 +9,7 @@ import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.Build;
+import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
 import android.util.SparseArray;
 import android.view.View;
@@ -16,6 +17,7 @@ import android.view.ViewGroup;
 import android.view.ViewStructure;
 import android.view.autofill.AutofillValue;
 
+import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
 
 import org.jni_zero.CalledByNative;
@@ -76,6 +78,9 @@ public class AutofillProvider {
     private WebContentsAccessibility mWebContentsAccessibility;
     private View mAnchorView;
     private PrefillRequest mPrefillRequest;
+    // Whether onProvideAutofillVirtualStructure has been called for the current PrefillRequest.
+    // Used solely for metrics.
+    private boolean mStructureProvidedForPrefillRequest;
 
     public AutofillProvider(
             Context context,
@@ -151,13 +156,19 @@ public class AutofillProvider {
         }
         // We should have one of them available here, we start with AutofillRequest as it should be
         // available only if we started a session.
-        FormData form = mRequest != null ? mRequest.getForm() : mPrefillRequest.getForm();
+        FormData form;
+        if (mRequest != null) {
+            form = mRequest.getForm();
+            mAutofillUMA.onVirtualStructureProvided();
+        } else {
+            form = mPrefillRequest.getForm();
+            mStructureProvidedForPrefillRequest = true;
+        }
         form.fillViewStructure(structure);
         if (AutofillManagerWrapper.isLoggable()) {
             AutofillManagerWrapper.log(
                     "onProvideAutoFillVirtualStructure fields:" + structure.getChildCount());
         }
-        mAutofillUMA.onVirtualStructureProvided();
     }
 
     /**
@@ -219,13 +230,14 @@ public class AutofillProvider {
 
         transformFormFieldToContainViewCoordinates(form);
         mPrefillRequest = new PrefillRequest(form);
+        mStructureProvidedForPrefillRequest = false;
 
         mAutofillManager.notifyVirtualViewsReady(mContainerView, mPrefillRequest.getPrefillHints());
     }
 
     /**
-     * Invoked when filling form is need. AutofillProvider shall ask autofill
-     * service for the values with which to fill the form.
+     * Invoked when filling form is need. AutofillProvider shall ask autofill service for the values
+     * with which to fill the form.
      *
      * @param formData the form needs to fill.
      * @param focus the index of focus field in formData
@@ -253,17 +265,46 @@ public class AutofillProvider {
         Rect absBound = transformToWindowBounds(new RectF(x, y, x + width, y + height));
         if (mRequest != null) notifyViewExitBeforeDestroyRequest();
         transformFormFieldToContainViewCoordinates(formData);
+        mAutofillUMA.onSessionStarted(mAutofillManager.isDisabled());
         mRequest =
                 new AutofillRequest(
                         formData, new FocusField((short) focus, absBound), hasServerPrediction);
-        notifyVirtualViewEntered(mContainerView, focus, absBound);
-        mAutofillUMA.onSessionStarted(mAutofillManager.isDisabled());
+        if (maybeShowBottomSheet(focus)) {
+            mAutofillUMA.onBottomSheetShown();
+        } else {
+            notifyVirtualViewEntered(mContainerView, focus, absBound);
+        }
         if (hasServerPrediction) {
             mAutofillUMA.onServerTypeAvailable(formData, /* afterSessionStarted= */ false);
         }
         mAutofillTriggeredTimeMillis = System.currentTimeMillis();
 
         mAutofillManager.notifyNewSessionStarted(hasServerPrediction);
+    }
+
+    /**
+     * Attempts to show a bottom sheet if the Android version is U+ and there has been a prefill
+     * request for the form in mRequest.
+     *
+     * @param focus the index of the focused field in mRequest.
+     * @return whether the bottom sheet was shown.
+     */
+    boolean maybeShowBottomSheet(int focus) {
+        if (Build.VERSION.SDK_INT < VERSION_CODES.UPSIDE_DOWN_CAKE) return false;
+        if (mPrefillRequest == null
+                || mPrefillRequest.getForm().mSessionId != mRequest.getForm().mSessionId) {
+            return false;
+        }
+
+        boolean bottomSheetShown = showAutofillDialog(mContainerView, focus);
+        if (mNativeAutofillProvider != 0) {
+            AutofillProviderJni.get()
+                    .onShowBottomSheetResult(
+                            mNativeAutofillProvider,
+                            bottomSheetShown,
+                            mStructureProvidedForPrefillRequest);
+        }
+        return bottomSheetShown;
     }
 
     /**
@@ -387,6 +428,15 @@ public class AutofillProvider {
                 mContainerView, mRequest.getFieldVirtualId((short) index), isVisible);
     }
 
+    @RequiresApi(VERSION_CODES.TIRAMISU)
+    private boolean showAutofillDialog(View parent, int index) {
+        // Refer to notifyVirtualValueChanged() for the reason of the datalist's special handling.
+        if (isDatalistField(index)) return false;
+
+        return mAutofillManager.showAutofillDialog(
+                parent, mRequest.getFieldVirtualId((short) index));
+    }
+
     private void notifyVirtualViewEntered(View parent, int index, Rect absBounds) {
         // Refer to notifyVirtualValueChanged() for the reason of the datalist's special handling.
         if (isDatalistField(index)) return;
@@ -419,7 +469,7 @@ public class AutofillProvider {
      * Invoked when focus field changed.
      *
      * @param focusOnForm whether focus is still on form.
-     * @param focusItem the index of field has focus
+     * @param focusField the index of field has focus
      * @param x the boundary of focus field.
      * @param y the boundary of focus field.
      * @param width the boundary of focus field.
@@ -756,5 +806,10 @@ public class AutofillProvider {
                 float y,
                 float width,
                 float height);
+
+        void onShowBottomSheetResult(
+                long nativeAutofillProviderAndroidBridgeImpl,
+                boolean isShown,
+                boolean providedAutofillStructure);
     }
 }

@@ -10,7 +10,9 @@
 #include "base/files/file_util.h"
 #include "base/functional/bind.h"
 #include "base/memory/weak_ptr.h"
+#include "base/metrics/histogram_functions.h"
 #include "base/task/thread_pool.h"
+#include "base/timer/elapsed_timer.h"
 #include "base/token.h"
 #include "base/values.h"
 #include "chrome/browser/profiles/profile.h"
@@ -110,7 +112,8 @@ std::vector<base::Token> WallpaperSearchBackgroundManager::GetHistory() {
 
 void WallpaperSearchBackgroundManager::SelectHistoryImage(
     const base::Token& id,
-    const gfx::Image& image) {
+    const gfx::Image& image,
+    base::ElapsedTimer timer) {
   if (ntp_custom_background_service_->IsCustomBackgroundDisabledByPolicy() ||
       image.IsEmpty()) {
     return;
@@ -118,11 +121,16 @@ void WallpaperSearchBackgroundManager::SelectHistoryImage(
 
   ntp_custom_background_service_->SetBackgroundToLocalResourceWithId(id);
   ntp_custom_background_service_->UpdateCustomLocalBackgroundColorAsync(image);
+
+  UmaHistogramMediumTimes(
+      "NewTabPage.WallpaperSearch.SetRecentThemeProcessingLatency",
+      timer.Elapsed());
 }
 
 void WallpaperSearchBackgroundManager::SelectLocalBackgroundImage(
     const base::Token& id,
-    const SkBitmap& bitmap) {
+    const SkBitmap& bitmap,
+    base::ElapsedTimer timer) {
   if (ntp_custom_background_service_->IsCustomBackgroundDisabledByPolicy()) {
     return;
   }
@@ -131,16 +139,26 @@ void WallpaperSearchBackgroundManager::SelectLocalBackgroundImage(
   const bool success = gfx::PNGCodec::EncodeBGRASkBitmap(
       bitmap, /*discard_transparency=*/false, &encoded);
   if (success) {
-    base::ThreadPool::PostTaskAndReply(
-        FROM_HERE, {base::TaskPriority::USER_VISIBLE, base::MayBlock()},
-        base::BindOnce(
-            &WriteFileToPath, std::string(encoded.begin(), encoded.end()),
-            profile_->GetPath().AppendASCII(
-                id.ToString() +
-                chrome::kChromeUIUntrustedNewTabPageBackgroundFilename)),
-        base::BindOnce(&WallpaperSearchBackgroundManager::
-                           SetBackgroundToLocalResourceWithId,
-                       weak_ptr_factory_.GetWeakPtr(), id));
+    // Do not update theme image unless it is different from the current.
+    // Otherwise, we end up deleting the image file as part of the cleanup
+    // of the last theme.
+    absl::optional<CustomBackground> current_theme =
+        ntp_custom_background_service_->GetCustomBackground();
+    if (!current_theme.has_value() ||
+        !current_theme->local_background_id.has_value() ||
+        current_theme->local_background_id.value() != id) {
+      base::ThreadPool::PostTaskAndReply(
+          FROM_HERE, {base::TaskPriority::USER_VISIBLE, base::MayBlock()},
+          base::BindOnce(
+              &WriteFileToPath, std::string(encoded.begin(), encoded.end()),
+              profile_->GetPath().AppendASCII(
+                  id.ToString() +
+                  chrome::kChromeUIUntrustedNewTabPageBackgroundFilename)),
+          base::BindOnce(&WallpaperSearchBackgroundManager::
+                             SetBackgroundToLocalResourceWithId,
+                         weak_ptr_factory_.GetWeakPtr(), id, std::move(timer)));
+    }
+
     ntp_custom_background_service_->UpdateCustomLocalBackgroundColorAsync(
         gfx::Image::CreateFrom1xBitmap(bitmap));
   }
@@ -184,6 +202,10 @@ WallpaperSearchBackgroundManager::SaveCurrentBackgroundToHistory() {
 }
 
 void WallpaperSearchBackgroundManager::SetBackgroundToLocalResourceWithId(
-    const base::Token& id) {
+    const base::Token& id,
+    base::ElapsedTimer timer) {
   ntp_custom_background_service_->SetBackgroundToLocalResourceWithId(id);
+  UmaHistogramMediumTimes(
+      "NewTabPage.WallpaperSearch.SetResultThemeProcessingLatency",
+      timer.Elapsed());
 }

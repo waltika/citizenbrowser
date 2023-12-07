@@ -5,6 +5,7 @@
 #include "services/network/shared_dictionary/shared_dictionary_network_transaction.h"
 
 #include <string>
+#include <string_view>
 
 #include "base/feature_list.h"
 #include "base/functional/bind.h"
@@ -20,6 +21,7 @@
 #include "net/base/load_flags.h"
 #include "net/base/net_errors.h"
 #include "net/base/transport_info.h"
+#include "net/base/url_util.h"
 #include "net/cert/x509_certificate.h"
 #include "net/extras/shared_dictionary/shared_dictionary_isolation_key.h"
 #include "net/filter/brotli_source_stream.h"
@@ -66,7 +68,7 @@ class ProxyingSourceStream : public net::SourceStream {
 };
 
 void AddAcceptEncoding(net::HttpRequestHeaders* request_headers,
-                       base::StringPiece encoding_header) {
+                       std::string_view encoding_header) {
   std::string accept_encoding;
   request_headers->SetHeader(
       net::HttpRequestHeaders::kAcceptEncoding,
@@ -182,6 +184,22 @@ void SharedDictionaryNetworkTransaction::ModifyRequestHeaders(
         shared_dictionary_storage_->GetDictionarySync(request_url);
   }
   if (!shared_dictionary_) {
+    return;
+  }
+
+  if (!base::FeatureList::IsEnabled(
+          network::features::kCompressionDictionaryTransportOverHttp1) &&
+      negotiated_protocol_ != net::kProtoHTTP2 &&
+      negotiated_protocol_ != net::kProtoQUIC &&
+      !net::IsLocalhost(request_url)) {
+    shared_dictionary_.reset();
+    return;
+  }
+  if (base::FeatureList::IsEnabled(
+          network::features::
+              kCompressionDictionaryTransportRequireKnownRootCert) &&
+      !cert_is_issued_by_known_root_ && !net::IsLocalhost(request_url)) {
+    shared_dictionary_.reset();
     return;
   }
 
@@ -448,6 +466,7 @@ int SharedDictionaryNetworkTransaction::OnConnected(
     const net::TransportInfo& info,
     net::CompletionOnceCallback callback) {
   cert_is_issued_by_known_root_ = info.cert_is_issued_by_known_root;
+  negotiated_protocol_ = info.negotiated_protocol;
 
   if (connected_callback_) {
     return connected_callback_.Run(info, std::move(callback));

@@ -31,7 +31,6 @@
 <translation id="1181037720776840403">삭제</translation>
 <translation id="1191518099344003522">APN이 사용 설정되었습니다.</translation>
 <translation id="1195447618553298278">알 수 없는 오류</translation>
-<translation id="1195784767091936222">자동 어두운 모드 사용 설정</translation>
 <translation id="1196959502276349371">버전 <ph name="VERSION" /></translation>
 <translation id="1199355487114804640">재생/일시중지</translation>
 <translation id="1201402288615127009">다음</translation>
@@ -152,7 +151,6 @@
 <translation id="1923388006036088459">강조 색상</translation>
 <translation id="1947737735496445907">인쇄됨</translation>
 <translation id="1951012854035635156">어시스턴트</translation>
-<translation id="1954687945444914660">사진</translation>
 <translation id="1962550982027027473">기본 APN이 필요합니다.</translation>
 <translation id="1973886230221301399">ChromeVox</translation>
 <translation id="1977994649430373166">Google 프로필 사진</translation>
@@ -261,6 +259,7 @@
 <translation id="2872961005593481000">종료</translation>
 <translation id="2873483161362553159">브라우저 탐색</translation>
 <translation id="2874939134665556319">이전 트랙</translation>
+<translation id="2875812231449496375">이 배경화면으로 최상의 결과를 얻으려면 이 기능을 사용 설정하세요. 이 설정은 언제든지 사용 중지할 수 있습니다.</translation>
 <translation id="2878387241690264070"><ph name="NUM_SECONDS" />초 내에 <ph name="RATE" /> 방전됨</translation>
 <translation id="2880569433548999039">구름 흐름 화면 보호기</translation>
 <translation id="2926057806159140518">사용자 이름과 비밀번호를 입력하거나 QR 코드를 스캔하세요.</translation>
@@ -281,7 +280,6 @@
 <translation id="3122464029669770682">CPU</translation>
 <translation id="3124039320086536031">기기가 연결되어 있습니다.</translation>
 <translation id="3127341325625468058">{PAGE_NUMBER,plural, =0{페이지를 삭제하시겠습니까?}=1{{PAGE_NUMBER}페이지를 삭제하시겠습니까?}other{{PAGE_NUMBER}페이지를 삭제하시겠습니까?}}</translation>
-<translation id="3136905423678675159">자동 어두운 모드를 사용 설정하시겠습니까?</translation>
 <translation id="3146655726035122603"><ph name="PRODUCT_NAME" /> 전용</translation>
 <translation id="315116470104423982">모바일 데이터</translation>
 <translation id="3156846309055100599"><ph name="PAGE_NUMBER" />페이지 스캔 중…</translation>
@@ -362,7 +360,6 @@
 <translation id="3740976234706877572">★ <ph name="AVERAGE_SCORE" />개(리뷰 <ph name="AGGREGATED_COUNT" />개)</translation>
 <translation id="3748026146096797577">연결되어 있지 않음</translation>
 <translation id="3749289110408117711">파일 이름</translation>
-<translation id="3754384069690464321">이 배경화면으로 최상의 결과를 얻으려면 자동 어두운 모드를 사용 설정하세요. 언제든지 앱에서 다시 변경할 수 있습니다.</translation>
 <translation id="3771294271822695279">동영상 파일</translation>
 <translation id="3784455785234192852">잠금</translation>
 <translation id="380097101658023925">RGB 제어</translation>
@@ -555,6 +552,7 @@
 <translation id="5090362543162270857">IPsec(IKEv2)</translation>
 <translation id="5137451382116112100">전체</translation>
 <translation id="5142961317498132443">인증</translation>
+<translation id="5145081769226915336">어두운 모드를 자동으로 사용 설정하시겠습니까?</translation>
 <translation id="5154917547274118687">메모리</translation>
 <translation id="5160857336552977725"><ph name="DEVICE_TYPE" />에 로그인</translation>
 <translation id="5166918508782100047">빠른 답변 설정</translation>
@@ -596,7 +594,6 @@
 <translation id="5389224261615877010">무지개</translation>
 <translation id="5400907029458559844">기기 연결 중입니다.</translation>
 <translation id="5401938042319910061">모든 루틴 실행</translation>
-<translation id="540604120278030498">뉴욕</translation>
 <translation id="5423849171846380976">활성화됨</translation>
 <translation id="5430931332414098647">인스턴트 테더링</translation>
 <translation id="5431318178759467895">컬러</translation>
@@ -806,7 +803,6 @@
 <translation id="7046522406494308071">모든 단축키를 기본값으로 재설정하시겠습니까?</translation>
 <translation id="7058278511608979688">종료 및 저장</translation>
 <translation id="7059230779847288458">충전 중, 완료까지 <ph name="TIME_VALUE" /> 남음</translation>
-<translation id="7065364575846974659">파리</translation>
 <translation id="7066538517128343186"><ph name="KEY" /> 키</translation>
 <translation id="7068619307603204412">기기 준비</translation>
 <translation id="708426984172631313">중지됨</translation>
@@ -947,7 +943,6 @@
 <translation id="8094062939584182041">Google에서 이 문제에 관한 이메일을 보내도록 허용</translation>
 <translation id="8104083085214006426">안전하지 않은 개방형 네트워크를 사용하고 있습니다.</translation>
 <translation id="8111706652656628199">단축키를 사용할 수 없습니다. Shift 외 1개(ctrl, Alt, 검색 또는 런처)를 사용하여 새 단축키를 누르세요.</translation>
-<translation id="8112538018114444149"><ph name="CHIP_CITY" />에 위치한 <ph name="CHIP_STYLE" /> 분위기의 공원입니다.</translation>
 <translation id="811820734797650957">(Android) 핑할 수 있는 게이트웨이</translation>
 <translation id="8129620843620772246"><ph name="TEMPERATURE_C" />°C</translation>
 <translation id="8132480444149501833">트래픽 카운터 요청</translation>
@@ -1082,7 +1077,6 @@
 <translation id="9058932992221914855">IPv6</translation>
 <translation id="9062831201344759865">DNS 변환 지연 시간이 깁니다.</translation>
 <translation id="9065203028668620118">수정</translation>
-<translation id="9068296451330120661">수채화</translation>
 <translation id="9073281213608662541">PAP</translation>
 <translation id="9074739597929991885">블루투스</translation>
 <translation id="9082718469794970195">이 동영상 사용</translation>

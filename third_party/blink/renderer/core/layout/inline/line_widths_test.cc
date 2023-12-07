@@ -5,12 +5,12 @@
 #include "third_party/blink/renderer/core/layout/inline/line_widths.h"
 
 #include "testing/gmock/include/gmock/gmock.h"
+#include "third_party/blink/renderer/core/layout/box_fragment_builder.h"
 #include "third_party/blink/renderer/core/layout/inline/inline_child_layout_context.h"
 #include "third_party/blink/renderer/core/layout/inline/inline_layout_algorithm.h"
 #include "third_party/blink/renderer/core/layout/inline/inline_node.h"
 #include "third_party/blink/renderer/core/layout/inline/leading_floats.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_box_fragment_builder.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_physical_box_fragment.h"
+#include "third_party/blink/renderer/core/layout/physical_box_fragment.h"
 #include "third_party/blink/renderer/core/testing/core_unit_test_helper.h"
 
 namespace blink {
@@ -18,7 +18,7 @@ namespace blink {
 namespace {
 
 LayoutUnit FragmentWidth(const InlineNode& node) {
-  const NGPhysicalBoxFragment* fragment =
+  const PhysicalBoxFragment* fragment =
       node.GetLayoutBox()->GetPhysicalFragment(0);
   return fragment->Size().width;
 }

@@ -87,6 +87,7 @@ try_.orchestrator_builder(
     experiments = {
         # go/nplus1shardsproposal
         "chromium.add_one_test_shard": 10,
+        "chromium.skip_successful_tests": 50,
     },
     gn_args = gn_args.config(
         configs = [
@@ -162,6 +163,7 @@ try_.orchestrator_builder(
         # go/nplus1shardsproposal
         "chromium.add_one_test_shard": 10,
         "chromium.compilator_can_outlive_parent": 100,
+        "chromium.skip_successful_tests": 50,
     },
     gn_args = gn_args.config(
         configs = [
@@ -187,6 +189,7 @@ try_.compilator_builder(
     name = "android-arm64-rel-compilator",
     branch_selector = branches.selector.ANDROID_BRANCHES,
     main_list_view = "try",
+    siso_enabled = True,
 )
 
 # TODO: crbug.com/1502025 - Reduce duplicated configs from the shadow builder.
@@ -218,10 +221,17 @@ try_.compilator_builder(
     siso_enabled = True,
 )
 
-# TODO(crbug.com/1367523): Reeanble this builder once the reboot issue is resolved.
+# TODO(crbug.com/1367523): Reenable this builder once the reboot issue is resolved.
 # try_.builder(
 #     name = "android-asan",
 #     mirrors = ["ci/android-asan"],
+#     gn_args = gn_args.config(
+#         configs = [
+#             "ci/android-asan",
+#             "release_try_builder",
+#             "minimal_symbols",
+#         ],
+#     ),
 #     reclient_jobs = reclient.jobs.LOW_JOBS_FOR_CQ,
 # )
 
@@ -281,6 +291,7 @@ try_.builder(
             ],
         },
     },
+    siso_enabled = True,
     tryjob = try_.job(),
 )
 
@@ -325,6 +336,13 @@ try_.builder(
         "ci/android-archive-rel",
     ],
     contact_team_email = "clank-engprod@google.com",
+    gn_args = gn_args.config(
+        configs = [
+            "ci/android-archive-rel",
+            "release_try_builder",
+            "chrome_with_codecs",
+        ],
+    ),
 )
 
 try_.builder(
@@ -631,6 +649,13 @@ try_.builder(
 try_.builder(
     name = "android-fieldtrial-rel",
     mirrors = ["ci/android-fieldtrial-rel"],
+    gn_args = gn_args.config(
+        configs = [
+            "ci/android-fieldtrial-rel",
+            "try_builder",
+            "no_symbols",
+        ],
+    ),
 )
 
 try_.builder(
@@ -673,6 +698,13 @@ try_.builder(
     mirrors = [
         "ci/android-perfetto-rel",
     ],
+    gn_args = gn_args.config(
+        configs = [
+            "ci/android-perfetto-rel",
+            "try_builder",
+            "no_symbols",
+        ],
+    ),
 )
 
 try_.builder(
@@ -859,6 +891,7 @@ try_.orchestrator_builder(
     coverage_test_types = ["unit", "overall"],
     experiments = {
         "chromium.add_one_test_shard": 10,
+        "chromium.skip_successful_tests": 50,
     },
     gn_args = gn_args.config(
         configs = [
@@ -956,6 +989,9 @@ try_.builder(
         "ci/Cast Android (dbg)",
     ],
     builderless = not settings.is_main,
+    experiments = {
+        "chromium.skip_successful_tests": 50,
+    },
     gn_args = gn_args.config(
         configs = [
             "ci/Cast Android (dbg)",
@@ -980,6 +1016,9 @@ try_.builder(
     builderless = not settings.is_main,
     cores = 32 if settings.is_main else 16,
     ssd = True,
+    experiments = {
+        "chromium.skip_successful_tests": 50,
+    },
     gn_args = gn_args.config(
         configs = [
             "android_builder",
@@ -991,6 +1030,7 @@ try_.builder(
     ),
     main_list_view = "try",
     reclient_jobs = reclient.jobs.HIGH_JOBS_FOR_CQ,
+    siso_enabled = True,
     tryjob = try_.job(),
 )
 
@@ -1117,6 +1157,9 @@ try_.builder(
     ),
     builderless = not settings.is_main,
     contact_team_email = "cronet-team@google.com",
+    experiments = {
+        "chromium.skip_successful_tests": 50,
+    },
     gn_args = gn_args.config(
         configs = [
             "android_builder",
@@ -1199,6 +1242,7 @@ try_.gpu.optional_tests_builder(
     try_settings = builder_config.try_settings(
         retry_failed_shards = False,
     ),
+    gn_args = "ci/GPU FYI Android arm64 Builder",
     main_list_view = "try",
     tryjob = try_.job(
         location_filters = [
@@ -1239,10 +1283,12 @@ try_.builder(
     name = "android-code-coverage",
     mirrors = ["ci/android-code-coverage"],
     execution_timeout = 20 * time.hour,
+    gn_args = "ci/android-code-coverage",
 )
 
 try_.builder(
     name = "android-code-coverage-native",
     mirrors = ["ci/android-code-coverage-native"],
     execution_timeout = 20 * time.hour,
+    gn_args = "ci/android-code-coverage-native",
 )

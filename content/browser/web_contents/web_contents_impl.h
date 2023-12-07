@@ -119,7 +119,6 @@ enum class PictureInPictureResult;
 class BeforeUnloadBlockingDelegate;  // content_browser_test_utils_internal.h
 class BrowserPluginEmbedder;
 class BrowserPluginGuest;
-class DisplayCutoutHostImpl;
 class FindRequestManager;
 class JavaScriptDialogManager;
 class MediaWebContentsObserver;
@@ -130,6 +129,7 @@ class RenderViewHost;
 class RenderViewHostDelegateView;
 class RenderWidgetHostImpl;
 class RenderWidgetHostInputEventRouter;
+class SafeAreaInsetsHost;
 class SavePackage;
 class ScreenChangeMonitor;
 class ScreenOrientationProvider;
@@ -371,7 +371,7 @@ class CONTENT_EXPORT WebContentsImpl : public WebContents,
   bool ShouldOverrideUserAgentForRendererInitiatedNavigation() override;
   void SetAlwaysSendSubresourceNotifications() override;
   bool GetSendSubresourceNotification() override;
-  void EnableWebContentsOnlyAccessibilityMode() override;
+  void EnableAccessibilityMode(ui::AXMode mode) override;
   bool IsWebContentsOnlyAccessibilityModeForTesting() override;
   bool IsFullAccessibilityModeForTesting() override;
   const std::u16string& GetTitle() override;
@@ -536,7 +536,7 @@ class CONTENT_EXPORT WebContentsImpl : public WebContents,
   bool WasEverAudible() override;
   bool IsFullscreen() override;
   bool ShouldShowStaleContentOnEviction() override;
-  void ExitFullscreen() override;
+  void ExitFullscreen(bool will_cause_resize) override;
   [[nodiscard]] base::ScopedClosureRunner ForSecurityDropFullscreen(
       int64_t display_id = display::kInvalidDisplayId) override;
   void ResumeLoadingCreatedWebContents() override;
@@ -671,7 +671,7 @@ class CONTENT_EXPORT WebContentsImpl : public WebContents,
   void EnterFullscreenMode(
       RenderFrameHostImpl* requesting_frame,
       const blink::mojom::FullscreenOptions& options) override;
-  void ExitFullscreenMode() override;
+  void ExitFullscreenMode(bool will_cause_resize) override;
   void FullscreenStateChanged(
       RenderFrameHostImpl* rfh,
       bool is_fullscreen,
@@ -746,9 +746,6 @@ class CONTENT_EXPORT WebContentsImpl : public WebContents,
   void OnFrameIsCapturingMediaStreamChanged(
       RenderFrameHostImpl* host,
       bool is_capturing_media_stream) override;
-  media::MediaMetricsProvider::RecordAggregateWatchTimeCallback
-  GetRecordAggregateWatchTimeCallback(
-      const GURL& page_main_frame_last_committed_url) override;
   std::vector<FrameTreeNode*> GetUnattachedOwnedNodes(
       RenderFrameHostImpl* owner) override;
   void RegisterProtocolHandler(RenderFrameHostImpl* source,
@@ -2295,7 +2292,7 @@ class CONTENT_EXPORT WebContentsImpl : public WebContents,
           NavigationController::UA_OVERRIDE_INHERIT;
 
   // Gets notified about changes in viewport fit events.
-  std::unique_ptr<DisplayCutoutHostImpl> display_cutout_host_impl_;
+  std::unique_ptr<SafeAreaInsetsHost> safe_area_insets_host_;
 
   // Stores a set of frames that are fullscreen.
   // See https://fullscreen.spec.whatwg.org.

@@ -20,6 +20,7 @@
 #import "components/infobars/core/infobar_manager.h"
 #import "components/password_manager/core/browser/ui/credential_ui_entry.h"
 #import "components/password_manager/core/common/password_manager_features.h"
+#import "components/plus_addresses/features.h"
 #import "components/prefs/pref_service.h"
 #import "components/profile_metrics/browser_profile_type.h"
 #import "components/safe_browsing/core/common/features.h"
@@ -40,14 +41,14 @@
 #import "ios/chrome/browser/find_in_page/model/find_tab_helper.h"
 #import "ios/chrome/browser/find_in_page/model/java_script_find_tab_helper.h"
 #import "ios/chrome/browser/find_in_page/model/util.h"
-#import "ios/chrome/browser/follow/follow_browser_agent.h"
-#import "ios/chrome/browser/follow/followed_web_site.h"
+#import "ios/chrome/browser/follow/model/follow_browser_agent.h"
+#import "ios/chrome/browser/follow/model/followed_web_site.h"
 #import "ios/chrome/browser/infobars/infobar_ios.h"
 #import "ios/chrome/browser/infobars/infobar_manager_impl.h"
 #import "ios/chrome/browser/intents/intents_donation_helper.h"
-#import "ios/chrome/browser/metrics/tab_usage_recorder_browser_agent.h"
-#import "ios/chrome/browser/ntp/new_tab_page_state.h"
-#import "ios/chrome/browser/ntp/new_tab_page_tab_helper.h"
+#import "ios/chrome/browser/metrics/model/tab_usage_recorder_browser_agent.h"
+#import "ios/chrome/browser/ntp/model/new_tab_page_state.h"
+#import "ios/chrome/browser/ntp/model/new_tab_page_tab_helper.h"
 #import "ios/chrome/browser/overscroll_actions/model/overscroll_actions_tab_helper.h"
 #import "ios/chrome/browser/parcel_tracking/parcel_tracking_infobar_delegate.h"
 #import "ios/chrome/browser/parcel_tracking/parcel_tracking_step.h"
@@ -60,7 +61,7 @@
 #import "ios/chrome/browser/prerender/model/prerender_service_factory.h"
 #import "ios/chrome/browser/promos_manager/features.h"
 #import "ios/chrome/browser/reading_list/model/reading_list_browser_agent.h"
-#import "ios/chrome/browser/segmentation_platform/segmentation_platform_service_factory.h"
+#import "ios/chrome/browser/segmentation_platform/model/segmentation_platform_service_factory.h"
 #import "ios/chrome/browser/shared/coordinator/alert/repost_form_coordinator.h"
 #import "ios/chrome/browser/shared/coordinator/alert/repost_form_coordinator_delegate.h"
 #import "ios/chrome/browser/shared/coordinator/default_browser_promo/non_modal_default_browser_promo_scheduler_scene_agent.h"
@@ -153,6 +154,7 @@
 #import "ios/chrome/browser/ui/download/vcard_coordinator.h"
 #import "ios/chrome/browser/ui/find_bar/find_bar_controller_ios.h"
 #import "ios/chrome/browser/ui/find_bar/find_bar_coordinator.h"
+#import "ios/chrome/browser/ui/first_run/omnibox_position/omnibox_position_choice_coordinator.h"
 #import "ios/chrome/browser/ui/follow/first_follow_coordinator.h"
 #import "ios/chrome/browser/ui/follow/follow_iph_coordinator.h"
 #import "ios/chrome/browser/ui/fullscreen/fullscreen_controller.h"
@@ -287,7 +289,7 @@ enum class ToolbarKind {
     RepostFormTabHelperDelegate,
     SaveToPhotosCommands,
     SigninPresenter,
-    SnapshotManagerDelegate,
+    SnapshotGeneratorDelegate,
     StoreKitCoordinatorDelegate,
     ToolbarAccessoryCoordinatorDelegate,
     UnitConversionCommands,
@@ -526,6 +528,7 @@ enum class ToolbarKind {
   WebNavigationBrowserAgent* _webNavigationBrowserAgent;
   UrlLoadingBrowserAgent* _urlLoadingBrowserAgent;
   AddContactsCoordinator* _addContactsCoordinator;
+  OmniboxPositionChoiceCoordinator* _omniboxPositionChoiceCoordinator;
 }
 
 #pragma mark - ChromeCoordinator
@@ -1048,6 +1051,7 @@ enum class ToolbarKind {
   _viewController.omniboxCommandsHandler = _omniboxCommandsHandler;
 
   _legacyTabStripCoordinator.baseViewController = self.viewController;
+  _tabStripCoordinator.baseViewController = self.viewController;
   _NTPCoordinator.baseViewController = self.viewController;
 
   _bubblePresenter.toolbarCommandsHandler =
@@ -1454,7 +1458,7 @@ enum class ToolbarKind {
   tabLifecycleMediator.repostFormDelegate = self;
   tabLifecycleMediator.tabInsertionBrowserAgent =
       TabInsertionBrowserAgent::FromBrowser(browser);
-  tabLifecycleMediator.snapshotManagerDelegate = self;
+  tabLifecycleMediator.snapshotGeneratorDelegate = self;
   tabLifecycleMediator.overscrollActionsDelegate = self;
   tabLifecycleMediator.appLauncherBrowserPresentationProvider = self;
 
@@ -1701,8 +1705,7 @@ enum class ToolbarKind {
 }
 
 - (void)showSendTabToSelfUI:(const GURL&)url title:(NSString*)title {
-  // TODO(crbug.com/1488763): Convert to CHECK.
-  DUMP_WILL_BE_CHECK(!_sendTabToSelfCoordinator);
+  CHECK(!_sendTabToSelfCoordinator);
 
   _sendTabToSelfCoordinator = [[SendTabToSelfCoordinator alloc]
       initWithBaseViewController:self.viewController
@@ -1805,22 +1808,34 @@ enum class ToolbarKind {
   self.plusAddressBottomSheetCoordinator = nil;
 }
 
-- (void)showChoice {
-  if (!ios::provider::IsChoiceEnabled()) {
-    return;
-  }
-
-  if (!self.choiceCoordinator) {
-    self.choiceCoordinator =
-        ios::provider::CreateChoiceCoordinatorWithViewController(
-            self.viewController, self.browser);
-  }
-  [self.choiceCoordinator start];
+- (void)showPlusAddressManagementPage {
+  GURL managementUrl(plus_addresses::kPlusAddressManagementUrl.Get());
+  UrlLoadParams params = UrlLoadParams::InNewTab(managementUrl);
+  params.append_to = OpenPosition::kCurrentTab;
+  params.user_initiated = NO;
+  params.in_incognito = self.browser->GetBrowserState()->IsOffTheRecord();
+  _urlLoadingBrowserAgent->Load(params);
 }
 
-- (void)dismissChoice {
-  [self.choiceCoordinator stop];
-  self.choiceCoordinator = nil;
+- (void)showOmniboxPositionChoice {
+  CHECK(IsBottomOmniboxPromoFlagEnabled(BottomOmniboxPromoType::kAppLaunch));
+
+  if (!_omniboxPositionChoiceCoordinator) {
+    _omniboxPositionChoiceCoordinator =
+        [[OmniboxPositionChoiceCoordinator alloc]
+            initWithBaseViewController:self.viewController
+                               browser:self.browser];
+    _omniboxPositionChoiceCoordinator.promosUIHandler =
+        self.promosManagerCoordinator;
+  } else {
+    [_omniboxPositionChoiceCoordinator stop];
+  }
+  [_omniboxPositionChoiceCoordinator start];
+}
+
+- (void)dismissOmniboxPositionChoice {
+  [_omniboxPositionChoiceCoordinator stop];
+  _omniboxPositionChoiceCoordinator = nil;
 }
 
 #pragma mark - DefaultBrowserPromoCommands
@@ -2048,10 +2063,6 @@ enum class ToolbarKind {
   self.whatsNewCoordinator.shouldShowBubblePromoOnDismiss = YES;
 }
 
-- (void)showChoicePromo {
-  [self showChoice];
-}
-
 - (void)maybeDisplayDefaultBrowserPromo {
   if (self.defaultBrowserPromoManager) {
     // The default browser promo manager is already being displayed. Early
@@ -2076,6 +2087,11 @@ enum class ToolbarKind {
       self.promosManagerCoordinator;
   self.defaultBrowserPromoManager.promoWasFromRemindMeLater = YES;
   [self.defaultBrowserPromoManager start];
+}
+
+- (void)showOmniboxPositionChoicePromo {
+  CHECK(IsBottomOmniboxPromoFlagEnabled(BottomOmniboxPromoType::kAppLaunch));
+  [self showOmniboxPositionChoice];
 }
 
 #pragma mark - PageInfoCommands
@@ -2768,12 +2784,12 @@ enum class ToolbarKind {
       baseViewController:self.viewController];
 }
 
-#pragma mark - SnapshotManagerDelegate methods
-// TODO(crbug.com/1272491): Refactor SnapshotManager into (probably) a
+#pragma mark - SnapshotGeneratorDelegate methods
+// TODO(crbug.com/1272491): Refactor SnapshotGenerator into (probably) a
 // mediator with a narrowly-defined API to get UI-layer information from the
 // BVC.
 
-- (BOOL)snapshotManager:(SnapshotManager*)snapshotManager
+- (BOOL)snapshotGenerator:(SnapshotGenerator*)snapshotGenerator
     canTakeSnapshotForWebState:(web::WebState*)webState {
   DCHECK(webState);
   PagePlaceholderTabHelper* pagePlaceholderTabHelper =
@@ -2782,7 +2798,7 @@ enum class ToolbarKind {
          !pagePlaceholderTabHelper->will_add_placeholder_for_next_navigation();
 }
 
-- (UIEdgeInsets)snapshotManager:(SnapshotManager*)snapshotManager
+- (UIEdgeInsets)snapshotGenerator:(SnapshotGenerator*)snapshotGenerator
     snapshotEdgeInsetsForWebState:(web::WebState*)webState {
   DCHECK(webState);
 
@@ -2816,8 +2832,8 @@ enum class ToolbarKind {
   }
 }
 
-- (NSArray<UIView*>*)snapshotManager:(SnapshotManager*)snapshotManager
-         snapshotOverlaysForWebState:(web::WebState*)webState {
+- (NSArray<UIView*>*)snapshotGenerator:(SnapshotGenerator*)snapshotGenerator
+           snapshotOverlaysForWebState:(web::WebState*)webState {
   DCHECK(webState);
   WebStateList* webStateList = self.browser->GetWebStateList();
   DCHECK_NE(webStateList->GetIndexOfWebState(webState),
@@ -2876,7 +2892,7 @@ enum class ToolbarKind {
   return overlays;
 }
 
-- (void)snapshotManager:(SnapshotManager*)snapshotManager
+- (void)snapshotGenerator:(SnapshotGenerator*)snapshotGenerator
     willUpdateSnapshotForWebState:(web::WebState*)webState {
   DCHECK(webState);
 
@@ -2886,8 +2902,8 @@ enum class ToolbarKind {
   OverscrollActionsTabHelper::FromWebState(webState)->Clear();
 }
 
-- (UIView*)snapshotManager:(SnapshotManager*)snapshotManager
-       baseViewForWebState:(web::WebState*)webState {
+- (UIView*)snapshotGenerator:(SnapshotGenerator*)snapshotGenerator
+         baseViewForWebState:(web::WebState*)webState {
   NewTabPageTabHelper* NTPHelper = NewTabPageTabHelper::FromWebState(webState);
   if (NTPHelper && NTPHelper->IsActive()) {
     // If NTPCoordinator is not started yet, fall back to using the

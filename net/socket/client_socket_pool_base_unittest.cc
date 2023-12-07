@@ -205,7 +205,6 @@ class MockClientSocket : public StreamSocket {
   const NetLogWithSource& NetLog() const override { return net_log_; }
 
   bool WasEverUsed() const override { return was_used_to_convey_data_; }
-  bool WasAlpnNegotiated() const override { return false; }
   NextProto GetNegotiatedProtocol() const override { return kProtoUnknown; }
   bool GetSSLInfo(SSLInfo* ssl_info) override { return false; }
   int64_t GetTotalReceivedBytes() const override {
@@ -709,7 +708,10 @@ class ClientSocketPoolBaseTest : public TestWithTaskEnvironment {
       /*network_quality_estimator=*/nullptr,
       NetLog::Get(),
       /*websocket_endpoint_lock_manager=*/nullptr,
-      /*http_server_properties=*/nullptr};
+      /*http_server_properties=*/nullptr,
+      /*alpn_protos=*/nullptr,
+      /*application_settings=*/nullptr,
+      /*ignore_certificate_errors=*/nullptr};
   bool connect_backup_jobs_enabled_;
   MockClientSocketFactory client_socket_factory_;
   RecordingNetLogObserver net_log_observer_;

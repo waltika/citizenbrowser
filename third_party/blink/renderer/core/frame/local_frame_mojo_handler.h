@@ -68,6 +68,7 @@ class LocalFrameMojoHandler
   }
 
   mojom::blink::ReportingServiceProxy* ReportingService();
+  device::mojom::blink::DevicePostureProvider* DevicePostureProvider();
   mojom::blink::BackForwardCacheControllerHost&
   BackForwardCacheControllerHostRemote();
 
@@ -78,6 +79,9 @@ class LocalFrameMojoHandler
 #endif
 
   device::mojom::blink::DevicePostureType GetDevicePosture();
+  void OverrideDevicePostureForEmulation(
+      device::mojom::blink::DevicePostureType device_posture_param);
+  void DisableDevicePostureOverrideForEmulation();
 
  private:
   Page* GetPage() const;
@@ -201,6 +205,10 @@ class LocalFrameMojoHandler
       const WTF::Vector<WTF::String>&) final;
   void TraverseCancelled(const String& navigation_api_key,
                          mojom::blink::TraverseCancelledReason reason) final;
+  void DispatchNavigateEventForCrossDocumentTraversal(
+      const KURL&,
+      const std::string& page_state,
+      bool is_browser_initiated) final;
   void SnapshotDocumentForViewTransition(
       SnapshotDocumentForViewTransitionCallback callback) final;
 
@@ -214,7 +222,7 @@ class LocalFrameMojoHandler
       uint32_t response_code,
       const WTF::String& mime_type,
       network::mojom::blink::LoadTimingInfoPtr load_timing_info,
-      net::HttpResponseInfo::ConnectionInfo connection_info,
+      net::HttpConnectionInfo connection_info,
       const WTF::String& alpn_negotiated_protocol,
       bool is_secure_transport,
       bool is_validated,
@@ -269,8 +277,15 @@ class LocalFrameMojoHandler
   HeapMojoRemote<mojom::blink::ReportingServiceProxy> reporting_service_{
       nullptr};
 
+  // Device posture fields should only be used, e.g. non-null, on local roots.
   HeapMojoRemote<device::mojom::blink::DevicePostureProvider>
       device_posture_provider_service_{nullptr};
+  // LocalFrameMojoHandler can be reused by multiple ExecutionContext.
+  HeapMojoReceiver<device::mojom::blink::DevicePostureClient,
+                   LocalFrameMojoHandler>
+      device_posture_receiver_{this, nullptr};
+  device::mojom::blink::DevicePostureType current_device_posture_ =
+      device::mojom::blink::DevicePostureType::kContinuous;
 
   HeapMojoAssociatedRemote<mojom::blink::LocalFrameHost>
       local_frame_host_remote_{nullptr};
@@ -292,14 +307,6 @@ class LocalFrameMojoHandler
   HeapMojoAssociatedReceiver<mojom::blink::FullscreenVideoElementHandler,
                              LocalFrameMojoHandler>
       fullscreen_video_receiver_{this, nullptr};
-
-  // LocalFrameMojoHandler can be reused by multiple ExecutionContext.
-  HeapMojoReceiver<device::mojom::blink::DevicePostureClient,
-                   LocalFrameMojoHandler>
-      device_posture_receiver_{this, nullptr};
-
-  device::mojom::blink::DevicePostureType current_device_posture_ =
-      device::mojom::blink::DevicePostureType::kContinuous;
 };
 
 class ActiveURLMessageFilter : public mojo::MessageFilter {

@@ -426,7 +426,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram
     name="Compositing.Display.OverlayProcessorUsingStrategy.FramesAttemptingRequiredOverlays"
-    units="boolean" expires_after="2024-03-24">
+    units="boolean" expires_after="2024-05-26">
   <owner>zoraiznaeem@chromium.org</owner>
   <owner>graphics-dev@chromium.org</owner>
   <summary>
@@ -753,6 +753,16 @@ chromium-metrics-reviews@google.com.
   <summary>
     Pixel size for a skipped overlay render pass draw quad. Recorded in
     SkiaRenderer ScheduleOverlays.
+  </summary>
+</histogram>
+
+<histogram name="Compositing.SkiaRenderer.VertexOpacityUsage"
+    units="VertexOpacityUsage" expires_after="2024-06-28">
+  <owner>petermcneeley@chromium.org</owner>
+  <owner>kyle@chromium.org</owner>
+  <owner>graphics-dev@chromium.org</owner>
+  <summary>
+    Vertex usage is logged cumulatively for every 1000 TextureDrawQuads drawn.
   </summary>
 </histogram>
 
@@ -1098,7 +1108,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Graphics.Exo.Smoothness.PercentFrameDiscarded" units="%"
-    expires_after="2023-12-31">
+    expires_after="2024-12-31">
   <owner>jonross@chromium.org</owner>
   <owner>yzshen@chromium.org</owner>
   <owner>graphics-dev@chromium.org</owner>

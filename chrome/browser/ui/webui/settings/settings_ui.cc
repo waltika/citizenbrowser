@@ -322,6 +322,10 @@ SettingsUI::SettingsUI(content::WebUI* web_ui)
           search_engines::ChoicePromo::kAny);
   html_source->AddBoolean("searchEngineChoiceSettingsUi",
                           is_search_engine_choice_settings_ui);
+
+  const bool is_eea_country = search_engines::IsEeaChoiceCountry(
+      search_engines::GetSearchEngineChoiceCountryId(profile->GetPrefs()));
+  html_source->AddBoolean("useLargeSearchEngineIcons", is_eea_country);
   if (is_search_engine_choice_settings_ui) {
     AddGeneratedIconResources(html_source, /*directory=*/"images/");
   }
@@ -396,7 +400,7 @@ SettingsUI::SettingsUI(content::WebUI* web_ui)
 
   html_source->AddBoolean(
       "downloadBubblePartialViewControlledByPref",
-      download::IsDownloadBubbleEnabled(profile) &&
+      download::IsDownloadBubbleEnabled() &&
           download::IsDownloadBubblePartialViewControlledByPref());
 
 #if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN)
@@ -481,14 +485,10 @@ SettingsUI::SettingsUI(content::WebUI* web_ui)
       PrivacySandboxServiceFactory::GetForProfile(profile);
   bool is_privacy_sandbox_restricted =
       privacy_sandbox_service->IsPrivacySandboxRestricted();
-  bool is_privacy_sandbox_settings_4 =
-      base::FeatureList::IsEnabled(privacy_sandbox::kPrivacySandboxSettings4);
   bool is_restricted_notice_enabled =
       privacy_sandbox_service->IsRestrictedNoticeEnabled();
   html_source->AddBoolean("isPrivacySandboxRestricted",
                           is_privacy_sandbox_restricted);
-  html_source->AddBoolean("isPrivacySandboxSettings4",
-                          is_privacy_sandbox_settings_4);
   html_source->AddBoolean("isPrivacySandboxRestrictedNoticeEnabled",
                           is_restricted_notice_enabled);
 

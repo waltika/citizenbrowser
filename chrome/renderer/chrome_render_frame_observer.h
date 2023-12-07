@@ -86,7 +86,7 @@ class ChromeRenderFrameObserver : public content::RenderFrameObserver,
   void DidClearWindowObject() override;
   void DidMeaningfulLayout(blink::WebMeaningfulLayout layout_type) override;
   void OnDestruct() override;
-  void WillDetach() override;
+  void WillDetach(blink::DetachReason detach_reason) override;
   void DraggableRegionsChanged() override;
 
   // chrome::mojom::ChromeRenderFrame:
@@ -168,7 +168,7 @@ class ChromeRenderFrameObserver : public content::RenderFrameObserver,
   std::vector<std::u16string> webui_javascript_;
 
   // Add visual query agent to suggest visually relevant items on the page.
-  raw_ptr<companion::visual_search::VisualQueryClassifierAgent,
+  raw_ptr<companion::visual_query::VisualQueryClassifierAgent,
           ExperimentalRenderer>
       visual_classifier_ = nullptr;
 #endif

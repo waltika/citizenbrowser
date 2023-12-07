@@ -16,9 +16,11 @@ source_set("omnibox_position") {
     "//ios/chrome/browser/shared/model/browser",
     "//ios/chrome/browser/shared/model/browser_state",
     "//ios/chrome/browser/shared/model/prefs:pref_names",
+    "//ios/chrome/browser/shared/public/commands",
     "//ios/chrome/browser/shared/public/features",
     "//ios/chrome/browser/ui/first_run:interruptible_chrome_coordinator",
     "//ios/chrome/browser/ui/first_run:screen_delegate",
+    "//ios/chrome/browser/ui/promos_manager:promos",
   ]
 }
 
@@ -32,7 +34,9 @@ source_set("omnibox_position_ui") {
     "omnibox_position_choice_view_controller.mm",
   ]
   deps = [
+    "//components/prefs",
     "//ios/chrome/app/strings",
+    "//ios/chrome/browser/shared/model/prefs:pref_names",
     "//ios/chrome/browser/shared/public/features",
     "//ios/chrome/browser/shared/ui/symbols",
     "//ios/chrome/browser/ui/first_run:constants",
@@ -53,6 +57,7 @@ source_set("eg2_tests") {
     "//build:branding_buildflags",
     "//components/search_engines",
     "//ios/chrome/app/strings",
+    "//ios/chrome/browser/promos_manager:features",
     "//ios/chrome/browser/shared/model/prefs:pref_names",
     "//ios/chrome/browser/shared/public/features",
     "//ios/chrome/browser/ui/authentication:eg_test_support+eg2",

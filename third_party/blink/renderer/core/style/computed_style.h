@@ -46,7 +46,7 @@
 #include "third_party/blink/renderer/core/layout/geometry/box_strut.h"
 #include "third_party/blink/renderer/core/layout/geometry/logical_size.h"
 #include "third_party/blink/renderer/core/layout/geometry/physical_rect.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_outline_type.h"
+#include "third_party/blink/renderer/core/layout/outline_type.h"
 #include "third_party/blink/renderer/core/scroll/scroll_types.h"
 #include "third_party/blink/renderer/core/style/computed_style_base.h"
 #include "third_party/blink/renderer/core/style/computed_style_constants.h"
@@ -1515,24 +1515,18 @@ class ComputedStyle final : public ComputedStyleBase {
   const Length& LogicalBottom() const {
     return PhysicalBoundsToLogical().BlockEnd();
   }
-  bool OffsetEqual(const ComputedStyle& other) const {
+  bool InsetsEqual(const ComputedStyle& other) const {
     return UsedLeft() == other.UsedLeft() && UsedRight() == other.UsedRight() &&
            UsedTop() == other.UsedTop() && UsedBottom() == other.UsedBottom();
   }
 
   // Whether or not a positioned element requires normal flow x/y to be computed
   // to determine its position.
-  bool HasAutoLeftAndRight() const {
+  bool HasAutoLeftAndRightIgnoringInsetArea() const {
     return UsedLeft().IsAuto() && UsedRight().IsAuto();
   }
-  bool HasAutoTopAndBottom() const {
+  bool HasAutoTopAndBottomIgnoringInsetArea() const {
     return UsedTop().IsAuto() && UsedBottom().IsAuto();
-  }
-  bool HasStaticInlinePosition(bool horizontal) const {
-    return horizontal ? HasAutoLeftAndRight() : HasAutoTopAndBottom();
-  }
-  bool HasStaticBlockPosition(bool horizontal) const {
-    return horizontal ? HasAutoTopAndBottom() : HasAutoLeftAndRight();
   }
 
   // Content utility functions.
@@ -1619,8 +1613,8 @@ class ComputedStyle final : public ComputedStyleBase {
     return IsInlineOrBlockSizeContainer() && StyleType() == kPseudoIdNone;
   }
 
-  bool IsContainerForStickyContainerQueries() const {
-    return IsStickyContainer() && StyleType() == kPseudoIdNone;
+  bool IsContainerForScrollStateContainerQueries() const {
+    return IsScrollStateContainer() && StyleType() == kPseudoIdNone;
   }
 
   bool DependsOnContainerQueries() const {
@@ -2427,10 +2421,9 @@ class ComputedStyle final : public ComputedStyleBase {
   bool IsSizeContainer() const {
     return (ContainerType() & kContainerTypeSize) == kContainerTypeSize;
   }
-  bool IsStickyContainer() const {
-    return ContainerType() & kContainerTypeSticky;
+  bool IsScrollStateContainer() const {
+    return ContainerType() & kContainerTypeScrollState;
   }
-  bool IsSnapContainer() const { return ContainerType() & kContainerTypeSnap; }
 
   static bool IsDisplayBlockContainer(EDisplay display) {
     return display == EDisplay::kBlock || display == EDisplay::kListItem ||

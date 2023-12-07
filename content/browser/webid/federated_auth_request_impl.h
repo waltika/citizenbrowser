@@ -109,10 +109,9 @@ class CONTENT_EXPORT FederatedAuthRequestImpl
   // Rejects the pending request if it has not been resolved naturally yet.
   void OnRejectRequest();
 
-  // This wrapper around FederatedIdentityApiPermissionContextDelegate ensures
-  // that we handle BLOCKED_THIRD_PARTY_COOKIES_BLOCKED correctly.
+  // Returns whether the API is enabled or not.
   FederatedIdentityApiPermissionContextDelegate::PermissionStatus
-  GetApiPermissionStatus(const url::Origin& idp_origin);
+  GetApiPermissionStatus();
 
   struct IdentityProviderGetInfo {
     IdentityProviderGetInfo(blink::mojom::IdentityProviderRequestOptionsPtr,
@@ -159,14 +158,26 @@ class CONTENT_EXPORT FederatedAuthRequestImpl
     return idp_data_for_display_;
   }
 
-  enum DialogType { kNone, kSelectAccount, kAutoReauth, kConfirmIdpLogin };
+  enum DialogType {
+    kNone,
+    kSelectAccount,
+    kAutoReauth,
+    kConfirmIdpLogin,
+    kError
+  };
   DialogType GetDialogType() const { return dialog_type_; }
+
+  enum IdentitySelectionType { kExplicit, kAutoWidget };
 
   void AcceptAccountsDialogForDevtools(const GURL& config_url,
                                        const IdentityRequestAccount& account);
   void DismissAccountsDialogForDevtools(bool should_embargo);
   void AcceptConfirmIdpLoginDialogForDevtools();
   void DismissConfirmIdpLoginDialogForDevtools();
+  bool HasMoreDetailsButtonForDevtools();
+  void ClickErrorDialogGotItForDevtools();
+  void ClickErrorDialogMoreDetailsForDevtools();
+  void DismissErrorDialogForDevtools();
 
   // Check if the scope of the request allows the browser to mediate
   // or delegate (to the IdP) the authorization.
@@ -449,8 +460,18 @@ class CONTENT_EXPORT FederatedAuthRequestImpl
   // If dialog_type_ is kConfirmIdpLogin, this is the login URL for the IDP.
   GURL login_url_;
 
+  // If dialog_type_ is kError, this is the config URL for the IDP.
+  GURL config_url_;
+
+  // If dialog_type_ is kError, this is the fetch status of the token request.
+  IdpNetworkRequestManager::FetchStatus token_request_status_;
+
+  // If dialog_type_ is kError, this is the token error.
+  absl::optional<TokenError> token_error_;
+
   DialogType dialog_type_ = kNone;
   MediationRequirement mediation_requirement_;
+  IdentitySelectionType identity_selection_type_ = kExplicit;
 
   std::unique_ptr<DigitalCredentialProvider> digital_credential_provider_;
   RequestTokenCallback digital_credential_request_callback_;

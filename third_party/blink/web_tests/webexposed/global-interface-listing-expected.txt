@@ -1406,6 +1406,7 @@ interface CredentialsContainer
     method create
     method get
     method preventSilentAccess
+    method requestIdentity
     method store
 interface CropTarget
     static method fromElement
@@ -2951,7 +2952,6 @@ interface GPUCommandEncoder
     method popDebugGroup
     method pushDebugGroup
     method resolveQuerySet
-    method writeTimestamp
     setter label
 interface GPUCompilationInfo
     attribute @@toStringTag
@@ -5624,6 +5624,7 @@ interface MLGraphBuilder
     method averagePool2d
     method batchNormalization
     method build
+    method cast
     method ceil
     method clamp
     method concat
@@ -5638,6 +5639,7 @@ interface MLGraphBuilder
     method exp
     method expand
     method floor
+    method gather
     method gemm
     method hardSwish
     method identity
@@ -7088,7 +7090,6 @@ interface PerformanceEventTiming : PerformanceEntry
 interface PerformanceLongAnimationFrameTiming : PerformanceEntry
     attribute @@toStringTag
     getter blockingDuration
-    getter desiredRenderStart
     getter firstUIEventTimestamp
     getter renderStart
     getter scripts
@@ -7181,7 +7182,6 @@ interface PerformanceResourceTiming : PerformanceEntry
     method toJSON
 interface PerformanceScriptTiming : PerformanceEntry
     attribute @@toStringTag
-    getter desiredExecutionStart
     getter executionStart
     getter forcedStyleAndLayoutDuration
     getter pauseDuration

@@ -12,10 +12,12 @@
 #import "components/search_engines/template_url.h"
 #import "components/search_engines/template_url_service.h"
 #import "components/search_engines/template_url_service_observer.h"
+#import "ios/chrome/browser/favicon/favicon_loader.h"
 #import "ios/chrome/browser/search_engines/model/search_engine_observer_bridge.h"
 #import "ios/chrome/browser/shared/ui/list_model/list_model.h"
 #import "ios/chrome/browser/ui/search_engine_choice/search_engine_choice_table/cells/snippet_search_engine_item.h"
 #import "ios/chrome/browser/ui/search_engine_choice/search_engine_choice_table/search_engine_choice_table_consumer.h"
+#import "ios/chrome/common/ui/favicon/favicon_constants.h"
 
 namespace {
 
@@ -38,7 +40,10 @@ SnippetSearchEngineItem* CreateSnippetSearchEngineItemFromTemplateURL(
     // Use icon URL for favicons of custom search engines.
     item.URL = template_url->favicon_url();
   }
-  item.text = base::SysUTF16ToNSString(template_url->short_name());
+  item.name = base::SysUTF16ToNSString(template_url->short_name());
+  std::u16string string =
+      search_engines::GetMarketingSnippetString(template_url->data());
+  item.snippetDescription = base::SysUTF16ToNSString(string);
   return item;
 }
 
@@ -57,15 +62,19 @@ SnippetSearchEngineItem* CreateSnippetSearchEngineItemFromTemplateURL(
   // The corresponding list of search engines as items that can be inserted into
   // a tableView.
   NSArray<SnippetSearchEngineItem*>* _searchEngineList;
+  // FaviconLoader is a keyed service that uses LargeIconService to retrieve
+  // favicon images.
+  FaviconLoader* _faviconLoader;
 }
 
 - (instancetype)initWithTemplateURLService:
                     (TemplateURLService*)templateURLService
-                               prefService:(PrefService*)prefService {
+                               prefService:(PrefService*)prefService
+                             faviconLoader:(FaviconLoader*)faviconLoader {
   self = [super init];
-
   if (self) {
     _templateURLService = templateURLService;
+    _faviconLoader = faviconLoader;
     _prefService = prefService;
     _observer =
         std::make_unique<SearchEngineObserverBridge>(self, _templateURLService);
@@ -86,14 +95,16 @@ SnippetSearchEngineItem* CreateSnippetSearchEngineItemFromTemplateURL(
 - (void)disconnect {
   _observer.reset();
   _templateURLService = nullptr;
-  _consumer = nil;
+  _faviconLoader = nullptr;
 }
 
 #pragma mark - Properties
 
 - (void)setConsumer:(id<SearchEngineChoiceTableConsumer>)consumer {
   _consumer = consumer;
-  [self loadSearchEngines];
+  if (_consumer) {
+    [self loadSearchEngines];
+  }
 }
 
 #pragma mark - SearchEngineObserving
@@ -120,6 +131,13 @@ SnippetSearchEngineItem* CreateSnippetSearchEngineItemFromTemplateURL(
         CreateSnippetSearchEngineItemFromTemplateURL(templateURL.get(),
                                                      _templateURLService);
     [searchEngineList addObject:item];
+    __weak __typeof(self) weakSelf = self;
+    _faviconLoader->FaviconForPageUrl(
+        item.URL, kDesiredMediumFaviconSizePt, kMinFaviconSizePt,
+        /*fallback_to_google_server=*/YES, ^(FaviconAttributes* attributes) {
+          item.faviconAttributes = attributes;
+          [weakSelf.consumer faviconAttributesUpdatedForItem:item];
+        });
   }
 
   _searchEngineList = [searchEngineList copy];

@@ -86,6 +86,7 @@
 #include "third_party/blink/renderer/core/html/forms/radio_input_type.h"
 #include "third_party/blink/renderer/core/html/forms/text_control_element.h"
 #include "third_party/blink/renderer/core/html/html_anchor_element.h"
+#include "third_party/blink/renderer/core/html/html_details_element.h"
 #include "third_party/blink/renderer/core/html/html_div_element.h"
 #include "third_party/blink/renderer/core/html/html_dlist_element.h"
 #include "third_party/blink/renderer/core/html/html_element.h"
@@ -332,14 +333,55 @@ bool CanHaveInlineTextBoxChildren(const blink::AXObject* obj) {
     return false;
   }
 
-  // Inline textboxes are included if and only if the parent is unignored.
-  // If the parent is ignored but included in tree, the inline textbox is
-  // still withheld.
-  if (obj->LastKnownIsIgnoredValue()) {
+  // Requires a layout object for there to be any inline text boxes.
+  if (!obj->GetLayoutObject()) {
     return false;
   }
 
-  return obj->GetLayoutObject() && obj->GetLayoutObject()->IsText();
+  // Inline text boxes are included if and only if the parent is unignored.
+  // If the parent is ignored but included in tree, the inline textbox is
+  // still withheld.
+  return !obj->LastKnownIsIgnoredValue();
+}
+
+bool HasLayoutText(const blink::AXObject* obj) {
+  // This method should only be used when layout is clean.
+#if DCHECK_IS_ON()
+  DCHECK(obj->GetDocument()->Lifecycle().GetState() >=
+         blink::DocumentLifecycle::kLayoutClean)
+      << "Unclean document at lifecycle "
+      << obj->GetDocument()->Lifecycle().ToString();
+#endif
+
+  // If no layout object, could be display:none or display locked.
+  if (!obj->GetLayoutObject()) {
+    return false;
+  }
+
+  // Display-locked nodes do not have layout objects with which to use for
+  // retrieving inline textbox children.
+  const blink::AXObject* ax_ancestor_with_node = obj;
+  while (!ax_ancestor_with_node->GetNode()) {
+    ax_ancestor_with_node = ax_ancestor_with_node->CachedParentObject();
+  }
+  if (blink::DisplayLockUtilities::LockedAncestorPreventingPaint(
+          *ax_ancestor_with_node->GetNode())) {
+    return false;
+  }
+
+  // Only text has inline textbox children.
+  if (!obj->GetLayoutObject()->IsText()) {
+    return false;
+  }
+
+  // Layout for this node must be clean, since we are in clean layout, and any
+  // node that needs layout because of display locking would have returned early
+  // above.
+  DUMP_WILL_BE_CHECK(!obj->GetLayoutObject()->NeedsLayout())
+      << "LayoutText needed layout but was not display locked: "
+      << obj->ToString(true, true);
+
+  return true;
 }
 
 }  // namespace
@@ -602,7 +644,7 @@ AXObjectInclusion AXNodeObject::ShouldIncludeBasedOnSemantics(
   // Descendants are pruned: IsRelevantPseudoElementDescendant() returns false.
   // Note: this is duplicated from AXLayoutObject because CSS alt text may apply
   // to both Elements and pseudo-elements.
-  absl::optional<String> alt_text = GetCSSAltText(GetNode());
+  absl::optional<String> alt_text = GetCSSAltText(GetElement());
   if (alt_text && !alt_text->empty())
     return kIncludeObject;
 
@@ -791,20 +833,22 @@ bool AXNodeObject::ComputeAccessibilityIsIgnored(
 }
 
 // static
-absl::optional<String> AXNodeObject::GetCSSAltText(const Node* node) {
+std::optional<String> AXNodeObject::GetCSSAltText(const Element* element) {
   // CSS alt text rules allow text to be assigned to ::before/::after content.
   // For example, the following CSS assigns "bullet" text to bullet.png:
   // .something::before {
   //   content: url(bullet.png) / "bullet";
   // }
 
-  if (!node || !node->GetComputedStyle() ||
-      node->GetComputedStyle()->ContentBehavesAsNormal()) {
-    return absl::nullopt;
+  if (!element) {
+    return std::nullopt;
+  }
+  const ComputedStyle* style = element->GetComputedStyle();
+  if (!style || style->ContentBehavesAsNormal()) {
+    return std::nullopt;
   }
 
-  const ComputedStyle* style = node->GetComputedStyle();
-  if (node->IsPseudoElement()) {
+  if (element->IsPseudoElement()) {
     for (const ContentData* content_data = style->GetContentData();
          content_data; content_data = content_data->Next()) {
       if (content_data->IsAltText())
@@ -1244,8 +1288,8 @@ ax::mojom::blink::Role AXNodeObject::NativeRoleIgnoringAria() const {
     return RoleFromLayoutObjectOrNode();
   }
 
-  if (GetNode()->IsPseudoElement() && GetCSSAltText(GetNode())) {
-    const ComputedStyle* style = GetNode()->GetComputedStyle();
+  if (GetNode()->IsPseudoElement() && GetCSSAltText(GetElement())) {
+    const ComputedStyle* style = GetElement()->GetComputedStyle();
     ContentData* content_data = style->GetContentData();
     // We just check the first item of the content list to determine the
     // appropriate role, should only ever be image or text.
@@ -1307,8 +1351,14 @@ ax::mojom::blink::Role AXNodeObject::NativeRoleIgnoringAria() const {
     ContainerNode* parent = LayoutTreeBuilderTraversal::Parent(*GetNode());
     if (ToHTMLSlotElementIfSupportsAssignmentOrNull(parent))
       parent = LayoutTreeBuilderTraversal::Parent(*parent);
-    if (parent && IsA<HTMLDetailsElement>(parent))
-      return ax::mojom::blink::Role::kDisclosureTriangle;
+    if (HTMLDetailsElement* parent_details =
+            DynamicTo<HTMLDetailsElement>(parent)) {
+      if (parent_details->GetName().empty()) {
+        return ax::mojom::blink::Role::kDisclosureTriangle;
+      } else {
+        return ax::mojom::blink::Role::kDisclosureTriangleGrouped;
+      }
+    }
     return ax::mojom::blink::Role::kGenericContainer;
   }
 
@@ -4301,6 +4351,13 @@ bool AXNodeObject::ShouldLoadInlineTextBoxes() const {
 }
 
 void AXNodeObject::LoadInlineTextBoxes() {
+#if DCHECK_IS_ON()
+  DCHECK(GetDocument()->Lifecycle().GetState() >=
+         DocumentLifecycle::kLayoutClean)
+      << "Unclean document at lifecycle "
+      << GetDocument()->Lifecycle().ToString();
+#endif
+
   std::queue<AXID> work_queue;
   work_queue.push(AXObjectID());
 
@@ -4352,7 +4409,7 @@ void AXNodeObject::LoadInlineTextBoxesHelper() {
     // If inline text box children were added, mark the node dirty so that the
     // results are serialized.
     if (!CachedChildrenIncludingIgnored().empty()) {
-      AXObjectCache().AddDirtyObjectToSerializationQueue(
+      AXObjectCache().MarkAXObjectDirtyWithDetails(
           this, /*subtree*/ false, ax::mojom::blink::EventFrom::kNone,
           ax::mojom::blink::Action::kNone, {});
     }
@@ -4365,6 +4422,9 @@ void AXNodeObject::LoadInlineTextBoxesHelper() {
 void AXNodeObject::AddInlineTextBoxChildren() {
   CHECK(GetDocument());
   CHECK(ShouldLoadInlineTextBoxes());
+  CHECK(GetLayoutObject());
+  GetLayoutObject()->CheckIsNotDestroyed();
+  CHECK(GetLayoutObject()->IsText());
   CHECK(!GetLayoutObject()->NeedsLayout());
   CHECK(AXObjectCache().GetAXMode().has_mode(ui::AXMode::kInlineTextBoxes));
   CHECK(!AXObjectCache().GetAXMode().HasExperimentalFlags(
@@ -4531,7 +4591,7 @@ void AXNodeObject::AddChildrenImpl() {
     return;
   }
 
-  if (ShouldLoadInlineTextBoxes()) {
+  if (ShouldLoadInlineTextBoxes() && HasLayoutText(this)) {
     AddInlineTextBoxChildren();
     CHECK_ATTACHED();
     return;

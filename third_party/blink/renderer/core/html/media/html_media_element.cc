@@ -1455,10 +1455,14 @@ bool HTMLMediaElement::HandleInvokeInternal(HTMLElement& invoker,
     return true;
   }
 
+  if (!RuntimeEnabledFeatures::HTMLInvokeActionsV2Enabled()) {
+    return false;
+  }
+
   if (!(EqualIgnoringASCIICase(action, keywords::kPlaypause) ||
         EqualIgnoringASCIICase(action, keywords::kPause) ||
         EqualIgnoringASCIICase(action, keywords::kPlay) ||
-        EqualIgnoringASCIICase(action, keywords::kMute))) {
+        EqualIgnoringASCIICase(action, keywords::kToggleMuted))) {
     return false;
   }
   Document& document = GetDocument();
@@ -1499,7 +1503,7 @@ bool HTMLMediaElement::HandleInvokeInternal(HTMLElement& invoker,
     }
     return true;
   } else {
-    CHECK(EqualIgnoringASCIICase(action, keywords::kMute));
+    CHECK(EqualIgnoringASCIICase(action, keywords::kToggleMuted));
     // No user activation check as `setMuted` already handles the autoplay
     // policy check.
     setMuted(!muted_);

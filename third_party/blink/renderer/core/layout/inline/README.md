@@ -5,7 +5,7 @@ of Blink's new layout engine "LayoutNG".
 
 This README can be viewed in formatted form [here](https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/renderer/core/layout/inline/README.md).
 
-Other parts of LayoutNG is explained [here](../ng/README.md).
+Other parts of LayoutNG is explained [here](../layout_ng.md).
 
 ## What is Inline Layout ##
 
@@ -51,10 +51,10 @@ as in the following.
 
 ### Fragment tree ###
 
-* NGPhysicalBoxFragment
-  - NGPhysicalBoxFragment (anonymous wrapper)
+* PhysicalBoxFragment
+  - PhysicalBoxFragment (anonymous wrapper)
     - PhysicalLineBoxFragment
-      - NGPhysicalBoxFragment (span, may be omitted)
+      - PhysicalBoxFragment (span, may be omitted)
         - NGPhysicalTextFragment ("Hello")
 |||---|||
 
@@ -98,7 +98,7 @@ three separate steps or stages that are executed in order:
     all non-atomic inlines and `TextNodes`s. Atomic inlines are represented as a
     unicode object replacement character but are otherwise skipped.
     Each non-atomic inline and `TextNodes` is fed to a
-    [InlineItemsBuilder](ng_inline_items_builder.h) instance which collects
+    [InlineItemsBuilder](inline_items_builder.h) instance which collects
     the text content for all non-atomic inlines in the container.
 
     During this process white-space is collapsed and normalized according to CSS
@@ -206,7 +206,7 @@ This stack:
 2. Computes the height of an inline box.
    The [height of inline, non-replaced elements depends on the content area],
    but CSS doesn't define how to compute the content area.
-3. Creates [NGPhysicalBoxFragment]s when needed.
+3. Creates [PhysicalBoxFragment]s when needed.
    CSS doesn't define when an inline box should have a box,
    but existing implementations are interoperable that
    there should be a box when it has borders.
@@ -229,14 +229,14 @@ When all operations are done,
 
 #### Box Fragments in Line Box Fragments ####
 
-Not all [inline-level] boxes produces [NGPhysicalBoxFragment]s.
+Not all [inline-level] boxes produces [PhysicalBoxFragment]s.
 
 [InlineLayoutAlgorithm] determines
-whether a [NGPhysicalBoxFragment] is needed or not,
+whether a [PhysicalBoxFragment] is needed or not,
 such as when a `<span>` has borders,
 and calls [InlineBoxState]`::SetNeedsBoxFragment()`.
 
-Since [NGPhysicalBoxFragment] needs to know its children
+Since [PhysicalBoxFragment] needs to know its children
 and size before creating it,
 `InlineLayoutStateStack::AddBoxFragmentPlaceholder()`
 first creates placeholders.
@@ -245,7 +245,7 @@ and adjust positions both horizontally and vertically.
 
 Once all children and their positions and sizes are finalized,
 `InlineLayoutStateStack::CreateBoxFragments()`
-creates [NGPhysicalBoxFragment] and add children to it.
+creates [PhysicalBoxFragment] and add children to it.
 
 ### <a name="generate-fragments">Generate Fragments</a> ###
 [generate fragments]: #generate-fragments
@@ -272,7 +272,7 @@ Computing baselines in LayoutNG goes the following process.
 2. Call [LayoutInputNode]`::Layout()`,
    that calls appropriate layout algorithm.
 3. Each layout algorithm computes baseline according to the requests.
-4. Users retrieve the result by [NGPhysicalBoxFragment]`::Baseline()`,
+4. Users retrieve the result by [PhysicalBoxFragment]`::Baseline()`,
    or by higher level functions such as
    [LogicalBoxFragment]`::BaselineMetrics()`.
 
@@ -280,7 +280,7 @@ Algorithms are responsible
 for checking [ConstraintSpace]`::BaselineRequests()`,
 computing requested baselines, and
 calling [BoxFragmentBuilder]`::AddBaseline()`
-to add them to [NGPhysicalBoxFragment].
+to add them to [PhysicalBoxFragment].
 
 [NGBaselineRequest] consists of [BaselineAlgorithmType] and [FontBaseline].
 
@@ -370,30 +370,30 @@ positions in the context. See [design doc](https://goo.gl/CJbxky) for details.
 [UAX#9 Resolving Embedding Levels]: http://www.unicode.org/reports/tr9/#Resolving_Embedding_Levels
 [UAX#9 Reordering Resolved Levels]: http://www.unicode.org/reports/tr9/#Reordering_Resolved_Levels
 
-[BaselineAlgorithmType]: ../ng/ng_constraint_space.h
+[BaselineAlgorithmType]: ../constraint_space.h
 [BidiParagraph]: ../../../platform/text/bidi_paragraph.h
-[BlockNode]: ../ng/ng_block_node.h
-[BoxFragmentBuilder]: ../ng/ng_box_fragment_builder.h
-[ConstraintSpace]: ../ng/ng_constraint_space.h
-[ConstraintSpaceBuilder]: ../ng/ng_constraint_space_builder.h
+[BlockNode]: ../block_node.h
+[BoxFragmentBuilder]: ../box_fragment_builder.h
+[ConstraintSpace]: ../constraint_space.h
+[ConstraintSpaceBuilder]: ../constraint_space_builder.h
 [FontBaseline]: ../../../platform/fonts/font_baseline.h
-[FragmentItem]: ng_fragment_item.h
-[FragmentItems]: ng_fragment_items.h
-[InlineBoxState]: ng_inline_box_state.h
-[InlineItem]: ng_inline_item.h
-[InlineItemResult]: ng_inline_item_result.h
-[InlineLayoutAlgorithm]: ng_inline_layout_algorithm.h
-[InlineNode]: ng_inline_node.h
-[LayoutInputNode]: ../ng/ng_layout_input_node.h
-[LineBreaker]: ng_line_breaker.h
-[LogicalBoxFragment]: ../ng/ng_box_fragment.h
-[LogicalLineItem]: ng_logical_line_item.h
-[LogicalLineItems]: ng_logical_line_items.h
+[FragmentItem]: fragment_item.h
+[FragmentItems]: fragment_items.h
+[InlineBoxState]: inline_box_state.h
+[InlineItem]: inline_item.h
+[InlineItemResult]: inline_item_result.h
+[InlineLayoutAlgorithm]: inline_layout_algorithm.h
+[InlineNode]: inline_node.h
+[LayoutInputNode]: ../layout_input_node.h
+[LineBreaker]: line_breaker.h
+[LogicalBoxFragment]: ../logical_box_fragment.h
+[LogicalLineItem]: logical_line_item.h
+[LogicalLineItems]: logical_line_items.h
 [NGBaselineRequest]: ng_baseline.h
-[NGPhysicalBoxFragment]: ../ng/ng_physical_box_fragment.h
 [NGPhysicalTextFragment]: ng_physical_text_fragment.h
-[OffsetMapping]: ng_offset_mapping.h
-[PhysicalFragment]: ../ng/ng_physical_fragment.h
-[PhysicalLineBoxFragment]: ng_physical_line_box_fragment.h
+[OffsetMapping]: offset_mapping.h
+[PhysicalBoxFragment]: ../physical_box_fragment.h
+[PhysicalFragment]: ../physical_fragment.h
+[PhysicalLineBoxFragment]: physical_line_box_fragment.h
 [ShapeResult]: ../../../platform/fonts/shaping/shape_result.h
 [ShapingLineBreaker]: ../../../platform/fonts/shaping/shaping_line_breaker.h

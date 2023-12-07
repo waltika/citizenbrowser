@@ -31,7 +31,6 @@
 <translation id="1181037720776840403">Fjern</translation>
 <translation id="1191518099344003522">APN er aktivert.</translation>
 <translation id="1195447618553298278">Ukjent feil.</translation>
-<translation id="1195784767091936222">Slå på automatisk mørk modus</translation>
 <translation id="1196959502276349371">Versjon <ph name="VERSION" /></translation>
 <translation id="1199355487114804640">Spill av / sett på pause</translation>
 <translation id="1201402288615127009">Neste</translation>
@@ -152,7 +151,6 @@
 <translation id="1923388006036088459">Markeringsfarger</translation>
 <translation id="1947737735496445907">Skrevet ut</translation>
 <translation id="1951012854035635156">Assistent</translation>
-<translation id="1954687945444914660">fotografering</translation>
 <translation id="1962550982027027473">Et standard APN kreves</translation>
 <translation id="1973886230221301399">ChromeVox</translation>
 <translation id="1977994649430373166">Google-profilbilde</translation>
@@ -261,6 +259,7 @@
 <translation id="2872961005593481000">Slå av</translation>
 <translation id="2873483161362553159">Nettlesernavigering</translation>
 <translation id="2874939134665556319">Forrige spor</translation>
+<translation id="2875812231449496375">Slå på dette for å få best resultat med denne bakgrunnen. Du kan slå av denne innstillingen når som helst.</translation>
 <translation id="2878387241690264070">Ladet ut <ph name="RATE" /> på <ph name="NUM_SECONDS" /> sekunder.</translation>
 <translation id="2880569433548999039">Skjermsparer: Skyflyt</translation>
 <translation id="2926057806159140518">Oppgi brukernavn og passord, eller skann QR-koden din</translation>
@@ -281,7 +280,6 @@
 <translation id="3122464029669770682">Prosessor</translation>
 <translation id="3124039320086536031">Enheten er tilkoblet.</translation>
 <translation id="3127341325625468058">{PAGE_NUMBER,plural, =0{Vil du fjerne siden?}=1{Vil du fjerne side {PAGE_NUMBER}?}other{Vil du fjerne side {PAGE_NUMBER}?}}</translation>
-<translation id="3136905423678675159">Vil du slå på automatisk mørk modus?</translation>
 <translation id="3146655726035122603">Kun på <ph name="PRODUCT_NAME" /></translation>
 <translation id="315116470104423982">Mobildata</translation>
 <translation id="3156846309055100599">Skanner side <ph name="PAGE_NUMBER" /> …</translation>
@@ -362,7 +360,6 @@
 <translation id="3740976234706877572"><ph name="AVERAGE_SCORE" /> ★ (<ph name="AGGREGATED_COUNT" /> anmeldelser)</translation>
 <translation id="3748026146096797577">Ikke tilkoblet</translation>
 <translation id="3749289110408117711">Filnavn</translation>
-<translation id="3754384069690464321">Du får best resultater med denne bakgrunnen hvis du slår på automatisk mørk modus. Du kan når som helst endre det tilbake i appen.</translation>
 <translation id="3771294271822695279">Videofiler</translation>
 <translation id="3784455785234192852">Lås</translation>
 <translation id="380097101658023925">RGB-kontroller</translation>
@@ -555,6 +552,7 @@
 <translation id="5090362543162270857">IPsec (IKEv2)</translation>
 <translation id="5137451382116112100">Full</translation>
 <translation id="5142961317498132443">Autentisering</translation>
+<translation id="5145081769226915336">Vil du slå på mørk modus automatisk?</translation>
 <translation id="5154917547274118687">Minne</translation>
 <translation id="5160857336552977725">Logg på <ph name="DEVICE_TYPE" /></translation>
 <translation id="5166918508782100047">Innstillinger for Hurtiginfo</translation>
@@ -596,7 +594,6 @@
 <translation id="5389224261615877010">Regnbue</translation>
 <translation id="5400907029458559844">Enheten kobler seg til.</translation>
 <translation id="5401938042319910061">Kjør alle rutinene</translation>
-<translation id="540604120278030498">New York</translation>
 <translation id="5423849171846380976">Aktivert</translation>
 <translation id="5430931332414098647">Umiddelbar internettdeling</translation>
 <translation id="5431318178759467895">Farge</translation>
@@ -806,7 +803,6 @@
 <translation id="7046522406494308071">Vil du tilbakestille alle hurtigtastene til standardinnstillingene?</translation>
 <translation id="7058278511608979688">Avslutt og lagre</translation>
 <translation id="7059230779847288458">Lader – fulladet om <ph name="TIME_VALUE" /></translation>
-<translation id="7065364575846974659">Paris</translation>
 <translation id="7066538517128343186"><ph name="KEY" />-nøkkelen</translation>
 <translation id="7068619307603204412">Gjør enheten klar</translation>
 <translation id="708426984172631313">STOPPET</translation>
@@ -947,7 +943,6 @@
 <translation id="8094062939584182041">La Google sende deg e-post om dette problemet</translation>
 <translation id="8104083085214006426">Du bruker et åpent og usikret nettverk</translation>
 <translation id="8111706652656628199">Hurtigtasten er ikke tilgjengelig. Trykk på en ny hurtigtast som inneholder Shift og en modifikatortast til (Ctrl, Alt, Søk, eller Appoversikt).</translation>
-<translation id="8112538018114444149">En park i <ph name="CHIP_CITY" /> i stilen <ph name="CHIP_STYLE" />.</translation>
 <translation id="811820734797650957">(Android) Gatewayen kan pinges</translation>
 <translation id="8129620843620772246"><ph name="TEMPERATURE_C" /> °C</translation>
 <translation id="8132480444149501833">Be om trafikktellere</translation>
@@ -1082,7 +1077,6 @@
 <translation id="9058932992221914855">IPv6</translation>
 <translation id="9062831201344759865">DNS-oppslag har høy tidsforsinkelse</translation>
 <translation id="9065203028668620118">Endre</translation>
-<translation id="9068296451330120661">vannfarger</translation>
 <translation id="9073281213608662541">PAP</translation>
 <translation id="9074739597929991885">Bluetooth</translation>
 <translation id="9082718469794970195">Bruk denne videoen</translation>

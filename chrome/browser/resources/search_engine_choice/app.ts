@@ -10,12 +10,15 @@ import 'chrome://resources/cr_elements/cr_dialog/cr_dialog.js';
 import 'chrome://resources/cr_elements/cr_radio_group/cr_radio_group.js';
 import 'chrome://resources/cr_elements/cr_radio_button/cr_radio_button.js';
 import 'chrome://resources/cr_elements/cr_icons.css.js';
+import 'chrome://resources/polymer/v3_0/iron-collapse/iron-collapse.js';
 import 'chrome://resources/cr_elements/icons.html.js';
 import 'chrome://resources/polymer/v3_0/iron-icon/iron-icon.js';
+import 'chrome://resources/cr_elements/cr_expand_button/cr_expand_button.js';
 import './strings.m.js';
 
 import {CrButtonElement} from 'chrome://resources/cr_elements/cr_button/cr_button.js';
 import {CrDialogElement} from 'chrome://resources/cr_elements/cr_dialog/cr_dialog.js';
+import {CrRadioGroupElement} from 'chrome://resources/cr_elements/cr_radio_group/cr_radio_group.js';
 import {I18nMixin} from 'chrome://resources/cr_elements/i18n_mixin.js';
 import {getFaviconForPageURL} from 'chrome://resources/js/icon.js';
 import {loadTimeData} from 'chrome://resources/js/load_time_data.js';
@@ -30,8 +33,9 @@ export interface SearchEngineChoiceAppElement {
     dummyOmnibox: HTMLElement,
     infoDialog: CrDialogElement,
     searchEngineOmnibox: HTMLElement,
-    submitButton: CrButtonElement,
+    actionButton: CrButtonElement,
     infoLink: HTMLElement,
+    choiceList: CrRadioGroupElement,
   };
 }
 
@@ -69,9 +73,10 @@ export class SearchEngineChoiceAppElement extends
         observer: 'onSelectedChoiceChanged_',
       },
 
-      isSubmitDisabled_: {
+      isActionButtonDisabled_: {
         type: Boolean,
-        computed: 'isSubmitButtonDisabled_(selectedChoice_)',
+        computed: 'computeActionButtonDisabled_(selectedChoice_, ' +
+            'hasUserScrolledToTheBottom_)',
       },
 
       fakeOmniboxText_: {
@@ -83,6 +88,30 @@ export class SearchEngineChoiceAppElement extends
         type: String,
         value: '',
       },
+
+      withMarketingSnippets_: {
+        type: Boolean,
+        value() {
+          return loadTimeData.getBoolean('withMarketingSnippets');
+        },
+      },
+
+      withForcedScroll_: {
+        type: Boolean,
+        value() {
+          return loadTimeData.getBoolean('withForcedScroll');
+        },
+      },
+
+      actionButtonText_: {
+        type: String,
+        computed: 'getActionButtonText_(hasUserScrolledToTheBottom_)',
+      },
+
+      hasUserScrolledToTheBottom_: {
+        type: Boolean,
+        value: false,
+      },
     };
   }
 
@@ -91,6 +120,10 @@ export class SearchEngineChoiceAppElement extends
   private fakeOmniboxText_: string;
   private fakeOmniboxIconPath_: string;
   private pageHandler_: PageHandlerRemote;
+  private withMarketingSnippets_: boolean;
+  private hasUserScrolledToTheBottom_: boolean;
+  private withForcedScroll_: boolean;
+  private actionButtonText_: string;
 
   constructor() {
     super();
@@ -105,17 +138,32 @@ export class SearchEngineChoiceAppElement extends
     // `background-image` property because `getFaviconForPageURL` returns an
     // `image-set` and not a url.
     this.choiceList_.forEach((searchEngine: SearchEngineChoice) => {
-      if (searchEngine.prepopulate_id === 0) {
+      if (searchEngine.prepopulateId === 0) {
         // We get the favicon from the Favicon Service for custom search
         // engines.
-        searchEngine.icon_path =
+        searchEngine.iconPath =
             getFaviconForPageURL(searchEngine?.url!, false, '', 24);
       } else {
-        searchEngine.icon_path = 'url(' + searchEngine.icon_path + ')';
+        searchEngine.iconPath = 'url(' + searchEngine.iconPath + ')';
       }
     });
 
     afterNextRender(this, () => {
+      if (this.withForcedScroll_) {
+        // If the choice list and the page don't contain a scrollbar then the
+        // user is already at the bottom.
+        this.hasUserScrolledToTheBottom_ =
+            !this.isChoiceListScrollable_() && !this.isPageScrollable_();
+
+        if (this.isChoiceListScrollable_()) {
+          this.$.choiceList.addEventListener(
+              'scroll', this.onChoiceListScroll_.bind(this));
+        }
+        if (this.isPageScrollable_()) {
+          document.addEventListener('scroll', this.onPageScroll_.bind(this));
+        }
+      }
+
       this.pageHandler_.displayDialog();
     });
   }
@@ -125,11 +173,30 @@ export class SearchEngineChoiceAppElement extends
     this.pageHandler_.handleLearnMoreLinkClicked();
   }
 
-  private isSubmitButtonDisabled_() {
+  private needsScrollToTheBottom_() {
+    return this.withForcedScroll_ && !this.hasUserScrolledToTheBottom_;
+  }
+
+  private needsUserChoice_() {
     return parseInt(this.selectedChoice_) === -1;
   }
 
-  private onSubmitClicked_() {
+  // The action button will be disabled if the user scrolls to the bottom of
+  // the list without making a search engine choice.
+  private computeActionButtonDisabled_() {
+    return !this.needsScrollToTheBottom_() && this.needsUserChoice_();
+  }
+
+  private onActionButtonClicked_() {
+    if (this.needsScrollToTheBottom_()) {
+      if (this.isChoiceListScrollable_()) {
+        const scrollPosition = this.$.choiceList.getBoundingClientRect().top;
+        this.$.choiceList.scrollTo({top: scrollPosition, behavior: 'smooth'});
+      } else if (this.isPageScrollable_()) {
+        window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
+      }
+      return;
+    }
     this.pageHandler_.handleSearchEngineChoiceSelected(
         parseInt(this.selectedChoice_));
   }
@@ -146,11 +213,11 @@ export class SearchEngineChoiceAppElement extends
 
     // Get the selected engine.
     const choice = this.choiceList_.find(
-        elem => elem.prepopulate_id === parseInt(selectedChoice));
+        elem => elem.prepopulateId === parseInt(selectedChoice));
     const searchEngineOmnibox = this.$.searchEngineOmnibox;
     const dummyOmnibox = this.$.dummyOmnibox;
     const fakeOmniboxText = this.i18n('fakeOmniboxText', choice?.name!);
-    const fakeOmniboxIconPath = choice?.icon_path!;
+    const fakeOmniboxIconPath = choice?.iconPath!;
 
     // We need to change the previous engine name to the new one and then start
     // the fade-in-animation when the fade-out-animation finishes running.
@@ -196,6 +263,53 @@ export class SearchEngineChoiceAppElement extends
       this.fakeOmniboxIconPath_ = fakeOmniboxIconPath;
       searchEngineOmnibox.classList.add('fade-in-animation');
     }
+  }
+
+  private onChoiceListScroll_() {
+    this.processScroll_(
+        /*contentHeight=*/ this.$.choiceList.scrollHeight,
+        /*viewportHeight=*/ this.$.choiceList.clientHeight,
+        /*scrollPosition=*/ this.$.choiceList.scrollTop,
+    );
+  }
+
+  private onPageScroll_() {
+    this.processScroll_(
+        /*contentHeight=*/ document.body.scrollHeight,
+        /*viewportHeight=*/ window.innerHeight,
+        /*scrollPosition=*/ window.scrollY,
+    );
+  }
+
+  private processScroll_(
+      contentHeight: number, viewportHeight: number, scrollPosition: number) {
+    // We check for `< 1` so that we don't care about rounding issues.
+    if (Math.abs(contentHeight - viewportHeight - scrollPosition) < 1) {
+      this.hasUserScrolledToTheBottom_ = true;
+      document.removeEventListener('scroll', this.onPageScroll_.bind(this));
+      document.removeEventListener(
+          'scroll', this.onChoiceListScroll_.bind(this));
+    }
+  }
+
+  // The choice list is scrollable at the dialog's full height.
+  private isChoiceListScrollable_() {
+    const choiceListOverflow = getComputedStyle(this.$.choiceList).overflow;
+    return choiceListOverflow === 'auto' &&
+        this.$.choiceList.scrollHeight > this.$.choiceList.clientHeight;
+  }
+
+  // We make the page scrollable instead of the choice lists at specific
+  // heights.
+  private isPageScrollable_() {
+    const choiceListOverflow = getComputedStyle(this.$.choiceList).overflow;
+    return choiceListOverflow === 'visible' &&
+        document.body.scrollHeight > document.body.clientHeight;
+  }
+
+  private getActionButtonText_() {
+    return this.i18n(
+        this.needsScrollToTheBottom_() ? 'moreButtonText' : 'submitButtonText');
   }
 }
 

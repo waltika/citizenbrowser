@@ -107,7 +107,11 @@ BASE_FEATURE(kCodeCacheDeletionWithoutFilter,
 // proxy.
 BASE_FEATURE(kConsolidatedIPCForProxyCreation,
              "ConsolidatedIPCForProxyCreation",
+#if BUILDFLAG(IS_ANDROID)
+             base::FEATURE_ENABLED_BY_DEFAULT);
+#else
              base::FEATURE_DISABLED_BY_DEFAULT);
+#endif
 
 // When enabled, event.movement is calculated in blink instead of in browser.
 BASE_FEATURE(kConsolidatedMovementXY,
@@ -215,7 +219,7 @@ const base::FeatureParam<int> kFledgeLimitNumAuctionsParam{
 // Enables caching when loading interest groups for a bidder in an auction.
 BASE_FEATURE(kFledgeUseInterestGroupCache,
              "FledgeUseInterestGroupCache",
-             base::FEATURE_ENABLED_BY_DEFAULT);
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Enables fixes for matching src: local() for web fonts correctly against full
 // font name or postscript name. Rolling out behind a flag, as enabling this
@@ -355,15 +359,15 @@ BASE_FEATURE(kPrivacySandboxAdsAPIsM1Override,
              "PrivacySandboxAdsAPIsM1Override",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-// Enables Private Network Access checks in warning mode for iframe navigations.
+// Enables Private Network Access checks in warning mode for navigations.
 //
-// Does nothing if `kPrivateNetworkAccessForIframes` is disabled.
+// Does nothing if `kPrivateNetworkAccessForNavigations` is disabled.
 //
-// If both this and `kPrivateNetworkAccessForIframes` are enabled, then PNA
-// preflight requests for iframe navigations are not required to succeed. If
+// If both this and `kPrivateNetworkAccessForNavigations` are enabled, then PNA
+// preflight requests for navigations are not required to succeed. If
 // one fails, a warning is simply displayed in DevTools.
-BASE_FEATURE(kPrivateNetworkAccessForIframesWarningOnly,
-             "PrivateNetworkAccessForIframesWarningOnly",
+BASE_FEATURE(kPrivateNetworkAccessForNavigationsWarningOnly,
+             "PrivateNetworkAccessForNavigationsWarningOnly",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Enables reporting ResourceTiming entries for document, who initiated a
@@ -447,6 +451,13 @@ BASE_FEATURE(kReuseInitialRenderFrameHostForWebUI,
 BASE_FEATURE(kRunStableVideoDecoderFactoryProcessServiceOnIOThread,
              "RunStableVideoDecoderFactoryProcessServiceOnIOThread",
              base::FEATURE_ENABLED_BY_DEFAULT);
+
+#if BUILDFLAG(IS_ANDROID)
+// Apply text selection menu order correction logic for Android.
+BASE_FEATURE(kSelectionMenuOrderCorrection,
+             "SelectionMenuOrderCorrection",
+             base::FEATURE_ENABLED_BY_DEFAULT);
+#endif
 
 // Enables auto preloading for fetch requests before invoking the fetch handler
 // in ServiceWorker. The fetch request inside the fetch handler is resolved with

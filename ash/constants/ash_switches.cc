@@ -79,6 +79,9 @@ const char kArcDataCleanupOnStart[] = "arc-data-cleanup-on-start";
 // in autotests to resolve racy conditions.
 const char kArcDisableAppSync[] = "arc-disable-app-sync";
 
+// Used in tests to disable DexOpt cache which is on by default.
+const char kArcDisableDexOptCache[] = "arc-disable-dexopt-cache";
+
 // Flag that disables ARC download provider that prevents extra content to be
 // downloaded and installed in context of Play Store and GMS Core.
 const char kArcDisableDownloadProvider[] = "arc-disable-download-provider";
@@ -530,6 +533,10 @@ const char kEnterpriseEnableUnifiedStateDetermination[] =
 // Whether to enable forced enterprise re-enrollment.
 const char kEnterpriseEnableForcedReEnrollment[] =
     "enterprise-enable-forced-re-enrollment";
+
+// Whether to enable forced enterprise re-enrollment on Flex.
+const char kEnterpriseEnableForcedReEnrollmentOnFlex[] =
+    "enterprise-enable-forced-re-enrollment-on-flex";
 
 // Whether to enable initial enterprise enrollment.
 const char kEnterpriseEnableInitialEnrollment[] =
@@ -1115,6 +1122,11 @@ bool IsAuthSessionCryptohomeEnabled() {
       kCryptohomeUseAuthSession);
 }
 
+bool ShouldRestoreKeyOnLockScreen() {
+  return base::CommandLine::ForCurrentProcess()->HasSwitch(
+      kRestoreKeyOnLockScreen);
+}
+
 bool IsCellularFirstDevice() {
   return base::CommandLine::ForCurrentProcess()->HasSwitch(kCellularFirst);
 }
@@ -1220,7 +1232,7 @@ bool IsOsInstallAllowed() {
   return base::CommandLine::ForCurrentProcess()->HasSwitch(kAllowOsInstall);
 }
 
-absl::optional<base::TimeDelta> ContextualNudgesInterval() {
+std::optional<base::TimeDelta> ContextualNudgesInterval() {
   int numeric_cooldown_time;
   if (base::CommandLine::ForCurrentProcess()->HasSwitch(
           kAshContextualNudgesInterval) &&
@@ -1231,9 +1243,9 @@ absl::optional<base::TimeDelta> ContextualNudgesInterval() {
     base::TimeDelta cooldown_time = base::Seconds(numeric_cooldown_time);
     cooldown_time = std::clamp(cooldown_time, kAshContextualNudgesMinInterval,
                                kAshContextualNudgesMaxInterval);
-    return absl::optional<base::TimeDelta>(cooldown_time);
+    return std::optional<base::TimeDelta>(cooldown_time);
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 bool ContextualNudgesResetShownCount() {

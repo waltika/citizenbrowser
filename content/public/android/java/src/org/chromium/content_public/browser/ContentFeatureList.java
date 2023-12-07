@@ -22,9 +22,6 @@ public class ContentFeatureList {
     public static final String ACCESSIBILITY_PERFORMANCE_FILTERING =
             "AccessibilityPerformanceFiltering";
 
-    public static final String ACCESSIBILITY_PERFORMANCE_TESTING =
-            "AccessibilityPerformanceTesting";
-
     public static final String AUTO_DISABLE_ACCESSIBILITY_V2 = "AutoDisableAccessibilityV2";
 
     public static final String BACKGROUND_MEDIA_RENDERER_HAS_MODERATE_BINDING =
@@ -42,6 +39,7 @@ public class ContentFeatureList {
     public static final String REQUEST_DESKTOP_SITE_WINDOW_SETTING =
             "RequestDesktopSiteWindowSetting";
 
+    public static final String SELECTION_MENU_ORDER_CORRECTION = "SelectionMenuOrderCorrection";
     public static final String SMART_ZOOM = "SmartZoom";
 
     public static final String WEB_BLUETOOTH_NEW_PERMISSIONS_BACKEND =

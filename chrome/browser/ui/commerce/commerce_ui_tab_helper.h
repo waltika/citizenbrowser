@@ -97,7 +97,6 @@ class CommerceUiTabHelper
   // content::WebContentsObserver implementation
   void DidFinishNavigation(
       content::NavigationHandle* navigation_handle) override;
-  void DidStopLoading() override;
   void WebContentsDestroyed() override;
 
   // SubscriptionsObserver
@@ -148,8 +147,12 @@ class CommerceUiTabHelper
   friend class content::WebContentsUserData<CommerceUiTabHelper>;
   friend class CommerceUiTabHelperTest;
 
+  void UpdateUiForShoppingServiceReady(ShoppingService* service);
+
   void HandleProductInfoResponse(const GURL& url,
                                  const absl::optional<const ProductInfo>& info);
+
+  void MaybeDoProductImageFetch(const absl::optional<ProductInfo>& info);
 
   void HandlePriceInsightsInfoResponse(
       const GURL& url,
@@ -189,15 +192,17 @@ class CommerceUiTabHelper
 
   SidePanelUI* GetSidePanelUI() const;
 
-  void DelayUpdateForIconView();
-
   void MaybeComputePageActionToExpand();
 
   void ComputePageActionToExpand();
 
   bool IsShowingDiscountsIcon();
 
-  // Record the interaction state with the pricce tracking icon for a page.
+  void RecordIconMetrics(PageActionIconType page_action, bool from_icon_use);
+
+  void RecordPriceInsightsIconMetrics(bool from_icon_use);
+
+  // Record the interaction state with the price tracking icon for a page.
   // |from_icon_use| indicates an interaction to track the product since
   // clicking the icon a second time does not immediately untrack the product.
   void RecordPriceTrackingIconMetrics(bool from_icon_use);
@@ -235,9 +240,9 @@ class CommerceUiTabHelper
   bool got_initial_subscription_status_for_page_{false};
   bool page_has_discounts_{false};
 
-  // Whether the price tracking icon was recorded for the current page. This
-  // will only record "track" events.
-  bool icon_use_recorded_for_page_{false};
+  // Page action icon uses that have already been recorded for the current page.
+  // For Price Tracking, this will only record "track" events.
+  std::set<PageActionIconType> icon_use_recorded_for_page_;
 
   // A flag indicating whether the initial navigation has committed for the web
   // contents. This is used to ensure product info is fetched when a tab is
@@ -248,10 +253,6 @@ class CommerceUiTabHelper
   // callback from the (un)subscribe event. If no value, there is no pending
   // state, otherwise true means "tracking" and false means "not tracking".
   absl::optional<bool> pending_tracking_state_;
-
-  // A flag to indicating whether the first load after a navigation has
-  // completed.
-  bool is_first_load_for_nav_finished_{false};
 
   // The url from the previous successful main frame navigation. This will be
   // empty if this is the first navigation for this tab or post-restart.

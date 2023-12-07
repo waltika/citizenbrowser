@@ -12,7 +12,6 @@
 #include "ash/wm/overview/overview_controller.h"
 #include "ash/wm/splitview/split_view_controller.h"
 #include "ash/wm/splitview/split_view_utils.h"
-#include "ash/wm/tablet_mode/tablet_mode_controller.h"
 #include "ash/wm/window_positioning_utils.h"
 #include "ash/wm/window_util.h"
 #include "ash/wm/wm_metrics.h"
@@ -20,6 +19,7 @@
 #include "ui/aura/client/aura_constants.h"
 #include "ui/aura/window.h"
 #include "ui/compositor/layer.h"
+#include "ui/display/screen.h"
 
 namespace ash {
 
@@ -107,8 +107,8 @@ WindowStateType BaseState::GetStateForTransitionEvent(WindowState* window_state,
 // static
 void BaseState::CycleSnap(WindowState* window_state, WMEventType event) {
   auto* shell = Shell::Get();
-  // For tablet mode, use |TabletModeWindowState::CycleTabletSnap|.
-  DCHECK(!shell->tablet_mode_controller()->InTabletMode());
+  // For tablet mode, use `TabletModeWindowState::CycleTabletSnap`.
+  DCHECK(!display::Screen::GetScreen()->InTabletMode());
 
   WindowStateType desired_snap_state = event == WM_EVENT_CYCLE_SNAP_PRIMARY
                                            ? WindowStateType::kPrimarySnapped
@@ -182,13 +182,6 @@ void BaseState::UpdateMinimizedState(WindowState* window_state,
       window_state->set_unminimize_to_restore_bounds(false);
     }
   }
-}
-
-gfx::Rect BaseState::GetSnappedWindowBoundsInParent(
-    aura::Window* window,
-    const WindowStateType state_type) {
-  return BaseState::GetSnappedWindowBoundsInParent(window, state_type,
-                                                   chromeos::kDefaultSnapRatio);
 }
 
 gfx::Rect BaseState::GetSnappedWindowBoundsInParent(

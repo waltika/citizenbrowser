@@ -939,6 +939,9 @@ TEST_P(AutofillTableProfileTest, AutofillProfile) {
       u"Street Name between streets House Number Premise APT 10 Floor 2 "
       u"Landmark",
       VerificationStatus::kUserVerified);
+  home_profile.SetRawInfoWithVerificationStatus(ADDRESS_HOME_STREET_LOCATION,
+                                                u"Street Name House Number",
+                                                VerificationStatus::kFormatted);
   home_profile.SetRawInfoWithVerificationStatus(
       ADDRESS_HOME_STREET_NAME, u"Street Name", VerificationStatus::kFormatted);
   home_profile.SetRawInfoWithVerificationStatus(ADDRESS_HOME_DEPENDENT_LOCALITY,
@@ -1032,9 +1035,11 @@ TEST_F(AutofillTableTest, GetAutofillProfiles) {
 // source.
 TEST_P(AutofillTableProfileTest, RemoveAllAutofillProfiles) {
   ASSERT_TRUE(table_->AddAutofillProfile(
-      AutofillProfile(AutofillProfile::Source::kLocalOrSyncable)));
+      AutofillProfile(AutofillProfile::Source::kLocalOrSyncable,
+                      i18n_model_definition::kLegacyHierarchyCountryCode)));
   ASSERT_TRUE(table_->AddAutofillProfile(
-      AutofillProfile(AutofillProfile::Source::kAccount)));
+      AutofillProfile(AutofillProfile::Source::kAccount,
+                      i18n_model_definition::kLegacyHierarchyCountryCode)));
 
   EXPECT_TRUE(table_->RemoveAllAutofillProfiles(profile_source()));
 

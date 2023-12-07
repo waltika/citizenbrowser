@@ -373,6 +373,33 @@ targets.legacy_basic_suite(
 )
 
 targets.legacy_basic_suite(
+    name = "blink_web_tests_ppapi_isolated_scripts",
+    tests = {
+        "ppapi_blink_web_tests": targets.legacy_test_config(
+            test = "blink_web_tests",
+            results_handler = "layout tests",
+            mixins = [
+                "has_native_resultdb_integration",
+                "blink_tests_write_run_histories",
+            ],
+            args = [
+                # layout test failures are retried 3 times when '--test-list' is not
+                # passed, but 0 times when '--test-list' is passed. We want to always
+                # retry 3 times, so we explicitly specify it.
+                "--num-retries=3",
+                "--test-list=../../third_party/blink/web_tests/TestLists/ppapi",
+            ],
+            merge = targets.merge(
+                script = "//third_party/blink/tools/merge_web_test_results.py",
+                args = [
+                    "--verbose",
+                ],
+            ),
+        ),
+    },
+)
+
+targets.legacy_basic_suite(
     name = "cast_audio_specific_chromium_gtests",
     tests = {
         "cast_audio_backend_unittests": None,
@@ -1166,6 +1193,25 @@ targets.legacy_basic_suite(
     },
 )
 
+# Multiscreen tests for desktop platform (Windows).
+targets.legacy_basic_suite(
+    name = "chromium_gtests_for_windows_multiscreen",
+    tests = {
+        "multiscreen_interactive_ui_tests": targets.legacy_test_config(
+            test = "interactive_ui_tests",
+            args = [
+                "--windows-virtual-display-driver",
+                "--gtest_filter=*MultiScreen*:*VirtualDisplayWinUtil*",
+            ],
+            swarming = targets.swarming(
+                dimensions = {
+                    "pool": "chromium.tests.multiscreen",
+                },
+            ),
+        ),
+    },
+)
+
 targets.legacy_basic_suite(
     name = "chromium_ios_scripts",
     tests = {
@@ -1760,6 +1806,9 @@ targets.legacy_basic_suite(
         "chrome_wpt_tests": targets.legacy_test_config(
             test = "chrome_wpt_tests",
             results_handler = "layout tests",
+            mixins = [
+                "has_native_resultdb_integration",
+            ],
             args = [
                 "--test-type",
                 "testharness",
@@ -1767,6 +1816,7 @@ targets.legacy_basic_suite(
                 "crashtest",
                 "print-reftest",
             ],
+            ci_only = True,
             swarming = targets.swarming(
                 shards = 15,
             ),
@@ -2049,6 +2099,31 @@ targets.legacy_basic_suite(
     name = "cronet_gtests",
     tests = {
         "cronet_sample_test_apk": None,
+        "cronet_smoketests_missing_native_library_instrumentation_apk": None,
+        "cronet_smoketests_platform_only_instrumentation_apk": None,
+        "cronet_test_instrumentation_apk": targets.legacy_test_config(
+            mixins = [
+                "emulator-enable-network",
+            ],
+        ),
+        "cronet_tests_android": None,
+        "cronet_unittests_android": None,
+        "net_unittests": targets.legacy_test_config(
+            swarming = targets.swarming(
+                shards = 4,
+            ),
+        ),
+    },
+)
+
+# TODO(b/314092564): Merge with cronet_gtests test suite
+# after this test-suite has run on CI for a week and proved its
+# stability.
+targets.legacy_basic_suite(
+    name = "cronet_gtests_and_proguarded_smoketest",
+    tests = {
+        "cronet_sample_test_apk": None,
+        "cronet_smoketests_apk": None,  # This is the only new addition to this test-suite.
         "cronet_smoketests_missing_native_library_instrumentation_apk": None,
         "cronet_smoketests_platform_only_instrumentation_apk": None,
         "cronet_test_instrumentation_apk": targets.legacy_test_config(
@@ -2777,8 +2852,7 @@ targets.legacy_basic_suite(
                 "has_native_resultdb_integration",
             ],
             args = [
-                "--expected-vendor-id",
-                "${gpu_vendor_id}",
+                "$$MAGIC_SUBSTITUTION_GPUExpectedVendorId",
                 "$$MAGIC_SUBSTITUTION_GPUExpectedDeviceId",
                 # On dual-GPU devices we want the high-performance GPU to be active
                 "--extra-browser-args=--force_high_performance_gpu",
@@ -3456,8 +3530,7 @@ targets.legacy_basic_suite(
                 "has_native_resultdb_integration",
             ],
             args = [
-                "--expected-vendor-id",
-                "${gpu_vendor_id}",
+                "$$MAGIC_SUBSTITUTION_GPUExpectedVendorId",
                 "$$MAGIC_SUBSTITUTION_GPUExpectedDeviceId",
                 # On dual-GPU devices we want the high-performance GPU to be active
                 "--extra-browser-args=--force_high_performance_gpu",
@@ -4559,7 +4632,13 @@ targets.legacy_basic_suite(
             ],
         ),
         "components_browsertests": None,
-        "components_unittests": None,
+        "components_unittests": targets.legacy_test_config(
+            test = "components_unittests",
+            args = [
+                "--test-launcher-bot-mode",
+                "--test-launcher-filter-file=testing/buildbot/filters/ios.use_blink.components_unittests.filter",
+            ],
+        ),
         "compositor_unittests": targets.legacy_test_config(
             test = "compositor_unittests",
             args = [

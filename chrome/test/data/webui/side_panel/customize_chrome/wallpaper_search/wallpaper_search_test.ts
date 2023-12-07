@@ -5,15 +5,19 @@
 import 'chrome://customize-chrome-side-panel.top-chrome/wallpaper_search/wallpaper_search.js';
 import 'chrome://customize-chrome-side-panel.top-chrome/strings.m.js';
 
+import {CustomizeChromeAction} from 'chrome://customize-chrome-side-panel.top-chrome/common.js';
 import {CustomizeChromePageRemote} from 'chrome://customize-chrome-side-panel.top-chrome/customize_chrome.mojom-webui.js';
 import {CustomizeChromeApiProxy} from 'chrome://customize-chrome-side-panel.top-chrome/customize_chrome_api_proxy.js';
-import {Descriptors, WallpaperSearchClientCallbackRouter, WallpaperSearchClientRemote, WallpaperSearchHandlerInterface, WallpaperSearchHandlerRemote, WallpaperSearchStatus} from 'chrome://customize-chrome-side-panel.top-chrome/wallpaper_search.mojom-webui.js';
+import {Descriptors, UserFeedback, WallpaperSearchClientCallbackRouter, WallpaperSearchClientRemote, WallpaperSearchHandlerInterface, WallpaperSearchHandlerRemote, WallpaperSearchStatus} from 'chrome://customize-chrome-side-panel.top-chrome/wallpaper_search.mojom-webui.js';
 import {DESCRIPTOR_D_VALUE, WallpaperSearchElement} from 'chrome://customize-chrome-side-panel.top-chrome/wallpaper_search/wallpaper_search.js';
 import {WallpaperSearchProxy} from 'chrome://customize-chrome-side-panel.top-chrome/wallpaper_search/wallpaper_search_proxy.js';
 import {WindowProxy} from 'chrome://customize-chrome-side-panel.top-chrome/window_proxy.js';
+import {CrFeedbackOption} from 'chrome://resources/cr_elements/cr_feedback_buttons/cr_feedback_buttons.js';
 import {hexColorToSkColor} from 'chrome://resources/js/color_utils.js';
+import {loadTimeData} from 'chrome://resources/js/load_time_data.js';
 import {PromiseResolver} from 'chrome://resources/js/promise_resolver.js';
 import {assertDeepEquals, assertEquals, assertFalse, assertGE, assertNotEquals, assertTrue} from 'chrome://webui-test/chai_assert.js';
+import {fakeMetricsPrivate, MetricsTracker} from 'chrome://webui-test/metrics_test_support.js';
 import {flushTasks, waitAfterNextRender} from 'chrome://webui-test/polymer_test_util.js';
 import {TestMock} from 'chrome://webui-test/test_mock.js';
 import {eventToPromise, isVisible, whenCheck} from 'chrome://webui-test/test_util.js';
@@ -23,6 +27,7 @@ import {$$, assertNotStyle, assertStyle, createBackgroundImage, createTheme, ins
 suite('WallpaperSearchTest', () => {
   let callbackRouterRemote: CustomizeChromePageRemote;
   let handler: TestMock<WallpaperSearchHandlerInterface>;
+  let metrics: MetricsTracker;
   let wallpaperSearchCallbackRouterRemote: WallpaperSearchClientRemote;
   let wallpaperSearchElement: WallpaperSearchElement;
   let windowProxy: TestMock<WindowProxy>;
@@ -58,6 +63,7 @@ suite('WallpaperSearchTest', () => {
             .callbackRouter.$.bindNewPipeAndPassRemote();
     callbackRouterRemote = CustomizeChromeApiProxy.getInstance()
                                .callbackRouter.$.bindNewPipeAndPassRemote();
+    metrics = fakeMetricsPrivate();
   });
 
   suite('Misc', () => {
@@ -546,6 +552,92 @@ suite('WallpaperSearchTest', () => {
               '.tile [checked]');
       assertEquals(checkedResults.length, 1);
       assertEquals(checkedResults[0], firstResult);
+      assertEquals(
+          checkedResults[0]!.parentElement!.getAttribute('aria-current'),
+          'true');
+    });
+
+    test('labels results', async () => {
+      loadTimeData.overrideValues({
+        'wallpaperSearchResultLabel': 'Image $1 of $2',
+        'wallpaperSearchResultLabelB': 'Image $1 of $2, $3',
+        'wallpaperSearchResultLabelC': 'Image $1 of $2, $3',
+        'wallpaperSearchResultLabelBC': 'Image $1 of $2, $3, $4',
+      });
+      handler.setResultFor('getWallpaperSearchResults', Promise.resolve({
+        results: [
+          {image: '123', id: {high: 10, low: 1}},
+          {image: '123', id: {high: 10, low: 1}},
+        ],
+      }));
+      createWallpaperSearchElement({
+        descriptorA: [{category: 'category', labels: ['Label A1', 'Label A2']}],
+        descriptorB: [{label: 'Label B', imagePath: 'bar.png'}],
+        descriptorC: ['Label C'],
+      });
+      await flushTasks();
+
+      // Select only descriptor A.
+      $$<HTMLElement>(
+          wallpaperSearchElement,
+          '#descriptorComboboxA .category-item')!.click();
+      await flushTasks();
+      $$<HTMLElement>(
+          wallpaperSearchElement,
+          '#descriptorComboboxA .dropdown-item')!.click();
+      wallpaperSearchElement.$.submitButton.click();
+      await waitAfterNextRender(wallpaperSearchElement);
+
+      function getAriaLabelOfTile(index: number): string|null {
+        return wallpaperSearchElement.shadowRoot!
+            .querySelectorAll('.tile')[index]!.ariaLabel;
+      }
+
+      assertEquals('Image 1 of Label A1', getAriaLabelOfTile(0));
+      assertEquals('Image 2 of Label A1', getAriaLabelOfTile(1));
+
+      // Select descriptor B.
+      $$<HTMLElement>(
+          wallpaperSearchElement,
+          '#descriptorComboboxB .dropdown-item')!.click();
+      wallpaperSearchElement.$.submitButton.click();
+      await waitAfterNextRender(wallpaperSearchElement);
+      assertEquals('Image 1 of Label A1, Label B', getAriaLabelOfTile(0));
+      assertEquals('Image 2 of Label A1, Label B', getAriaLabelOfTile(1));
+
+      // Select descriptor C.
+      $$<HTMLElement>(
+          wallpaperSearchElement,
+          '#descriptorComboboxC .dropdown-item')!.click();
+      wallpaperSearchElement.$.submitButton.click();
+      await waitAfterNextRender(wallpaperSearchElement);
+      assertEquals(
+          'Image 1 of Label A1, Label B, Label C', getAriaLabelOfTile(0));
+      assertEquals(
+          'Image 2 of Label A1, Label B, Label C', getAriaLabelOfTile(1));
+
+      // Recreate element to empty out descriptors. Select options for
+      // descriptors A and C only.
+      createWallpaperSearchElement({
+        descriptorA: [{category: 'category', labels: ['Label A1', 'Label A2']}],
+        descriptorB: [{label: 'Label B', imagePath: 'bar.png'}],
+        descriptorC: ['Label C'],
+      });
+      await flushTasks();
+      $$<HTMLElement>(
+          wallpaperSearchElement,
+          '#descriptorComboboxA .category-item')!.click();
+      await flushTasks();
+      $$<HTMLElement>(
+          wallpaperSearchElement,
+          '#descriptorComboboxA .dropdown-item')!.click();
+      $$<HTMLElement>(
+          wallpaperSearchElement,
+          '#descriptorComboboxC .dropdown-item')!.click();
+      wallpaperSearchElement.$.submitButton.click();
+      await waitAfterNextRender(wallpaperSearchElement);
+      assertEquals('Image 1 of Label A1, Label C', getAriaLabelOfTile(0));
+      assertEquals('Image 2 of Label A1, Label C', getAriaLabelOfTile(1));
     });
   });
 
@@ -826,6 +918,178 @@ suite('WallpaperSearchTest', () => {
           BigInt(10), handler.getArgs('setBackgroundToHistoryImage')[0].high);
       assertEquals(
           BigInt(1), handler.getArgs('setBackgroundToHistoryImage')[0].low);
+    });
+
+    test('current history theme is checked', async () => {
+      createWallpaperSearchElement();
+
+      wallpaperSearchCallbackRouterRemote.setHistory([
+        {image: '123', id: {high: BigInt(10), low: BigInt(1)}},
+        {image: '456', id: {high: BigInt(8), low: BigInt(2)}},
+      ]);
+      await wallpaperSearchCallbackRouterRemote.$.flushForTesting();
+
+      // Set a default theme.
+      let theme = createTheme();
+      callbackRouterRemote.setTheme(theme);
+      await callbackRouterRemote.$.flushForTesting();
+      await waitAfterNextRender(wallpaperSearchElement);
+
+      // There should be no checked tiles.
+      assertFalse(!!$$(wallpaperSearchElement, '.tile [checked]'));
+
+      // Set theme to the first tile.
+      theme = createTheme();
+      theme.backgroundImage = createBackgroundImage('');
+      theme.backgroundImage.localBackgroundId = {
+        high: BigInt(10),
+        low: BigInt(1),
+      };
+      callbackRouterRemote.setTheme(theme);
+      await callbackRouterRemote.$.flushForTesting();
+      await waitAfterNextRender(wallpaperSearchElement);
+
+      // The first result should be checked and be the only one checked.
+      const firstResult = $$(wallpaperSearchElement, '.tile .image-check-mark');
+      const checkedResults =
+          wallpaperSearchElement.shadowRoot!.querySelectorAll(
+              '.tile [checked]');
+      assertEquals(checkedResults.length, 1);
+      assertEquals(checkedResults[0], firstResult);
+      assertEquals(
+          checkedResults[0]!.parentElement!.getAttribute('aria-current'),
+          'true');
+    });
+  });
+
+  suite('Feedback', () => {
+    function updateCrFeedbackButtons(option: CrFeedbackOption) {
+      wallpaperSearchElement.$.feedbackButtons.selectedOption = option;
+      wallpaperSearchElement.$.feedbackButtons.dispatchEvent(
+          new CustomEvent('selected-option-changed', {
+            bubbles: true,
+            composed: true,
+            detail: {value: option},
+          }));
+    }
+
+    test('shows feedback buttons and submits', async () => {
+      handler.setResultFor(
+          'getWallpaperSearchResults',
+          Promise.resolve({results: [{image: '123', id: {high: 10, low: 1}}]}));
+      createWallpaperSearchElementWithDescriptors();
+      await flushTasks();
+      assertFalse(isVisible(wallpaperSearchElement.$.feedbackButtons));
+
+      wallpaperSearchElement.$.submitButton.click();
+      await waitAfterNextRender(wallpaperSearchElement);
+      assertTrue(isVisible(wallpaperSearchElement.$.feedbackButtons));
+
+      // Mock interacting with the feedback buttons.
+      updateCrFeedbackButtons(CrFeedbackOption.THUMBS_DOWN);
+      let feedbackArgs = await handler.whenCalled('setUserFeedback');
+      assertEquals(UserFeedback.kThumbsDown, feedbackArgs);
+      handler.resetResolver('setUserFeedback');
+
+      updateCrFeedbackButtons(CrFeedbackOption.THUMBS_UP);
+      feedbackArgs = await handler.whenCalled('setUserFeedback');
+      assertEquals(UserFeedback.kThumbsUp, feedbackArgs);
+      handler.resetResolver('setUserFeedback');
+
+      updateCrFeedbackButtons(CrFeedbackOption.UNSPECIFIED);
+      feedbackArgs = await handler.whenCalled('setUserFeedback');
+      assertEquals(UserFeedback.kUnspecified, feedbackArgs);
+    });
+
+    test('resets on new results', async () => {
+      // First result.
+      handler.setResultFor(
+          'getWallpaperSearchResults',
+          Promise.resolve({results: [{image: '123', id: {high: 10, low: 1}}]}));
+      createWallpaperSearchElementWithDescriptors();
+      await flushTasks();
+      wallpaperSearchElement.$.submitButton.click();
+      await waitAfterNextRender(wallpaperSearchElement);
+
+      updateCrFeedbackButtons(CrFeedbackOption.THUMBS_UP);
+      await handler.whenCalled('setUserFeedback');
+      handler.resetResolver('setUserFeedback');
+
+      // New results.
+      handler.setResultFor(
+          'getWallpaperSearchResults',
+          Promise.resolve({results: [{image: '321', id: {high: 10, low: 1}}]}));
+      wallpaperSearchElement.$.submitButton.click();
+      await waitAfterNextRender(wallpaperSearchElement);
+
+      // Verify feedback option was reset, but this shouldn't call the back-end.
+      assertEquals(
+          CrFeedbackOption.UNSPECIFIED,
+          wallpaperSearchElement.$.feedbackButtons.selectedOption);
+      assertEquals(0, handler.getCallCount('setUserFeedback'));
+    });
+  });
+
+  suite('Metrics', () => {
+    test('clicking submit sets metric', async () => {
+      createWallpaperSearchElementWithDescriptors();
+      await flushTasks();
+
+      wallpaperSearchElement.$.submitButton.click();
+
+      assertEquals(
+          1, metrics.count('NewTabPage.CustomizeChromeSidePanelAction'));
+      assertEquals(
+          1,
+          metrics.count(
+              'NewTabPage.CustomizeChromeSidePanelAction',
+              CustomizeChromeAction.WALLPAPER_SEARCH_PROMPT_SUBMITTED));
+    });
+
+    test('clicking result tile sets metric', async () => {
+      windowProxy.setResultFor('now', 321);
+      handler.setResultFor(
+          'getWallpaperSearchResults',
+          Promise.resolve({results: [{image: '123', id: {high: 10, low: 1}}]}));
+      createWallpaperSearchElementWithDescriptors();
+      await flushTasks();
+
+      wallpaperSearchElement.$.submitButton.click();
+      await waitAfterNextRender(wallpaperSearchElement);
+
+      const result =
+          $$(wallpaperSearchElement, '#wallpaperSearch .tile.result');
+      assertTrue(!!result);
+      (result as HTMLElement).click();
+      assertEquals(
+          2, metrics.count('NewTabPage.CustomizeChromeSidePanelAction'));
+      assertEquals(
+          1,
+          metrics.count(
+              'NewTabPage.CustomizeChromeSidePanelAction',
+              CustomizeChromeAction.WALLPAPER_SEARCH_RESULT_IMAGE_SELECTED));
+    });
+
+    test('clicking history tile sets metric', async () => {
+      createWallpaperSearchElement();
+
+      wallpaperSearchCallbackRouterRemote.setHistory([
+        {image: '123', id: {high: BigInt(10), low: BigInt(1)}},
+        {image: '456', id: {high: BigInt(8), low: BigInt(2)}},
+      ]);
+      await wallpaperSearchCallbackRouterRemote.$.flushForTesting();
+
+      const historyTile =
+          $$(wallpaperSearchElement, '#historyCard .tile.result');
+      assertTrue(!!historyTile);
+      (historyTile as HTMLElement).click();
+      assertEquals(
+          1, metrics.count('NewTabPage.CustomizeChromeSidePanelAction'));
+      assertEquals(
+          1,
+          metrics.count(
+              'NewTabPage.CustomizeChromeSidePanelAction',
+              CustomizeChromeAction.WALLPAPER_SEARCH_HISTORY_IMAGE_SELECTED));
     });
   });
 });

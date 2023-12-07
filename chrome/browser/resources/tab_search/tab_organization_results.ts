@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 import 'chrome://resources/cr_elements/cr_button/cr_button.js';
-import 'chrome://resources/cr_elements/cr_icon_button/cr_icon_button.js';
+import 'chrome://resources/cr_elements/cr_feedback_buttons/cr_feedback_buttons.js';
 import 'chrome://resources/cr_elements/cr_input/cr_input.js';
 import 'chrome://resources/cr_elements/cr_shared_vars.css.js';
 import 'chrome://resources/cr_elements/mwb_shared_style.css.js';
@@ -11,6 +11,7 @@ import 'chrome://resources/polymer/v3_0/iron-selector/iron-selector.js';
 import './tab_organization_shared_style.css.js';
 import './tab_search_item.js';
 
+import {CrFeedbackOption} from 'chrome://resources/cr_elements/cr_feedback_buttons/cr_feedback_buttons.js';
 import {CrInputElement} from 'chrome://resources/cr_elements/cr_input/cr_input.js';
 import {IronSelectorElement} from 'chrome://resources/polymer/v3_0/iron-selector/iron-selector.js';
 import {DomRepeatEvent, PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bundled.min.js';
@@ -38,12 +39,21 @@ export class TabOrganizationResultsElement extends PolymerElement {
 
   static get properties() {
     return {
-      tabs: Array,
+      tabs: {
+        type: Array,
+        observer: 'onTabsChange_',
+      },
+
       name: String,
 
       availableHeight: {
         type: Number,
         observer: 'onAvailableHeightChange_',
+      },
+
+      lastFocusedIndex_: {
+        type: Number,
+        value: 0,
       },
 
       tabDatas_: {
@@ -58,6 +68,7 @@ export class TabOrganizationResultsElement extends PolymerElement {
   name: string;
   availableHeight: number;
 
+  private lastFocusedIndex_: number;
   private tabDatas_: TabData[];
 
   static get template() {
@@ -68,6 +79,16 @@ export class TabOrganizationResultsElement extends PolymerElement {
     return this.tabs.map(
         tab => new TabData(
             tab, TabItemType.OPEN_TAB, new URL(tab.url.url).hostname));
+  }
+
+  private onTabsChange_() {
+    if (this.lastFocusedIndex_ > this.tabs.length - 1) {
+      this.lastFocusedIndex_ = 0;
+    }
+  }
+
+  private getTabIndex_(index: number): number {
+    return index === this.lastFocusedIndex_ ? 0 : -1;
   }
 
   private onAvailableHeightChange_() {
@@ -115,15 +136,17 @@ export class TabOrganizationResultsElement extends PolymerElement {
       const selectedItemCloseButton =
           selectedItem.shadowRoot!.querySelector(`cr-icon-button`)!;
       selectedItemCloseButton.focus();
+      this.lastFocusedIndex_ = this.$.selector.indexOf(selectedItem);
     }
   }
 
   private onTabRemove_(event: DomRepeatEvent<TabData>) {
     const index = this.tabDatas_.indexOf(event.model.item);
-    this.splice('tabs', index, 1);
+    const tab = this.tabs[index];
     this.dispatchEvent(new CustomEvent('remove-tab', {
       bubbles: true,
       composed: true,
+      detail: {tab},
     }));
   }
 
@@ -142,15 +165,19 @@ export class TabOrganizationResultsElement extends PolymerElement {
   }
 
   private onLearnMoreClick_() {
-    // TODO(emshack): Implement this
+    this.dispatchEvent(new CustomEvent('learn-more-click', {
+      bubbles: true,
+      composed: true,
+    }));
   }
 
-  private onThumbsUpClick_() {
-    // TODO(emshack): Implement this
-  }
-
-  private onThumbsDownClick_() {
-    // TODO(emshack): Implement this
+  private onFeedbackSelectedOptionChanged_(
+      event: CustomEvent<{value: CrFeedbackOption}>) {
+    this.dispatchEvent(new CustomEvent('feedback', {
+      bubbles: true,
+      composed: true,
+      detail: {value: event.detail.value},
+    }));
   }
 }
 

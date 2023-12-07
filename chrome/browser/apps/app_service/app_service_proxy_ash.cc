@@ -312,6 +312,15 @@ void AppServiceProxyAsh::RegisterPublisher(AppType app_type,
   }
 }
 
+void AppServiceProxyAsh::SetPublisherUnavailable(AppType app_type) {
+  UnregisterPublisher(app_type);
+
+  // Remove all apps for `app_type` in AppRegistryCache and AppStorage. Related
+  // launch requests, icon spinners will be removed too in OnAppUpdate when apps
+  // are removed.
+  OnApps(std::vector<AppPtr>{}, app_type, /*should_notify_initialized=*/true);
+}
+
 void AppServiceProxyAsh::Uninstall(const std::string& app_id,
                                    UninstallSource uninstall_source,
                                    gfx::NativeWindow parent_window) {
@@ -745,6 +754,14 @@ void AppServiceProxyAsh::LoadDefaultIcon(AppType app_type,
   LoadIconFromResource(
       profile_, absl::nullopt, icon_type, size_in_dip, default_icon_resource_id,
       /*is_placeholder_icon=*/false, icon_effects, std::move(callback));
+}
+
+void AppServiceProxyAsh::SetAppLocale(const std::string& app_id,
+                                      const std::string& locale_tag) {
+  auto* publisher = GetPublisher(app_registry_cache_.GetAppType(app_id));
+  if (publisher) {
+    publisher->SetAppLocale(app_id, locale_tag);
+  }
 }
 
 AppServiceProxyAsh::ShortcutInnerIconLoader::ShortcutInnerIconLoader(

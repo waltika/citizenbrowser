@@ -152,7 +152,6 @@ V8PerIsolateData::V8PerIsolateData(
     GetIsolate()->SetAddCrashKeyCallback(AddCrashKey);
     main_world_ = DOMWrapperWorld::Create(GetIsolate(),
                                           DOMWrapperWorld::WorldType::kMain);
-    DOMWrapperWorld::InitMainWorldOnMainThread(*main_world_);
   }
 }
 
@@ -235,8 +234,9 @@ void V8PerIsolateData::Destroy(v8::Isolate* isolate) {
   data->string_cache_.reset();
   data->v8_template_map_for_main_world_.clear();
   data->v8_template_map_for_non_main_worlds_.clear();
-  if (IsMainThread())
+  if (IsMainThread()) {
     g_main_thread_per_isolate_data = nullptr;
+  }
 
   // FIXME: Remove once all v8::Isolate::GetCurrent() calls are gone.
   isolate->Exit();

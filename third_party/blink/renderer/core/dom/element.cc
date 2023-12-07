@@ -179,7 +179,6 @@
 #include "third_party/blink/renderer/core/layout/layout_text_combine.h"
 #include "third_party/blink/renderer/core/layout/layout_text_fragment.h"
 #include "third_party/blink/renderer/core/layout/layout_view.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_block_node.h"
 #include "third_party/blink/renderer/core/page/chrome_client.h"
 #include "third_party/blink/renderer/core/page/focus_controller.h"
 #include "third_party/blink/renderer/core/page/page.h"
@@ -2193,10 +2192,14 @@ gfx::RectF Element::GetBoundingClientRectNoLifecycleUpdate() const {
   return result;
 }
 
-DOMRect* Element::getBoundingClientRect() {
+DOMRect* Element::GetBoundingClientRect() {
   GetDocument().EnsurePaintLocationDataValidForNode(
       this, DocumentUpdateReason::kJavaScript);
   return DOMRect::FromRectF(GetBoundingClientRectNoLifecycleUpdate());
+}
+
+DOMRect* Element::GetBoundingClientRectForBinding() {
+  return GetBoundingClientRect();
 }
 
 const AtomicString& Element::computedRole() {
@@ -2207,7 +2210,6 @@ const AtomicString& Element::computedRole() {
   AXContext ax_context(document, ui::kAXModeBasic);
   document.View()->UpdateAllLifecyclePhasesExceptPaint(
       DocumentUpdateReason::kJavaScript);
-  ax_context.GetAXObjectCache().ProcessDeferredAccessibilityEvents(document);
   return ax_context.GetAXObjectCache().ComputedRoleForNode(this);
 }
 
@@ -2226,7 +2228,6 @@ const AtomicString& Element::ComputedRoleNoLifecycleUpdate() {
   // Allocating the AXContext needs to not change lifecycle states.
   DCHECK_GE(document.Lifecycle().GetState(), DocumentLifecycle::kPrePaintClean)
       << " State was: " << document.Lifecycle().GetState();
-  ax_context.GetAXObjectCache().ProcessDeferredAccessibilityEvents(document);
   return ax_context.GetAXObjectCache().ComputedRoleForNode(this);
 }
 
@@ -2238,7 +2239,6 @@ String Element::computedName() {
   AXContext ax_context(document, ui::kAXModeBasic);
   document.View()->UpdateAllLifecyclePhasesExceptPaint(
       DocumentUpdateReason::kJavaScript);
-  ax_context.GetAXObjectCache().ProcessDeferredAccessibilityEvents(document);
   return ax_context.GetAXObjectCache().ComputedNameForNode(this);
 }
 
@@ -2257,7 +2257,6 @@ String Element::ComputedNameNoLifecycleUpdate() {
   // Allocating the AXContext needs to not change lifecycle states.
   DCHECK_GE(document.Lifecycle().GetState(), DocumentLifecycle::kPrePaintClean)
       << " State was: " << document.Lifecycle().GetState();
-  ax_context.GetAXObjectCache().ProcessDeferredAccessibilityEvents(document);
   return ax_context.GetAXObjectCache().ComputedNameForNode(this);
 }
 
@@ -3523,7 +3522,7 @@ static bool NeedsContainerQueryEvaluator(
     const ComputedStyle& new_style) {
   return evaluator.DependsOnStyle() ||
          new_style.IsContainerForSizeContainerQueries() ||
-         new_style.IsContainerForStickyContainerQueries();
+         new_style.IsContainerForScrollStateContainerQueries();
 }
 
 static const StyleRecalcChange ApplyComputedStyleDiff(
@@ -3691,9 +3690,11 @@ StyleRecalcChange Element::RecalcOwnStyle(
 
   // Update style containment tree if the style containment of the element
   // has changed.
-  if ((!new_style && old_style && old_style->ContainsStyle()) ||
-      (old_style && new_style &&
-       old_style->ContainsStyle() != new_style->ContainsStyle())) {
+  // Don't update if the style containment tree has not been initialized.
+  if (GetDocument().GetStyleEngine().GetStyleContainmentScopeTree() &&
+      ((!new_style && old_style && old_style->ContainsStyle()) ||
+       (old_style && new_style &&
+        old_style->ContainsStyle() != new_style->ContainsStyle()))) {
     StyleContainmentScopeTree& tree =
         GetDocument().GetStyleEngine().EnsureStyleContainmentScopeTree();
     if (old_style && old_style->ContainsStyle()) {
@@ -6504,14 +6505,15 @@ String Element::outerHTML() const {
 }
 
 void Element::SetInnerHTMLInternal(const String& html,
-                                   bool include_shadow_roots,
+                                   IncludeShadowRoots include_shadow_roots,
+                                   ForceHtml force_html,
                                    ExceptionState& exception_state) {
   if (html.empty() && !HasNonInBodyInsertionMode()) {
     setTextContent(html);
   } else {
     if (DocumentFragment* fragment = CreateFragmentForInnerOuterHTML(
             html, this, kAllowScriptingContent, include_shadow_roots,
-            exception_state)) {
+            force_html, exception_state)) {
       ContainerNode* container = this;
       bool swap_dom_parts{false};
       if (auto* template_element = DynamicTo<HTMLTemplateElement>(*this)) {
@@ -6538,13 +6540,14 @@ void Element::SetInnerHTMLInternal(const String& html,
 void Element::setInnerHTML(const String& html,
                            ExceptionState& exception_state) {
   probe::BreakableLocation(GetExecutionContext(), "Element.setInnerHTML");
-  SetInnerHTMLInternal(html, /*include_shadow_roots=*/false, exception_state);
+  SetInnerHTMLInternal(html, IncludeShadowRoots::kDontInclude,
+                       ForceHtml::kDontForce, exception_state);
 }
 
 void Element::setInnerHTMLWithDeclarativeShadowDOMForTesting(
     const String& html) {
-  SetInnerHTMLInternal(html, /*include_shadow_roots=*/true,
-                       ASSERT_NO_EXCEPTION);
+  SetInnerHTMLInternal(html, IncludeShadowRoots::kInclude,
+                       ForceHtml::kDontForce, ASSERT_NO_EXCEPTION);
 }
 
 String Element::getInnerHTML(const GetInnerHTMLOptions* options) const {
@@ -6583,8 +6586,8 @@ void Element::setOuterHTML(const String& html,
   Node* next = nextSibling();
 
   DocumentFragment* fragment = CreateFragmentForInnerOuterHTML(
-      html, parent, kAllowScriptingContent,
-      /*include_shadow_roots=*/false, exception_state);
+      html, parent, kAllowScriptingContent, IncludeShadowRoots::kDontInclude,
+      ForceHtml::kDontForce, exception_state);
   if (exception_state.HadException()) {
     return;
   }
@@ -6812,7 +6815,7 @@ void Element::insertAdjacentHTML(const String& where,
   // Step 3 of http://domparsing.spec.whatwg.org/#insertadjacenthtml()
   DocumentFragment* fragment = CreateFragmentForInnerOuterHTML(
       markup, context_element, kAllowScriptingContent,
-      /*include_shadow_roots=*/false, exception_state);
+      IncludeShadowRoots::kDontInclude, ForceHtml::kDontForce, exception_state);
   if (!fragment) {
     return;
   }
@@ -9637,7 +9640,7 @@ AnchorPositionScrollData* Element::GetAnchorPositionScrollData() const {
 void Element::IncrementImplicitlyAnchoredElementCount() {
   DCHECK(RuntimeEnabledFeatures::CSSAnchorPositioningEnabled());
   if (!HasImplicitlyAnchoredElement() && GetLayoutObject()) {
-    // Invalidate layout to populate itself into NGPhysical/LogicalAnchorQuery.
+    // Invalidate layout to populate itself into Physical/LogicalAnchorQuery.
     GetLayoutObject()->SetNeedsLayoutAndFullPaintInvalidation(
         layout_invalidation_reason::kAnchorPositioning);
     GetLayoutObject()->MarkMayHaveAnchorQuery();
@@ -9691,7 +9694,8 @@ Element* Element::ImplicitAnchorElement() {
 void Element::setHTMLUnsafe(const String& html,
                             ExceptionState& exception_state) {
   CHECK(RuntimeEnabledFeatures::HTMLUnsafeMethodsEnabled());
-  SetInnerHTMLInternal(html, /*include_shadow_roots=*/true, exception_state);
+  SetInnerHTMLInternal(html, IncludeShadowRoots::kInclude, ForceHtml::kForce,
+                       exception_state);
 }
 
 }  // namespace blink

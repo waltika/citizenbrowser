@@ -2398,7 +2398,6 @@ Si cette règle est activée, la touche du Lanceur d'applications/de recherche p
           Si vous configurez cette règle, les utilisateurs ne peuvent pas la modifier ni l'ignorer.
 
           Si cette règle n'est pas configurée, le grand curseur est initialement désactivé sur l'écran de connexion, mais les utilisateurs peuvent l'activer à tout moment.</translation>
-<translation id="3027837632741099453">Le mode Économiseur de batterie est activé quand l'appareil est sur batterie.</translation>
 <translation id="3030000825273123558">Activer la génération de rapports sur les statistiques</translation>
 <translation id="30300807616984726">Créer des rapports sur les données d'inventaire d'applis pour les utilisateurs affiliés.
 
@@ -3400,15 +3399,6 @@ Cette règle est une mesure temporaire et sera supprimée dans une future versio
 <translation id="3838094946886335701">Cette règle (recommandation uniquement) permet d'enregistrer une liste de gestionnaires de protocoles combinée à ceux enregistrés par l'utilisateur, afin que les deux ensembles s'appliquent. Définissez la propriété "protocole" sur le schéma (par exemple, "mailto") et la propriété "URL" sur le format d'URL de l'application qui gère le schéma spécifié dans le champ "protocole". Le schéma peut inclure un espace réservé "%s" remplacé par l'URL gérée.
 
       Les utilisateurs ne peuvent pas supprimer un gestionnaire de protocoles enregistré par une règle. Toutefois, l'installation d'un nouveau gestionnaire par défaut leur permet de modifier les gestionnaires de protocoles installés par une règle.</translation>
-<translation id="3847858041725748756">Cette règle est obsolète (veuillez utiliser la règle <ph name="RELATED_WEBSITE_SETS_ENABLED_POLICY_NAME" /> à la place).
-
-Cette règle permet de désactiver ou non la fonctionnalité d'ensembles internes.
-
-Si cette règle est activée ou n'est pas configurée, la fonctionnalité d'ensembles internes est activée.
-
-Si cette règle est désactivée, la fonctionnalité d'ensembles internes l'est également.
-
-Cela détermine si Chrome accepte ou non les intégrations liées aux ensembles internes.</translation>
 <translation id="3851443303439635700">Contrôlez le seuil d'imbrication avant que la fonction JavaScript setTimeout() commence à être limitée</translation>
 <translation id="3858658082795336534">Impression recto verso par défaut</translation>
 <translation id="3859780406608282662">Permet d'ajouter un paramètre à la récupération de la valeur de départ des variantes dans <ph name="PRODUCT_OS_NAME" />.
@@ -4406,13 +4396,6 @@ Pour les appareils non gérés, l'utilisateur peut décider d'envoyer les métri
 
       Si cette règle n'est pas configurée ou qu'elle est activée, les contrôles d'interception des requêtes DNS ont lieu. Si elle est explicitement désactivée, les contrôles n'ont pas lieu.</translation>
 <translation id="4700190441681139987">Interdire à tous les sites d'accéder aux capteurs</translation>
-<translation id="4701899474784891858">Cette règle active ou désactive le mode Économiseur de batterie. Avec ce paramètre, la fréquence d'images est limitée à une consommation d'énergie inférieure.
-      Si cette règle n'est pas configurée, l'utilisateur final peut contrôler ce paramètre dans chrome://settings/performance.
-      Voici les différents niveaux :
-      <ph name="BATTERY_SAVER_MODE_DISABLED" /> (0) : le mode Économiseur de batterie est désactivé.
-      <ph name="BATTERY_SAVER_MODE_ENABLED_BELOW_THRESHOLD" /> (1) : le mode Économiseur de batterie est activé quand l'appareil est sur batterie et que le niveau de la batterie est faible.
-      <ph name="BATTERY_SAVER_MODE_ENABLED_ON_BATTERY" /> (2) : le mode Économiseur de batterie est activé quand l'appareil est sur batterie.
-      </translation>
 <translation id="4703402283970867140">Activer le modèle de réduction intelligente de la luminosité pour augmenter le délai d'assombrissement de l'écran</translation>
 <translation id="4704958130749494760">Autoriser automatiquement les sites à se connecter aux appareils série USB.</translation>
 <translation id="4705329890928008808">Si cette règle est définie sur "CopyCaCerts", tous les certificats CA installés via ONC avec <ph name="WEB_TRUSTED_BIT" /> sont disponibles pour les applis ARC.
@@ -4731,15 +4714,6 @@ Cette règle n'est appliquée que si l'ordinateur est enregistré avec la règle
 <translation id="5030415914668947893">Autoriser la collecte de métriques incluant les URL</translation>
 <translation id="5033070732967197381">Autoriser les requêtes API WebAuthn sur les sites avec des certificats TLS non fonctionnels.</translation>
 <translation id="5034504101537897433">Activer les rapports d'erreur de l'appareil</translation>
-<translation id="5034734406205213733">Si cette règle est activée, <ph name="PRODUCT_NAME" /> vérifie les certificats des serveurs à l'aide de l'outil de vérification intégré et utilise le Chrome Root Store comme source de confiance publique.
-
-Si cette règle est désactivée, <ph name="PRODUCT_NAME" /> utilise l'outil de vérification des certificats du système et les certificats racines du système.
-
-Si cette règle n'est pas configurée, le Chrome Root Store ou les certificats racines du système peuvent être utilisés indifféremment.
-
-Il est prévu que cette règle soit supprimée de la version 121 de <ph name="PRODUCT_NAME" /> pour <ph name="ANDROID_NAME" />, car les certificats racines fournis par la plate-forme ne seront plus pris en charge.
-
-Cette règle a été supprimée de la version 113 de <ph name="PRODUCT_NAME" /> pour <ph name="MS_WIN_NAME" /> et <ph name="MAC_OS_NAME" />, de la version 120 pour <ph name="PRODUCT_OS_NAME" /> et de la version 120 de <ph name="PRODUCT_NAME" /> pour <ph name="LINUX_OS_NAME" />, lorsque la prise en charge de l'outil de vérification et des certificats racines fournis par la plate-forme a été supprimée.</translation>
 <translation id="5036013147560568855">Version du protocole de provisionnement de certificat. La valeur par défaut est 1. 1 correspond au protocole "statique". 2 correspond au protocole "dynamique".</translation>
 <translation id="5039110755072335605">Prise en charge des en-têtes de requêtes CORS sans caractères génériques</translation>
 <translation id="504116558738617678">N'afficher des avertissements de type "espace disque insuffisant" que si l'appareil n'est pas géré ou s'il n'a qu'un seul utilisateur</translation>
@@ -9714,33 +9688,6 @@ La valeur par défaut est "RollbackDisabled".</translation>
 <translation id="9206472508136116830">Ne pas autoriser la détection des partages avec NetBIOS</translation>
 <translation id="9207596996305971030">Ne pas signaler les événements de connexion/déconnexion</translation>
 <translation id="9210647066889383361">Autoriser les utilisateurs à se connecter à leur appareil avec Smart Lock</translation>
-<translation id="9212819508924803630">Cette règle est obsolète (veuillez utiliser la règle <ph name="RELATED_WEBSITE_SETS_OVERRIDES_POLICY_NAME" /> à la place).
-
-Cette règle permet de remplacer la liste des ensembles que le navigateur utilise pour les fonctionnalités liées aux ensembles internes.
-
-Chaque ensemble figurant dans la liste des ensembles internes du navigateur doit respecter les exigences liées aux ensembles internes.
-Un ensemble interne doit contenir un site principal et au moins un site membre.
-Un ensemble peut également contenir une liste de sites de services dont il est propriétaire, ainsi qu'un mappage entre un site et toutes ses variantes ccTLD.
-Pour en savoir plus sur les ensembles internes qu'utilise <ph name="PRODUCT_NAME" />, rendez-vous sur https://github.com/WICG/first-party-sets.
-
-Tous les sites d'un ensemble interne doivent être des domaines enregistrables diffusés sur HTTPS. Chaque site d'un ensemble interne doit aussi être unique (il ne peut pas figurer plusieurs fois dans un ensemble interne).
-
-Lorsqu'un dictionnaire vide est attribué à cette règle, le navigateur utilise la liste publique des ensembles internes.
-
-Pour tous les sites appartenant à un ensemble interne de la liste <ph name="REPLACEMENTS" /> : si un site figure aussi dans un ensemble interne de la liste du navigateur, il sera supprimé de l'ensemble interne du navigateur.
-L'ensemble interne de la règle sera alors ajouté à la liste des ensembles internes du navigateur.
-
-Pour tous les sites appartenant à un ensemble interne de la liste <ph name="ADDITIONS" /> : si un site figure aussi dans un ensemble interne de la liste du navigateur, l'ensemble interne du navigateur est alors mis à jour afin de pouvoir ajouter le nouvel ensemble interne à la liste du navigateur. Une fois la liste du navigateur mise à jour, l'ensemble interne de la règle est ajouté à la liste des ensembles internes du navigateur.
-
-La liste des ensembles internes du navigateur impose qu'aucun site qui y figure ne se trouve dans plusieurs ensembles. Cette condition s'applique aussi aux listes <ph name="REPLACEMENTS" /> et <ph name="ADDITIONS" />. De même, un site ne peut pas figurer dans les deux listes <ph name="REPLACEMENTS" /> et <ph name="ADDITIONS" />.
-
-Le caractère générique (*) ne peut pas être utilisé comme valeur de la règle, ni dans aucun ensemble interne de ces listes.
-
-Tous les ensembles que cette règle fournit doivent être des ensembles internes valides sous peine de générer une erreur.
-
-Sous <ph name="MS_WIN_NAME" />, cette règle n'est disponible que sur les instances associées à un domaine <ph name="MS_AD_NAME" />, à <ph name="MS_AAD_NAME" /> ou qui bénéficient de la <ph name="CHROME_BROWSER_CLOUD_MANAGEMENT_NAME" />.
-
-Sous <ph name="MAC_OS_NAME" />, cette règle n'est disponible que sur les instances gérées via MDM, associées à un domaine via MCX ou qui bénéficient de la <ph name="CHROME_BROWSER_CLOUD_MANAGEMENT_NAME" />.</translation>
 <translation id="9213751049772256263">Désactiver toutes les variantes</translation>
 <translation id="9217154963008402249">Fréquence des paquets réseau de contrôle</translation>
 <translation id="9220314833408124365">Utiliser une règle par défaut en matière d'URL de provenance (no-referrer-when-downgrade)</translation>

@@ -524,11 +524,14 @@ class CONTENT_EXPORT InterestGroupAuction
       base::OnceClosure on_seller_receiver_callback,
       AuctionPhaseCompletionCallback bidding_and_scoring_phase_callback);
 
-  // Starts an auction based on a server response.
-  void StartFromServerResponse(
-      mojo_base::BigBuffer response,
-      AdAuctionPageData* ad_auction_page_data,
-      AuctionPhaseCompletionCallback bidding_and_scoring_phase_callback);
+  // Handles the server response for an auction.
+  void HandleServerResponse(mojo_base::BigBuffer response,
+                            AdAuctionPageData* ad_auction_page_data);
+
+  // Handles a server response in a component auction.
+  void HandleComponentServerResponse(uint32_t pos,
+                                     mojo_base::BigBuffer response,
+                                     AdAuctionPageData* ad_auction_page_data);
 
   // Creates an InterestGroupAuctionReporter, after the auction has completed.
   // Takes ownership of the `auction_config`, so that the reporter can outlive
@@ -892,6 +895,7 @@ class CONTENT_EXPORT InterestGroupAuction
   bool MayHaveAdditionalBids() const {
     return config_->expects_additional_bids ||
            !encoded_signed_additional_bids_.empty() ||
+           currently_decoding_additional_bids_ ||
            !bid_states_for_additional_bids_.empty();
   }
 
@@ -939,7 +943,8 @@ class CONTENT_EXPORT InterestGroupAuction
   bool IsBiddingAndScoringPhaseComplete() const {
     CHECK_EQ(bidding_and_scoring_phase_state_, PhaseState::kDuring);
     return num_scoring_dependencies_ == 0 && bids_being_scored_ == 0 &&
-           unscored_bids_.empty();
+           unscored_bids_.empty() &&
+           (!is_server_auction_ || saved_response_.has_value());
   }
 
   // Invoked when a component auction completes. If `success` is true, gets
@@ -1115,6 +1120,15 @@ class CONTENT_EXPORT InterestGroupAuction
     return direct_from_seller_signals_header_ad_slot_.get();
   }
 
+  // Some of these methods are split to ensure that regardless of how they
+  // return they still call MaybeCompleteBiddingAndScoringPhase if they are
+  // called during the scoring phase.
+
+  // Returns false if we need to fail the auction instead of continuing in
+  // OnDecompressedServerResponse.
+  bool HandleServerResponseImpl(mojo_base::BigBuffer response,
+                                AdAuctionPageData* ad_auction_page_data);
+
   void OnDecompressedServerResponse(
       AdAuctionRequestContext* request_context,
       base::expected<mojo_base::BigBuffer, std::string> result);
@@ -1122,8 +1136,20 @@ class CONTENT_EXPORT InterestGroupAuction
   void OnParsedServerResponse(AdAuctionRequestContext* request_context,
                               data_decoder::DataDecoder::ValueOrError result);
 
+  // Returns false if we need to fail the auction instead of continuing in
+  // OnLoadedWinningGroup.
+  bool OnParsedServerResponseImpl(
+      AdAuctionRequestContext* request_context,
+      data_decoder::DataDecoder::ValueOrError result);
+
   void OnLoadedWinningGroup(BiddingAndAuctionResponse response,
                             absl::optional<StorageInterestGroup> maybe_group);
+
+  void OnLoadedWinningGroupImpl(
+      BiddingAndAuctionResponse response,
+      absl::optional<StorageInterestGroup> maybe_group);
+
+  void CreateBidFromServerResponse();
 
   // Completion callback for AdAuctionPageData::ParseAndFindAdAuctionSignals().
   // Sets `direct_from_seller_signals_header_ad_slot_`, and sets
@@ -1166,6 +1192,11 @@ class CONTENT_EXPORT InterestGroupAuction
   // directFromSellerSignalsHeaderAdSlot response. Bid generation will be
   // blocked while true, even if promises have all resolved.
   bool direct_from_seller_signals_header_ad_slot_pending_ = false;
+
+  // This is true during the window where the additional bids have been moved
+  // away from `encoded_signed_additional_bids_` but haven't yet been put into
+  // `bid_states_for_additional_bids_` (and a little bit afterwards).
+  bool currently_decoding_additional_bids_ = false;
 
   // If this is a component auction, the parent Auction. Null, otherwise.
   const raw_ptr<const InterestGroupAuction> parent_;
@@ -1223,8 +1254,6 @@ class CONTENT_EXPORT InterestGroupAuction
   bool seller_worklet_received_ = false;
 
   enum class PhaseState { kBefore, kDuring, kAfter };
-  // Note: this should only be used for real bidding and scoring phase, not
-  // when StartFromServerResponse is used.
   PhaseState bidding_and_scoring_phase_state_ = PhaseState::kBefore;
 
   // Number of things that are pending that are needed to score everything.

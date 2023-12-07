@@ -5,9 +5,9 @@
 #include "third_party/blink/renderer/core/layout/grid/grid_layout_algorithm.h"
 
 #include "build/build_config.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_base_layout_algorithm_test.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_length_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_physical_box_fragment.h"
+#include "third_party/blink/renderer/core/layout/base_layout_algorithm_test.h"
+#include "third_party/blink/renderer/core/layout/length_utils.h"
+#include "third_party/blink/renderer/core/layout/physical_box_fragment.h"
 #include "third_party/blink/renderer/platform/testing/runtime_enabled_features_test_helpers.h"
 
 namespace blink {
@@ -124,7 +124,7 @@ class GridLayoutAlgorithmTest : public BaseLayoutAlgorithmTest {
     return growth_limits;
   }
 
-  const NGPhysicalBoxFragment* RunBlockLayoutAlgorithm(Element* element) {
+  const PhysicalBoxFragment* RunBlockLayoutAlgorithm(Element* element) {
     BlockNode container(element->GetLayoutBox());
     ConstraintSpace space = ConstructBlockLayoutTestConstraintSpace(
         {WritingMode::kHorizontalTb, TextDirection::kLtr},
@@ -137,7 +137,7 @@ class GridLayoutAlgorithmTest : public BaseLayoutAlgorithmTest {
     return DumpFragmentTree(fragment);
   }
 
-  String DumpFragmentTree(const blink::NGPhysicalBoxFragment* fragment) {
+  String DumpFragmentTree(const blink::PhysicalBoxFragment* fragment) {
     PhysicalFragment::DumpFlags flags =
         PhysicalFragment::DumpHeaderText | PhysicalFragment::DumpSubtree |
         PhysicalFragment::DumpIndentation | PhysicalFragment::DumpOffset |

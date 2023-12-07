@@ -140,6 +140,9 @@ void SendFeedback(content::BrowserContext* browser_context,
       feedback_info.autofill_metadata) {
     feedback_data->set_autofill_metadata(*feedback_info.autofill_metadata);
   }
+  if (feedback_info.ai_metadata.has_value()) {
+    feedback_data->set_ai_metadata(feedback_info.ai_metadata.value());
+  }
   feedback_data->set_is_offensive_or_unsafe(
       feedback_info.is_offensive_or_unsafe);
 
@@ -275,6 +278,10 @@ std::unique_ptr<FeedbackInfo> FeedbackPrivateAPI::CreateFeedbackInfo(
   // a custom product ID.
   if (from_chrome_labs_or_kaleidoscope) {
     info->product_id = kChromeLabsAndKaleidoscopeProductId;
+  } else if (info->flow == FeedbackFlow::kAi) {
+    // Use Chrome browser product id for all platforms including ChromeOS in
+    // this flow.
+    info->product_id = FeedbackCommon::GetChromeBrowserProductId();
   }
 
   return info;

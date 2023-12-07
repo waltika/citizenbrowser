@@ -351,7 +351,7 @@ bool ComputedStyle::NeedsReattachLayoutTree(const Element& element,
     return true;
   }
 
-  // We use LayoutNGTextCombine only for vertical writing mode.
+  // We use LayoutTextCombine only for vertical writing mode.
   if (new_style->HasTextCombine() && old_style->IsHorizontalWritingMode() !=
                                          new_style->IsHorizontalWritingMode()) {
     DCHECK_EQ(old_style->HasTextCombine(), new_style->HasTextCombine());
@@ -762,7 +762,8 @@ StyleDifference ComputedStyle::VisualInvalidationDiff(
   }
 
   if (!diff.NeedsFullLayout() && GetPosition() != EPosition::kStatic &&
-      !OffsetEqual(other)) {
+      (!InsetsEqual(other) ||
+       (HasOutOfFlowPosition() && GetInsetArea() != other.GetInsetArea()))) {
     diff.SetNeedsPositionedMovementLayout();
   }
 

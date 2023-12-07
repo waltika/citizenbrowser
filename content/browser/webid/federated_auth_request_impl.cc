@@ -613,41 +613,58 @@ void FederatedAuthRequestImpl::CompleteDigitalCredentialRequest(
 
 base::Value::Dict BuildDigitalCredentialRequest(
     blink::mojom::DigitalCredentialProviderPtr provider) {
-  auto formats = Value::List();
-  for (auto& format : provider->selector->format) {
-    formats.Append(format);
-  }
+  auto result = Value::Dict();
 
-  auto params = Value::Dict();
-  for (const auto& pair : provider->params) {
-    params.Set(pair.first, pair.second);
-  }
-
-  auto fields = Value::List();
-
-  if (provider->selector->doctype) {
-    auto doctype = Value::Dict();
-    doctype.Set("name", "doctype");
-    doctype.Set("equals", provider->selector->doctype.value());
-    fields.Append(std::move(doctype));
-  }
-
-  for (auto& value : provider->selector->fields) {
-    auto field = Value::Dict();
-    field.Set("name", value->name);
-    if (value->equals) {
-      field.Set("equals", value->equals.value());
+  if (provider->params) {
+    auto params = Value::Dict();
+    for (const auto& pair : *provider->params) {
+      params.Set(pair.first, pair.second);
     }
-    fields.Append(std::move(field));
+    result.Set("params", std::move(params));
   }
 
-  return Value::Dict().Set(
-      "providers", Value::List().Append(
-                       Value::Dict()
-                           .Set("responseFormat", std::move(formats))
-                           .Set("params", std::move(params))
-                           .Set("selector", Value::Dict().Set(
-                                                "fields", std::move(fields)))));
+  if (provider->selector) {
+    auto formats = Value::List();
+    for (auto& format : provider->selector->format) {
+      formats.Append(format);
+    }
+
+    auto fields = Value::List();
+
+    if (provider->selector->doctype) {
+      auto doctype = Value::Dict();
+      doctype.Set("name", "doctype");
+      doctype.Set("equals", provider->selector->doctype.value());
+      fields.Append(std::move(doctype));
+    }
+
+    for (auto& value : provider->selector->fields) {
+      auto field = Value::Dict();
+      field.Set("name", value->name);
+      if (value->equals) {
+        field.Set("equals", value->equals.value());
+      }
+      fields.Append(std::move(field));
+    }
+
+    result.Set("selector", Value::Dict().Set("fields", std::move(fields)));
+    result.Set("responseFormat", std::move(formats));
+  }
+
+  if (provider->protocol) {
+    result.Set("protocol", *provider->protocol);
+  }
+
+  if (provider->request) {
+    result.Set("request", *provider->request);
+  }
+
+  if (provider->publicKey) {
+    result.Set("publicKey", *provider->publicKey);
+  }
+
+  return Value::Dict().Set("providers",
+                           Value::List().Append(std::move(result)));
 }
 
 std::vector<blink::mojom::IdentityProviderPtr>
@@ -823,7 +840,7 @@ void FederatedAuthRequestImpl::RequestToken(
   bool intercept = false;
   bool should_complete_request_immediately = false;
   devtools_instrumentation::WillSendFedCmRequest(
-      &render_frame_host(), &intercept, &should_complete_request_immediately);
+      render_frame_host(), &intercept, &should_complete_request_immediately);
   should_complete_request_immediately_ =
       (intercept && should_complete_request_immediately) ||
       api_permission_delegate_->ShouldCompleteRequestImmediately();
@@ -835,11 +852,7 @@ void FederatedAuthRequestImpl::RequestToken(
   request_dialog_controller_ = CreateDialogController();
   start_time_ = base::TimeTicks::Now();
 
-  FederatedApiPermissionStatus permission_status =
-      GetApiPermissionStatus(url::Origin::Create(idp_get_params_ptrs[0]
-                                                     ->providers[0]
-                                                     ->get_federated()
-                                                     ->config->config_url));
+  FederatedApiPermissionStatus permission_status = GetApiPermissionStatus();
 
   absl::optional<TokenStatus> error_token_status;
   FederatedAuthRequestResult request_result =
@@ -1341,6 +1354,19 @@ void FederatedAuthRequestImpl::MaybeShowAccountsDialog() {
     return;
   }
 
+  // The accounts fetch could be delayed for legitimate reasons. A user may be
+  // able to disable FedCM API (e.g. via settings or dismissing another FedCM UI
+  // on the same RP origin) before the browser receives the accounts response.
+  // We should exit early without showing any UI.
+  if (GetApiPermissionStatus() != FederatedApiPermissionStatus::GRANTED) {
+    CompleteRequestWithError(
+        FederatedAuthRequestResult::kErrorDisabledInSettings,
+        TokenStatus::kDisabledInSettings,
+        /*token_error=*/absl::nullopt,
+        /*should_delay_callback=*/true);
+    return;
+  }
+
   // The RenderFrameHost may be alive but not visible in the following
   // situations:
   // Situation #1: User switched tabs
@@ -1480,7 +1506,7 @@ void FederatedAuthRequestImpl::MaybeShowAccountsDialog() {
   // So we use this call to see whether interception is enabled.
   // It is not needed in regular Chrome even when automation is used because
   // there, the dialog will wait for user input anyway.
-  devtools_instrumentation::WillShowFedCmDialog(&render_frame_host(),
+  devtools_instrumentation::WillShowFedCmDialog(render_frame_host(),
                                                 &intercept);
   // Since we don't reuse the controller for each request, and intercept
   // defaults to false, we only need to call this if intercept is true.
@@ -1493,12 +1519,15 @@ void FederatedAuthRequestImpl::MaybeShowAccountsDialog() {
       base::BindOnce(&FederatedAuthRequestImpl::CompleteRequestWithError,
                      weak_ptr_factory_.GetWeakPtr()));
 
+  identity_selection_type_ =
+      dialog_type_ == kAutoReauth ? kAutoWidget : kExplicit;
   // TODO(crbug.com/1382863): Handle UI where some IDPs are successful and some
   // IDPs are failing in the multi IDP case.
   request_dialog_controller_->ShowAccountsDialog(
       GetTopFrameOriginForDisplay(GetEmbeddingOrigin()), iframe_for_display,
       idp_data_for_display_,
-      (dialog_type_ == kAutoReauth) ? SignInMode::kAuto : SignInMode::kExplicit,
+      identity_selection_type_ == kExplicit ? SignInMode::kExplicit
+                                            : SignInMode::kAuto,
       show_auto_reauthn_checkbox,
       base::BindOnce(&FederatedAuthRequestImpl::OnAccountSelected,
                      weak_ptr_factory_.GetWeakPtr()),
@@ -1507,9 +1536,9 @@ void FederatedAuthRequestImpl::MaybeShowAccountsDialog() {
                      /*can_append_hints=*/false),
       base::BindOnce(&FederatedAuthRequestImpl::OnDialogDismissed,
                      weak_ptr_factory_.GetWeakPtr()));
-  devtools_instrumentation::OnFedCmDialogShown(&render_frame_host());
+  devtools_instrumentation::DidShowFedCmDialog(render_frame_host());
 
-  if (dialog_type_ != kAutoReauth) {
+  if (identity_selection_type_ == kExplicit) {
     // We omit recording the accounts dialog shown metric for auto re-authn
     // because the metric is used to detect IDPs flashing UI. Auto re-authn
     // verifying UI cannot be flashed since it is destroyed automatically after
@@ -1607,7 +1636,7 @@ void FederatedAuthRequestImpl::HandleAccountsFetchFailure(
                      /*can_append_hints=*/true));
   fedcm_metrics_->RecordMismatchDialogShown();
   mismatch_dialog_shown_time_ = base::TimeTicks::Now();
-  devtools_instrumentation::OnFedCmDialogShown(&render_frame_host());
+  devtools_instrumentation::DidShowFedCmDialog(render_frame_host());
 }
 
 void FederatedAuthRequestImpl::CloseModalDialogView() {
@@ -1791,9 +1820,7 @@ void FederatedAuthRequestImpl::OnAccountSelected(const GURL& idp_config_url,
   // settings are changed while an existing FedCM UI is displayed. Ideally, we
   // should enforce this check before all requests but users typically won't
   // have time to disable the FedCM API in other types of requests.
-  url::Origin idp_origin = url::Origin::Create(idp_config_url);
-  if (GetApiPermissionStatus(idp_origin) !=
-      FederatedApiPermissionStatus::GRANTED) {
+  if (GetApiPermissionStatus() != FederatedApiPermissionStatus::GRANTED) {
     CompleteRequestWithError(
         FederatedAuthRequestResult::kErrorDisabledInSettings,
         TokenStatus::kDisabledInSettings,
@@ -1802,7 +1829,7 @@ void FederatedAuthRequestImpl::OnAccountSelected(const GURL& idp_config_url,
     return;
   }
 
-  if (dialog_type_ == kAutoReauth) {
+  if (identity_selection_type_ != kExplicit) {
     // Embargo auto re-authn to mitigate a deadloop where an auto
     // re-authenticated user gets auto re-authenticated again soon after logging
     // out of the active session.
@@ -1828,7 +1855,7 @@ void FederatedAuthRequestImpl::OnAccountSelected(const GURL& idp_config_url,
       idp_info.endpoints.token, account_id_,
       ComputeUrlEncodedTokenPostData(
           idp_info.provider->config->client_id, idp_info.provider->nonce,
-          account_id, is_sign_in, dialog_type_ == kAutoReauth,
+          account_id, is_sign_in, identity_selection_type_ == kAutoWidget,
           idp_info.provider->scope, idp_info.provider->responseType,
           idp_info.provider->params),
       base::BindOnce(&FederatedAuthRequestImpl::OnTokenResponseReceived,
@@ -1949,6 +1976,11 @@ void FederatedAuthRequestImpl::OnDialogDismissed(
 void FederatedAuthRequestImpl::ShowModalDialog(const GURL& url) {
   // Reset dialog type since we are not showing a fedcm dialog while the
   // popup window is open.
+  if (dialog_type_ != kNone) {
+    // This call ensures that we send a dialogClosed event if an account
+    // chooser or mismatch dialog is open.
+    devtools_instrumentation::DidCloseFedCmDialog(render_frame_host());
+  }
   // TODO(cbiesinger): Should this return a special dialog type?
   dialog_type_ = kNone;
 
@@ -2011,6 +2043,11 @@ void FederatedAuthRequestImpl::ShowErrorDialog(
       base::BindOnce(&FederatedAuthRequestImpl::CompleteRequestWithError,
                      weak_ptr_factory_.GetWeakPtr()));
 
+  dialog_type_ = kError;
+  config_url_ = idp_config_url;
+  token_request_status_ = status;
+  token_error_ = token_error;
+
   // TODO(crbug.com/1485710): Refactor IdentityCredentialTokenError
   request_dialog_controller_->ShowErrorDialog(
       GetTopFrameOriginForDisplay(GetEmbeddingOrigin()), iframe_for_display,
@@ -2024,6 +2061,7 @@ void FederatedAuthRequestImpl::ShowErrorDialog(
           ? base::BindOnce(&FederatedAuthRequestImpl::ShowModalDialog,
                            weak_ptr_factory_.GetWeakPtr(), token_error->url)
           : base::NullCallback());
+  devtools_instrumentation::DidShowFedCmDialog(render_frame_host());
 }
 
 void FederatedAuthRequestImpl::OnTokenResponseReceived(
@@ -2125,22 +2163,16 @@ void FederatedAuthRequestImpl::CompleteTokenRequest(
             should_delay_callback);
         return;
       }
-      // Grant sharing permission specific to *this account*.
-      //
-      // TODO(majidvp): But wait which account?
-      //   1) The account that user selected in our UI (i.e., account_id_) or
-      //   2) The one for which the IDP generated a token.
-      //
-      // Ideally these are one and the same but currently there is no
-      // enforcement for that equality so they could be different. In the
-      // future we may want to enforce that the token account (aka subject)
-      // matches the user selected account. But for now these questions are
-      // moot since we don't actually inspect the returned idtoken.
-      // https://crbug.com/1199088
+
+      // Auto re-authentication can only be triggered when there's already a
+      // sharing permission OR the IdP is exempted with 3PC access. Either way
+      // we shouldn't explicitly grant permission here.
       CHECK(!account_id_.empty());
-      permission_delegate_->GrantSharingPermission(
-          origin(), GetEmbeddingOrigin(), url::Origin::Create(idp_config_url),
-          account_id_);
+      if (identity_selection_type_ == kExplicit) {
+        permission_delegate_->GrantSharingPermission(
+            origin(), GetEmbeddingOrigin(), url::Origin::Create(idp_config_url),
+            account_id_);
+      }
 
       SetRequiresUserMediation(false);
 
@@ -2249,7 +2281,11 @@ void FederatedAuthRequestImpl::CompleteRequest(
   }
 
   bool is_auto_selected =
-      IsFedCmAutoSelectedFlagEnabled() && dialog_type_ == kAutoReauth;
+      IsFedCmAutoSelectedFlagEnabled() && identity_selection_type_ != kExplicit;
+
+  if (dialog_type_ != kNone) {
+    devtools_instrumentation::DidCloseFedCmDialog(render_frame_host());
+  }
 
   CleanUp();
 
@@ -2316,7 +2352,10 @@ void FederatedAuthRequestImpl::CleanUp() {
   metrics_endpoints_.clear();
   token_request_get_infos_.clear();
   login_url_ = GURL();
+  config_url_ = GURL();
+  token_error_ = absl::nullopt;
   dialog_type_ = kNone;
+  identity_selection_type_ = kExplicit;
 }
 
 void FederatedAuthRequestImpl::AddDevToolsIssue(
@@ -2482,8 +2521,8 @@ void FederatedAuthRequestImpl::OnRejectRequest() {
                            /*should_delay_callback=*/false);
 }
 
-FederatedApiPermissionStatus FederatedAuthRequestImpl::GetApiPermissionStatus(
-    const url::Origin& idp_origin) {
+FederatedApiPermissionStatus
+FederatedAuthRequestImpl::GetApiPermissionStatus() {
   DCHECK(api_permission_delegate_);
   return api_permission_delegate_->GetApiPermissionStatus(GetEmbeddingOrigin());
 }
@@ -2516,6 +2555,30 @@ void FederatedAuthRequestImpl::DismissConfirmIdpLoginDialogForDevtools() {
   // These values match what HandleAccountsFetchFailure passes.
   OnDismissFailureDialog(
       IdentityRequestDialogController::DismissReason::kOther);
+}
+
+bool FederatedAuthRequestImpl::HasMoreDetailsButtonForDevtools() {
+  return token_error_ && token_error_->url.is_valid();
+}
+
+void FederatedAuthRequestImpl::ClickErrorDialogGotItForDevtools() {
+  DCHECK(token_error_);
+  OnDismissErrorDialog(
+      config_url_, token_request_status_, token_error_,
+      IdentityRequestDialogController::DismissReason::kGotItButton);
+}
+
+void FederatedAuthRequestImpl::ClickErrorDialogMoreDetailsForDevtools() {
+  DCHECK(token_error_ && token_error_->url.is_valid());
+  ShowModalDialog(token_error_->url);
+  OnDismissErrorDialog(
+      config_url_, token_request_status_, token_error_,
+      IdentityRequestDialogController::DismissReason::kMoreDetailsButton);
+}
+
+void FederatedAuthRequestImpl::DismissErrorDialogForDevtools() {
+  OnDismissErrorDialog(config_url_, token_request_status_, token_error_,
+                       IdentityRequestDialogController::DismissReason::kOther);
 }
 
 bool FederatedAuthRequestImpl::GetSingleReturningAccount(
@@ -2702,7 +2765,7 @@ void FederatedAuthRequestImpl::Disconnect(
   bool intercept = false;
   bool should_complete_request_immediately = false;
   devtools_instrumentation::WillSendFedCmRequest(
-      &render_frame_host(), &intercept, &should_complete_request_immediately);
+      render_frame_host(), &intercept, &should_complete_request_immediately);
 
   auto network_manager = CreateNetworkManager();
 

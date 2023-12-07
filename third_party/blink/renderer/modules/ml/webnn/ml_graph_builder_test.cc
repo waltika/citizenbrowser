@@ -66,6 +66,19 @@ TEST_F(MLGraphBuilderTest, InputTest) {
     EXPECT_EQ(input->Name(), "input");
   }
   {
+    // Test building a 1-D input with int64 data type.
+    auto* input =
+        BuildInput(builder, "input", {3}, V8MLOperandDataType::Enum::kInt64,
+                   scope.GetExceptionState());
+    EXPECT_NE(input, nullptr);
+    EXPECT_EQ(scope.GetExceptionState().CodeAs<DOMExceptionCode>(),
+              DOMExceptionCode::kNoError);
+    EXPECT_EQ(input->Kind(), MLOperand::OperandKind::kInput);
+    EXPECT_EQ(input->DataType(), V8MLOperandDataType::Enum::kInt64);
+    EXPECT_EQ(input->Dimensions(), Vector<uint32_t>({3}));
+    EXPECT_EQ(input->Name(), "input");
+  }
+  {
     // Test building a 2-D input without errors.
     auto* input = BuildInput(builder, "input", {3, 4},
                              V8MLOperandDataType::Enum::kFloat32,
@@ -158,6 +171,18 @@ TEST_F(MLGraphBuilderTest, ConstantTest) {
     EXPECT_EQ(constant->Kind(), MLOperand::OperandKind::kConstant);
     EXPECT_EQ(constant->DataType(), V8MLOperandDataType::Enum::kFloat32);
     EXPECT_EQ(constant->Dimensions(), Vector<uint32_t>({}));
+  }
+  {
+    // Test building a 1-D constant with uint64 data type.
+    auto* constant =
+        BuildConstant(builder, {5}, V8MLOperandDataType::Enum::kUint64,
+                      scope.GetExceptionState());
+    EXPECT_NE(constant, nullptr);
+    EXPECT_EQ(scope.GetExceptionState().CodeAs<DOMExceptionCode>(),
+              DOMExceptionCode::kNoError);
+    EXPECT_EQ(constant->Kind(), MLOperand::OperandKind::kConstant);
+    EXPECT_EQ(constant->DataType(), V8MLOperandDataType::Enum::kUint64);
+    EXPECT_EQ(constant->Dimensions(), Vector<uint32_t>({5}));
   }
   {
     // Test building a 2-D constant without errors.
@@ -3764,7 +3789,7 @@ TEST_F(MLGraphBuilderTest, ElementWiseUnaryTest) {
               DOMExceptionCode::kDataError);
     EXPECT_EQ(scope.GetExceptionState().Message(),
               "The input data type must be one of the "
-              "float32,float16,int32,int8 types.");
+              "float32,float16,int32,int64,int8 types.");
   }
   {
     // Test throwing exception when building abs with uint8 input.
@@ -3778,7 +3803,7 @@ TEST_F(MLGraphBuilderTest, ElementWiseUnaryTest) {
               DOMExceptionCode::kDataError);
     EXPECT_EQ(scope.GetExceptionState().Message(),
               "The input data type must be one of the "
-              "float32,float16,int32,int8 types.");
+              "float32,float16,int32,int64,int8 types.");
   }
   {
     // Test building element-wise Erf.
@@ -3841,6 +3866,27 @@ TEST_F(MLGraphBuilderTest, ElementWiseUnaryTest) {
                        .dimensions = {8, 6, 2}}}
         .Test(scope);
   }
+}
+
+TEST_F(MLGraphBuilderTest, Cast) {
+  V8TestingScope scope;
+  auto* builder =
+      CreateMLGraphBuilder(scope.GetExecutionContext(), scope.GetScriptState(),
+                           scope.GetExceptionState());
+  auto int8_datatype = V8MLOperandDataType::Create("int8");
+  auto* input = BuildInput(builder, "input", {8, 6, 2},
+                           V8MLOperandDataType::Enum::kFloat32,
+                           scope.GetExceptionState());
+  MLOperand* output =
+      builder->cast(input, int8_datatype.value(), scope.GetExceptionState());
+  EXPECT_EQ(output->Kind(), MLOperand::OperandKind::kOutput);
+  EXPECT_EQ(output->DataType(), V8MLOperandDataType::Enum::kInt8);
+  EXPECT_EQ(output->Dimensions(), input->Dimensions());
+  auto* op = output->Operator();
+  EXPECT_NE(op, nullptr);
+  EXPECT_EQ(op->Kind(), MLOperator::OperatorKind::kCast);
+  EXPECT_EQ(op->IsConnected(), true);
+  EXPECT_EQ(op->Options(), nullptr);
 }
 
 MLOperand* BuildReduce(V8TestingScope& scope,
@@ -4035,12 +4081,11 @@ TEST_F(MLGraphBuilderTest, ReshapeTest) {
       CreateMLGraphBuilder(scope.GetExecutionContext(), scope.GetScriptState(),
                            scope.GetExceptionState());
   {
-    // Test building reshape with new shape = {3, null}.
+    // Test building reshape with new shape = {3, 8}.
     auto* input = BuildInput(builder, "input", {2, 3, 4},
                              V8MLOperandDataType::Enum::kFloat32,
                              scope.GetExceptionState());
-    auto* output =
-        builder->reshape(input, {3, absl::nullopt}, scope.GetExceptionState());
+    auto* output = builder->reshape(input, {3, 8}, scope.GetExceptionState());
     EXPECT_NE(output, nullptr);
     EXPECT_EQ(output->Kind(), MLOperand::OperandKind::kOutput);
     EXPECT_EQ(output->DataType(), V8MLOperandDataType::Enum::kFloat32);
@@ -4051,12 +4096,11 @@ TEST_F(MLGraphBuilderTest, ReshapeTest) {
     EXPECT_EQ(reshape->IsConnected(), true);
   }
   {
-    // Test building reshape with new shape = {null}, src shape = {2, 3, 4}.
+    // Test building reshape with new shape = {24}, src shape = {2, 3, 4}.
     auto* input = BuildInput(builder, "input", {2, 3, 4},
                              V8MLOperandDataType::Enum::kFloat32,
                              scope.GetExceptionState());
-    auto* output =
-        builder->reshape(input, {absl::nullopt}, scope.GetExceptionState());
+    auto* output = builder->reshape(input, {24}, scope.GetExceptionState());
     EXPECT_NE(output, nullptr);
     EXPECT_EQ(output->Kind(), MLOperand::OperandKind::kOutput);
     EXPECT_EQ(output->DataType(), V8MLOperandDataType::Enum::kFloat32);
@@ -4067,12 +4111,11 @@ TEST_F(MLGraphBuilderTest, ReshapeTest) {
     EXPECT_EQ(reshape->IsConnected(), true);
   }
   {
-    // Test building reshape with new shape = {null}, src shape = {1}.
+    // Test building reshape with new shape = {1}, src shape = {1}.
     auto* input =
         BuildInput(builder, "input", {1}, V8MLOperandDataType::Enum::kFloat32,
                    scope.GetExceptionState());
-    auto* output =
-        builder->reshape(input, {absl::nullopt}, scope.GetExceptionState());
+    auto* output = builder->reshape(input, {1}, scope.GetExceptionState());
     EXPECT_NE(output, nullptr);
     EXPECT_EQ(output->Kind(), MLOperand::OperandKind::kOutput);
     EXPECT_EQ(output->DataType(), V8MLOperandDataType::Enum::kFloat32);
@@ -4117,8 +4160,8 @@ TEST_F(MLGraphBuilderTest, ReshapeTest) {
     auto* input = BuildInput(builder, "input", {2, 4},
                              V8MLOperandDataType::Enum::kFloat32,
                              scope.GetExceptionState());
-    auto* output = builder->reshape(input, {2, absl::nullopt, 0},
-                                    scope.GetExceptionState());
+    auto* output =
+        builder->reshape(input, {2, 4, 0}, scope.GetExceptionState());
     EXPECT_EQ(output, nullptr);
     EXPECT_EQ(ToExceptionCode(DOMExceptionCode::kDataError),
               scope.GetExceptionState().Code());
@@ -4141,34 +4184,18 @@ TEST_F(MLGraphBuilderTest, ReshapeTest) {
               "the number of elements (24) in the input tensor.");
   }
   {
-    // Test throwing error when more than one components of new_shape are null.
-    auto* input = BuildInput(builder, "input", {2, 3, 1},
+    // Test throwing error since the number of elements implied by new shape is
+    // not equal to the number of elements in the input tensor.
+    auto* input = BuildInput(builder, "input", {2, 3, 4},
                              V8MLOperandDataType::Enum::kFloat32,
                              scope.GetExceptionState());
-    auto* output = builder->reshape(input, {6, absl::nullopt, absl::nullopt},
-                                    scope.GetExceptionState());
+    auto* output = builder->reshape(input, {3, 9}, scope.GetExceptionState());
     EXPECT_EQ(output, nullptr);
     EXPECT_EQ(ToExceptionCode(DOMExceptionCode::kDataError),
               scope.GetExceptionState().Code());
     EXPECT_EQ(scope.GetExceptionState().Message(),
-              "Only one component of new shape can be null.");
-  }
-  {
-    // Test throwing error since the number of elements (9) of the input tensor
-    // can't be divided evenly by the number of elements (2) implied by the new
-    // shape.
-    auto* input = BuildInput(builder, "input", {3, 3},
-                             V8MLOperandDataType::Enum::kFloat32,
-                             scope.GetExceptionState());
-    auto* output =
-        builder->reshape(input, {2, absl::nullopt}, scope.GetExceptionState());
-    EXPECT_EQ(output, nullptr);
-    EXPECT_EQ(ToExceptionCode(DOMExceptionCode::kDataError),
-              scope.GetExceptionState().Code());
-    EXPECT_EQ(scope.GetExceptionState().Message(),
-              "The number of elements (9) in the input tensor can't be "
-              "divided evenly by the number of elements (2) implied by new "
-              "shape.");
+              "The number of elements (27) implied by new shape doesn't match "
+              "the number of elements (24) in the input tensor.");
   }
 }
 
@@ -4772,6 +4799,110 @@ TEST_F(MLGraphBuilderTest, ExpandTest) {
     EXPECT_EQ(scope.GetExceptionState().Message(),
               "Invalid output operand: The number of elements "
               "is too large.");
+  }
+}
+
+MLOperand* BuildGather(V8TestingScope& scope,
+                       MLGraphBuilder* builder,
+                       const MLOperand* input,
+                       const MLOperand* indices,
+                       const MLGatherOptions* options) {
+  auto* output =
+      builder->gather(input, indices, options, scope.GetExceptionState());
+  EXPECT_NE(output, nullptr);
+  EXPECT_EQ(output->Kind(), MLOperand::OperandKind::kOutput);
+  EXPECT_EQ(output->DataType(), input->DataType());
+  auto* gather = output->Operator();
+  EXPECT_NE(gather, nullptr);
+  EXPECT_EQ(gather->Kind(), MLOperator::OperatorKind::kGather);
+  EXPECT_TRUE(gather->IsConnected());
+  EXPECT_NE(gather->Options(), nullptr);
+  return output;
+}
+
+TEST_F(MLGraphBuilderTest, GatherTest) {
+  V8TestingScope scope;
+  MLGraphBuilder* builder =
+      CreateMLGraphBuilder(scope.GetExecutionContext(), scope.GetScriptState(),
+                           scope.GetExceptionState());
+  {
+    // Test building gather with default options and 0-D indices.
+    auto* input =
+        BuildInput(builder, "input", {3}, V8MLOperandDataType::Enum::kFloat16,
+                   scope.GetExceptionState());
+    auto* indices =
+        BuildInput(builder, "indices", {}, V8MLOperandDataType::Enum::kUint64,
+                   scope.GetExceptionState());
+    auto* output = BuildGather(scope, builder, input, indices);
+    EXPECT_EQ(output->Dimensions(), Vector<uint32_t>({}));
+  }
+  {
+    // Test building gather with axis = 2.
+    auto* input = BuildInput(builder, "input", {1, 2, 3, 4},
+                             V8MLOperandDataType::Enum::kFloat32,
+                             scope.GetExceptionState());
+    auto* indices = BuildInput(builder, "indices", {5, 6},
+                               V8MLOperandDataType::Enum::kUint32,
+                               scope.GetExceptionState());
+    auto* options = MLGatherOptions::Create();
+    options->setAxis(2);
+    auto* output = BuildGather(scope, builder, input, indices, options);
+    EXPECT_EQ(output->Dimensions(), Vector<uint32_t>({1, 2, 5, 6, 4}));
+  }
+  {
+    // Test building gather with 0-D input.
+    auto* input =
+        BuildInput(builder, "input", {}, V8MLOperandDataType::Enum::kFloat32,
+                   scope.GetExceptionState());
+    auto* indices = BuildInput(builder, "indices", {5, 6},
+                               V8MLOperandDataType::Enum::kUint32,
+                               scope.GetExceptionState());
+    auto* options = MLGatherOptions::Create();
+    auto* output =
+        builder->gather(input, indices, options, scope.GetExceptionState());
+    EXPECT_EQ(output, nullptr);
+    EXPECT_EQ(scope.GetExceptionState().CodeAs<DOMExceptionCode>(),
+              DOMExceptionCode::kDataError);
+    EXPECT_EQ(scope.GetExceptionState().Message(),
+              "The input should not be a scalar.");
+  }
+  {
+    // Test building gather with `axis` greater than the input rank.
+    auto* input = BuildInput(builder, "input", {1, 2, 3},
+                             V8MLOperandDataType::Enum::kFloat32,
+                             scope.GetExceptionState());
+    auto* indices = BuildInput(builder, "indices", {5, 6},
+                               V8MLOperandDataType::Enum::kUint32,
+                               scope.GetExceptionState());
+    auto* options = MLGatherOptions::Create();
+    options->setAxis(4);
+    auto* output =
+        builder->gather(input, indices, options, scope.GetExceptionState());
+    EXPECT_EQ(output, nullptr);
+    EXPECT_EQ(scope.GetExceptionState().CodeAs<DOMExceptionCode>(),
+              DOMExceptionCode::kDataError);
+    EXPECT_EQ(
+        scope.GetExceptionState().Message(),
+        "The axis must be in the range [0, N-1] where N is the rank of input "
+        "tensor.");
+  }
+  {
+    // Test building gather with invalid indices data type.
+    auto* input = BuildInput(builder, "input", {1, 2, 3, 4},
+                             V8MLOperandDataType::Enum::kFloat32,
+                             scope.GetExceptionState());
+    auto* indices = BuildInput(builder, "indices", {5, 6},
+                               V8MLOperandDataType::Enum::kFloat32,
+                               scope.GetExceptionState());
+    auto* options = MLGatherOptions::Create();
+    auto* output =
+        builder->gather(input, indices, options, scope.GetExceptionState());
+    EXPECT_EQ(output, nullptr);
+    EXPECT_EQ(scope.GetExceptionState().CodeAs<DOMExceptionCode>(),
+              DOMExceptionCode::kDataError);
+    EXPECT_EQ(
+        scope.GetExceptionState().Message(),
+        "The indices type must be one of the int32,uint32,int64,uint64 types.");
   }
 }
 
@@ -5640,7 +5771,8 @@ TEST_F(MLGraphBuilderTest, WhereTest) {
               "broadcasted from true_value and false_value.");
   }
   {
-    // Test building where with 2-D condition and 2-D input using broadcast.
+    // Test building where with 2-D condition, 2-D true_value and 2-D
+    // false_value using broadcast.
     auto* condition = BuildInput(builder, "condition", {2, 1},
                                  V8MLOperandDataType::Enum::kUint8,
                                  scope.GetExceptionState());
@@ -5655,8 +5787,8 @@ TEST_F(MLGraphBuilderTest, WhereTest) {
     EXPECT_EQ(output->Dimensions(), Vector<uint32_t>({2, 4}));
   }
   {
-    // Test building where with 2-D condition, 2-D input and 3-D other using
-    // broadcast.
+    // Test building where with 2-D condition, 2-D true_value and 3-D
+    // false_value using broadcast.
     auto* condition = BuildInput(builder, "condition", {1, 4},
                                  V8MLOperandDataType::Enum::kUint8,
                                  scope.GetExceptionState());
@@ -5671,8 +5803,8 @@ TEST_F(MLGraphBuilderTest, WhereTest) {
     EXPECT_EQ(output->Dimensions(), Vector<uint32_t>({2, 3, 4}));
   }
   {
-    // Test building where with 3-D condition, 3-D input and 2-D other using
-    // broadcast.
+    // Test building where with 3-D condition, 3-D true_value and 2-D
+    // false_value using broadcast.
     auto* condition = BuildInput(builder, "condition", {2, 1, 4},
                                  V8MLOperandDataType::Enum::kUint8,
                                  scope.GetExceptionState());
@@ -5687,8 +5819,8 @@ TEST_F(MLGraphBuilderTest, WhereTest) {
     EXPECT_EQ(output->Dimensions(), Vector<uint32_t>({2, 3, 4}));
   }
   {
-    // Test building where with 4-D condition, 3-D input and 2-D other using
-    // broadcast.
+    // Test building where with 4-D condition, 3-D true_value and 2-D
+    // false_value using broadcast.
     auto* condition = BuildInput(builder, "condition", {2, 3, 4, 5},
                                  V8MLOperandDataType::Enum::kUint8,
                                  scope.GetExceptionState());

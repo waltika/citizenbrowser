@@ -43,6 +43,7 @@ import org.chromium.chrome.browser.compositor.layouts.LayoutManagerImpl;
 import org.chromium.chrome.browser.compositor.layouts.content.TabContentManager;
 import org.chromium.chrome.browser.contextualsearch.ContextualSearchManager;
 import org.chromium.chrome.browser.desktop_site.DesktopSiteSettingsIPHController;
+import org.chromium.chrome.browser.dragdrop.ChromeTabbedOnDragListener;
 import org.chromium.chrome.browser.feature_guide.notifications.FeatureNotificationUtils;
 import org.chromium.chrome.browser.feature_guide.notifications.FeatureType;
 import org.chromium.chrome.browser.feed.webfeed.WebFeedFollowIntroController;
@@ -67,6 +68,7 @@ import org.chromium.chrome.browser.layouts.LayoutType;
 import org.chromium.chrome.browser.lifecycle.ActivityLifecycleDispatcher;
 import org.chromium.chrome.browser.locale.LocaleManager;
 import org.chromium.chrome.browser.multiwindow.MultiInstanceIphController;
+import org.chromium.chrome.browser.multiwindow.MultiInstanceManager;
 import org.chromium.chrome.browser.multiwindow.MultiWindowUtils;
 import org.chromium.chrome.browser.night_mode.WebContentsDarkModeMessageController;
 import org.chromium.chrome.browser.notifications.permissions.NotificationPermissionController;
@@ -95,6 +97,7 @@ import org.chromium.chrome.browser.tab.RequestDesktopUtils;
 import org.chromium.chrome.browser.tab.Tab;
 import org.chromium.chrome.browser.tab.TabAssociatedApp;
 import org.chromium.chrome.browser.tab.TabLaunchType;
+import org.chromium.chrome.browser.tabmodel.TabCreator;
 import org.chromium.chrome.browser.tabmodel.TabCreatorManager;
 import org.chromium.chrome.browser.tabmodel.TabModelSelector;
 import org.chromium.chrome.browser.tasks.tab_management.TabSwitcher;
@@ -134,7 +137,7 @@ import java.util.function.Function;
 
 /** A {@link RootUiCoordinator} variant that controls tabbed-mode specific UI. */
 public class TabbedRootUiCoordinator extends RootUiCoordinator {
-    private static boolean sDisableStatusIndicatorAnimationsForTesting;
+    private static boolean sDisableTopControlsAnimationForTesting;
     private final RootUiTabObserver mRootUiTabObserver;
     private TabbedSystemUiCoordinator mSystemUiCoordinator;
 
@@ -164,7 +167,8 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
     private final Function<Tab, Boolean> mBackButtonShouldCloseTabFn;
     private LayoutStateProvider.LayoutStateObserver mGestureNavLayoutObserver;
     private final ObservableSupplierImpl<EphemeralTabCoordinator> mEphemeralTabCoordinatorSupplier;
-
+    private Callback<Integer> mOnTabStripHeightChangedCallback;
+    private MultiInstanceManager mMultiInstanceManager;
     private int mStatusIndicatorHeight;
 
     /**
@@ -254,6 +258,7 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
      * @param initializeUiWithIncognitoColors Whether to initialize the UI with incognito colors.
      * @param backPressManager The {@link BackPressManager} handling back press.
      * @param savedInstanceState The saved bundle for the last recorded state.
+     * @param multiInstanceManager Manages multi-instance mode.
      */
     public TabbedRootUiCoordinator(
             @NonNull AppCompatActivity activity,
@@ -299,7 +304,8 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
             OneshotSupplier<TabReparentingController> tabReparentingControllerSupplier,
             boolean initializeUiWithIncognitoColors,
             @NonNull BackPressManager backPressManager,
-            @Nullable Bundle savedInstanceState) {
+            @Nullable Bundle savedInstanceState,
+            @Nullable MultiInstanceManager multiInstanceManager) {
         super(
                 activity,
                 onOmniboxFocusChangedListener,
@@ -366,6 +372,7 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
                         }
                     }
                 };
+        mMultiInstanceManager = multiInstanceManager;
     }
 
     @Override
@@ -380,6 +387,12 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
 
         if (mToolbarManager != null) {
             mToolbarManager.getOmniboxStub().removeUrlFocusChangeListener(mUrlFocusChangeListener);
+            if (mOnTabStripHeightChangedCallback != null) {
+                mToolbarManager
+                        .getTabStripHeightSupplier()
+                        .removeObserver(mOnTabStripHeightChangedCallback);
+                mOnTabStripHeightChangedCallback = null;
+            }
         }
 
         if (mOfflineIndicatorInProductHelpController != null) {
@@ -554,25 +567,36 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
                         mLayoutManager);
         mRootUiTabObserver.swapToTab(mActivityTabProvider.get());
 
+        // TODO(crbug.com/1505851): Consider register this drag listener to other views besides CVH.
+        if (ChromeFeatureList.sTabLinkDragDropAndroid.isEnabled()) {
+            ChromeTabbedOnDragListener chromeTabbedOnDragListener =
+                    new ChromeTabbedOnDragListener(
+                            mMultiInstanceManager,
+                            mTabModelSelectorSupplier.get(),
+                            mWindowAndroid,
+                            mLayoutStateProviderOneShotSupplier);
+
+            mCompositorViewHolderSupplier.get().setOnDragListener(chromeTabbedOnDragListener);
+        }
+
         if (!DeviceFormFactor.isNonMultiDisplayContextOnTablet(mActivity)) {
             getToolbarManager().enableBottomControls();
         }
 
         if (EphemeralTabCoordinator.isSupported()) {
+            Supplier<TabCreator> tabCreator =
+                    () ->
+                            mTabCreatorManagerSupplier
+                                    .get()
+                                    .getTabCreator(
+                                            mTabModelSelectorSupplier.get().isIncognitoSelected());
             mEphemeralTabCoordinatorSupplier.set(
                     new EphemeralTabCoordinator(
                             mActivity,
                             mWindowAndroid,
                             mActivity.getWindow().getDecorView(),
                             mActivityTabProvider,
-                            () -> {
-                                return mTabCreatorManagerSupplier
-                                        .get()
-                                        .getTabCreator(
-                                                mTabModelSelectorSupplier
-                                                        .get()
-                                                        .isIncognitoSelected());
-                            },
+                            tabCreator,
                             getBottomSheetController(),
                             true));
         }
@@ -595,6 +619,7 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
         PwaBottomSheetControllerFactory.attach(mWindowAndroid, mPwaBottomSheetController);
         initCommerceSubscriptionsService();
         initUndoGroupSnackbarController();
+        initTabStripTransitionCoordinator();
     }
 
     /** Creates an instance of {@link IncognitoReauthCoordinatorFactory} for tabbed activity. */
@@ -940,11 +965,20 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
         }
     }
 
-    private void updateTopControlsHeight(boolean animate) {
+    private void updateTopControlsHeight() {
+        if (mToolbarManager == null) return;
+
+        final boolean animate = !sDisableTopControlsAnimationForTesting;
         final BrowserControlsSizer browserControlsSizer = mBrowserControlsManager;
-        final int resourceId = mControlContainerHeightResource;
+        // This method can be called when the toolbar didn't go through a layout pass (e.g. when
+        // theme switches in settings, activity recreates), so getToolbar().getHeight() returns 0.
+        // TODO(crbug.com/1503029): Remove the reference to toolbar_height_no_shadow.
+        final int toolbarHeight =
+                mActivity.getResources().getDimensionPixelSize(R.dimen.toolbar_height_no_shadow);
         final int topControlsNewHeight =
-                mActivity.getResources().getDimensionPixelSize(resourceId) + mStatusIndicatorHeight;
+                toolbarHeight
+                        + mToolbarManager.getToolbar().getTabStripHeight()
+                        + mStatusIndicatorHeight;
 
         browserControlsSizer.setAnimateBrowserControlsHeightChanges(animate);
         browserControlsSizer.setTopControlsHeight(topControlsNewHeight, mStatusIndicatorHeight);
@@ -987,8 +1021,7 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
                     @Override
                     public void onStatusIndicatorHeightChanged(int indicatorHeight) {
                         mStatusIndicatorHeight = indicatorHeight;
-                        boolean animate = !sDisableStatusIndicatorAnimationsForTesting;
-                        updateTopControlsHeight(animate);
+                        updateTopControlsHeight();
                     }
                 };
         mStatusIndicatorCoordinator.addObserver(mStatusIndicatorObserver);
@@ -1024,6 +1057,11 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
         if (mToolbarManager.getOmniboxStub() != null) {
             mToolbarManager.getOmniboxStub().addUrlFocusChangeListener(mUrlFocusChangeListener);
         }
+    }
+
+    private void initTabStripTransitionCoordinator() {
+        mOnTabStripHeightChangedCallback = (height) -> updateTopControlsHeight();
+        mToolbarManager.getTabStripHeightSupplier().addObserver(mOnTabStripHeightChangedCallback);
     }
 
     @Override
@@ -1131,8 +1169,8 @@ public class TabbedRootUiCoordinator extends RootUiCoordinator {
                 mActivity, mModalDialogManagerSupplier, () -> ApplicationLifetime.terminate(true));
     }
 
-    public static void setDisableStatusIndicatorAnimationsForTesting(boolean disable) {
-        sDisableStatusIndicatorAnimationsForTesting = disable;
-        ResettersForTesting.register(() -> sDisableStatusIndicatorAnimationsForTesting = false);
+    public static void setDisableTopControlsAnimationsForTesting(boolean disable) {
+        sDisableTopControlsAnimationForTesting = disable;
+        ResettersForTesting.register(() -> sDisableTopControlsAnimationForTesting = false);
     }
 }

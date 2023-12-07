@@ -151,6 +151,8 @@ IN_PROC_BROWSER_TEST_F(SingleClientCommonSyncTest,
 IN_PROC_BROWSER_TEST_F(SingleClientCommonSyncTest,
                        MAYBE_ShouldGetTypesWithUnsyncedDataFromSyncService) {
   const std::string kBookmarkFolderTitle = "title1";
+  const syncer::ModelTypeSet kInterestingDataTypes{syncer::BOOKMARKS,
+                                                   syncer::PREFERENCES};
 
   ASSERT_TRUE(SetupClients());
 
@@ -169,7 +171,8 @@ IN_PROC_BROWSER_TEST_F(SingleClientCommonSyncTest,
     base::RunLoop loop;
     base::MockOnceCallback<void(syncer::ModelTypeSet)> callback;
     EXPECT_CALL(callback, Run(ModelTypeSet())).WillOnce([&]() { loop.Quit(); });
-    GetSyncService(0)->GetTypesWithUnsyncedData(callback.Get());
+    GetSyncService(0)->GetTypesWithUnsyncedData(kInterestingDataTypes,
+                                                callback.Get());
     loop.Run();
   }
 
@@ -203,7 +206,8 @@ IN_PROC_BROWSER_TEST_F(SingleClientCommonSyncTest,
     base::MockOnceCallback<void(syncer::ModelTypeSet)> callback;
     EXPECT_CALL(callback, Run(ModelTypeSet({syncer::PREFERENCES})))
         .WillOnce([&]() { loop.Quit(); });
-    GetSyncService(0)->GetTypesWithUnsyncedData(callback.Get());
+    GetSyncService(0)->GetTypesWithUnsyncedData(kInterestingDataTypes,
+                                                callback.Get());
     loop.Run();
   }
 
@@ -223,7 +227,8 @@ IN_PROC_BROWSER_TEST_F(SingleClientCommonSyncTest,
     base::RunLoop loop;
     base::MockOnceCallback<void(syncer::ModelTypeSet)> callback;
     EXPECT_CALL(callback, Run(ModelTypeSet())).WillOnce([&]() { loop.Quit(); });
-    GetSyncService(0)->GetTypesWithUnsyncedData(callback.Get());
+    GetSyncService(0)->GetTypesWithUnsyncedData(kInterestingDataTypes,
+                                                callback.Get());
     loop.Run();
   }
 }
@@ -258,10 +263,13 @@ std::unique_ptr<syncer::LoopbackServerEntity> CreateTestReadingListEntity(
 class SingleClientFeatureToTransportSyncTest : public SyncTest {
  public:
   SingleClientFeatureToTransportSyncTest() : SyncTest(SINGLE_CLIENT) {
+    // Note: kReplaceSyncPromosWithSignInPromos is required so that bookmarks
+    // and reading list are considered selected-by-default for non-syncing
+    // users.
     scoped_feature_list_.InitWithFeatures(
         /*enabled_features=*/
-        {syncer::kReadingListEnableDualReadingListModel,
-         syncer::kReadingListEnableSyncTransportModeUponSignIn},
+        {syncer::kReadingListEnableSyncTransportModeUponSignIn,
+         syncer::kReplaceSyncPromosWithSignInPromos},
         /*disabled_features=*/{});
   }
 
@@ -335,12 +343,12 @@ IN_PROC_BROWSER_TEST_F(SingleClientFeatureToTransportSyncTest,
 
   ASSERT_TRUE(SetupClients());
   // BeforeSetupClient() in the fixture has mangled the prefs so that
-  // Sync-the-feature is *not* active anymore, and Sync will start up in
+  // Sync-the-feature is *not* enabled anymore, and Sync will start up in
   // transport mode instead.
   // Note that this means the persisted metadata is now in an inconsistent
   // state: There is persisted metadata for Sync-the-feature mode, even though
   // Sync is not actually in that mode anymore.
-  ASSERT_FALSE(GetSyncService(0)->IsSyncFeatureActive());
+  ASSERT_FALSE(GetSyncService(0)->IsSyncFeatureEnabled());
   ASSERT_TRUE(GetClient(0)->AwaitSyncTransportActive());
 
   // Sync re-downloaded the ReadingList entry into the account store, so it now

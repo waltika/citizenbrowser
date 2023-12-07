@@ -77,9 +77,6 @@ BASE_FEATURE(kCrosWebAppInstallDialog,
 #if BUILDFLAG(IS_CHROMEOS_ASH)
 // With this feature enabled, the shortcut app badge is painted in the UI
 // instead of being part of the shortcut app icon.
-BASE_FEATURE(kSeparateWebAppShortcutBadgeIcon,
-             "SeparateWebAppShortcutBadgeIcon",
-             base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Enables the new UI for browser created shortcut backed by web app system
 // on Chrome OS.
@@ -226,15 +223,6 @@ bool IsCrosComponentsEnabled() {
   return base::FeatureList::IsEnabled(kCrosComponents) && IsJellyEnabled();
 }
 
-bool IsSeparateWebAppShortcutBadgeIconEnabled() {
-#if BUILDFLAG(IS_CHROMEOS_LACROS)
-  // TODO(b/304661502): Pass the value to lacros.
-  return false;
-#else
-  return base::FeatureList::IsEnabled(kSeparateWebAppShortcutBadgeIcon);
-#endif
-}
-
 bool IsCrosShortstandEnabled() {
 #if BUILDFLAG(IS_CHROMEOS_LACROS)
   return chromeos::BrowserParamsProxy::Get()->IsCrosShortstandEnabled();
@@ -282,6 +270,8 @@ bool IsJellyrollEnabled() {
   return IsJellyEnabled() && base::FeatureList::IsEnabled(kJellyroll);
 }
 
+// TODO:b/312592767 - Remove this function in favor of the equivalent ash
+// function.
 bool IsOrcaEnabled() {
   return base::FeatureList::IsEnabled(kOrca) ||
          base::FeatureList::IsEnabled(kOrcaDogfood);

@@ -4,13 +4,13 @@
 
 #include "third_party/blink/renderer/core/layout/list/unpositioned_list_marker.h"
 
+#include "third_party/blink/renderer/core/layout/box_fragment_builder.h"
+#include "third_party/blink/renderer/core/layout/constraint_space.h"
 #include "third_party/blink/renderer/core/layout/inline/fragment_items_builder.h"
 #include "third_party/blink/renderer/core/layout/inline/physical_line_box_fragment.h"
+#include "third_party/blink/renderer/core/layout/layout_result.h"
 #include "third_party/blink/renderer/core/layout/list/layout_outside_list_marker.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_box_fragment.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_box_fragment_builder.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_constraint_space.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_layout_result.h"
+#include "third_party/blink/renderer/core/layout/logical_box_fragment.h"
 
 namespace blink {
 
@@ -74,7 +74,7 @@ absl::optional<LayoutUnit> UnpositionedListMarker::ContentAlignmentBaseline(
   // should be aligned to the first line box of next child.
   // https://github.com/w3c/csswg-drafts/issues/2417
   return LogicalBoxFragment(space.GetWritingDirection(),
-                            To<NGPhysicalBoxFragment>(content))
+                            To<PhysicalBoxFragment>(content))
       .FirstBaseline();
 }
 
@@ -88,7 +88,7 @@ void UnpositionedListMarker::AddToBox(
     LayoutUnit* block_offset,
     BoxFragmentBuilder* container_builder) const {
   const auto& marker_physical_fragment =
-      To<NGPhysicalBoxFragment>(marker_layout_result.GetPhysicalFragment());
+      To<PhysicalBoxFragment>(marker_layout_result.GetPhysicalFragment());
 
   // Compute the inline offset of the marker.
   LogicalBoxFragment marker_fragment(space.GetWritingDirection(),
@@ -129,7 +129,7 @@ void UnpositionedListMarker::AddToBoxWithoutLineBoxes(
     BoxFragmentBuilder* container_builder,
     LayoutUnit* intrinsic_block_size) const {
   const auto& marker_physical_fragment =
-      To<NGPhysicalBoxFragment>(marker_layout_result.GetPhysicalFragment());
+      To<PhysicalBoxFragment>(marker_layout_result.GetPhysicalFragment());
 
   // When there are no line boxes, marker is top-aligned to the list item.
   // https://github.com/w3c/csswg-drafts/issues/2417

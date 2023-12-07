@@ -1095,6 +1095,11 @@ if (use_blink && !is_cronet_build) {
         "--no-show-results",
         "--zero-tests-executed-ok",
       ]
+      if (dcheck_always_on) {
+        args += [ "--timeout-multiplier=2" ]
+      } else {
+        args += [ "--timeout-multiplier=1" ]
+      }
       data = [
         "//third_party/blink/web_tests/platform/linux-chrome/",
         "//third_party/blink/web_tests/ChromeTestExpectations",
@@ -1224,7 +1229,7 @@ if (use_blink && !is_cronet_build) {
       ]
     }
 
-    if (is_linux || is_fuchsia) {
+    if (is_linux || is_chromeos || is_fuchsia) {
       data += [ "//third_party/apache-linux/" ]
     }
 
@@ -1258,6 +1263,9 @@ if (use_blink && !is_cronet_build) {
     if (dcheck_always_on) {
       _common_web_test_args += [ "--timeout-ms=12000" ]
     }
+  }
+  if (is_chrome_branded) {
+    _common_web_test_args += [ "--chrome-branded" ]
   }
 
   if (is_android) {

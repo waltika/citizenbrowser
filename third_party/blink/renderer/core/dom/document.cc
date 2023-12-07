@@ -202,6 +202,7 @@
 #include "third_party/blink/renderer/core/frame/local_frame_view.h"
 #include "third_party/blink/renderer/core/frame/page_dismissal_scope.h"
 #include "third_party/blink/renderer/core/frame/performance_monitor.h"
+#include "third_party/blink/renderer/core/frame/picture_in_picture_controller.h"
 #include "third_party/blink/renderer/core/frame/settings.h"
 #include "third_party/blink/renderer/core/frame/viewport_data.h"
 #include "third_party/blink/renderer/core/frame/visual_viewport.h"
@@ -230,6 +231,7 @@
 #include "third_party/blink/renderer/core/html/html_frame_owner_element.h"
 #include "third_party/blink/renderer/core/html/html_head_element.h"
 #include "third_party/blink/renderer/core/html/html_html_element.h"
+#include "third_party/blink/renderer/core/html/html_image_element.h"
 #include "third_party/blink/renderer/core/html/html_link_element.h"
 #include "third_party/blink/renderer/core/html/html_meta_element.h"
 #include "third_party/blink/renderer/core/html/html_object_element.h"
@@ -2942,7 +2944,9 @@ void Document::Shutdown() {
     }
   }
 
-  GetFontMatchingMetrics()->PublishAllMetrics();
+  if (font_matching_metrics_) {
+    font_matching_metrics_->PublishAllMetrics();
+  }
 
   GetViewportData().Shutdown();
 
@@ -4727,6 +4731,10 @@ bool Document::IsHttpRefreshScheduledWithin(base::TimeDelta interval) {
   return http_refresh_scheduler_->IsScheduledWithin(interval);
 }
 
+bool Document::HasDocumentPictureInPictureWindow() const {
+  return PictureInPictureController::HasDocumentPictureInPictureWindow(*this);
+}
+
 network::mojom::ReferrerPolicy Document::GetReferrerPolicy() const {
   return GetExecutionContext() ? GetExecutionContext()->GetReferrerPolicy()
                                : network::mojom::ReferrerPolicy::kDefault;
@@ -4976,6 +4984,42 @@ void Document::ObserveForIntrinsicSize(Element* element) {
 void Document::UnobserveForIntrinsicSize(Element* element) {
   if (intrinsic_size_observer_)
     intrinsic_size_observer_->unobserve(element);
+}
+
+class LazyLoadedAutoSizedImgResizeObserverDelegate final
+    : public ResizeObserver::Delegate {
+  void OnResize(const HeapVector<Member<ResizeObserverEntry>>& entries) final {
+    for (const auto& entry : entries) {
+      DCHECK(entry->contentRect());
+      if (auto* img = DynamicTo<HTMLImageElement>(entry->target())) {
+        img->OnResize();
+      }
+    }
+  }
+
+  ResizeObserver::DeliveryTime Delivery() const final {
+    return ResizeObserver::DeliveryTime::kBeforeOthers;
+  }
+};
+
+ResizeObserver& Document::GetLazyLoadedAutoSizedImgObserver() {
+  if (!lazy_loaded_auto_sized_img_observer_) {
+    lazy_loaded_auto_sized_img_observer_ = ResizeObserver::Create(
+        domWindow(),
+        MakeGarbageCollected<LazyLoadedAutoSizedImgResizeObserverDelegate>());
+  }
+
+  return *lazy_loaded_auto_sized_img_observer_;
+}
+
+void Document::ObserveForLazyLoadedAutoSizedImg(HTMLImageElement* img) {
+  GetLazyLoadedAutoSizedImgObserver().observe(img);
+}
+
+void Document::UnobserveForLazyLoadedAutoSizedImg(HTMLImageElement* img) {
+  if (lazy_loaded_auto_sized_img_observer_) {
+    lazy_loaded_auto_sized_img_observer_->unobserve(img);
+  }
 }
 
 Document* Document::CloneDocumentWithoutChildren() const {
@@ -7899,8 +7943,10 @@ Document::EnsureDocumentExplicitRootIntersectionObserverData() {
 }
 
 const ScriptRegexp& Document::EnsureEmailRegexp() const {
-  if (!data_->email_regexp_)
-    data_->email_regexp_ = EmailInputType::CreateEmailRegexp();
+  if (!data_->email_regexp_) {
+    data_->email_regexp_ =
+        EmailInputType::CreateEmailRegexp(GetAgent().isolate());
+  }
   return *data_->email_regexp_;
 }
 
@@ -8392,8 +8438,10 @@ Document& Document::EnsureTemplateDocument() {
 void Document::DidChangeFormRelatedElementDynamically(
     HTMLElement* element,
     WebFormRelatedChangeType form_related_change) {
-  if (!GetFrame() || !GetFrame()->GetPage() || !HasFinishedParsing())
+  if (!GetFrame() || !GetFrame()->GetPage() || !HasFinishedParsing() ||
+      !GetFrame()->IsAttached()) {
     return;
+  }
 
   GetFrame()
       ->GetPage()
@@ -8849,6 +8897,7 @@ void Document::Trace(Visitor* visitor) const {
   visitor->Trace(meta_theme_color_elements_);
   visitor->Trace(unassociated_listed_elements_);
   visitor->Trace(intrinsic_size_observer_);
+  visitor->Trace(lazy_loaded_auto_sized_img_observer_);
   visitor->Trace(anchor_element_interaction_tracker_);
   visitor->Trace(focused_element_change_observers_);
   visitor->Trace(pending_link_header_preloads_);

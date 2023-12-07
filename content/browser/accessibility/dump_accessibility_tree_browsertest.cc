@@ -1775,6 +1775,10 @@ IN_PROC_BROWSER_TEST_P(DumpAccessibilityTreeTest, AccessibilityDetails) {
   RunHtmlTest(FILE_PATH_LITERAL("details.html"));
 }
 
+IN_PROC_BROWSER_TEST_P(DumpAccessibilityTreeTest, AccessibilityDetailsName) {
+  RunHtmlTest(FILE_PATH_LITERAL("details-name.html"));
+}
+
 IN_PROC_BROWSER_TEST_P(DumpAccessibilityTreeTest, AccessibilityDfn) {
   RunHtmlTest(FILE_PATH_LITERAL("dfn.html"));
 }
@@ -1878,18 +1882,14 @@ IN_PROC_BROWSER_TEST_P(DumpAccessibilityTreeTest,
   RunHtmlTest(FILE_PATH_LITERAL("element-class-id-src-attr.html"));
 }
 
-#if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_MAC)
-// Flaky failures: http://crbug.com/445929.
-// Mac failures: http://crbug.com/571712.
-#define MAYBE_AccessibilityContenteditableDescendantsWithSelection \
-  DISABLED_AccessibilityContenteditableDescendantsWithSelection
-#else
-#define MAYBE_AccessibilityContenteditableDescendantsWithSelection \
-  AccessibilityContenteditableDescendantsWithSelection
-#endif
-IN_PROC_BROWSER_TEST_P(
-    DumpAccessibilityTreeTest,
-    MAYBE_AccessibilityContenteditableDescendantsWithSelection) {
+IN_PROC_BROWSER_TEST_P(DumpAccessibilityTreeTest,
+                       AccessibilityContenteditableDescendantsWithSelection) {
+  RunHtmlTest(
+      FILE_PATH_LITERAL("contenteditable-descendants-with-selection.html"));
+}
+
+IN_PROC_BROWSER_TEST_P(YieldingParserDumpAccessibilityTreeTest,
+                       AccessibilityContenteditableDescendantsWithSelection) {
   RunHtmlTest(
       FILE_PATH_LITERAL("contenteditable-descendants-with-selection.html"));
 }
@@ -2381,10 +2381,9 @@ IN_PROC_BROWSER_TEST_P(DumpAccessibilityTreeTest,
   RunHtmlTest(AccessibilityInputDateWithPopupOpenMultiple_TestFile);
 }
 
-// TODO(crbug.com/1201658): Flakes heavily on Linux.
 // TODO: date and time controls drop their children, including the popup button,
 // on Android
-#if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_ANDROID)
+#if BUILDFLAG(IS_ANDROID)
 #define MAYBE_AccessibilityInputTimeWithPopupOpen \
   DISABLED_AccessibilityInputTimeWithPopupOpen
 #else
@@ -2392,6 +2391,11 @@ IN_PROC_BROWSER_TEST_P(DumpAccessibilityTreeTest,
   AccessibilityInputTimeWithPopupOpen
 #endif
 IN_PROC_BROWSER_TEST_P(DumpAccessibilityTreeTest,
+                       MAYBE_AccessibilityInputTimeWithPopupOpen) {
+  RunHtmlTest(FILE_PATH_LITERAL("input-time-with-popup-open.html"));
+}
+
+IN_PROC_BROWSER_TEST_P(YieldingParserDumpAccessibilityTreeTest,
                        MAYBE_AccessibilityInputTimeWithPopupOpen) {
   RunHtmlTest(FILE_PATH_LITERAL("input-time-with-popup-open.html"));
 }
@@ -2455,6 +2459,11 @@ IN_PROC_BROWSER_TEST_P(DumpAccessibilityTreeTest, AccessibilityInputRadio) {
 IN_PROC_BROWSER_TEST_P(DumpAccessibilityTreeTestWithIgnoredNodes,
                        AccessibilityInputRadioCheckboxLabel) {
   RunHtmlTest(FILE_PATH_LITERAL("input-radio-checkbox-label.html"));
+}
+
+IN_PROC_BROWSER_TEST_P(DumpAccessibilityTreeTest,
+                       AccessibilityInputRadioChunked) {
+  RunHtmlTest(FILE_PATH_LITERAL("input-radio-chunked.html"));
 }
 
 IN_PROC_BROWSER_TEST_P(DumpAccessibilityTreeTest,
@@ -2820,13 +2829,15 @@ IN_PROC_BROWSER_TEST_P(DumpAccessibilityTreeTest,
   RunHtmlTest(FILE_PATH_LITERAL("modal-dialog-in-iframe-closed.html"));
 }
 
-// Disabled because it is flaky in several platforms
-/*
 IN_PROC_BROWSER_TEST_P(DumpAccessibilityTreeTest,
                        AccessibilityModalDialogInIframeOpened) {
   RunHtmlTest(FILE_PATH_LITERAL("modal-dialog-in-iframe-opened.html"));
 }
-*/
+
+IN_PROC_BROWSER_TEST_P(YieldingParserDumpAccessibilityTreeTest,
+                       AccessibilityModalDialogInIframeOpened) {
+  RunHtmlTest(FILE_PATH_LITERAL("modal-dialog-in-iframe-opened.html"));
+}
 
 IN_PROC_BROWSER_TEST_P(DumpAccessibilityTreeTestWithIgnoredNodes,
                        AccessibilityModalDialogAndIframes) {

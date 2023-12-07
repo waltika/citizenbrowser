@@ -190,12 +190,6 @@
   <message name="IDS_AUTOFILL_DONE" desc="Text to show for the button in the save card manager bubble when the card has been saved either locally or to Google Payments.">
     Done
   </message>
-  <message name="IDS_AUTOFILL_FAILURE_BUBBLE_TITLE" desc="Title text for the Autofill credit card upload failure bubble.">
-    Can't save card
-  </message>
-  <message name="IDS_AUTOFILL_FAILURE_BUBBLE_EXPLANATION" desc="Explanation text for the Autofill credit card upload failure bubble main content. Shown as user-facing descripion.">
-    Your card can't be saved right now
-  </message>
   <message name="IDS_AUTOFILL_SAVE_CARD_PROMPT_UPLOAD_EXPLANATION" desc="Explanation of the effect of the Autofill save card prompt when the card is to be saved by uploading it to Google Payments and also saved locally. The prompt can be either a bubble or an infobar.">
     Pay quickly on sites and apps across devices using cards you have saved with Google.
   </message>
@@ -788,6 +782,19 @@
       Copied
     </message>
   </if>
+  <!--TODO(crbug.com/1493361): Align with writers about related strings and remove translateable=false-->
+  <message name="IDS_AUTOFILL_PAYMENTS_MANUAL_FALLBACK_AUTOFILL_POPUP_CC_NUMBER_SUGGESTION_LABEL" desc="The text displayed as a secondary label in the Autofill popup entry suggesting to fill in the user's credit card number" translateable="false">
+    Card number
+  </message>
+  <message name="IDS_AUTOFILL_PAYMENTS_MANUAL_FALLBACK_AUTOFILL_POPUP_CC_EXPIRY_DATE_SUGGESTION_LABEL" desc="The text displayed as a secondary label in the Autofill popup entry suggesting to fill in the user's credit card expiry date" translateable="false">
+    Expiry date
+  </message>
+  <message name="IDS_AUTOFILL_PAYMENTS_MANUAL_FALLBACK_AUTOFILL_POPUP_CC_EXPIRY_YEAR_SUGGESTION_LABEL" desc="The text displayed as a secondary label in the Autofill popup entry suggesting to fill in the user's credit card expiry year" translateable="false">
+    Expiry year
+  </message>
+  <message name="IDS_AUTOFILL_PAYMENTS_MANUAL_FALLBACK_AUTOFILL_POPUP_CC_EXPIRY_MONTH_SUGGESTION_LABEL" desc="The text displayed as a secondary label in the Autofill popup entry suggesting to fill in the user's credit card expiry month" translateable="false">
+    Expiry month
+  </message>
   <message name="IDS_AUTOFILL_VIRTUAL_CARD_SUGGESTION_IPH_BUBBLE_LABEL" desc="Text shown in the IPH bubble for the virtual card option in the suggestion dropdown bubble.">
       Use your virtual card for added security
   </message>

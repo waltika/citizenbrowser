@@ -300,7 +300,7 @@
     {
       // crbug.com/1500511
       name: "AlignContentForBlocks",
-      status: "test",
+      status: "experimental",
     },
     {
       name: "AllowContentInitiatedDataUrlNavigations",
@@ -404,7 +404,7 @@
       // If enabled, lazy loaded images can be auto sized if the sizes
       // attribute is missing or set to auto.
       name: "AutoSizeLazyLoadedImages",
-      status: "test",
+      status: "experimental",
     },
     {
       name: "BackdropInheritOriginating",
@@ -521,7 +521,7 @@
     {
       name: "BoundaryEventDispatchTracksNodeRemoval",
       public: true,
-      status: "experimental",
+      status: "stable",
     },
     {
       name: "BrowserVerifiedUserActivationKeyboard",
@@ -912,13 +912,6 @@
       status: "stable",
     },
     {
-      // @font-face Font property descriptors auto range.
-      // https://www.w3.org/TR/css-fonts-4/#font-prop-desc
-      name: "CSSFontFaceAutoVariableRange",
-      status: "stable",
-      base_feature: "none",
-    },
-    {
       name: "CSSFontSizeAdjust",
       status: "experimental",
       base_feature: "none",
@@ -1087,6 +1080,12 @@
       status: "test",
     },
     {
+      // Flag for supporting scroll-state() and container-type: scroll-state
+      // Implied by supporting at least one of the scroll-state query features.
+      name: "CSSScrollStateContainerQueries",
+      implied_by: ["CSSStickyContainerQueries", "CSSStickyContainerQueries"],
+    },
+    {
       name: "CSSSelectorFragmentAnchor",
       status: "experimental",
       base_feature: "CssSelectorFragmentAnchor",
@@ -1163,7 +1162,7 @@
       // crbug.com/1463891: CSS `text-spacing-trim` property
       name: "CSSTextSpacingTrim",
     },
-    // Use the `NGSCoreLineBreaker` for `text-wrap: balance`. crbug.com/1451205
+    // Use the `ScoreLineBreaker` for `text-wrap: balance`. crbug.com/1451205
     {
       name: "CSSTextWrapBalanceByScore",
       status: "stable",
@@ -1777,7 +1776,7 @@
     },
     {
       name: "FledgeClearOriginJoinedAdInterestGroups",
-      status: "test",
+      status: "stable",
     },
     {
       name: "FledgeDirectFromSellerSignalsHeaderAdSlot",
@@ -1821,7 +1820,7 @@
     },
     {
       name: "FontPaletteAnimation",
-      status: "experimental",
+      status: "stable",
     },
     {
       name: "FontSrcLocalMatching",
@@ -1999,6 +1998,12 @@
       origin_trial_feature_name: "HrefTranslate",
       status: "stable",
       base_feature: "none",
+    },
+    // Additional default invoke actions that aren't part of v1 of invokers.
+    // When this flag is disabled only v1 actions (popover and dialog defaults) will work.
+    {
+      name: "HTMLInvokeActionsV2",
+      status: "experimental",
     },
     // Adds support for the experimental `invoketarget` and `invokeaction`
     // attributes, as specified in the open-ui "Invokers" explainer.
@@ -2184,7 +2189,7 @@
     {
       name: "LayoutNewMeasureCache",
       depends_on: ["LayoutNewMinMaxCache"],
-      status: "test",
+      status: "stable",
     },
     {
       name: "LayoutNewMinMaxCache",
@@ -2206,7 +2211,7 @@
       // its init dictionary instead of a root margin.
       name: "LazyLoadScrollMargin",
       public: true,
-      status: "experimental",
+      status: "stable",
     },
     {
       name: "LCPAnimatedImagesWebExposed",
@@ -2434,14 +2439,16 @@
       name: "MonitorTypeSurfaces",
       status: "stable",
     },
+    // crbug.com/346473: Allow mouse-drag text selection even when mousemove
+    // event is cancelled.
+    {
+      name: "MouseDragOnCancelledMouseMove",
+      status: "experimental",
+    },
     // crbug.com/1446498: This feature is being used for the deprecation of
     // Mutation Events.
     {
       name: "MutationEvents",
-      status: "stable",
-    },
-    {
-      name: "NavigateEventCancelableTraversals",
       status: "stable",
     },
     {
@@ -2481,6 +2488,10 @@
         "default": "experimental",
       },
       base_feature: "none",
+    },
+    {
+      name: "NextSiblingPositionUseNextCandidate",
+      status: "stable",
     },
     {
       name: "NoIdleEncodingForWebTests",
@@ -2973,6 +2984,11 @@
       origin_trial_feature_name: "PrivateNetworkAccessNonSecureContextsAllowed",
       origin_trial_type: "deprecation",
       origin_trial_allows_insecure: true,
+      status: "experimental",
+      base_feature: "none",
+    },
+    {
+      name: "PrivateNetworkAccessNullIpAddress",
       status: "experimental",
       base_feature: "none",
     },
@@ -3483,7 +3499,7 @@
       base_feature: "none",
       origin_trial_feature_name: "SpeculationRulesPrefetchFuture",
       origin_trial_allows_third_party: true,
-      status: "experimental",
+      status: "stable",
     },
     {
       name: "SpeculationRulesDocumentRulesSelectorMatches",
@@ -3491,7 +3507,7 @@
       copied_from_base_feature_if: "overridden",
       origin_trial_feature_name: "SpeculationRulesPrefetchFuture",
       origin_trial_allows_third_party: true,
-      status: "experimental",
+      status: "stable",
     },
     {
       name: "SpeculationRulesEagerness",
@@ -3499,7 +3515,7 @@
       copied_from_base_feature_if: "overridden",
       origin_trial_feature_name: "SpeculationRulesPrefetchFuture",
       origin_trial_allows_third_party: true,
-      status: "experimental",
+      status: "stable",
       implied_by: ["SpeculationRulesNoVarySearchHint"],
     },
     {
@@ -3507,7 +3523,7 @@
       base_feature: "none",
       origin_trial_feature_name: "SpeculationRulesPrefetchFuture",
       origin_trial_allows_third_party: true,
-      status: "experimental",
+      status: "stable",
     },
     {
       name: "SpeculationRulesNoVarySearchHint",
@@ -3810,6 +3826,14 @@
       origin_trial_feature_name: "UnrestrictedSharedArrayBuffer",
       origin_trial_os: ["win", "mac", "linux", "fuchsia", "chromeos"],
     },
+    // Enables using policy-controlled feature "usb-unrestricted" to allow
+    // isolated context to access protected USB interface classes and to
+    // bypass the USB blocklist.
+    {
+      name: "UnrestrictedUsb",
+      status: "experimental",
+      depends_on: ["WebUSB"],
+    },
     {
       // This flag makes IDL reflected attributes with the "URL" IDL attribute
       // return the original string of the attribute when a complete URL can't
@@ -4065,18 +4089,12 @@
       status: "test",
       base_feature: "none",
     },
-    // https://github.com/w3c/webauthn/pull/1663
-    {
-      name: "WebAuthenticationDevicePublicKey",
-      status: "experimental",
-      base_feature: "none",
-    },
     // https://w3c.github.io/webauthn/#dom-publickeycredential-tojson
     // https://w3c.github.io/webauthn/#sctn-parseCreationOptionsFromJSON
     // https://w3c.github.io/webauthn/#sctn-parseRequestOptionsFromJSON
     {
       name: "WebAuthenticationJSONSerialization",
-      status: "test",
+      status: "experimental",
     },
     {
       name: "WebAuthenticationLargeBlobExtension",
@@ -4093,6 +4111,11 @@
       name: "WebAuthenticationRemoteDesktopSupport",
       base_feature: "none",
       public: true,
+    },
+    // https://w3c.github.io/webauthn/#sctn-supplemental-public-keys-extension
+    {
+      name: "WebAuthenticationSupplementalPubKeys",
+      status: "experimental",
     },
     // WebBluetooth is enabled by default on Android, ChromeOS, macOS and
     // Windows.
@@ -4127,7 +4150,7 @@
     },
     {
       name: "WebCodecsContentHint",
-      status: "experimental",
+      status: "stable",
     },
     {
       name: "WebCodecsCopyToRGB",
@@ -4225,7 +4248,7 @@
     {
       // https://wicg.github.io/web-preferences-api/
       name: "WebPreferences",
-      status: "test",
+      status: "experimental",
     },
     {
       name: "WebPrinting",

@@ -318,7 +318,10 @@ class CONTENT_EXPORT RenderFrameHostDelegate {
       const blink::mojom::FullscreenOptions& options) {}
 
   // Notification that the frame wants to go out of fullscreen mode.
-  virtual void ExitFullscreenMode() {}
+  // |will_cause_resize| indicates whether the fullscreen change causes a
+  // view resize. e.g. This will be false when going from tab fullscreen to
+  // browser fullscreen.
+  virtual void ExitFullscreenMode(bool will_cause_resize) {}
 
   // Notification that this frame has changed fullscreen state.
   virtual void FullscreenStateChanged(
@@ -532,10 +535,6 @@ class CONTENT_EXPORT RenderFrameHostDelegate {
   // Returns true if the delegate allows to go to the session history entry at
   // the given offset (ie, -1 will return the "back" item).
   virtual bool IsAllowedToGoToEntryAtOffset(int32_t offset);
-
-  virtual media::MediaMetricsProvider::RecordAggregateWatchTimeCallback
-  GetRecordAggregateWatchTimeCallback(
-      const GURL& page_main_frame_last_committed_url);
 
   // Determines if a clipboard paste using |data| of type |data_type| is allowed
   // in this renderer frame.  Possible data types supported for paste can be

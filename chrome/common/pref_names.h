@@ -12,6 +12,7 @@
 #include "build/chromeos_buildflags.h"
 #include "chrome/common/buildflags.h"
 #include "chrome/common/pref_font_webkit_names.h"
+#include "components/compose/buildflags.h"
 #include "components/offline_pages/buildflags/buildflags.h"
 #include "components/signin/public/base/signin_buildflags.h"
 #include "extensions/buildflags/buildflags.h"
@@ -461,6 +462,11 @@ inline constexpr char kDeskAPIThirdPartyAllowlist[] =
 // name and the string value.
 inline constexpr char kPrintingAPIExtensionsAllowlist[] =
     "printing.printing_api_extensions_whitelist";
+
+// The list of extensions allowed to skip discovery and scan confirmation
+// dialogs when using the chrome.documentScan API.
+inline constexpr char kDocumentScanAPITrustedExtensions[] =
+    "document_scan.document_scan_api_trusted_extensions";
 
 // A boolean specifying whether the insights extension is enabled. If set to
 // true, the CCaaS Chrome component extension will be installed.
@@ -1873,7 +1879,7 @@ inline constexpr char kGoogleSearchSidePanelEnabled[] =
 inline constexpr char kManagedPrivateNetworkAccessRestrictionsEnabled[] =
     "managed_private_network_access_restrictions_enabled";
 
-#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
+#if BUILDFLAG(ENABLE_COMPOSE)
 // Boolean indicating whether or not Compose consent has been given or
 // acknowledged.
 inline constexpr char kPrefHasAcceptedComposeConsent[] =
@@ -3598,13 +3604,6 @@ inline constexpr char kCACertificateManagementAllowed[] =
     "ca_certificate_management_allowed";
 #endif
 
-#if BUILDFLAG(CHROME_ROOT_STORE_POLICY_SUPPORTED)
-// Boolean that specifies whether the Chrome Root Store and built-in
-// certificate verifier should be used. If false, Chrome will not use the
-// Chrome Root Store.
-// If not set, Chrome will choose the root store based on experiments.
-inline constexpr char kChromeRootStoreEnabled[] = "chrome_root_store_enabled";
-#endif
 #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX) || \
     BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_ANDROID)
 inline constexpr char kEnforceLocalAnchorConstraintsEnabled[] =

@@ -9,11 +9,13 @@
 #include "base/logging.h"
 #include "base/memory/raw_ref.h"
 #include "base/metrics/field_trial_params.h"
+#include "base/metrics/histogram_functions.h"
 #include "base/task/thread_pool.h"
-#include "gpu/config/webgpu_blocklist_impl.h"
+#include "base/timer/elapsed_timer.h"
+#include "components/optimization_guide/core/optimization_guide_features.h"
 #include "services/on_device_model/ml/chrome_ml.h"
-#include "services/on_device_model/public/cpp/features.h"
 #include "services/on_device_model/public/mojom/on_device_model.mojom.h"
+#include "services/on_device_model/public/mojom/on_device_model_service.mojom.h"
 
 #if BUILDFLAG(IS_MAC)
 #include "base/apple/foundation_util.h"
@@ -24,8 +26,34 @@ using on_device_model::mojom::LoadModelResult;
 namespace ml {
 namespace {
 
-const base::FeatureParam<std::string> kGpuBlockList{
-    &on_device_model::features::kOnDeviceModelService, "gpu_block_list", ""};
+const base::FeatureParam<double> kTemperature{
+    &optimization_guide::features::kOptimizationGuideOnDeviceModel,
+    "on_device_model_temperature", 1.0};
+
+const base::FeatureParam<int> kTopK{
+    &optimization_guide::features::kOptimizationGuideOnDeviceModel,
+    "on_device_model_topk", 1};
+
+// Helper to bind object methods as weak task-posting callback functions.
+template <typename R, typename C, typename... Args>
+std::function<R(Args...)> CreateWeakCallbackFn(R (C::*method)(Args...),
+                                               C* that) {
+  return [weak_ptr = that->AsWeakPtr(), method,
+          task_runner =
+              base::SequencedTaskRunner::GetCurrentDefault()](Args&&... args) {
+    task_runner->PostTask(
+        FROM_HERE,
+        base::BindOnce(method, weak_ptr, std::forward<Args>(args)...));
+  };
+}
+
+int CalculateTokensPerSecond(int num_tokens, base::TimeDelta duration) {
+  if (duration.InMicroseconds() <= 0) {
+    return 0;
+  }
+  return (num_tokens / static_cast<float>(duration.InMicroseconds())) *
+         base::Time::kMicrosecondsPerSecond;
+}
 
 // Handles sending and canceling responses.
 class Responder : public base::SupportsWeakPtr<Responder> {
@@ -41,20 +69,48 @@ class Responder : public base::SupportsWeakPtr<Responder> {
   ChromeMLCancelFn* GetCancelFn() { return &cancel_; }
 
   ChromeMLOutputFn CreateOutputFn() {
-    return [weak_ptr = AsWeakPtr(),
-            task_runner = base::SequencedTaskRunner::GetCurrentDefault()](
-               const std::optional<std::string>& token) {
-      task_runner->PostTask(
-          FROM_HERE, base::BindOnce(&Responder::OnResponse, weak_ptr, token));
-    };
+    return CreateWeakCallbackFn(&Responder::OnResponse, this);
+  }
+
+  ChromeMLCompletionFn CreateCompletionFn() {
+    return CreateWeakCallbackFn(&Responder::OnComplete, this);
   }
 
  private:
   void OnResponse(const std::optional<std::string>& token) {
     if (token.has_value()) {
+      num_tokens_++;
+      if (first_token_time_ == base::TimeTicks()) {
+        first_token_time_ = base::TimeTicks::Now();
+      }
       responder_->OnResponse(*token);
     } else {
-      responder_->OnComplete();
+      // If the model invokes OnResponse() with no token, this implies
+      // completion without retraction.
+      OnComplete(ChromeMLExecutionResult{.retracted = false});
+    }
+  }
+
+  void OnComplete(const ChromeMLExecutionResult& result) {
+    if (!responder_) {
+      return;
+    }
+
+    using ResponseStatus = on_device_model::mojom::ResponseStatus;
+    if (result.retracted) {
+      responder_->OnComplete(ResponseStatus::kRetracted);
+    } else {
+      base::UmaHistogramCounts10000("OnDeviceModel.TokenCount.Output",
+                                    num_tokens_);
+      if (num_tokens_ > 1) {
+        // Time starts at the first token to avoid counting input processing
+        // time, so calculate using num_tokens_ - 1.
+        base::UmaHistogramCounts1000(
+            "OnDeviceModel.TokensPerSecond.Output",
+            CalculateTokensPerSecond(
+                num_tokens_ - 1, base::TimeTicks::Now() - first_token_time_));
+      }
+      responder_->OnComplete(ResponseStatus::kOk);
     }
   }
 
@@ -64,6 +120,8 @@ class Responder : public base::SupportsWeakPtr<Responder> {
     }
   }
 
+  base::TimeTicks first_token_time_;
+  int num_tokens_ = 0;
   mojo::Remote<on_device_model::mojom::StreamingResponder> responder_;
   ChromeMLCancelFn cancel_;
 };
@@ -90,17 +148,18 @@ class ContextHolder : public base::SupportsWeakPtr<ContextHolder> {
   ChromeMLCancelFn* GetCancelFn() { return &cancel_; }
 
   ChromeMLContextSavedFn CreateContextSavedFn() {
-    return [weak_ptr = AsWeakPtr(),
-            task_runner = base::SequencedTaskRunner::GetCurrentDefault()](
-               int tokens_processed) {
-      task_runner->PostTask(FROM_HERE,
-                            base::BindOnce(&ContextHolder::OnComplete, weak_ptr,
-                                           tokens_processed));
-    };
+    return CreateWeakCallbackFn(&ContextHolder::OnComplete, this);
   }
 
  private:
   void OnComplete(int tokens_processed) {
+    if (tokens_processed > 0) {
+      base::UmaHistogramCounts10000("OnDeviceModel.TokenCount.Context",
+                                    tokens_processed);
+      base::UmaHistogramCounts10000(
+          "OnDeviceModel.TokensPerSecond.Context",
+          CalculateTokensPerSecond(tokens_processed, timer_.Elapsed()));
+    }
     if (client_) {
       client_->OnComplete(tokens_processed);
     }
@@ -114,6 +173,7 @@ class ContextHolder : public base::SupportsWeakPtr<ContextHolder> {
     // this may be deleted.
   }
 
+  base::ElapsedTimer timer_;
   mojo::Remote<on_device_model::mojom::ContextClient> client_;
   base::OnceCallback<void(ContextHolder*)> on_disconnect_;
   ChromeMLCancelFn cancel_;
@@ -145,6 +205,8 @@ class SessionImpl : public on_device_model::OnDeviceModel::Session {
     chrome_ml_->api().ExecuteModel(model_, &options,
                                    context_holder->GetCancelFn());
     context_holders_.insert(std::move(context_holder));
+    // Once we have added context, it should not be cleared.
+    clear_context_ = false;
   }
 
   void Execute(on_device_model::mojom::InputOptionsPtr input,
@@ -152,13 +214,14 @@ class SessionImpl : public on_device_model::OnDeviceModel::Session {
                    response) override {
     responder_ = std::make_unique<Responder>(std::move(response));
     ChromeMLOutputFn output_fn = responder_->CreateOutputFn();
-    std::string adjusted_input = input->text + " <ctrl23>";
+    ChromeMLCompletionFn completion_fn = responder_->CreateCompletionFn();
     ChromeMLExecuteOptions options{
-        .prompt = adjusted_input.c_str(),
+        .prompt = input->text.c_str(),
         .context_mode = GetContextMode(*input),
         .max_tokens = input->max_tokens.value_or(0),
         .token_offset = input->token_offset.value_or(0),
         .output_fn = &output_fn,
+        .completion_fn = &completion_fn,
     };
     chrome_ml_->api().ExecuteModel(model_, &options, responder_->GetCancelFn());
   }
@@ -173,14 +236,13 @@ class SessionImpl : public on_device_model::OnDeviceModel::Session {
     if (input.ignore_context) {
       context_mode |= ContextMode::kIgnoreContext;
     }
-    if (first_prompt_) {
-      first_prompt_ = false;
-      return context_mode | ContextMode::kReset;
+    if (clear_context_) {
+      context_mode |= ContextMode::kReset;
     }
     return context_mode;
   }
 
-  bool first_prompt_ = true;
+  bool clear_context_ = true;
   const raw_ref<const ChromeML> chrome_ml_;
   ChromeMLModel model_;
   std::unique_ptr<Responder> responder_;
@@ -199,19 +261,6 @@ OnDeviceModelExecutor::~OnDeviceModelExecutor() {
   if (model_ != 0) {
     chrome_ml_->api().DestroyModel(model_);
   }
-}
-
-// static
-std::unique_ptr<OnDeviceModelExecutor> OnDeviceModelExecutor::Create(
-    const ChromeML& chrome_ml,
-    on_device_model::mojom::LoadModelParamsPtr params) {
-  auto executor = std::make_unique<OnDeviceModelExecutor>(
-      base::PassKey<OnDeviceModelExecutor>(), chrome_ml);
-  auto load_model_result = executor->Init(std::move(params));
-  if (load_model_result != LoadModelResult::kSuccess) {
-    return nullptr;
-  }
-  return executor;
 }
 
 // static
@@ -234,69 +283,90 @@ OnDeviceModelExecutor::CreateSession() {
   return std::make_unique<SessionImpl>(*chrome_ml_, model_);
 }
 
-bool OnDeviceModelExecutor::IsGpuBlocked() {
-  GpuConfig gpu_config;
-  if (!chrome_ml_->api().GetGpuConfig(gpu_config)) {
-    LOG(ERROR) << "Unable to get gpu config";
-    return true;
-  }
-  WGPUAdapterProperties wgpu_adapter_properties = {};
-  wgpu_adapter_properties.vendorID = gpu_config.vendor_id;
-  wgpu_adapter_properties.deviceID = gpu_config.device_id;
-  wgpu_adapter_properties.architecture = gpu_config.architecture;
-  wgpu_adapter_properties.driverDescription = gpu_config.driver_description;
-  wgpu_adapter_properties.adapterType = gpu_config.adapter_type;
-  wgpu_adapter_properties.backendType = gpu_config.backend_type;
-  if (gpu::IsWebGPUAdapterBlocklisted(wgpu_adapter_properties,
-                                      kGpuBlockList.Get())) {
-    LOG(ERROR) << "WebGPU blocked on this device";
-    return true;
-  }
-  return false;
-}
-
 LoadModelResult OnDeviceModelExecutor::Init(
     on_device_model::mojom::LoadModelParamsPtr params) {
-  if (IsGpuBlocked()) {
+  if (chrome_ml_->IsGpuBlocked()) {
     return LoadModelResult::kGpuBlocked;
   }
   on_device_model::ModelAssets assets = std::move(params->assets);
+  sentencepiece_model_proto_ = std::make_unique<base::MemoryMappedFile>();
   if (!assets.sp_model.IsValid() ||
-      !sentencepiece_model_proto_.Initialize(std::move(assets.sp_model))) {
+      !sentencepiece_model_proto_->Initialize(std::move(assets.sp_model))) {
     LOG(ERROR) << "Unable to load sentencepiece model";
     return LoadModelResult::kFailedToLoadLibrary;
   }
 
+  model_proto_ = std::make_unique<base::MemoryMappedFile>();
   if (!assets.model.IsValid() ||
-      !model_proto_.Initialize(std::move(assets.model))) {
+      !model_proto_->Initialize(std::move(assets.model))) {
     LOG(ERROR) << "Unable to load model";
     return LoadModelResult::kFailedToLoadLibrary;
   }
 
+  weights_ = std::make_unique<base::MemoryMappedFile>();
   if (!assets.weights.IsValid() ||
-      !weights_.Initialize(std::move(assets.weights),
-                           base::MemoryMappedFile::READ_WRITE_COPY)) {
+      !weights_->Initialize(std::move(assets.weights),
+                            base::MemoryMappedFile::READ_WRITE_COPY)) {
     LOG(ERROR) << "Unable to load weights";
     return LoadModelResult::kFailedToLoadLibrary;
   }
 
+  if (assets.ts_data.IsValid()) {
+    if (!ts_data_.Initialize(std::move(assets.ts_data)) ||
+        !assets.ts_sp_model.IsValid() ||
+        !ts_sp_model_.Initialize(std::move(assets.ts_sp_model))) {
+      LOG(ERROR) << "Invalid TS model data supplied";
+      return LoadModelResult::kFailedToLoadLibrary;
+    }
+  }
+
+  auto model_proto_dispose =
+      CreateWeakCallbackFn(&OnDeviceModelExecutor::DisposeModelProto, this);
+  auto weights_dispose =
+      CreateWeakCallbackFn(&OnDeviceModelExecutor::DisposeWeights, this);
   const ChromeMLModelData data = {
-      .model_proto_data = model_proto_.data(),
-      .model_proto_size = model_proto_.length(),
-      .weights_data = weights_.mutable_bytes().data(),
-      .weights_size = weights_.length(),
+      .model_proto_data = model_proto_->data(),
+      .model_proto_size = model_proto_->length(),
+      .model_proto_dispose = &model_proto_dispose,
+      .weights_data = weights_->mutable_bytes().data(),
+      .weights_size = weights_->length(),
+      .weights_dispose = &weights_dispose,
   };
-  const ChromeMLModelDescriptor descriptor = {
-      .sentencepiece_model_proto_data = sentencepiece_model_proto_.data(),
-      .sentencepiece_model_proto_size = sentencepiece_model_proto_.length(),
+  auto sentencepiece_model_proto_dispose =
+      CreateWeakCallbackFn(&OnDeviceModelExecutor::DisposeSentencepiece, this);
+  ChromeMLModelDescriptor descriptor = {
+      .sentencepiece_model_proto_data = sentencepiece_model_proto_->data(),
+      .sentencepiece_model_proto_size = sentencepiece_model_proto_->length(),
+      .sentencepiece_model_proto_dispose = &sentencepiece_model_proto_dispose,
       .model_data = &data,
       .max_tokens = params->max_tokens,
+      .temperature = static_cast<float>(kTemperature.Get()),
+      .top_k = kTopK.Get(),
+  };
+  if (ts_data_.IsValid()) {
+    CHECK(ts_sp_model_.IsValid());
+    descriptor.ts_data = ts_data_.data();
+    descriptor.ts_size = ts_data_.length();
+    descriptor.ts_spm_data = ts_sp_model_.data();
+    descriptor.ts_spm_size = ts_sp_model_.length();
   };
   model_ = chrome_ml_->api().CreateModel(&descriptor,
                                          reinterpret_cast<uintptr_t>(this),
                                          OnDeviceModelExecutor::Schedule);
   return (model_ != 0) ? LoadModelResult::kSuccess
                        : LoadModelResult::kFailedToLoadLibrary;
+}
+
+void OnDeviceModelExecutor::DisposeSentencepiece() {
+  sentencepiece_model_proto_ = nullptr;
+}
+
+void OnDeviceModelExecutor::DisposeModelProto() {
+  model_proto_ = nullptr;
+}
+
+void OnDeviceModelExecutor::DisposeWeights() {
+  weights_ = nullptr;
 }
 
 // static

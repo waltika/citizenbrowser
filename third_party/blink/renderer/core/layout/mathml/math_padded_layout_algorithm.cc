@@ -5,11 +5,11 @@
 #include "third_party/blink/renderer/core/layout/mathml/math_padded_layout_algorithm.h"
 
 #include "third_party/blink/renderer/core/dom/element.h"
+#include "third_party/blink/renderer/core/layout/block_break_token.h"
+#include "third_party/blink/renderer/core/layout/logical_box_fragment.h"
 #include "third_party/blink/renderer/core/layout/mathml/math_layout_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_block_break_token.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_box_fragment.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_out_of_flow_layout_part.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_physical_box_fragment.h"
+#include "third_party/blink/renderer/core/layout/out_of_flow_layout_part.h"
+#include "third_party/blink/renderer/core/layout/physical_box_fragment.h"
 #include "third_party/blink/renderer/core/mathml_names.h"
 
 namespace blink {
@@ -45,7 +45,7 @@ absl::optional<LayoutUnit> MathPaddedLayoutAlgorithm::RequestedDescent(
 
 void MathPaddedLayoutAlgorithm::GetContentAsAnonymousMrow(
     BlockNode* content) const {
-  // Node() is a LayoutNGMathMLBlockWithAnonymousMrow node, which is either
+  // Node() is a LayoutMathMLBlockWithAnonymousMrow node, which is either
   // empty or contains a single anonymous mrow child.
   if (LayoutInputNode child = Node().FirstChild()) {
     DCHECK(!child.NextSibling());
@@ -67,7 +67,7 @@ const LayoutResult* MathPaddedLayoutAlgorithm::Layout() {
         Node(), ChildAvailableSize(), GetConstraintSpace(), content);
     content_layout_result = content.Layout(constraint_space);
     const auto& content_fragment =
-        To<NGPhysicalBoxFragment>(content_layout_result->GetPhysicalFragment());
+        To<PhysicalBoxFragment>(content_layout_result->GetPhysicalFragment());
     content_margins = ComputeMarginsFor(constraint_space, content.Style(),
                                         GetConstraintSpace());
     LogicalBoxFragment fragment(GetConstraintSpace().GetWritingDirection(),

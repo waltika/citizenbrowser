@@ -186,7 +186,11 @@ BASE_FEATURE(kCVDisplayLinkBeginFrameSource,
 // RenderPassDrawQuad.
 BASE_FEATURE(kAllowBypassRenderPassQuads,
              "AllowBypassRenderPassQuads",
+#if BUILDFLAG(IS_ANDROID)
              base::FEATURE_DISABLED_BY_DEFAULT);
+#else
+             base::FEATURE_ENABLED_BY_DEFAULT);
+#endif
 
 BASE_FEATURE(kAllowUndamagedNonrootRenderPassToSkip,
              "AllowUndamagedNonrootRenderPassToSkip",
@@ -333,6 +337,12 @@ BASE_FEATURE(kInvalidateLocalSurfaceIdPreCommit,
 // which can saves hundreds of MiB of memory with bfcache entries.
 BASE_FEATURE(kHideDelegatedFrameHostMac,
              "HideDelegatedFrameHostMac",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+// When enabled, ClientResourceProvider will attempt to unlock and delete
+// TransferableResources that have been returned as a part of eviction.
+BASE_FEATURE(kEvictionUnlocksResources,
+             "EvictionUnlocksResources",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 bool IsDelegatedCompositingEnabled() {

@@ -29,6 +29,19 @@ bool IsAccessibilityFocusHighlightEnabled() {
   return base::FeatureList::IsEnabled(::features::kAccessibilityFocusHighlight);
 }
 
+BASE_FEATURE(kAccessibilityPdfOcrForSelectToSpeak,
+             "kAccessibilityPdfOcrForSelectToSpeak",
+#if BUILDFLAG(IS_CHROMEOS)
+             base::FEATURE_ENABLED_BY_DEFAULT
+#else
+             base::FEATURE_DISABLED_BY_DEFAULT
+#endif  // BUILDFLAG(IS_CHROMEOS)
+);
+bool IsAccessibilityPdfOcrForSelectToSpeakEnabled() {
+  return base::FeatureList::IsEnabled(
+      ::features::kAccessibilityPdfOcrForSelectToSpeak);
+}
+
 BASE_FEATURE(kAugmentExistingImageLabels,
              "AugmentExistingImageLabels",
              base::FEATURE_DISABLED_BY_DEFAULT);
@@ -199,6 +212,15 @@ bool IsExperimentalAccessibilityGoogleTtsLanguagePacksEnabled() {
   return base::FeatureList::IsEnabled(
       ::features::kExperimentalAccessibilityGoogleTtsLanguagePacks);
 }
+
+BASE_FEATURE(kAccessibilityExtraLargeCursor,
+             "AccessibilityExtraLargeCursor",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+bool IsAccessibilityExtraLargeCursorEnabled() {
+  return base::FeatureList::IsEnabled(
+      ::features::kAccessibilityExtraLargeCursor);
+}
+
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
 #if BUILDFLAG(IS_ANDROID)
@@ -276,7 +298,7 @@ bool IsPdfOcrEnabled() {
              ::features::kEmergencyDisableScreenAIOCR);
 }
 
-BASE_FEATURE(kReadAnything, "ReadAnything", base::FEATURE_DISABLED_BY_DEFAULT);
+BASE_FEATURE(kReadAnything, "ReadAnything", base::FEATURE_ENABLED_BY_DEFAULT);
 bool IsReadAnythingEnabled() {
   return base::FeatureList::IsEnabled(::features::kReadAnything);
 }
@@ -311,7 +333,7 @@ bool IsReadAnythingWebUIToolbarEnabled() {
 
 BASE_FEATURE(kReadAnythingWithScreen2x,
              "ReadAnythingWithScreen2x",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 bool IsReadAnythingWithScreen2xEnabled() {
   return base::FeatureList::IsEnabled(::features::kReadAnythingWithScreen2x) &&
          !base::FeatureList::IsEnabled(

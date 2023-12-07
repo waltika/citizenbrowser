@@ -75,25 +75,19 @@ bool IsUserEligibleForAccountStorage(const syncer::SyncService* sync_service);
 // Whether the current signed-in user (aka unconsented primary account) has
 // opted in to use the Google account storage for passwords (as opposed to
 // local/profile storage). This always returns false for sync-the-feature users.
-// |pref_service| must not be null.
 // |sync_service| may be null (commonly the case in incognito mode), in which
 // case this will simply return false.
 // See PasswordFeatureManager::IsOptedInForAccountStorage.
-// TODO(crbug.com/1484531): Remove the `pref_service` parameter, it's unused
-// now. Possibly also from other functions in this file.
-bool IsOptedInForAccountStorage(const PrefService* pref_service,
-                                const syncer::SyncService* sync_service);
+bool IsOptedInForAccountStorage(const syncer::SyncService* sync_service);
 
 // Whether it makes sense to ask the user to opt-in for account-based
 // password storage. This is true if the opt-in doesn't exist yet, but all
 // other requirements are met (i.e. there is a signed-in user, Sync-the-feature
 // is not enabled, etc).
-// |pref_service| must not be null.
 // |sync_service| may be null (commonly the case in incognito mode), in which
 // case this will simply return false.
 // See PasswordFeatureManager::ShouldShowAccountStorageOptIn.
-bool ShouldShowAccountStorageOptIn(const PrefService* pref_service,
-                                   const syncer::SyncService* sync_service);
+bool ShouldShowAccountStorageOptIn(const syncer::SyncService* sync_service);
 
 // Whether it makes sense to ask the user to signin again to access the
 // account-based password storage. This is true if a user on this device
@@ -103,8 +97,7 @@ bool ShouldShowAccountStorageOptIn(const PrefService* pref_service,
 // already doing that). For non-web contexts (e.g. native UIs), it is valid to
 // pass an empty GURL.
 // See PasswordFeatureManager::ShouldShowAccountStorageReSignin.
-bool ShouldShowAccountStorageReSignin(const PrefService* pref_service,
-                                      const syncer::SyncService* sync_service,
+bool ShouldShowAccountStorageReSignin(const syncer::SyncService* sync_service,
                                       const GURL& current_page_url);
 
 // Whether it makes sense to ask the user to move a password to their account or
@@ -187,23 +180,6 @@ void SetDefaultPasswordStore(PrefService* pref_service,
 void KeepAccountStorageSettingsOnlyForUsers(
     PrefService* pref_service,
     const std::vector<std::string>& gaia_ids);
-
-// Increases the count of how many times Chrome automatically offered a user
-// not opted-in to the account-scoped passwords storage to move a password to
-// their account. Should only be called if the user is signed-in and not
-// opted-in. |pref_service| and |sync_service| must be non-null.
-// See PasswordFeatureManager::RecordMoveOfferedToNonOptedInUser().
-void RecordMoveOfferedToNonOptedInUser(PrefService* pref_service,
-                                       const syncer::SyncService* sync_service);
-
-// Gets the count of how many times Chrome automatically offered a user
-// not opted-in to the account-scoped passwords storage to move a password to
-// their account. Should only be called if the user is signed-in and not
-// opted-in. |pref_service| and |sync_service| must be non-null.
-// See PasswordFeatureManager::GetMoveOfferedToNonOptedInUserCount().
-int GetMoveOfferedToNonOptedInUserCount(
-    const PrefService* pref_service,
-    const syncer::SyncService* sync_service);
 
 // Migrates the old password_manager account storage opt-in pref to
 // SyncUserSettings::GetSelectedTypes(), see crbug.com/1484531.

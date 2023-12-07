@@ -67,6 +67,7 @@ constexpr char kAuthToken[] = "auth_token";
 
 const char kBootstrapStateKey[] = "bootstrapState";
 constexpr int kBootstrapStateCancel = 1;
+constexpr int kBootstrapStateComplete = 2;
 
 // 32 random bytes to use as the shared secret.
 constexpr std::array<uint8_t, 32> kSharedSecret = {
@@ -301,6 +302,16 @@ class ConnectionTest : public testing::Test {
             "QuickStart.MessageReceived.BootstrapStateCancel.ListenDuration",
             0);
         break;
+      case QuickStartMetrics::MessageType::kBootstrapStateComplete:
+        // We don't expect to receive any response back after sending a
+        // BootstrapStateComplete message.
+        histogram_tester_.ExpectBucketCount(
+            "QuickStart.MessageReceived.BootstrapStateComplete.Succeeded",
+            should_succeed, 0);
+        histogram_tester_.ExpectTotalCount(
+            "QuickStart.MessageReceived.BootstrapStateComplete.ListenDuration",
+            0);
+        break;
     }
   }
 
@@ -508,8 +519,8 @@ TEST_F(ConnectionTest, RequestAccountTransferAssertion) {
   // Emulate a GetAssertion response.
   std::vector<uint8_t> credential_id = {0x01, 0x02, 0x03};
 
-  // The credential ID should be Base64 encoded.
-  Base64String expected_credential_id(base::Base64Encode(credential_id));
+  // The credential ID should be Base64Url encoded.
+  Base64UrlString expected_credential_id = Base64UrlEncode(credential_id);
 
   std::vector<uint8_t> auth_data = {0x02, 0x03, 0x04};
   std::vector<uint8_t> signature = {0x03, 0x04, 0x05};
@@ -988,6 +999,39 @@ TEST_F(ConnectionTest,
        CloseFromUserAbortedDoesNotNotifyPhoneWhenUnauthenticated) {
   connection_->Close(
       TargetDeviceConnectionBroker::ConnectionClosedReason::kUserAborted);
+
+  std::vector<uint8_t> notify_source_data =
+      fake_nearby_connection_->GetWrittenData();
+  QuickStartMessage::ReadResult read_result =
+      ash::quick_start::QuickStartMessage::ReadMessage(
+          notify_source_data, QuickStartMessageType::kBootstrapState);
+  EXPECT_FALSE(read_result.has_value());
+}
+
+TEST_F(ConnectionTest, CloseFromCompleteNotifiesPhoneWhenAuthenticated) {
+  MarkConnectionAuthenticated();
+  connection_->Close(
+      TargetDeviceConnectionBroker::ConnectionClosedReason::kComplete);
+
+  std::vector<uint8_t> notify_source_data =
+      fake_nearby_connection_->GetWrittenData();
+  QuickStartMessage::ReadResult read_result =
+      ash::quick_start::QuickStartMessage::ReadMessage(
+          notify_source_data, QuickStartMessageType::kBootstrapState);
+  ASSERT_TRUE(read_result.has_value());
+  base::Value::Dict& parsed_payload = *read_result.value()->GetPayload();
+
+  EXPECT_EQ(parsed_payload.FindInt(kBootstrapStateKey),
+            kBootstrapStateComplete);
+  TestMessageMetrics(
+      /*should_succeed=*/true,
+      /*message_type=*/QuickStartMetrics::MessageType::kBootstrapStateComplete,
+      /*error_code=*/absl::nullopt, /*response_expected=*/false);
+}
+
+TEST_F(ConnectionTest, CloseFromCompleteDoesNotNotifyPhoneWhenUnauthenticated) {
+  connection_->Close(
+      TargetDeviceConnectionBroker::ConnectionClosedReason::kComplete);
 
   std::vector<uint8_t> notify_source_data =
       fake_nearby_connection_->GetWrittenData();

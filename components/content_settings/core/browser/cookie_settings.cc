@@ -10,6 +10,8 @@
 #include "base/synchronization/lock.h"
 #include "build/blink_buildflags.h"
 #include "build/build_config.h"
+#include "components/content_settings/core/browser/content_settings_info.h"
+#include "components/content_settings/core/browser/content_settings_registry.h"
 #include "components/content_settings/core/browser/content_settings_utils.h"
 #include "components/content_settings/core/browser/host_content_settings_map.h"
 #include "components/content_settings/core/common/content_settings.h"
@@ -49,6 +51,8 @@ CookieSettings::CookieSettings(
       is_incognito_(is_incognito),
       extension_scheme_(extension_scheme),
       block_third_party_cookies_(
+          net::cookie_util::IsForceThirdPartyCookieBlockingEnabled()),
+      mitigations_enabled_for_3pcd_(
           net::cookie_util::IsForceThirdPartyCookieBlockingEnabled()) {
   content_settings_observation_.Observe(host_content_settings_map_.get());
   if (tracking_protection_settings_) {
@@ -123,6 +127,10 @@ void CookieSettings::SetTemporaryCookieGrantForHeuristic(
     const GURL& first_party_url,
     base::TimeDelta ttl,
     bool use_schemeless_patterns) {
+  if (url.is_empty() || first_party_url.is_empty()) {
+    return;
+  }
+
   // If the new grant has an earlier TTL than the existing setting, keep the
   // existing TTL.
   SettingInfo info;
@@ -327,7 +335,14 @@ ContentSetting CookieSettings::GetContentSetting(
 
 bool CookieSettings::IsThirdPartyCookiesAllowedScheme(
     const std::string& scheme) const {
-  return scheme == extension_scheme_;
+  const content_settings::ContentSettingsInfo* content_settings_info =
+      content_settings::ContentSettingsRegistry::GetInstance()->Get(
+          ContentSettingsType::COOKIES);
+  const std::vector<std::string> allowed_schemes =
+      content_settings_info->third_party_cookie_allowed_secondary_schemes();
+  const auto it =
+      std::find(allowed_schemes.begin(), allowed_schemes.end(), scheme);
+  return it != allowed_schemes.end();
 }
 
 bool CookieSettings::IsStorageAccessApiEnabled() const {
@@ -379,11 +394,8 @@ bool CookieSettings::ShouldBlockThirdPartyCookiesInternal() {
 #endif
 
 bool CookieSettings::MitigationsEnabledFor3pcdInternal() {
-  // Mitigations won't be enabled when Third Party Cookies Blocking is enabled
-  // by `features::kForceThirdPartyCookieBlocking` which is intended to be used
-  // via command-lines by developers for testing.
   if (net::cookie_util::IsForceThirdPartyCookieBlockingEnabled()) {
-    return false;
+    return true;
   }
 
   if (tracking_protection_settings_ &&

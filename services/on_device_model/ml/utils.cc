@@ -8,39 +8,39 @@
 #include "base/metrics/histogram_functions.h"
 #include "base/strings/strcat.h"
 #include "base/system/sys_info.h"
-#include "services/on_device_model/public/cpp/features.h"
+#include "components/optimization_guide/core/optimization_guide_features.h"
 
 namespace ml {
 namespace {
 
-// The threshold for integrated GPU system RAM below which the device is
-// considered VeryLow. Intel integrated GPUs on Windows can use half of system
-// RAM as VRAM.
-const base::FeatureParam<int> kLowIntegratedRAMThreshold{
-    &on_device_model::features::kOnDeviceModelService,
-    "on_device_low_integrated_ram_threshold_mb", 4000};
+constexpr uint64_t kBytesPerMb = 1024 * 1024;
+
+// The threshold for GPU RAM below which the device is considered VeryLow.
+const base::FeatureParam<int> kLowRAMThreshold{
+    &optimization_guide::features::kOptimizationGuideOnDeviceModel,
+    "on_device_low_ram_threshold_mb", 3600};
 // RAM threshold necessary to be considered High or better.
-const base::FeatureParam<int> kHighIntegratedRAMThreshold{
-    &on_device_model::features::kOnDeviceModelService,
-    "on_device_high_integrated_ram_threshold_mb", 8000};
+const base::FeatureParam<int> kHighRAMThreshold{
+    &optimization_guide::features::kOptimizationGuideOnDeviceModel,
+    "on_device_high_ram_threshold_mb", 7600};
 
 // Output threshold to be considered Low or better.
 const base::FeatureParam<int> kLowOutputThreshold{
-    &on_device_model::features::kOnDeviceModelService,
+    &optimization_guide::features::kOptimizationGuideOnDeviceModel,
     "on_device_low_output_threshold", 6};
 
 // Input speed thresholds or each device class.
 const base::FeatureParam<int> kLowThreshold{
-    &on_device_model::features::kOnDeviceModelService,
+    &optimization_guide::features::kOptimizationGuideOnDeviceModel,
     "on_device_low_threshold", 50};
 const base::FeatureParam<int> kMediumThreshold{
-    &on_device_model::features::kOnDeviceModelService,
+    &optimization_guide::features::kOptimizationGuideOnDeviceModel,
     "on_device_medium_threshold", 100};
 const base::FeatureParam<int> kHighThreshold{
-    &on_device_model::features::kOnDeviceModelService,
+    &optimization_guide::features::kOptimizationGuideOnDeviceModel,
     "on_device_high_threshold", 250};
 const base::FeatureParam<int> kVeryHighThreshold{
-    &on_device_model::features::kOnDeviceModelService,
+    &optimization_guide::features::kOptimizationGuideOnDeviceModel,
     "on_device_very_high_threshold", 750};
 
 }  // namespace
@@ -62,14 +62,19 @@ on_device_model::mojom::PerformanceClass GetEstimatedPerformanceClass(
       base::StrCat({"OnDeviceModel.SystemRAM.",
                     is_integrated_gpu ? "Integrated" : "Discrete"}),
       system_ram);
+  uint64_t device_heap_mb = info.device_heap_size / kBytesPerMb;
+  base::UmaHistogramMemoryLargeMB(
+      base::StrCat({"OnDeviceModel.DeviceHeapSize.",
+                    is_integrated_gpu ? "Integrated" : "Discrete"}),
+      device_heap_mb);
 
-  base::UmaHistogramCounts10000("OnDeviceModel.EstimatedTokensPerSecond.Input",
-                                input_speed);
-  base::UmaHistogramCounts1000("OnDeviceModel.EstimatedTokensPerSecond.Output",
-                               output_speed);
+  base::UmaHistogramCounts10000(
+      "OnDeviceModel.BenchmarkEstimatedTokensPerSecond.Input", input_speed);
+  base::UmaHistogramCounts1000(
+      "OnDeviceModel.BenchmarkEstimatedTokensPerSecond.Output", output_speed);
 
   // Devices with low RAM are considered very low perf.
-  if (is_integrated_gpu && system_ram < kLowIntegratedRAMThreshold.Get()) {
+  if (device_heap_mb < static_cast<uint64_t>(kLowRAMThreshold.Get())) {
     return on_device_model::mojom::PerformanceClass::kVeryLow;
   }
 
@@ -87,8 +92,7 @@ on_device_model::mojom::PerformanceClass GetEstimatedPerformanceClass(
   } else if (input_speed < kMediumThreshold.Get()) {
     return on_device_model::mojom::PerformanceClass::kLow;
   } else if (input_speed < kHighThreshold.Get() ||
-             (is_integrated_gpu &&
-              system_ram < kHighIntegratedRAMThreshold.Get())) {
+             device_heap_mb < static_cast<uint64_t>(kHighRAMThreshold.Get())) {
     return on_device_model::mojom::PerformanceClass::kMedium;
   } else if (input_speed < kVeryHighThreshold.Get()) {
     return on_device_model::mojom::PerformanceClass::kHigh;

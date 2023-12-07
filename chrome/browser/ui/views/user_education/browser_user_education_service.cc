@@ -517,9 +517,11 @@ void MaybeRegisterChromeFeaturePromos(
   if (base::FeatureList::IsEnabled(features::kSidePanelPinning)) {
     // kIPHSidePanelGenericMenuFeature:
     registry.RegisterFeature(std::move(
-        FeaturePromoSpecification::CreateForSnoozePromo(
+        FeaturePromoSpecification::CreateForToastPromo(
             feature_engagement::kIPHSidePanelGenericMenuFeature,
-            kToolbarAppMenuButtonElementId, IDS_SIDE_PANEL_GENERIC_MENU_IPH)
+            kToolbarAppMenuButtonElementId, IDS_SIDE_PANEL_GENERIC_MENU_IPH,
+            IDS_SIDE_PANEL_GENERIC_MENU_IPH_SCREENREADER,
+            FeaturePromoSpecification::AcceleratorInfo())
             .SetBubbleArrow(HelpBubbleArrow::kTopRight)));
 
     // kIPHSidePanelGenericPinnableFeature:
@@ -680,11 +682,6 @@ void MaybeRegisterChromeFeaturePromos(
                     IDS_BACK_NAVIGATION_MENU_PROMO_ACCESSIBLE_TEXT,
                     FeaturePromoSpecification::AcceleratorInfo())
                     .SetBubbleArrow(HelpBubbleArrow::kTopLeft)));
-
-  // kIPHPriceTrackingChipFeature:
-  registry.RegisterFeature(FeaturePromoSpecification::CreateForLegacyPromo(
-      &feature_engagement::kIPHPriceTrackingChipFeature,
-      kPriceTrackingChipElementId, IDS_PRICE_TRACKING_CHIP_IPH));
 
 #if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_WIN)
   // kIPHDesktopPWAsLinkCapturingLaunch:

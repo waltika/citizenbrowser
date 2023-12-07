@@ -2398,7 +2398,6 @@ comportamento dei tasti funzione e questa impostazione non sarà modificabile da
           Se imposti questo criterio, gli utenti non potranno modificarlo o ignorarlo.
 
           Se questo criterio non viene impostato, inizialmente il puntatore grande è disattivato nella schermata di accesso, ma l'utente può attivarlo in qualsiasi momento.</translation>
-<translation id="3027837632741099453">La modalità Risparmio energetico viene attivata quando il dispositivo è alimentato a batteria.</translation>
 <translation id="3030000825273123558">Attiva rapporti sulle metriche</translation>
 <translation id="30300807616984726">Consente di generare report sui dati dell'inventario per app per gli utenti affiliati.
 
@@ -3403,15 +3402,6 @@ Questo criterio è una soluzione alternativa temporanea e verrà rimosso dopo il
 <translation id="3838094946886335701">Se il criterio viene impostato (solo come consigliato), puoi registrare un elenco di gestori di protocolli che vengono uniti a quelli registrati dall'utente, con conseguente utilizzo di entrambi i gruppi. Imposta la proprietà "protocollo" sullo schema (ad esempio "mailto") e la proprietà "URL" sul pattern URL dell'applicazione che gestisce lo schema specificato nel campo "protocollo". Il pattern può includere un segnaposto "%s", che viene sostituito dall'URL gestito.
 
       Gli utenti non possono rimuovere un gestore di protocollo registrato tramite il criterio. Se però installano un nuovo gestore predefinito, possono cambiare i gestori di protocolli installati in base al criterio.</translation>
-<translation id="3847858041725748756">Questo criterio è deprecato. Utilizza il criterio <ph name="RELATED_WEBSITE_SETS_ENABLED_POLICY_NAME" />.
-
-Questo criterio consente di disattivare la funzionalità degli insiemi proprietari.
-
-Se questo criterio non viene configurato o se viene attivato, la funzionalità degli insiemi proprietari viene attivata.
-
-Se questo criterio viene disattivato, la funzionalità degli insiemi proprietari viene disattivata.
-
-Consente inoltre di stabilire se Chrome supporta o meno le integrazioni correlate agli insiemi proprietari.</translation>
 <translation id="3851443303439635700">Controlla la soglia di nidificazione prima della quale la funzione JavaScript setTimeout() inizia a essere bloccata</translation>
 <translation id="3858658082795336534">Modalità di stampa fronte/retro predefinita</translation>
 <translation id="3859780406608282662">Consente di aggiungere un parametro al recupero del numero di inizializzazione delle varianti in <ph name="PRODUCT_OS_NAME" />.
@@ -4410,13 +4400,6 @@ Per i dispositivi non gestiti, l'utente può decidere di inviare le metriche.</t
 
       Se questo criterio non viene impostato o viene attivato, i controlli dell'intercettazione DNS vengono eseguiti. Se viene disattivato, i controlli non vengono eseguiti.</translation>
 <translation id="4700190441681139987">Non consentire a nessun sito di accedere ai sensori</translation>
-<translation id="4701899474784891858">Questo criterio attiva o disattiva l'impostazione della modalità Risparmio energetico. Questa impostazione fa sì che la frequenza fotogrammi venga limitata per ridurre il consumo energetico.
-      Se questo criterio non viene configurato, l'utente finale può controllare questa impostazione in chrome://settings/performance.
-      I diversi livelli sono:
-      <ph name="BATTERY_SAVER_MODE_DISABLED" /> (0): la modalità Risparmio energetico viene disattivata.
-      <ph name="BATTERY_SAVER_MODE_ENABLED_BELOW_THRESHOLD" /> (1): la modalità Risparmio energetico viene attivata quando il dispositivo è alimentato a batteria e il livello batteria è basso.
-      <ph name="BATTERY_SAVER_MODE_ENABLED_ON_BATTERY" /> (2): la modalità Risparmio energetico viene attivata quando il dispositivo è alimentato a batteria.
-      </translation>
 <translation id="4703402283970867140">Attiva il modello di oscuramento smart per ritardare l'oscuramento dello schermo</translation>
 <translation id="4704958130749494760">Concedi automaticamente ai siti l'autorizzazione a connettersi a dispositivi seriali USB</translation>
 <translation id="4705329890928008808">Se il criterio è impostato su CopyCaCerts, per le app ARC sono disponibili tutti i certificati CA installati su ONC con <ph name="WEB_TRUSTED_BIT" />.
@@ -4743,20 +4726,6 @@ Questo criterio viene applicato soltanto se la macchina viene registrata con <ph
 <translation id="5030415914668947893">Consenti la raccolta di metriche con chiave URL</translation>
 <translation id="5033070732967197381">Consenti le richieste API WebAuthn su siti con certificati TLS inaccessibili.</translation>
 <translation id="5034504101537897433">Attiva i report relativi alle informazioni sul report sugli arresti anomali del dispositivo</translation>
-<translation id="5034734406205213733">Se questo criterio viene attivato, <ph name="PRODUCT_NAME" /> eseguirà la verifica dei certificati dei server mediante lo strumento di verifica dei certificati integrato con Chrome Root Store usato come fonte di attendibilità pubblica.
-
-Se questo criterio viene disattivato, <ph name="PRODUCT_NAME" /> userà lo strumento di verifica dei certificati di sistema e i certificati radice di sistema.
-
-Se questo criterio non viene configurato, potrebbero essere utilizzati Chrome Root Store o i certificati radice forniti dal sistema.
-
-È prevista la rimozione di questo criterio in <ph name="PRODUCT_NAME" /> per la versione 121 di <ph name="ANDROID_NAME" />, in concomitanza con la rimozione del supporto per l'utilizzo dei certificati radice forniti dalla piattaforma.
-
-Questo criterio è stato rimosso in<ph name="PRODUCT_NAME" />
-per
-<ph name="MS_WIN_NAME" /> e <ph name="MAC_OS_NAME" /> versione 113,
-<ph name="PRODUCT_OS_NAME" /> versione 120<ph name="PRODUCT_NAME" /> per
-<ph name="LINUX_OS_NAME" /> versione 120 in concomitanza con la rimozione del supporto dell'utilizzo dello
-strumento di verifica dei certificati e dei certificati radice forniti dalla piattaforma.</translation>
 <translation id="5036013147560568855">Versione del protocollo di provisioning del certificato. Il valore predefinito è 1. 1 significa che il protocollo è "statico". 2 significa che il protocollo è "dinamico".</translation>
 <translation id="5039110755072335605">Supporto delle intestazioni delle richieste CORS senza caratteri jolly</translation>
 <translation id="504116558738617678">Mostra gli avvisi relativi allo spazio su disco in esaurimento soltanto se il dispositivo non è gestito o se esiste 1 solo utente</translation>
@@ -9709,33 +9678,6 @@ L'impostazione predefinita è RollbackDisabled.</translation>
 <translation id="9206472508136116830">Non consentire il rilevamento condivisioni NetBIOS</translation>
 <translation id="9207596996305971030">Gli eventi di accesso/uscita non vengono segnalati</translation>
 <translation id="9210647066889383361">Consenti agli utenti di accedere al proprio dispositivo con Smart Lock</translation>
-<translation id="9212819508924803630">Questo criterio è deprecato. Utilizza il criterio <ph name="RELATED_WEBSITE_SETS_OVERRIDES_POLICY_NAME" />.
-
-Questo criterio fornisce un modo per eseguire l'override dell'elenco di insiemi che il browser utilizza per le funzionalità degli insiemi proprietari.
-
-Ogni insieme nell'elenco di insiemi proprietari del browser deve soddisfare i requisiti di un insieme proprietario.
-Un insieme proprietario deve contenere un sito principale e uno o più siti membri.
-Un insieme può anche contenere un elenco di siti di servizi di sua proprietà, nonché una mappa di un sito a tutte le sue varianti ccTLD.
-Visita la pagina https://github.com/WICG/first-party-sets per avere maggiori informazioni sugli insiemi proprietari che vengono utilizzati da <ph name="PRODUCT_NAME" />.
-
-Tutti i siti di un insieme proprietario devono avere un dominio registrabile pubblicato su HTTPS. Ciascun sito di un insieme proprietario deve anche essere univoco, ovvero non può essere elencato più di una volta in un insieme proprietario.
-
-Quando a questo criterio viene dato un dizionario vuoto, il browser utilizza l'elenco pubblico di insiemi proprietari.
-
-Per tutti i siti in un insieme proprietario dell'elenco <ph name="REPLACEMENTS" />, se un sito è presente anche in un insieme proprietario nell'elenco del browser, quel sito verrà rimosso dall'insieme proprietario del browser.
-Dopodiché, l'insieme proprietario del criterio verrà aggiunto all'elenco di insiemi proprietari del browser.
-
-Per tutti i siti in un insieme proprietario dell'elenco <ph name="ADDITIONS" />, se un sito è presente anche in un insieme proprietario nell'elenco del browser, l'insieme proprietario del browser verrà aggiornato in modo che il nuovo insieme proprietario possa essere aggiunto all'elenco del browser. Una volta aggiornato l'elenco del browser, l'insieme proprietario del criterio verrà aggiunto all'elenco di insiemi proprietari del browser.
-
-L'elenco di insiemi proprietari del browser richiede che nessuno dei siti al suo interno sia presente in più di un insieme. Questo requisito è valido anche per gli elenchi <ph name="REPLACEMENTS" /> e <ph name="ADDITIONS" />. In modo simile, un sito non può essere presente in entrambi gli elenchi <ph name="REPLACEMENTS" /> e <ph name="ADDITIONS" />.
-
-I caratteri jolly (*) non sono supportati come valore del criterio, neppure all'interno di un insieme proprietario in questi elenchi.
-
-Tutti gli insiemi forniti da questo criterio devono essere insiemi proprietari validi. Qualora non lo fossero, verrà segnalato un errore adeguato.
-
-Su <ph name="MS_WIN_NAME" />, questo criterio è disponibile soltanto per le istanze che sono aggiunte a un dominio <ph name="MS_AD_NAME" />, aggiunte a <ph name="MS_AAD_NAME" /> o registrate in <ph name="CHROME_BROWSER_CLOUD_MANAGEMENT_NAME" />.
-
-Su <ph name="MAC_OS_NAME" />, questo criterio è disponibile soltanto per le istanze che sono gestite tramite MDM, aggiunte a un dominio tramite MCX o registrate in <ph name="CHROME_BROWSER_CLOUD_MANAGEMENT_NAME" />.</translation>
 <translation id="9213751049772256263">Disattiva tutte le varianti</translation>
 <translation id="9217154963008402249">Frequenza dei pacchetti di rete di monitoraggio</translation>
 <translation id="9220314833408124365">Viene usato un criterio relativo al referrer predefinito no-referrer-when-downgrade</translation>

@@ -436,7 +436,7 @@ bool BoxPainterBase::CalculateFillLayerOcclusionCulling(
     // TODO(trchen): A fill layer cannot paint if the calculated tile size is
     // empty.  This occlusion check can be wrong.
     if (current_layer->ClipOccludesNextLayers() &&
-        current_layer->ImageOccludesNextLayers(*document_, style_)) {
+        current_layer->ImageOccludesNextLayers(document_, style_)) {
       if (current_layer->Clip() == EFillBox::kBorder)
         is_non_associative = false;
       break;
@@ -452,13 +452,12 @@ BoxPainterBase::FillLayerInfo::FillLayerInfo(
     Color bg_color,
     const FillLayer& layer,
     BackgroundBleedAvoidance bleed_avoidance,
-    RespectImageOrientationEnum respect_image_orientation,
     PhysicalBoxSides sides_to_include,
     bool is_inline,
     bool is_painting_background_in_contents_space)
     : image(layer.GetImage()),
       color(bg_color),
-      respect_image_orientation(respect_image_orientation),
+      respect_image_orientation(style.ImageOrientation()),
       sides_to_include(sides_to_include),
       is_bottom_layer(!layer.Next()),
       is_border_fill(layer.Clip() == EFillBox::kStrokeBox ||
@@ -506,6 +505,11 @@ BoxPainterBase::FillLayerInfo::FillLayerInfo(
   is_printing = doc.Printing();
 
   should_paint_image = image && image->CanRender();
+  if (should_paint_image) {
+    respect_image_orientation =
+        image->ForceOrientationIfNecessary(respect_image_orientation);
+  }
+
   bool composite_bgcolor_animation =
       RuntimeEnabledFeatures::CompositeBGColorAnimationEnabled() &&
       style.HasCurrentBackgroundColorAnimation() &&
@@ -704,11 +708,11 @@ void DrawTiledBackground(LocalFrame* frame,
                          paint_timing_info, op, respect_orientation);
 }
 
-scoped_refptr<Image> GetBGColorPaintWorkletImage(const Document* document,
+scoped_refptr<Image> GetBGColorPaintWorkletImage(const Document& document,
                                                  Node* node,
                                                  const gfx::SizeF& image_size) {
   BackgroundColorPaintImageGenerator* generator =
-      GetBackgroundColorPaintImageGenerator(*document);
+      GetBackgroundColorPaintImageGenerator(document);
   // The generator can be null in testing environment.
   if (!generator)
     return nullptr;
@@ -723,7 +727,7 @@ scoped_refptr<Image> GetBGColorPaintWorkletImage(const Document* document,
 }
 
 // Returns true if the background color was painted by the paint worklet.
-bool PaintBGColorWithPaintWorklet(const Document* document,
+bool PaintBGColorWithPaintWorklet(const Document& document,
                                   const BoxPainterBase::FillLayerInfo& info,
                                   Node* node,
                                   const ComputedStyle& style,
@@ -837,7 +841,7 @@ inline bool CanUseBottomLayerFastPath(const BoxPainterBase::FillLayerInfo& info,
   return true;
 }
 
-inline bool PaintFastBottomLayer(const Document* document,
+inline bool PaintFastBottomLayer(const Document& document,
                                  Node* node,
                                  const ComputedStyle& style,
                                  GraphicsContext& context,
@@ -926,7 +930,7 @@ inline bool PaintFastBottomLayer(const Document* document,
       gfx::RectF(image->Rect()), gfx::RectF(image_border.Rect()));
 
   auto image_auto_dark_mode = ImageClassifierHelper::GetImageAutoDarkMode(
-      *document->GetFrame(), style, image_border.Rect(), src_rect);
+      *document.GetFrame(), style, image_border.Rect(), src_rect);
 
   Image::ImageClampingMode clamping_mode =
       Image::ImageClampingMode::kClampImageToSourceRect;
@@ -1036,7 +1040,7 @@ FloatRoundedRect RoundedBorderRectForClip(
   return border;
 }
 
-void PaintFillLayerBackground(const Document* document,
+void PaintFillLayerBackground(const Document& document,
                               GraphicsContext& context,
                               const BoxPainterBase::FillLayerInfo& info,
                               Node* node,
@@ -1073,26 +1077,11 @@ void PaintFillLayerBackground(const Document* document,
         inspector_paint_image_event::Data, node, *info.image,
         gfx::RectF(image->Rect()), gfx::RectF(scrolled_paint_rect));
     DrawTiledBackground(
-        document->GetFrame(), context, style, *image, geometry, composite_op,
+        document.GetFrame(), context, style, *image, geometry, composite_op,
         info.respect_image_orientation,
         ComputeImagePaintTimingInfo(node, *image, *info.image, context,
                                     gfx::RectF(geometry.SnappedDestRect())));
   }
-}
-
-PhysicalBoxStrut AdjustOutsetsForEdgeInclusion(
-    const PhysicalBoxStrut& outsets,
-    const BoxPainterBase::FillLayerInfo& info) {
-  PhysicalBoxStrut adjusted = outsets;
-  if (!info.sides_to_include.top)
-    adjusted.top = LayoutUnit();
-  if (!info.sides_to_include.right)
-    adjusted.right = LayoutUnit();
-  if (!info.sides_to_include.bottom)
-    adjusted.bottom = LayoutUnit();
-  if (!info.sides_to_include.left)
-    adjusted.left = LayoutUnit();
-  return adjusted;
 }
 
 bool ShouldApplyBlendOperation(const BoxPainterBase::FillLayerInfo& info,
@@ -1143,11 +1132,6 @@ PhysicalBoxStrut BoxPainterBase::ComputeSnappedBorders() const {
       border_widths.bottom.ToInt(), border_widths.left.ToInt());
 }
 
-PhysicalBoxStrut BoxPainterBase::AdjustedBorderOutsets(
-    const FillLayerInfo& info) const {
-  return AdjustOutsetsForEdgeInclusion(ComputeSnappedBorders(), info);
-}
-
 void BoxPainterBase::PaintFillLayer(const PaintInfo& paint_info,
                                     const Color& color,
                                     const FillLayer& bg_layer,
@@ -1170,8 +1154,14 @@ void BoxPainterBase::PaintFillLayer(const PaintInfo& paint_info,
   GraphicsContext& context = paint_info.context;
   GraphicsContextStateSaver clip_with_scrolling_state_saver(
       context, fill_layer_info.is_clipped_with_local_scrolling);
-  auto scrolled_paint_rect =
-      AdjustRectForScrolledContent(paint_info, fill_layer_info, rect);
+  auto scrolled_paint_rect = rect;
+  if (fill_layer_info.is_clipped_with_local_scrolling &&
+      !paint_info.IsPaintingBackgroundInContentsSpace()) {
+    PhysicalBoxStrut snapped_borders = ComputeSnappedBorders();
+    snapped_borders.TruncateSides(fill_layer_info.sides_to_include);
+    scrolled_paint_rect =
+        AdjustRectForScrolledContent(paint_info.context, snapped_borders, rect);
+  }
   const auto did_adjust_paint_rect = scrolled_paint_rect != rect;
 
   scoped_refptr<Image> image;
@@ -1218,13 +1208,14 @@ void BoxPainterBase::PaintFillLayer(const PaintInfo& paint_info,
     }
     geometry.Calculate(paint_info, bg_layer, scrolled_paint_rect);
 
-    image = fill_layer_info.image->GetImage(
-        geometry.ImageClient(), geometry.ImageDocument(), image_style,
-        gfx::SizeF(geometry.TileSize()));
+    image = fill_layer_info.image->GetImage(geometry.ImageClient(), document_,
+                                            image_style,
+                                            gfx::SizeF(geometry.TileSize()));
 
     image_rendering_settings_context.emplace(
-        context, geometry.ImageInterpolationQuality(),
-        geometry.DynamicRangeLimit());
+        context, style_.GetInterpolationQuality(),
+        static_cast<cc::PaintFlags::DynamicRangeLimit>(
+            style_.DynamicRangeLimit()));
   }
 
   PhysicalBoxStrut border = ComputeSnappedBorders();
@@ -1272,14 +1263,15 @@ void BoxPainterBase::PaintFillLayer(const PaintInfo& paint_info,
         }
 
         // Clip to the padding or content boxes as necessary.
-        PhysicalRect clip_rect = scrolled_paint_rect;
-        clip_rect.Contract(
-            AdjustOutsetsForEdgeInclusion(border, fill_layer_info));
+        PhysicalBoxStrut outsets = border;
         if (bg_layer.Clip() == EFillBox::kFillBox ||
             bg_layer.Clip() == EFillBox::kContent) {
-          clip_rect.Contract(
-              AdjustOutsetsForEdgeInclusion(padding, fill_layer_info));
+          outsets += padding;
         }
+        outsets.TruncateSides(fill_layer_info.sides_to_include);
+
+        PhysicalRect clip_rect = scrolled_paint_rect;
+        clip_rect.Contract(outsets);
         background_clip_state_saver.emplace(context);
         context.Clip(ToPixelSnappedRect(clip_rect));
         break;
@@ -1371,7 +1363,7 @@ void BoxPainterBase::PaintMaskImages(const PaintInfo& paint_info,
 
   PaintFillLayers(paint_info, Color::kTransparent, style_.MaskLayers(),
                   paint_rect, geometry);
-  NinePieceImagePainter::Paint(paint_info.context, obj, *document_, node_,
+  NinePieceImagePainter::Paint(paint_info.context, obj, document_, node_,
                                paint_rect, style_, style_.MaskBoxImage(),
                                sides_to_include);
 }

@@ -386,9 +386,10 @@ struct PA_ALIGNAS(64) PA_COMPONENT_EXPORT(PARTITION_ALLOC) PartitionRoot {
 
   bool quarantine_always_for_testing = false;
 
+  internal::LightweightQuarantineRoot scheduler_loop_quarantine_root;
   // NoDestructor because we don't need to dequarantine objects as the root
   // associated with it is dying anyway.
-  internal::base::NoDestructor<internal::SchedulerLoopQuarantine>
+  internal::base::NoDestructor<internal::SchedulerLoopQuarantineBranch>
       scheduler_loop_quarantine;
 
   PartitionRoot();
@@ -455,12 +456,33 @@ struct PA_ALIGNAS(64) PA_COMPONENT_EXPORT(PARTITION_ALLOC) PartitionRoot {
       PageAccessibilityDisposition accessibility_disposition,
       bool request_tagging)
       PA_EXCLUSIVE_LOCKS_REQUIRED(internal::PartitionRootLock(this));
-  PA_ALWAYS_INLINE bool TryRecommitSystemPagesForData(
+
+  template <bool already_locked>
+  PA_ALWAYS_INLINE bool TryRecommitSystemPagesForDataInternal(
+      uintptr_t address,
+      size_t length,
+      PageAccessibilityDisposition accessibility_disposition,
+      bool request_tagging);
+
+  // TryRecommitSystemPagesForDataWithAcquiringLock() locks this root internally
+  // before invoking DecommitEmptySlotSpans(), which needs the lock. So the root
+  // must not be locked when invoking this method.
+  PA_ALWAYS_INLINE bool TryRecommitSystemPagesForDataWithAcquiringLock(
       uintptr_t address,
       size_t length,
       PageAccessibilityDisposition accessibility_disposition,
       bool request_tagging)
       PA_LOCKS_EXCLUDED(internal::PartitionRootLock(this));
+
+  // TryRecommitSystemPagesForDataLocked() doesn't lock this root internally
+  // before invoking DecommitEmptySlotSpans(), which needs the lock. So the root
+  // must have been already locked when invoking this method.
+  PA_ALWAYS_INLINE bool TryRecommitSystemPagesForDataLocked(
+      uintptr_t address,
+      size_t length,
+      PageAccessibilityDisposition accessibility_disposition,
+      bool request_tagging)
+      PA_EXCLUSIVE_LOCKS_REQUIRED(internal::PartitionRootLock(this));
 
   [[noreturn]] PA_NOINLINE void OutOfMemory(size_t size);
 
@@ -858,7 +880,8 @@ struct PA_ALIGNAS(64) PA_COMPONENT_EXPORT(PARTITION_ALLOC) PartitionRoot {
     return straighten_larger_slot_span_free_lists_;
   }
 
-  internal::SchedulerLoopQuarantine& GetSchedulerLoopQuarantineForTesting() {
+  internal::SchedulerLoopQuarantineBranch&
+  GetSchedulerLoopQuarantineBranchForTesting() {
     // TODO(crbug.com/1462223): Implement thread-local version and return it
     // here.
     return *scheduler_loop_quarantine;
@@ -987,8 +1010,8 @@ struct PA_ALIGNAS(64) PA_COMPONENT_EXPORT(PARTITION_ALLOC) PartitionRoot {
   PA_ALWAYS_INLINE ThreadCache* GetOrCreateThreadCache();
   PA_ALWAYS_INLINE ThreadCache* GetThreadCache();
 
-  PA_ALWAYS_INLINE internal::SchedulerLoopQuarantine&
-  GetSchedulerLoopQuarantine();
+  PA_ALWAYS_INLINE internal::SchedulerLoopQuarantineBranch&
+  GetSchedulerLoopQuarantineBranch();
 
   PA_ALWAYS_INLINE AllocationNotificationData
   CreateAllocationNotificationData(void* object,
@@ -1202,7 +1225,7 @@ PartitionRoot::AllocFromBucket(Bucket* bucket,
                                size_t* usable_size,
                                bool* is_already_zeroed) {
   PA_DCHECK((slot_span_alignment >= internal::PartitionPageSize()) &&
-            internal::base::bits::IsPowerOfTwo(slot_span_alignment));
+            std::has_single_bit(slot_span_alignment));
   SlotSpan* slot_span = bucket->active_slot_spans_head;
   // There always must be a slot span on the active list (could be a sentinel).
   PA_DCHECK(slot_span);
@@ -1402,12 +1425,11 @@ PA_ALWAYS_INLINE void PartitionRoot::FreeInline(void* object) {
     }
   }
   // TODO(https://crbug.com/1497380): Collecting objects for
-  // `kSchedulerLoopQuarantine` here means it "delays" other checks (BRP
+  // `kSchedulerLoopQuarantineBranch` here means it "delays" other checks (BRP
   // refcount, cookie, etc.)
   // For better debuggability, we should do these checks before quarantining.
   if constexpr (ContainsFlags(flags, FreeFlags::kSchedulerLoopQuarantine)) {
-    GetSchedulerLoopQuarantine().Quarantine(
-        internal::LightweightQuarantineEntry(object));
+    GetSchedulerLoopQuarantineBranch().Quarantine(object);
     return;
   }
 
@@ -1835,7 +1857,8 @@ PA_ALWAYS_INLINE void PartitionRoot::RecommitSystemPagesForData(
   IncreaseCommittedPages(length);
 }
 
-PA_ALWAYS_INLINE bool PartitionRoot::TryRecommitSystemPagesForData(
+template <bool already_locked>
+PA_ALWAYS_INLINE bool PartitionRoot::TryRecommitSystemPagesForDataInternal(
     uintptr_t address,
     size_t length,
     PageAccessibilityDisposition accessibility_disposition,
@@ -1846,11 +1869,16 @@ PA_ALWAYS_INLINE bool PartitionRoot::TryRecommitSystemPagesForData(
   bool ok = TryRecommitSystemPages(address, length, page_accessibility,
                                    accessibility_disposition);
   if (PA_UNLIKELY(!ok)) {
-    // Decommit some memory and retry. The alternative is crashing.
     {
-      ::partition_alloc::internal::ScopedGuard guard(
-          internal::PartitionRootLock(this));
-      DecommitEmptySlotSpans();
+      // Decommit some memory and retry. The alternative is crashing.
+      if constexpr (!already_locked) {
+        ::partition_alloc::internal::ScopedGuard guard(
+            internal::PartitionRootLock(this));
+        DecommitEmptySlotSpans();
+      } else {
+        internal::PartitionRootLock(this).AssertAcquired();
+        DecommitEmptySlotSpans();
+      }
     }
     ok = TryRecommitSystemPages(address, length, page_accessibility,
                                 accessibility_disposition);
@@ -1861,6 +1889,26 @@ PA_ALWAYS_INLINE bool PartitionRoot::TryRecommitSystemPagesForData(
   }
 
   return ok;
+}
+
+PA_ALWAYS_INLINE bool
+PartitionRoot::TryRecommitSystemPagesForDataWithAcquiringLock(
+    uintptr_t address,
+    size_t length,
+    PageAccessibilityDisposition accessibility_disposition,
+    bool request_tagging) {
+  return TryRecommitSystemPagesForDataInternal<false>(
+      address, length, accessibility_disposition, request_tagging);
+}
+
+PA_ALWAYS_INLINE
+bool PartitionRoot::TryRecommitSystemPagesForDataLocked(
+    uintptr_t address,
+    size_t length,
+    PageAccessibilityDisposition accessibility_disposition,
+    bool request_tagging) {
+  return TryRecommitSystemPagesForDataInternal<true>(
+      address, length, accessibility_disposition, request_tagging);
 }
 
 // static
@@ -1966,9 +2014,8 @@ PA_ALWAYS_INLINE void* PartitionRoot::AllocInternal(size_t requested_size,
                                                     size_t slot_span_alignment,
                                                     const char* type_name) {
   static_assert(AreValidFlags(flags));
-  PA_DCHECK(
-      (slot_span_alignment >= internal::PartitionPageSize()) &&
-      partition_alloc::internal::base::bits::IsPowerOfTwo(slot_span_alignment));
+  PA_DCHECK((slot_span_alignment >= internal::PartitionPageSize()) &&
+            std::has_single_bit(slot_span_alignment));
   static_assert(!ContainsFlags(
       flags, AllocFlags::kMemoryShouldBeTaggedForMte));  // Internal only.
 
@@ -2269,7 +2316,7 @@ PA_ALWAYS_INLINE void* PartitionRoot::AlignedAllocInline(
   PA_DCHECK(settings.allow_aligned_alloc);
   PA_DCHECK(!settings.extras_offset);
   // This is mandated by |posix_memalign()|, so should never fire.
-  PA_CHECK(partition_alloc::internal::base::bits::IsPowerOfTwo(alignment));
+  PA_CHECK(std::has_single_bit(alignment));
   // Catch unsupported alignment requests early.
   PA_CHECK(alignment <= internal::kMaxSupportedAlignment);
   size_t raw_size = AdjustSizeForExtrasAdd(requested_size);
@@ -2288,7 +2335,7 @@ PA_ALWAYS_INLINE void* PartitionRoot::AlignedAllocInline(
       raw_size = static_cast<size_t>(1)
                  << (int{sizeof(size_t) * 8} - std::countl_zero(raw_size - 1));
     }
-    PA_DCHECK(partition_alloc::internal::base::bits::IsPowerOfTwo(raw_size));
+    PA_DCHECK(std::has_single_bit(raw_size));
     // Adjust back, because AllocInternalNoHooks/Alloc will adjust it again.
     adjusted_size = AdjustSizeForExtrasSubtract(raw_size);
 
@@ -2461,7 +2508,8 @@ ThreadCache* PartitionRoot::GetThreadCache() {
 }
 
 // private.
-internal::SchedulerLoopQuarantine& PartitionRoot::GetSchedulerLoopQuarantine() {
+internal::SchedulerLoopQuarantineBranch&
+PartitionRoot::GetSchedulerLoopQuarantineBranch() {
   // TODO(crbug.com/1462223): Implement thread-local version and return it here.
   return *scheduler_loop_quarantine;
 }

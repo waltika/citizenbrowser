@@ -60,7 +60,6 @@ class PasswordsPrivateDelegateImpl
       public web_app::WebAppInstallManagerObserver {
  public:
   using AuthResultCallback = base::OnceCallback<void(bool)>;
-  using AuthResultIntermediateCallback = base::OnceCallback<bool(bool)>;
 
   explicit PasswordsPrivateDelegateImpl(Profile* profile);
 
@@ -198,7 +197,8 @@ class PasswordsPrivateDelegateImpl
       api::passwords_private::PasswordStoreSet from_stores);
   void UndoRemoveSavedPasswordOrExceptionInternal();
 
-  void MaybeShowPasswordShareButtonIPH(content::WebContents* web_contents);
+  void MaybeShowPasswordShareButtonIPH(
+      base::WeakPtr<content::WebContents> web_contents);
 
   // Callback for when the password list has been written to the destination.
   void OnPasswordsExportProgress(
@@ -212,15 +212,16 @@ class PasswordsPrivateDelegateImpl
       bool authenticated);
 
   // Callback for RequestCredentialDetails() after authentication check.
-  void OnRequestCredentialDetailsAuthResult(const std::vector<int>& ids,
-                                            UiEntriesCallback callback,
-                                            content::WebContents* web_contents,
-                                            bool authenticated);
+  void OnRequestCredentialDetailsAuthResult(
+      const std::vector<int>& ids,
+      UiEntriesCallback callback,
+      base::WeakPtr<content::WebContents> web_contents,
+      bool authenticated);
 
   // Callback for ExportPasswords() after authentication check.
   void OnExportPasswordsAuthResult(
       base::OnceCallback<void(const std::string&)> accepted_callback,
-      content::WebContents* web_contents,
+      base::WeakPtr<content::WebContents> web_contents,
       bool authenticated);
 
   // Callback for ContinueImport() after authentication check.
@@ -230,6 +231,7 @@ class PasswordsPrivateDelegateImpl
 
   // SyncServiceObserver overrides.
   void OnStateChanged(syncer::SyncService* sync_service) override;
+  void OnSyncShutdown(syncer::SyncService* sync) override;
 
   void OnFetchingFamilyMembersCompleted(
       FetchFamilyResultsCallback callback,
@@ -242,7 +244,7 @@ class PasswordsPrivateDelegateImpl
       api::passwords_private::PlaintextReason reason);
 
   // Callback for biometric authentication after authentication check.
-  bool OnReauthCompleted(bool authenticated);
+  void OnReauthCompleted(bool authenticated);
 
   // Invokes PasswordsPrivateEventRouter::OnPasswordManagerAuthTimeout().
   void OsReauthTimeoutCall();

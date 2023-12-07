@@ -35,9 +35,11 @@ source_set("pdf") {
     "//extensions/browser",
     "//extensions/common:common_constants",
     "//extensions/common/api",
+    "//mojo/public/cpp/bindings",
     "//pdf:buildflags",
     "//pdf:features",
     "//printing/buildflags",
+    "//third_party/blink/public/common:headers",
     "//ui/base",
     "//ui/gfx:color_utils",
     "//url",
@@ -65,9 +67,11 @@ source_set("pdf_extension_test_utils") {
     "//base",
     "//base/test:test_support",
     "//chrome/browser/ui",
+    "//chrome/common",
     "//content/public/browser",
     "//content/test:test_support",
     "//extensions/browser",
+    "//pdf:features",
     "//testing/gtest",
   ]
 }

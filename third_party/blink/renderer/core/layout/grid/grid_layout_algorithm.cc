@@ -4,14 +4,14 @@
 
 #include "third_party/blink/renderer/core/layout/grid/grid_layout_algorithm.h"
 
-#include "third_party/blink/renderer/core/layout/ng/ng_box_fragment.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_constraint_space_builder.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_disable_side_effects_scope.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_fragmentation_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_length_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_out_of_flow_layout_part.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_relative_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_space_utils.h"
+#include "third_party/blink/renderer/core/layout/constraint_space_builder.h"
+#include "third_party/blink/renderer/core/layout/disable_layout_side_effects_scope.h"
+#include "third_party/blink/renderer/core/layout/fragmentation_utils.h"
+#include "third_party/blink/renderer/core/layout/length_utils.h"
+#include "third_party/blink/renderer/core/layout/logical_box_fragment.h"
+#include "third_party/blink/renderer/core/layout/out_of_flow_layout_part.h"
+#include "third_party/blink/renderer/core/layout/relative_utils.h"
+#include "third_party/blink/renderer/core/layout/space_utils.h"
 #include "third_party/blink/renderer/platform/runtime_enabled_features.h"
 
 namespace blink {
@@ -417,8 +417,10 @@ MinMaxSizesResult GridLayoutAlgorithm::ComputeMinMaxSizes(
 
   // TODO(crbug.com/1272533): This should be |depends_on_block_constraints|
   // (rather than false). However we need more cache slots to handle the
-  // performance degredation we currently experience. See bug for more details.
-  return MinMaxSizesResult(sizes, /* depends_on_block_constraints */ false);
+  // performance degradation we currently experience. See bug for more details.
+  return MinMaxSizesResult(
+      sizes, RuntimeEnabledFeatures::LayoutNewMeasureCacheEnabled() &&
+                 depends_on_block_constraints);
 }
 
 MinMaxSizesResult GridLayoutAlgorithm::ComputeMinMaxSizes(
@@ -529,41 +531,44 @@ wtf_size_t GridLayoutAlgorithm::BuildGridSizingSubtree(
     bool must_ignore_children) const {
   DCHECK(sizing_tree);
 
+  auto& sizing_node = sizing_tree->CreateSizingData(opt_subgrid_data);
+
   const auto& node = Node();
   const auto& style = node.Style();
-  const auto writing_mode = GetConstraintSpace().GetWritingMode();
   const auto subgrid_area = SubgriddedAreaInParent(opt_subgrid_data);
+  const auto writing_mode = GetConstraintSpace().GetWritingMode();
 
   const wtf_size_t column_auto_repetitions =
       ComputeAutomaticRepetitions(subgrid_area.columns, kForColumns);
   const wtf_size_t row_auto_repetitions =
       ComputeAutomaticRepetitions(subgrid_area.rows, kForRows);
 
-  // Initialize this grid's placement data.
-  // TODO(kschmi): Remove placement data from `GridPlacement`.
-  auto placement_data =
+  // Initialize this grid's line resolver.
+  const auto line_resolver =
       parent_line_resolver
-          ? GridPlacementData(style, *parent_line_resolver, subgrid_area,
-                              column_auto_repetitions, row_auto_repetitions)
-          : GridPlacementData(style, column_auto_repetitions,
-                              row_auto_repetitions);
+          ? GridLineResolver(style, *parent_line_resolver, subgrid_area,
+                             column_auto_repetitions, row_auto_repetitions)
+          : GridLineResolver(style, column_auto_repetitions,
+                             row_auto_repetitions);
 
+  wtf_size_t column_start_offset = 0;
+  wtf_size_t row_start_offset = 0;
   bool has_nested_subgrid = false;
-  auto& sizing_node = sizing_tree->CreateSizingData(opt_subgrid_data);
 
   if (!must_ignore_children) {
     // Construct grid items that are not subgridded.
     sizing_node.grid_items = node.ConstructGridItems(
-        placement_data, oof_children, &has_nested_subgrid);
+        line_resolver, oof_children, &has_nested_subgrid);
 
-    placement_data.column_start_offset =
-        node.CachedPlacementData().column_start_offset;
-    placement_data.row_start_offset =
-        node.CachedPlacementData().row_start_offset;
+    column_start_offset = node.CachedPlacementData().column_start_offset;
+    row_start_offset = node.CachedPlacementData().row_start_offset;
   }
 
   auto BuildSizingCollection = [&](GridTrackSizingDirection track_direction) {
-    GridRangeBuilder range_builder(style, placement_data, track_direction);
+    GridRangeBuilder range_builder(style, line_resolver, track_direction,
+                                   (track_direction == kForColumns)
+                                       ? column_start_offset
+                                       : row_start_offset);
 
     bool must_create_baselines = false;
     for (auto& grid_item : sizing_node.grid_items) {
@@ -657,7 +662,7 @@ wtf_size_t GridLayoutAlgorithm::BuildGridSizingSubtree(
     sizing_node.subtree_size += subgrid_algorithm.BuildGridSizingSubtree(
         sizing_tree, /* oof_children */ nullptr,
         SubgriddedItemData(grid_item, sizing_node.layout_data, writing_mode),
-        &placement_data.line_resolver);
+        &line_resolver);
 
     // After we accommodate subgridded items in their respective sizing track
     // collections, their placement indices might be incorrect, so we want to
@@ -691,7 +696,7 @@ GridSizingTree GridLayoutAlgorithm::BuildGridSizingTree(
 
     const auto& node = Node();
     grid_items =
-        node.ConstructGridItems(node.CachedPlacementData(), oof_children);
+        node.ConstructGridItems(node.CachedLineResolver(), oof_children);
     layout_data = layout_subtree->LayoutData();
 
     for (auto& grid_item : grid_items) {
@@ -1107,9 +1112,7 @@ LayoutUnit GridLayoutAlgorithm::ContributionSizeForGridItem(
   // size for its contribution, such that we can then do the 2nd pass on the
   // track-sizing algorithm.
   const auto space =
-      grid_item->IsSubgrid()
-          ? CreateConstraintSpaceForSubgridAlgorithm(subgridded_item)
-          : CreateConstraintSpaceForMeasure(subgridded_item, track_direction);
+      CreateConstraintSpaceForMeasure(subgridded_item, track_direction);
 
   LayoutUnit baseline_shim;
   auto CalculateBaselineShim = [&](LayoutUnit baseline) -> void {
@@ -1209,9 +1212,7 @@ LayoutUnit GridLayoutAlgorithm::ContributionSizeForGridItem(
       // set our inline size to our max-content contribution size.
       const auto fallback_space = CreateConstraintSpaceForMeasure(
           subgridded_item, track_direction,
-          grid_item->is_parallel_with_root_grid
-              ? LogicalSize(MaxContentSize(), kIndefiniteSize)
-              : LogicalSize(kIndefiniteSize, MaxContentSize()));
+          /* opt_fixed_inline_size */ MaxContentSize());
 
       result = LayoutGridItemForMeasure(*grid_item, fallback_space,
                                         sizing_constraint);
@@ -1221,7 +1222,7 @@ LayoutUnit GridLayoutAlgorithm::ContributionSizeForGridItem(
 
     LogicalBoxFragment baseline_fragment(
         grid_item->BaselineWritingDirection(track_direction),
-        To<NGPhysicalBoxFragment>(result->GetPhysicalFragment()));
+        To<PhysicalBoxFragment>(result->GetPhysicalFragment()));
 
     if (grid_item->IsBaselineAligned(track_direction)) {
       CalculateBaselineShim(
@@ -1612,7 +1613,7 @@ void GridLayoutAlgorithm::ComputeGridItemBaselines(
             ? CreateConstraintSpace(
                   LayoutResultCacheSlot::kMeasure, *subgridded_item,
                   containing_grid_area_size,
-                  /* fixed_available_size */ {kIndefiniteSize, kIndefiniteSize},
+                  /* fixed_available_size */ kIndefiniteLogicalSize,
                   std::move(subgrid_layout_subtree))
             : CreateConstraintSpaceForLayout(*subgridded_item,
                                              subgridded_item.ParentLayoutData(),
@@ -1633,7 +1634,7 @@ void GridLayoutAlgorithm::ComputeGridItemBaselines(
         grid_item.BaselineWritingDirection(track_direction);
     const LogicalBoxFragment baseline_fragment(
         baseline_writing_direction,
-        To<NGPhysicalBoxFragment>(result->GetPhysicalFragment()));
+        To<PhysicalBoxFragment>(result->GetPhysicalFragment()));
 
     const bool has_synthesized_baseline =
         !baseline_fragment.FirstBaseline().has_value();
@@ -3322,7 +3323,7 @@ ConstraintSpace GridLayoutAlgorithm::CreateConstraintSpaceForLayout(
     DCHECK_GE(containing_grid_area_size.block_size, LayoutUnit());
   }
 
-  LogicalSize fixed_available_size(kIndefiniteSize, kIndefiniteSize);
+  auto fixed_available_size = kIndefiniteLogicalSize;
 
   if (grid_item.IsSubgrid()) {
     const auto [fixed_inline_size, fixed_block_size] = ShrinkLogicalSize(
@@ -3346,10 +3347,8 @@ ConstraintSpace GridLayoutAlgorithm::CreateConstraintSpaceForLayout(
 ConstraintSpace GridLayoutAlgorithm::CreateConstraintSpaceForMeasure(
     const SubgriddedItemData& subgridded_item,
     GridTrackSizingDirection track_direction,
-    const LogicalSize& fixed_available_size) const {
-  DCHECK(!subgridded_item.IsSubgrid());
-
-  LogicalSize containing_grid_area_size(kIndefiniteSize, kIndefiniteSize);
+    absl::optional<LayoutUnit> opt_fixed_inline_size) const {
+  auto containing_grid_area_size = kIndefiniteLogicalSize;
   const auto writing_mode = GetConstraintSpace().GetWritingMode();
 
   if (track_direction == kForColumns) {
@@ -3360,31 +3359,29 @@ ConstraintSpace GridLayoutAlgorithm::CreateConstraintSpaceForMeasure(
         *subgridded_item, subgridded_item.Columns(writing_mode));
   }
 
+  auto fixed_available_size =
+      subgridded_item.IsSubgrid()
+          ? ShrinkLogicalSize(
+                containing_grid_area_size,
+                ComputeMarginsFor(subgridded_item->node.Style(),
+                                  containing_grid_area_size.inline_size,
+                                  GetConstraintSpace().GetWritingDirection()))
+          : kIndefiniteLogicalSize;
+
+  if (opt_fixed_inline_size) {
+    const auto item_writing_mode =
+        subgridded_item->node.Style().GetWritingMode();
+    auto& fixed_size = IsParallelWritingMode(item_writing_mode, writing_mode)
+                           ? fixed_available_size.inline_size
+                           : fixed_available_size.block_size;
+
+    DCHECK_EQ(fixed_size, kIndefiniteSize);
+    fixed_size = *opt_fixed_inline_size;
+  }
+
   return CreateConstraintSpace(LayoutResultCacheSlot::kMeasure,
                                *subgridded_item, containing_grid_area_size,
                                fixed_available_size);
-}
-
-ConstraintSpace GridLayoutAlgorithm::CreateConstraintSpaceForSubgridAlgorithm(
-    const SubgriddedItemData& subgrid_data) const {
-  DCHECK(subgrid_data.IsSubgrid());
-
-  const auto writing_mode = GetConstraintSpace().GetWritingMode();
-
-  const LogicalSize containing_grid_area_size(
-      ComputeGridItemAvailableSize(*subgrid_data,
-                                   subgrid_data.Columns(writing_mode)),
-      ComputeGridItemAvailableSize(*subgrid_data,
-                                   subgrid_data.Rows(writing_mode)));
-
-  const auto fixed_available_size = ShrinkLogicalSize(
-      containing_grid_area_size,
-      ComputeMarginsFor(subgrid_data->node.Style(),
-                        containing_grid_area_size.inline_size,
-                        GetConstraintSpace().GetWritingDirection()));
-
-  return CreateConstraintSpace(LayoutResultCacheSlot::kMeasure, *subgrid_data,
-                               containing_grid_area_size, fixed_available_size);
 }
 
 namespace {
@@ -3569,7 +3566,7 @@ void GridLayoutAlgorithm::PlaceGridItems(
 
     auto* result = grid_item.node.Layout(space);
     const auto& physical_fragment =
-        To<NGPhysicalBoxFragment>(result->GetPhysicalFragment());
+        To<PhysicalBoxFragment>(result->GetPhysicalFragment());
     LogicalBoxFragment fragment(container_writing_direction, physical_fragment);
 
     auto BaselineOffset = [&](GridTrackSizingDirection track_direction,
@@ -3886,7 +3883,7 @@ void GridLayoutAlgorithm::PlaceGridItemsForFragmentation(
 
       const LogicalBoxFragment fragment(
           container_writing_direction,
-          To<NGPhysicalBoxFragment>(result->GetPhysicalFragment()));
+          To<PhysicalBoxFragment>(result->GetPhysicalFragment()));
       baseline_accumulator.Accumulate(grid_item, fragment,
                                       fragment_relative_block_offset);
 

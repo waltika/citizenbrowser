@@ -5,11 +5,11 @@
 #include "third_party/blink/renderer/core/layout/table/layout_table.h"
 
 #include "third_party/blink/renderer/core/css/resolver/style_resolver.h"
+#include "third_party/blink/renderer/core/layout/block_node.h"
+#include "third_party/blink/renderer/core/layout/constraint_space.h"
+#include "third_party/blink/renderer/core/layout/layout_result.h"
 #include "third_party/blink/renderer/core/layout/layout_view.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_block_node.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_constraint_space.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_layout_result.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_physical_box_fragment.h"
+#include "third_party/blink/renderer/core/layout/physical_box_fragment.h"
 #include "third_party/blink/renderer/core/layout/table/layout_table_caption.h"
 #include "third_party/blink/renderer/core/layout/table/layout_table_cell.h"
 #include "third_party/blink/renderer/core/layout/table/layout_table_column.h"
@@ -17,8 +17,8 @@
 #include "third_party/blink/renderer/core/layout/table/layout_table_section.h"
 #include "third_party/blink/renderer/core/layout/table/table_borders.h"
 #include "third_party/blink/renderer/core/layout/table/table_layout_utils.h"
-#include "third_party/blink/renderer/core/paint/ng/ng_box_fragment_painter.h"
-#include "third_party/blink/renderer/core/paint/ng/ng_table_painters.h"
+#include "third_party/blink/renderer/core/paint/box_fragment_painter.h"
+#include "third_party/blink/renderer/core/paint/table_painters.h"
 #include "third_party/blink/renderer/platform/geometry/infinite_int_rect.h"
 
 namespace blink {
@@ -45,20 +45,25 @@ void LayoutTable::Trace(Visitor* visitor) const {
   LayoutBlock::Trace(visitor);
 }
 
+// https://drafts.csswg.org/css-tables-3/#fixup-algorithm
+// 3.2. If the box’s parent is an inline, run-in, or ruby box (or any box that
+// would perform inlinification of its children), then an inline-table box must
+// be generated; otherwise it must be a table box.
+bool LayoutTable::ShouldCreateInlineAnonymous(const LayoutObject& parent) {
+  return RuntimeEnabledFeatures::RubyInlinifyEnabled()
+             ? (parent.IsLayoutInline() || parent.IsRubyBase() ||
+                parent.IsRubyText())
+             : parent.IsLayoutInline();
+}
+
 LayoutTable* LayoutTable::CreateAnonymousWithParent(
     const LayoutObject& parent) {
   const ComputedStyle& parent_style = parent.StyleRef();
-  const bool is_parent_inline =
-      RuntimeEnabledFeatures::RubyInlinifyEnabled()
-          ? (parent.IsLayoutInline() || parent.IsRubyBase() ||
-             (parent.IsAnonymousBlock() && parent.Parent()->IsRubyBase()) ||
-             parent.IsRubyText() ||
-             (parent.IsAnonymousBlock() && parent.Parent()->IsRubyText()))
-          : parent.IsLayoutInline();
   const ComputedStyle* new_style =
       parent.GetDocument().GetStyleResolver().CreateAnonymousStyleWithDisplay(
-          parent_style,
-          is_parent_inline ? EDisplay::kInlineTable : EDisplay::kTable);
+          parent_style, ShouldCreateInlineAnonymous(parent)
+                            ? EDisplay::kInlineTable
+                            : EDisplay::kTable);
   auto* new_table = MakeGarbageCollected<LayoutTable>(nullptr);
   new_table->SetDocumentForAnonymous(&parent.GetDocument());
   new_table->SetStyle(new_style);

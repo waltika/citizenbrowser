@@ -1912,10 +1912,8 @@ NavigationRequest::NavigationRequest(
 #endif
 
   if (NeedsUrlLoader() && common_params_->url.SchemeIsHTTPOrHTTPS()) {
-    BrowserContext* browser_context =
-        frame_tree_node_->navigator().controller().GetBrowserContext();
     if (GetContentClient()->browser()->ShouldPreconnectNavigation(
-            browser_context)) {
+            frame_tree_node_->current_frame_host())) {
       auto* storage_partition =
           frame_tree_node_->current_frame_host()->GetStoragePartition();
       storage_partition->GetNetworkContext()->PreconnectSockets(
@@ -3934,7 +3932,9 @@ UrlInfo NavigationRequest::GetUrlInfo() {
           network::mojom::WebSandboxFlags::kOrigin;
     }
 
-    if (has_origin_restricted_sandbox_flag) {
+    // Consider isolating sandboxed frames that won't end up as downloads or
+    // 204s.
+    if (has_origin_restricted_sandbox_flag && response_should_be_rendered_) {
       // If the URL under consideration wouldn't qualify for a dedicated process
       // without the sandbox flags, then it shouldn't qualify even with the
       // sandbox flag. This is most likely to occur when site isolation is only
@@ -3949,17 +3949,41 @@ UrlInfo NavigationRequest::GetUrlInfo() {
           current_instance->GetIsolationContext();
       if (SiteInfo::Create(isolation_context, UrlInfo(url_info_init))
               .RequiresDedicatedProcess(isolation_context)) {
-        url_info_init.WithSandbox(true);
-        // If an isolated sandbox is required, and the "per-document" grouping
-        // mode has been specified with kIsolateSandboxedIframes, then we use a
-        // unique document identifier, provided by `navigation_id_`, to
-        // guarantee that each sandboxed iframe gets its own SiteInstance, even
-        // if two or more such documents share a site/origin. Using
-        // navigation_id_ means that each new NavigationRequest (and thus each
-        // document) will get a different value.
-        if (blink::features::kIsolateSandboxedIframesGroupingParam.Get() ==
-            blink::features::IsolateSandboxedIframesGrouping::kPerDocument) {
-          url_info_init.WithUniqueSandboxId(navigation_id_);
+        // Temporarily allow the embedder to skip isolating sandboxed frames in
+        // certain cases, based on the precursor of the opaque destination
+        // origin.
+        // TODO(crbug.com/1501910): Remove
+        // `client_allows_cross_process_sandboxed_frames` and related code.
+        ContentBrowserClient* client = GetContentClient()->browser();
+        BrowserContext* context =
+            frame_tree_node_->navigator().controller().GetBrowserContext();
+        url::SchemeHostPort precursor;
+        if (state_ < WILL_PROCESS_RESPONSE) {
+          precursor = GetTentativeOriginAtRequestTime()
+                          .GetTupleOrPrecursorTupleIfOpaque();
+        } else if (GetOriginToCommit()) {
+          precursor = GetOriginToCommit()->GetTupleOrPrecursorTupleIfOpaque();
+        } else {
+          NOTREACHED() << "No origin-to-commit for sandboxed url = "
+                       << GetURL();
+        }
+
+        bool client_allows_cross_process_sandboxed_frames =
+            client->ShouldAllowCrossProcessSandboxedFrameForPrecursor(
+                context, precursor.GetURL());
+        if (client_allows_cross_process_sandboxed_frames) {
+          url_info_init.WithSandbox(true);
+          // If an isolated sandbox is required, and the "per-document" grouping
+          // mode has been specified with kIsolateSandboxedIframes, then we use
+          // a unique document identifier, provided by `navigation_id_`, to
+          // guarantee that each sandboxed iframe gets its own SiteInstance,
+          // even if two or more such documents share a site/origin. Using
+          // navigation_id_ means that each new NavigationRequest (and thus each
+          // document) will get a different value.
+          if (blink::features::kIsolateSandboxedIframesGroupingParam.Get() ==
+              blink::features::IsolateSandboxedIframesGrouping::kPerDocument) {
+            url_info_init.WithUniqueSandboxId(navigation_id_);
+          }
         }
       }
     }
@@ -4929,6 +4953,11 @@ void NavigationRequest::OnStartChecksComplete(
   // Mark the fetch_start (Navigation Timing API).
   commit_params_->navigation_timing->fetch_start = base::TimeTicks::Now();
 
+  // Ensure that normal history navigations can dispatch the Navigation API's
+  // navigate event as the navigation is starting. Cases without a UrlLoader
+  // are handled in OnWillCommitWithoutUrlLoaderChecksComplete.
+  MaybeDispatchNavigateEventForCrossDocumentTraversal();
+
   std::unique_ptr<NavigationUIData> navigation_ui_data;
   if (navigation_ui_data_)
     navigation_ui_data = navigation_ui_data_->Clone();
@@ -5510,6 +5539,12 @@ void NavigationRequest::OnWillCommitWithoutUrlLoaderChecksComplete(
     // has destroyed the NavigationRequest.
     return;
   }
+
+  // Ensure that bfcache and other non-UrlLoader history navigations can
+  // dispatch the Navigation API's navigate event as the navigation is starting.
+  // Cases with a UrlLoader are handled in OnStartChecksComplete.
+  MaybeDispatchNavigateEventForCrossDocumentTraversal();
+
   CommitNavigation();
 }
 
@@ -7998,9 +8033,8 @@ bool NavigationRequest::DidEncounterError() const {
   return net_error_ != net::OK;
 }
 
-net::HttpResponseInfo::ConnectionInfo NavigationRequest::GetConnectionInfo() {
-  return response() ? response()->connection_info
-                    : net::HttpResponseInfo::ConnectionInfo();
+net::HttpConnectionInfo NavigationRequest::GetConnectionInfo() {
+  return response() ? response()->connection_info : net::HttpConnectionInfo();
 }
 
 bool NavigationRequest::IsInMainFrame() const {
@@ -8772,19 +8806,23 @@ NavigationRequest::BuildClientSecurityStateForNavigationFetch() {
     //
     // [1] https://fetch.spec.whatwg.org/#concept-request-client
     //
-    // This intentionally only applies to subframes (of any frame tree). Main
-    // frames of primary and secondary frame trees are handled separately.
+    // The `kPrimaryMainFrame` case also covers portals
+    // (https://crbug.com/1254770) and guest views (https://crbug.com/1261928)
+    // since those do not use MPArch.
+    //
+    // TODO(https://crbug.com/1420576): Determine how to treat portals.
+    // TODO(https://crbug.com/1420577): Determine how to treat guest views.
     //
     // NOTE: ShadowDOM-based fenced frames are treated as `kSubframe`.
+    case FrameType::kPrimaryMainFrame:
     case FrameType::kSubframe: {
-      CHECK(!IsInMainFrame());
       if (!policy_container_builder_->InitiatorPolicies()) {
         return nullptr;
       }
 
       network::mojom::ClientSecurityStatePtr state = DeriveClientSecurityState(
           *policy_container_builder_->InitiatorPolicies(),
-          PrivateNetworkRequestContext::kIframe);
+          PrivateNetworkRequestContext::kNavigation);
 
       // Remove the initiator's COEP, it is unused. For iframes, the parent's
       // COEP should be used: that is checked in `EnforceCOEP()`. The value
@@ -8843,23 +8881,13 @@ NavigationRequest::BuildClientSecurityStateForNavigationFetch() {
           DerivePrivateNetworkRequestPolicy(
               client_security_state->ip_address_space,
               client_security_state->is_web_secure_context,
-              PrivateNetworkRequestContext::kIframe);
+              PrivateNetworkRequestContext::kNavigation);
 
       return client_security_state;
     }
 
-    // TODO(https://crbug.com/1129326): Figure out the UX story for main-frame
-    // navigations, then revisit the exception made in that case.
-    //
-    // The `kPrimaryMainFrame` case also covers portals
-    // (https://crbug.com/1254770) and guest views (https://crbug.com/1261928)
-    // since those do not use MPArch.
-    //
-    // TODO(https://crbug.com/1420576): Determine how to treat portals.
-    // TODO(https://crbug.com/1420577): Determine how to treat guest views.
     // TODO(https://crbug.com/1420574): Determine how to treat prerendered
     // main frames.
-    case FrameType::kPrimaryMainFrame:
     case FrameType::kPrerenderMainFrame:
       return nullptr;
   }
@@ -8924,7 +8952,7 @@ void NavigationRequest::OnCookiesAccessed(
     // (potentially unrelated) ongoing navigation, but at the moment we don't
     // have another way to add messages to DevTools console.
     EmitCookieWarningsAndMetrics(frame_tree_node()->current_frame_host(),
-                                 details);
+                                 /*navigation_request=*/this, details);
 
     CookieAccessDetails allowed;
     CookieAccessDetails blocked;
@@ -9430,10 +9458,6 @@ void NavigationRequest::RenderFallbackContentForObjectTag() {
 absl::optional<base::UnguessableToken>
 NavigationRequest::GetNavigationTokenForDeferringSubframes() {
   DCHECK(IsInMainFrame());
-  if (!base::FeatureList::IsEnabled(
-          blink::features::kNavigateEventCancelableTraversals)) {
-    return absl::nullopt;
-  }
   if (!IsSameDocument() ||
       !NavigationTypeUtils::IsHistory(common_params_->navigation_type)) {
     return absl::nullopt;
@@ -9470,6 +9494,36 @@ void NavigationRequest::UnblockPendingSubframeNavigationRequestsIfNeeded() {
     }
   }
   subframe_history_navigation_throttles_.clear();
+}
+
+void NavigationRequest::MaybeDispatchNavigateEventForCrossDocumentTraversal() {
+  // If this is a cross-document history navigation, notify the renderer to
+  // fire the navigate event now that we know which frames are navigating and
+  // whether the navigation is same-origin. Note that while the navigate event
+  // can normally intercept or cancel a navigation, it has neither of those
+  // powers for a cross-document history navigation, and therefore can be
+  // dispatched without waiting for a result. The worst it can do is detach the
+  // frame asynchronously, which javascript could do at any time anyway.
+  if (common_params_->navigation_type !=
+      blink::mojom::NavigationType::HISTORY_DIFFERENT_DOCUMENT) {
+    return;
+  }
+  // Only fire the navigate event if the destination is same-origin. Because
+  // this check is performed at navigation start time, `destination_origin` is
+  // based on the pre-redirect URL, which is consistent with the renderer
+  // process logic for firing the navigate event for non-history navigations.
+  url::Origin destination_origin = url::Origin::Resolve(
+      common_params_->url,
+      common_params_->initiator_origin.value_or(url::Origin()));
+  if (!frame_tree_node_->current_origin().IsSameOriginWith(
+          destination_origin)) {
+    return;
+  }
+  frame_tree_node_->current_frame_host()
+      ->GetAssociatedLocalFrame()
+      ->DispatchNavigateEventForCrossDocumentTraversal(
+          common_params_->url, commit_params_->page_state,
+          commit_params_->is_browser_initiated);
 }
 
 bool NavigationRequest::IsServedFromBackForwardCache() const {

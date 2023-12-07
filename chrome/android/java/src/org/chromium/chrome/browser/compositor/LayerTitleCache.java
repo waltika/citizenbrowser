@@ -20,7 +20,6 @@ import org.chromium.chrome.browser.profiles.Profile;
 import org.chromium.chrome.browser.tab.Tab;
 import org.chromium.chrome.browser.tab.TabFavicon;
 import org.chromium.chrome.browser.tabmodel.TabModelSelector;
-import org.chromium.chrome.browser.tasks.tab_management.TabManagementFieldTrial;
 import org.chromium.chrome.browser.ui.favicon.FaviconHelper;
 import org.chromium.chrome.browser.ui.favicon.FaviconHelper.DefaultFaviconHelper;
 import org.chromium.chrome.browser.ui.favicon.FaviconHelper.FaviconImageCallback;
@@ -28,7 +27,6 @@ import org.chromium.ui.base.LocalizationUtils;
 import org.chromium.ui.resources.ResourceManager;
 import org.chromium.ui.resources.dynamics.BitmapDynamicResource;
 import org.chromium.ui.resources.dynamics.DynamicResourceLoader;
-import org.chromium.url.GURL;
 
 /**
  * A version of the {@link LayerTitleCache} that builds native cc::Layer objects
@@ -124,12 +122,7 @@ public class LayerTitleCache {
             Tab tab, String titleString, boolean fetchFaviconFromHistory) {
         final int tabId = tab.getId();
         boolean isDarkTheme = tab.isIncognito();
-        Bitmap originalFavicon = TabFavicon.getBitmap(tab);
-        if (originalFavicon == null) {
-            originalFavicon =
-                    mDefaultFaviconHelper.getDefaultFaviconBitmap(
-                            mContext, tab.getUrl(), !isDarkTheme);
-        }
+        Bitmap originalFavicon = getOriginalFavicon(tab);
 
         TitleBitmapFactory titleBitmapFactory =
                 isDarkTheme ? mDarkTitleBitmapFactory : mStandardTitleBitmapFactory;
@@ -141,23 +134,8 @@ public class LayerTitleCache {
             title.register();
         }
 
-        // Boolean determines if a tab is selected.
-        boolean isSelectedTab = false;
-
-        if (TabManagementFieldTrial.isTabStripDetachedEnabled()) {
-            if (mTabModelSelector == null) {
-                return titleString;
-            }
-
-            // Get currently selected tab id.
-            int selectedTabId = mTabModelSelector.getCurrentTabId();
-
-            // Determine if the current tab is the selected tab.
-            isSelectedTab = tabId == selectedTabId;
-        }
-
         title.set(
-                titleBitmapFactory.getTitleBitmap(mContext, titleString, isSelectedTab),
+                titleBitmapFactory.getTitleBitmap(mContext, titleString),
                 titleBitmapFactory.getFaviconBitmap(originalFavicon),
                 fetchFaviconFromHistory);
 
@@ -181,6 +159,16 @@ public class LayerTitleCache {
     }
 
     private void fetchFaviconForTab(final Tab tab) {
+        fetchFaviconWithCallback(tab, (favicon, iconUrl) -> updateFaviconFromHistory(tab, favicon));
+    }
+
+    /**
+     * Requests the favicon for the given tab.
+     *
+     * @param tab The {@link Tab} to request the favicon for.
+     * @param callback A callback to run when the favicon is available.
+     */
+    public void fetchFaviconWithCallback(final Tab tab, FaviconImageCallback callback) {
         if (mFaviconHelper == null) mFaviconHelper = new FaviconHelper();
 
         // Since tab#getProfile() is not available by this time, we will use tab#isIncognito boolean
@@ -190,16 +178,25 @@ public class LayerTitleCache {
                         ? Profile.getLastUsedRegularProfile()
                         : Profile.getLastUsedRegularProfile()
                                 .getPrimaryOTRProfile(/* createIfNeeded= */ true);
-        mFaviconHelper.getLocalFaviconImageForURL(
-                profile,
-                tab.getUrl(),
-                mFaviconSize,
-                new FaviconImageCallback() {
-                    @Override
-                    public void onFaviconAvailable(Bitmap favicon, GURL iconUrl) {
-                        updateFaviconFromHistory(tab, favicon);
-                    }
-                });
+        mFaviconHelper.getLocalFaviconImageForURL(profile, tab.getUrl(), mFaviconSize, callback);
+    }
+
+    /**
+     * Requests a default favicon for the given tab.
+     *
+     * @param tab The {@link Tab} to request the favicon for.
+     * @return The tab's favicon based on its web contents. Otherwise, a default favicon.
+     */
+    public Bitmap getOriginalFavicon(Tab tab) {
+        boolean isDarkTheme = tab.isIncognito();
+        Bitmap originalFavicon = TabFavicon.getBitmap(tab);
+        if (originalFavicon == null) {
+            originalFavicon =
+                    mDefaultFaviconHelper.getDefaultFaviconBitmap(
+                            mContext, tab.getUrl(), !isDarkTheme);
+        }
+
+        return originalFavicon;
     }
 
     /**

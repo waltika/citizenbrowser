@@ -49,9 +49,13 @@ BASE_FEATURE(kClientSideDetectionTypeForceRequest,
              "ClientSideDetectionTypeForceRequest",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
+BASE_FEATURE(kCreateWarningShownClientSafeBrowsingReports,
+             "CreateWarningShownClientSafeBrowsingReports",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
 BASE_FEATURE(kDeepScanningEncryptedArchives,
              "SafeBrowsingDeepScanningEncryptedArchives",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 BASE_FEATURE(kDelayedWarnings,
              "SafeBrowsingDelayedWarnings",
@@ -63,10 +67,6 @@ BASE_FEATURE(kDelayedWarnings,
 const base::FeatureParam<bool> kDelayedWarningsEnableMouseClicks{
     &kDelayedWarnings, "mouse",
     /*default_value=*/false};
-
-BASE_FEATURE(kDownloadBubble,
-             "DownloadBubble",
-             base::FEATURE_ENABLED_BY_DEFAULT);
 
 BASE_FEATURE(kDownloadTailoredWarnings,
              "DownloadTailoredWarnings",
@@ -182,11 +182,23 @@ BASE_FEATURE(kLogAccountEnhancedProtectionStateInProtegoPings,
 
 BASE_FEATURE(kMmapSafeBrowsingDatabase,
              "MmapSafeBrowsingDatabase",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+// TODO(crbug.com/1380507): Fix iOS tests with this enabled.
+#if BUILDFLAG(IS_IOS)
+             base::FEATURE_DISABLED_BY_DEFAULT
+#else
+             base::FEATURE_ENABLED_BY_DEFAULT
+#endif
+);
 
 constexpr base::FeatureParam<bool> kMmapSafeBrowsingDatabaseAsync{
     &kMmapSafeBrowsingDatabase, "MmapSafeBrowsingDatabaseAsync",
-    /*default_value=*/false};
+// TODO(crbug.com/1380507): Fix iOS tests with this enabled.
+#if BUILDFLAG(IS_IOS)
+    /*default_value=*/false
+#else
+    /*default_value=*/true
+#endif
+};
 
 BASE_FEATURE(kNestedArchives,
              "SafeBrowsingArchiveImprovements",
@@ -208,7 +220,7 @@ constexpr base::FeatureParam<std::string> kRedWarningSurveyDidProceedFilter{
 
 BASE_FEATURE(kRedInterstitialFacelift,
              "RedInterstitialFacelift",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 BASE_FEATURE(kReferrerChainParameters,
              "SafeBrowsingReferrerChainParameters",
@@ -246,7 +258,13 @@ BASE_FEATURE(kSafeBrowsingNewGmsApiForBrowseUrlDatabaseCheck,
 
 BASE_FEATURE(kSafeBrowsingOnUIThread,
              "SafeBrowsingOnUIThread",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+// TODO(crbug.com/1380507): Fix iOS tests with this enabled.
+#if BUILDFLAG(IS_IOS)
+             base::FEATURE_DISABLED_BY_DEFAULT
+#else
+             base::FEATURE_ENABLED_BY_DEFAULT
+#endif
+);
 
 BASE_FEATURE(kSafeBrowsingReferrerChainWithCopyPasteNavigation,
              "SafeBrowsingReferrerChainWithCopyPasteNavigation",
@@ -361,8 +379,8 @@ constexpr struct {
     {&kClientSideDetectionKillswitch, true},
     {&kClientSideDetectionModelIsFlatBuffer, true},
     {&kClientSideDetectionTypeForceRequest, true},
+    {&kCreateWarningShownClientSafeBrowsingReports, false},
     {&kDelayedWarnings, true},
-    {&kDownloadBubble, true},
     {&kDownloadTailoredWarnings, true},
     {&kEvaluateProtectedPasswordLengthMinimum, false},
     {&kExtensionTelemetryDisableOffstoreExtensions, true},

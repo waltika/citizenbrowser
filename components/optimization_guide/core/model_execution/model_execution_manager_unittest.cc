@@ -100,10 +100,11 @@ class ModelExecutionManagerTest : public testing::Test {
 
 TEST_F(ModelExecutionManagerTest, ExecuteModelEmptyAccessToken) {
   proto::ComposeRequest request;
-  request.set_user_input("a user typed this");
+  request.mutable_generate_params()->set_user_input("a user typed this");
   base::RunLoop run_loop;
   model_execution_manager()->ExecuteModel(
       proto::MODEL_EXECUTION_FEATURE_COMPOSE, request,
+      /*log_ai_data_request=*/nullptr,
       base::BindOnce(
           [](base::RunLoop* run_loop,
              OptimizationGuideModelExecutionResult result,
@@ -118,12 +119,13 @@ TEST_F(ModelExecutionManagerTest, ExecuteModelEmptyAccessToken) {
 
 TEST_F(ModelExecutionManagerTest, ExecuteModelWithUserSignIn) {
   proto::ComposeRequest request;
-  request.set_user_input("a user typed this");
+  request.mutable_generate_params()->set_user_input("a user typed this");
   base::RunLoop run_loop;
   identity_test_env()->MakePrimaryAccountAvailable(
       "test_email", signin::ConsentLevel::kSignin);
   model_execution_manager()->ExecuteModel(
       proto::MODEL_EXECUTION_FEATURE_COMPOSE, request,
+      /*log_ai_data_request=*/nullptr,
       base::BindOnce(
           [](base::RunLoop* run_loop,
              OptimizationGuideModelExecutionResult result,
@@ -159,7 +161,7 @@ TEST_F(ModelExecutionManagerTest, ExecuteModelWithPassthroughSession) {
   base::HistogramTester histogram_tester;
 
   proto::ComposeRequest request;
-  request.set_user_input("a user typed this");
+  request.mutable_generate_params()->set_user_input("a user typed this");
   base::RunLoop run_loop;
   identity_test_env()->MakePrimaryAccountAvailable(
       "test_email", signin::ConsentLevel::kSignin);
@@ -198,6 +200,59 @@ TEST_F(ModelExecutionManagerTest, ExecuteModelWithPassthroughSession) {
       true, 1);
 }
 
+TEST_F(ModelExecutionManagerTest, LogsContextToExecutionTimeHistogram) {
+  base::HistogramTester histogram_tester;
+  identity_test_env()->MakePrimaryAccountAvailable(
+      "test_email", signin::ConsentLevel::kSignin);
+  auto session = model_execution_manager()->StartSession(
+      proto::MODEL_EXECUTION_FEATURE_COMPOSE);
+  auto execute_model = [&] {
+    base::RunLoop run_loop;
+    proto::ComposeRequest request;
+    request.mutable_generate_params()->set_user_input("some test");
+    session->ExecuteModel(
+        request, base::BindRepeating(
+                     [](base::RunLoop* run_loop,
+                        OptimizationGuideModelStreamingExecutionResult result,
+                        std::unique_ptr<ModelQualityLogEntry> log_entry) {
+                       run_loop->Quit();
+                     },
+                     &run_loop));
+    identity_test_env()
+        ->WaitForAccessTokenRequestIfNecessaryAndRespondWithToken(
+            "access_token", base::Time::Max());
+    CheckPendingRequestMessage("some test");
+    EXPECT_TRUE(SimulateSuccessfulResponse());
+    run_loop.Run();
+  };
+
+  constexpr char kHistogramName[] =
+      "OptimizationGuide.ModelExecution.ContextStartToExecutionTime.Compose";
+
+  // Execute without context should not log.
+  execute_model();
+  histogram_tester.ExpectTotalCount(kHistogramName, 0);
+
+  // Just adding context should not log.
+  proto::ComposeRequest context;
+  context.mutable_generate_params()->set_user_input("context");
+  session->AddContext(context);
+  histogram_tester.ExpectTotalCount(kHistogramName, 0);
+
+  // First execute call after context should log.
+  execute_model();
+  histogram_tester.ExpectTotalCount(kHistogramName, 1);
+
+  // Next execute call should not log.
+  execute_model();
+  histogram_tester.ExpectTotalCount(kHistogramName, 1);
+
+  // Add context again and execute should log.
+  session->AddContext(context);
+  execute_model();
+  histogram_tester.ExpectTotalCount(kHistogramName, 2);
+}
+
 TEST_F(ModelExecutionManagerTest,
        ExecuteModelWithPassthroughSessionAddContext) {
   base::RunLoop run_loop;
@@ -207,7 +262,7 @@ TEST_F(ModelExecutionManagerTest,
       proto::MODEL_EXECUTION_FEATURE_COMPOSE);
   // Message is added through AddContext().
   proto::ComposeRequest request;
-  request.set_user_input("some test");
+  request.mutable_generate_params()->set_user_input("some test");
   session->AddContext(request);
   // ExecuteModel() uses empty message.
   session->ExecuteModel(
@@ -234,9 +289,9 @@ TEST_F(ModelExecutionManagerTest,
   auto session = model_execution_manager()->StartSession(
       proto::MODEL_EXECUTION_FEATURE_COMPOSE);
   proto::ComposeRequest request;
-  request.set_user_input("first test");
+  request.mutable_generate_params()->set_user_input("first test");
   session->AddContext(request);
-  request.set_user_input("second test");
+  request.mutable_generate_params()->set_user_input("second test");
   session->AddContext(request);
   // ExecuteModel() uses empty message.
   session->ExecuteModel(
@@ -264,10 +319,10 @@ TEST_F(ModelExecutionManagerTest,
       proto::MODEL_EXECUTION_FEATURE_COMPOSE);
   // First message is added through AddContext().
   proto::ComposeRequest request;
-  request.set_user_input("test_message");
+  request.mutable_generate_params()->set_user_input("test_message");
   session->AddContext(request);
   // ExecuteModel() adds a different message.
-  request.set_user_input("other test");
+  request.mutable_generate_params()->set_user_input("other test");
   session->ExecuteModel(
       request, base::BindRepeating(
                    [](base::RunLoop* run_loop,

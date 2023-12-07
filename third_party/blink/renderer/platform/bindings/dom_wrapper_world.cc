@@ -111,39 +111,26 @@ DOMWrapperWorld& DOMWrapperWorld::MainWorld(v8::Isolate* isolate) {
   return V8PerIsolateData::From(isolate)->GetMainWorld();
 }
 
-// TODO(dtapuska): Progressively remove this static by moving callees
-// to use MainWorld with an isolate.
-static DOMWrapperWorld* g_main_world = nullptr;
-
-DOMWrapperWorld& DOMWrapperWorld::MainWorld() {
-  DCHECK(IsMainThread());
-  return *g_main_world;
-}
-
-void DOMWrapperWorld::InitMainWorldOnMainThread(DOMWrapperWorld& main_world) {
-  DCHECK(IsMainThread());
-  DCHECK(!g_main_world);
-  DEFINE_STATIC_REF(DOMWrapperWorld, s_main_world, &main_world);
-  g_main_world = s_main_world;
-}
-
-void DOMWrapperWorld::AllWorldsInCurrentThread(
+void DOMWrapperWorld::AllWorldsInIsolate(
+    v8::Isolate* isolate,
     Vector<scoped_refptr<DOMWrapperWorld>>& worlds) {
   DCHECK(worlds.empty());
   WTF::CopyValuesToVector(GetWorldMap(), worlds);
-  if (IsMainThread())
-    worlds.push_back(&MainWorld());
+  if (IsMainThread()) {
+    worlds.push_back(&MainWorld(isolate));
+  }
 }
 
 DOMWrapperWorld::~DOMWrapperWorld() {
-  DCHECK(!IsMainWorld());
-  if (IsMainThread())
+  if (IsMainThread() && !IsMainWorld()) {
     number_of_non_main_worlds_in_main_thread_--;
+  }
 
   // WorkerWorld should be disposed of before the dtor.
-  if (!IsWorkerWorld())
+  if (!IsWorkerWorld()) {
     Dispose();
-  DCHECK(!GetWorldMap().Contains(world_id_));
+  }
+  DCHECK(IsMainWorld() || !GetWorldMap().Contains(world_id_));
 }
 
 void DOMWrapperWorld::Dispose() {
@@ -154,8 +141,10 @@ void DOMWrapperWorld::Dispose() {
     dom_data_store_->Dispose();
     dom_data_store_.Clear();
   }
-  DCHECK(GetWorldMap().Contains(world_id_));
-  GetWorldMap().erase(world_id_);
+  if (!IsMainWorld()) {
+    DCHECK(GetWorldMap().Contains(world_id_));
+    GetWorldMap().erase(world_id_);
+  }
 }
 
 scoped_refptr<DOMWrapperWorld> DOMWrapperWorld::EnsureIsolatedWorld(

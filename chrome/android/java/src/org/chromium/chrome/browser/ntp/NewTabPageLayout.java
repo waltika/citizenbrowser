@@ -57,7 +57,7 @@ import org.chromium.chrome.browser.user_education.IPHCommandBuilder;
 import org.chromium.chrome.browser.user_education.UserEducationHelper;
 import org.chromium.chrome.browser.util.BrowserUiUtils;
 import org.chromium.chrome.browser.util.BrowserUiUtils.HostSurface;
-import org.chromium.chrome.browser.util.BrowserUiUtils.ModuleTypeOnStartAndNTP;
+import org.chromium.chrome.browser.util.BrowserUiUtils.ModuleTypeOnStartAndNtp;
 import org.chromium.chrome.features.start_surface.StartSurfaceConfiguration;
 import org.chromium.components.browser_ui.styles.ChromeColors;
 import org.chromium.components.browser_ui.widget.displaystyle.DisplayStyleObserver;
@@ -312,7 +312,7 @@ public class NewTabPageLayout extends LinearLayout {
         initializeLensButton();
         initializeLayoutChangeListener();
 
-        if (searchProviderIsGoogle && QueryTileUtils.isQueryTilesEnabledOnNTP()) {
+        if (searchProviderIsGoogle && QueryTileUtils.isQueryTilesEnabledOnNtp()) {
             mQueryTileSection =
                     new QueryTileSection(
                             findViewById(R.id.query_tiles), profile, mManager::performSearchQuery);
@@ -432,7 +432,7 @@ public class NewTabPageLayout extends LinearLayout {
                             mManager.getNativePageHost()
                                     .loadUrl(urlParams, /* isIncognito= */ false);
                             BrowserUiUtils.recordModuleClickHistogram(
-                                    HostSurface.NEW_TAB_PAGE, ModuleTypeOnStartAndNTP.DOODLE);
+                                    HostSurface.NEW_TAB_PAGE, ModuleTypeOnStartAndNtp.DOODLE);
                         });
         Callback<Logo> onLogoAvailableCallback =
                 mCallbackController.makeCancelable(
@@ -483,7 +483,7 @@ public class NewTabPageLayout extends LinearLayout {
         assert mMvTilesContainerLayout != null;
 
         int maxRows = 2;
-        if (searchProviderIsGoogle && QueryTileUtils.isQueryTilesEnabledOnNTP()) {
+        if (searchProviderIsGoogle && QueryTileUtils.isQueryTilesEnabledOnNtp()) {
             maxRows = QueryTileSection.getMaxRowsForMostVisitedTiles(getContext());
         }
 
@@ -763,11 +763,11 @@ public class NewTabPageLayout extends LinearLayout {
             if (mIsNtpAsHomeSurfaceOnTablet) {
                 updateTilesLayoutLeftAndRightMarginsOnTablet(marginLayoutParams);
             } else {
-                int lateralPaddingsForNTP =
+                int lateralPaddingsForNtp =
                         -getResources()
                                 .getDimensionPixelSize(R.dimen.ntp_header_lateral_paddings_v2);
-                marginLayoutParams.leftMargin = lateralPaddingsForNTP;
-                marginLayoutParams.rightMargin = lateralPaddingsForNTP;
+                marginLayoutParams.leftMargin = lateralPaddingsForNtp;
+                marginLayoutParams.rightMargin = lateralPaddingsForNtp;
             }
             marginLayoutParams.topMargin =
                     getResources()
@@ -1256,9 +1256,9 @@ public class NewTabPageLayout extends LinearLayout {
                 isInNarrowWindowOnTablet(mIsTablet, mUiConfig)
                         ? R.dimen.search_box_lateral_margin_polish
                         : R.dimen.mvt_container_lateral_margin_polish;
-        int lateralPaddingsForNTP = getResources().getDimensionPixelSize(lateralPaddingId);
-        marginLayoutParams.leftMargin = lateralPaddingsForNTP;
-        marginLayoutParams.rightMargin = lateralPaddingsForNTP;
+        int lateralPaddingsForNtp = getResources().getDimensionPixelSize(lateralPaddingId);
+        marginLayoutParams.leftMargin = lateralPaddingsForNtp;
+        marginLayoutParams.rightMargin = lateralPaddingsForNtp;
     }
 
     private void updateSearchBoxWidthForPolish() {

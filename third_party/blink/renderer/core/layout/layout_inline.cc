@@ -35,16 +35,16 @@
 #include "third_party/blink/renderer/core/layout/inline/fragment_item.h"
 #include "third_party/blink/renderer/core/layout/inline/inline_cursor.h"
 #include "third_party/blink/renderer/core/layout/layout_block.h"
+#include "third_party/blink/renderer/core/layout/layout_ng_block_flow.h"
 #include "third_party/blink/renderer/core/layout/layout_object_inlines.h"
 #include "third_party/blink/renderer/core/layout/layout_theme.h"
 #include "third_party/blink/renderer/core/layout/layout_view.h"
-#include "third_party/blink/renderer/core/layout/ng/layout_ng_block_flow.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_outline_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_physical_box_fragment.h"
+#include "third_party/blink/renderer/core/layout/outline_utils.h"
+#include "third_party/blink/renderer/core/layout/physical_box_fragment.h"
 #include "third_party/blink/renderer/core/layout/text_autosizer.h"
 #include "third_party/blink/renderer/core/page/page.h"
+#include "third_party/blink/renderer/core/paint/box_fragment_painter.h"
 #include "third_party/blink/renderer/core/paint/box_painter.h"
-#include "third_party/blink/renderer/core/paint/ng/ng_box_fragment_painter.h"
 #include "third_party/blink/renderer/core/paint/object_paint_invalidator.h"
 #include "third_party/blink/renderer/core/paint/object_painter.h"
 #include "third_party/blink/renderer/core/paint/outline_painter.h"
@@ -191,7 +191,7 @@ bool LayoutInline::ComputeInitialShouldCreateBoxFragment(
   NOT_DESTROYED();
 
   // We'd like to use ScopedSVGPaintState in
-  // NGInlineBoxFragmentPainter::Paint().
+  // InlineBoxFragmentPainter::Paint().
   // TODO(layout-dev): Improve the below condition so that we a create box
   // fragment only if this requires ScopedSVGPaintState, instead of
   // creating box fragments for all LayoutSVGInlines.
@@ -623,14 +623,14 @@ bool LayoutInline::NodeAtPoint(HitTestResult& result,
         continue;
       DCHECK(cursor.Current().Item());
       const FragmentItem& item = *cursor.Current().Item();
-      const NGPhysicalBoxFragment* box_fragment = item.BoxFragment();
+      const PhysicalBoxFragment* box_fragment = item.BoxFragment();
       DCHECK(box_fragment);
-      // NGBoxFragmentPainter::NodeAtPoint() takes an offset that is accumulated
+      // BoxFragmentPainter::NodeAtPoint() takes an offset that is accumulated
       // up to the fragment itself. Compute this offset.
       const PhysicalOffset child_offset =
           accumulated_offset + item.OffsetInContainerFragment();
-      NGInlinePaintContext inline_context;
-      if (NGBoxFragmentPainter(cursor, item, *box_fragment, &inline_context)
+      InlinePaintContext inline_context;
+      if (BoxFragmentPainter(cursor, item, *box_fragment, &inline_context)
               .NodeAtPoint(result, hit_test_location, child_offset,
                            accumulated_offset, phase)) {
         return true;
@@ -931,8 +931,7 @@ gfx::RectF LayoutInline::LocalBoundingBoxRectForAccessibility() const {
   UnionOutlineRectCollector collector;
   AddOutlineRects(collector, nullptr, PhysicalOffset(),
                   OutlineType::kIncludeBlockInkOverflow);
-
-  return gfx::RectF(FlipForWritingMode(collector.Rect().ToLayoutRect()));
+  return gfx::RectF(collector.Rect());
 }
 
 void LayoutInline::AddAnnotatedRegions(Vector<AnnotatedRegionValue>& regions) {

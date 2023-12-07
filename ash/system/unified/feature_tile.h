@@ -139,6 +139,10 @@ class ASH_EXPORT FeatureTile : public views::Button {
   void AddLayerToRegion(ui::Layer* layer, views::LayerRegion region) override;
   void RemoveLayerFromRegions(ui::Layer* layer) override;
 
+  base::WeakPtr<FeatureTile> GetWeakPtr() {
+    return weak_ptr_factory_.GetWeakPtr();
+  }
+
   bool is_icon_clickable() const { return is_icon_clickable_; }
   views::ImageButton* icon_button() { return icon_button_; }
   views::Label* label() { return label_; }
@@ -176,10 +180,10 @@ class ASH_EXPORT FeatureTile : public views::Button {
   raw_ptr<const gfx::VectorIcon, ExperimentalAsh> vector_icon_ = nullptr;
 
   // Customized value for the tile's background color and foreground color.
-  absl::optional<ui::ColorId> background_color_;
-  absl::optional<ui::ColorId> background_toggled_color_;
-  absl::optional<ui::ColorId> foreground_color_;
-  absl::optional<ui::ColorId> foreground_toggled_color_;
+  std::optional<ui::ColorId> background_color_;
+  std::optional<ui::ColorId> background_toggled_color_;
+  std::optional<ui::ColorId> foreground_color_;
+  std::optional<ui::ColorId> foreground_toggled_color_;
 
   // Owned by views hierarchy.
   raw_ptr<views::ImageButton, ExperimentalAsh> icon_button_ = nullptr;

@@ -855,6 +855,8 @@ WRAPPED_INSTANTIATE_TEST_SUITE_P(
         TestCase("directoryTreeExpandFolderOnDelayExpansionVolume")
             .NewDirectoryTree(),
         TestCase("directoryTreeExpandAndSelectedOnDragMove").NewDirectoryTree(),
+        TestCase("directoryTreeClickDriveRootWhenMyDriveIsActive")
+            .NewDirectoryTree(),
         // Section end - browser tests for new directory tree
         TestCase("directoryTreeActiveDirectory"),
         TestCase("directoryTreeSelectedDirectory"),
@@ -868,7 +870,8 @@ WRAPPED_INSTANTIATE_TEST_SUITE_P(
         TestCase("directoryTreeExpandFolderWithHiddenFileAndShowHiddenFilesOn"),
         TestCase("directoryTreeExpandFolderOnNonDelayExpansionVolume"),
         TestCase("directoryTreeExpandFolderOnDelayExpansionVolume"),
-        TestCase("directoryTreeExpandAndSelectedOnDragMove")));
+        TestCase("directoryTreeExpandAndSelectedOnDragMove"),
+        TestCase("directoryTreeClickDriveRootWhenMyDriveIsActive")));
 
 WRAPPED_INSTANTIATE_TEST_SUITE_P(
     DirectoryTreeContextMenu, /* directory_tree_context_menu.js */
@@ -2218,6 +2221,8 @@ WRAPPED_INSTANTIATE_TEST_SUITE_P(
         // Section end - browser tests for new directory tree
         TestCase("trashMoveToTrash")
             .FeatureIds({"screenplay-a06f961a-17f5-4fbd-8285-49abb000dee1"}),
+        TestCase("trashMultipleEntries"),
+        TestCase("trashNonEmptyFolder"),
         TestCase("trashPermanentlyDelete"),
         TestCase("trashRestoreFromToast"),
 // TODO(crbug.com/1425820): Re-enable this test on ChromiumOS MSAN.

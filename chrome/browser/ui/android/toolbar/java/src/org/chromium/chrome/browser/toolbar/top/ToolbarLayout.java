@@ -34,6 +34,7 @@ import org.chromium.base.ObserverList;
 import org.chromium.base.TraceEvent;
 import org.chromium.base.lifetime.DestroyChecker;
 import org.chromium.base.lifetime.Destroyable;
+import org.chromium.base.supplier.ObservableSupplier;
 import org.chromium.chrome.browser.browser_controls.BrowserStateBrowserControlsVisibilityDelegate;
 import org.chromium.chrome.browser.layouts.LayoutStateProvider;
 import org.chromium.chrome.browser.omnibox.LocationBar;
@@ -43,14 +44,12 @@ import org.chromium.chrome.browser.omnibox.OmniboxFocusReason;
 import org.chromium.chrome.browser.omnibox.UrlBarData;
 import org.chromium.chrome.browser.profiles.Profile;
 import org.chromium.chrome.browser.tab.Tab;
-import org.chromium.chrome.browser.tabmodel.TabModelSelector;
 import org.chromium.chrome.browser.theme.ThemeColorProvider;
 import org.chromium.chrome.browser.theme.ThemeColorProvider.ThemeColorObserver;
 import org.chromium.chrome.browser.theme.ThemeColorProvider.TintObserver;
 import org.chromium.chrome.browser.theme.ThemeUtils;
 import org.chromium.chrome.browser.toolbar.ButtonData;
 import org.chromium.chrome.browser.toolbar.R;
-import org.chromium.chrome.browser.toolbar.TabCountProvider;
 import org.chromium.chrome.browser.toolbar.ToolbarDataProvider;
 import org.chromium.chrome.browser.toolbar.ToolbarProgressBar;
 import org.chromium.chrome.browser.toolbar.ToolbarTabController;
@@ -241,7 +240,7 @@ public abstract class ToolbarLayout extends FrameLayout
     public void onTintChanged(ColorStateList tint, @BrandedColorScheme int brandedColorScheme) {}
 
     @Override
-    public void onThemeColorChanged(int color, boolean shouldAnimate) {}
+    public void onThemeColorChanged(@ColorInt int color, boolean shouldAnimate) {}
 
     /**
      * Set the height that the progress bar should be.
@@ -337,7 +336,7 @@ public abstract class ToolbarLayout extends FrameLayout
                     }
 
                     @Override
-                    public int getPrimaryColor() {
+                    public @ColorInt int getPrimaryColor() {
                         return 0;
                     }
 
@@ -602,9 +601,10 @@ public abstract class ToolbarLayout extends FrameLayout
     }
 
     /**
-     * @return The height of the tab strip. Return 0 for toolbars that do not have a tabstrip.
+     * Return the height of the tab strip from the layout resource. Return 0 for toolbars that do
+     * not have a tab strip.
      */
-    protected int getTabStripHeight() {
+    protected int getTabStripHeightFromResource() {
         return getResources().getDimensionPixelSize(R.dimen.tab_strip_height);
     }
 
@@ -662,9 +662,10 @@ public abstract class ToolbarLayout extends FrameLayout
 
     /**
      * Gives inheriting classes the chance to observe tab count changes.
-     * @param tabCountProvider The {@link TabCountProvider} subclasses can observe.
+     *
+     * @param tabCountSupplier The observable supplier subclasses can observe.
      */
-    void setTabCountProvider(TabCountProvider tabCountProvider) {}
+    void setTabCountSupplier(ObservableSupplier<Integer> tabCountSupplier) {}
 
     /**
      * Gives inheriting classes the chance to update themselves based on default search engine
@@ -822,12 +823,6 @@ public abstract class ToolbarLayout extends FrameLayout
     }
 
     /**
-     * Sets the current TabModelSelector so the toolbar can pass it into buttons that need access to
-     * it.
-     */
-    void setTabModelSelector(TabModelSelector selector) {}
-
-    /**
      * @return Home button this {@link ToolbarLayout} contains, if any.
      */
     public ImageView getHomeButton() {
@@ -878,7 +873,7 @@ public abstract class ToolbarLayout extends FrameLayout
      * Notify the observer that the toolbar color is changed and pass the toolbar color to the
      * observer.
      */
-    protected void notifyToolbarColorChanged(int color) {
+    protected void notifyToolbarColorChanged(@ColorInt int color) {
         if (mToolbarColorObserver != null) {
             mToolbarColorObserver.onToolbarColorChanged(color);
         }

@@ -48,6 +48,7 @@
 #include "chrome/browser/web_applications/web_app_uninstall_dialog_user_options.h"
 #include "components/webapps/browser/installable/installable_metrics.h"
 #include "components/webapps/browser/uninstall_result_code.h"
+#include "components/webapps/common/web_app_id.h"
 #include "content/public/browser/clear_site_data_utils.h"
 #include "content/public/browser/navigation_handle.h"
 #include "content/public/browser/web_contents.h"
@@ -66,6 +67,8 @@
 #include "chrome/browser/infobars/confirm_infobar_creator.h"
 #include "components/infobars/content/content_infobar_manager.h"
 #include "components/infobars/core/infobar.h"
+#else
+#include "chrome/browser/ui/web_applications/web_app_relaunch_notification.h"
 #endif  // !BUILDFLAG(IS_CHROMEOS)
 
 #if !BUILDFLAG(IS_MAC)
@@ -110,12 +113,10 @@ namespace {
 
 #if BUILDFLAG(IS_WIN)
 // ScopedKeepAlive not only keeps the process from terminating early
-// during uninstall, it also ensures the process will terminate when it
-// is destroyed if there is no active browser window.
+// during uninstall, it also ensures the process will terminate in the next
+// message loop if there are no active browser windows.
 void UninstallWebAppWithDialogFromStartupSwitch(const webapps::AppId& app_id,
                                                 WebAppProvider* provider) {
-  // ScopedKeepAlive does not only keeps the process from early termination,
-  // but ensure the process termination when there is no active browser window.
   std::unique_ptr<ScopedKeepAlive> scoped_keep_alive =
       std::make_unique<ScopedKeepAlive>(KeepAliveOrigin::WEB_APP_UNINSTALL,
                                         KeepAliveRestartOption::DISABLED);
@@ -123,9 +124,17 @@ void UninstallWebAppWithDialogFromStartupSwitch(const webapps::AppId& app_id,
     provider->ui_manager().PresentUserUninstallDialog(
         app_id, webapps::WebappUninstallSource::kOsSettings,
         gfx::NativeWindow(),
-        base::BindOnce([](std::unique_ptr<ScopedKeepAlive> scoped_keep_alive,
-                          webapps::UninstallResultCode code) {},
-                       std::move(scoped_keep_alive)));
+        base::BindOnce(
+            [](std::unique_ptr<ScopedKeepAlive> scoped_keep_alive,
+               webapps::UninstallResultCode code) {
+              // This ensures that the scoped_keep_alive will be deleted in the
+              // next message loop, giving objects like DialogDelegate enough
+              // time to shut itself down. See crbug.com/1506302 for more
+              // information.
+              base::SequencedTaskRunner::GetCurrentDefault()->DeleteSoon(
+                  FROM_HERE, std::move(scoped_keep_alive));
+            },
+            std::move(scoped_keep_alive)));
   } else {
     // There is a chance that a previous invalid uninstall operation (due
     // to a crash or otherwise) could end up orphaning an OsSettings entry.
@@ -418,11 +427,16 @@ void WebAppUiManagerImpl::DisplayRunOnOsLoginNotification(
 #endif  // BUILDFLAG(IS_CHROMEOS)
 
 void WebAppUiManagerImpl::NotifyAppRelaunchState(
-    std::string placeholder_app_id,
-    std::string final_app_id,
+    const webapps::AppId& placeholder_app_id,
+    const webapps::AppId& final_app_id,
+    const std::u16string& final_app_name,
     base::WeakPtr<Profile> profile,
     AppRelaunchState relaunch_state) {
-  // TODO(b/311711416): Implement notification.
+#if BUILDFLAG(IS_CHROMEOS)
+  web_app::NotifyAppRelaunchState(placeholder_app_id, final_app_id,
+                                  final_app_name, std::move(profile),
+                                  relaunch_state);
+#endif  // BUILDFLAG(IS_CHROMEOS)
 }
 
 content::WebContents* WebAppUiManagerImpl::CreateNewTab() {

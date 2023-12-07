@@ -360,7 +360,7 @@ public class ProcessInitializationHandler {
                                                         HomepageManager.getHomepageGurl();
                                                 LaunchMetrics.recordHomePageLaunchMetrics(
                                                         HomepageManager.isHomepageEnabled(),
-                                                        UrlUtilities.isNTPUrl(homepageGurl),
+                                                        UrlUtilities.isNtpUrl(homepageGurl),
                                                         homepageGurl);
                                             }
                                         });
@@ -429,7 +429,8 @@ public class ProcessInitializationHandler {
                 new Runnable() {
                     @Override
                     public void run() {
-                        SigninCheckerProvider.get().onMainActivityStart();
+                        SigninCheckerProvider.get(Profile.getLastUsedRegularProfile())
+                                .onMainActivityStart();
                         RevenueStats.getInstance();
                     }
                 });
@@ -476,7 +477,7 @@ public class ProcessInitializationHandler {
                 () -> TosDialogBehaviorSharedPrefInvalidator.refreshSharedPreferenceIfTosSkipped());
         deferredStartupHandler.addDeferredTask(
                 () -> OfflineMeasurementsBackgroundTask.clearPersistedDataFromPrefs());
-        deferredStartupHandler.addDeferredTask(() -> QueryTileUtils.isQueryTilesEnabledOnNTP());
+        deferredStartupHandler.addDeferredTask(() -> QueryTileUtils.isQueryTilesEnabledOnNtp());
         deferredStartupHandler.addDeferredTask(
                 () -> {
                     GlobalAppLocaleController.getInstance().maybeSetupLocaleManager();

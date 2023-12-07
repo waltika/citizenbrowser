@@ -15,7 +15,7 @@
 #include "base/notreached.h"
 #include "components/optimization_guide/proto/hints.pb.h"
 
-namespace companion::visual_search {
+namespace companion::visual_query {
 namespace {
 constexpr char kNormalizedPrefix[] = "normalized_";
 constexpr char kNormalizeByPrefix[] = "normalize_by_";
@@ -507,6 +507,9 @@ double EligibilityModule::GetImageFeatureValue(
     case FeatureLibrary::IMAGE_LEVEL_UNSPECIFIED:
     case FeatureLibrary::SHOPPING_CLASSIFIER_SCORE:
     case FeatureLibrary::SENS_CLASSIFIER_SCORE:
+    // TODO(b/314789511): Implement these after setting server-side
+    case FeatureLibrary::NAT_WORLD_CLASSIFIER_SCORE:
+    case FeatureLibrary::PUB_FIGURES_CLASSIFIER_SCORE:
       NOTREACHED();
       break;
   }
@@ -722,4 +725,4 @@ void EligibilityModule::RunAdditionalCheapPruning(
     }
   }
 }
-}  // namespace companion::visual_search
+}  // namespace companion::visual_query

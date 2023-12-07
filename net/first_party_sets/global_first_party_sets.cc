@@ -105,16 +105,11 @@ GlobalFirstPartySets& GlobalFirstPartySets::operator=(GlobalFirstPartySets&&) =
 
 GlobalFirstPartySets::~GlobalFirstPartySets() = default;
 
-bool GlobalFirstPartySets::operator==(const GlobalFirstPartySets& other) const {
-  return std::tie(public_sets_version_, entries_, aliases_, manual_config_,
-                  manual_aliases_) ==
-         std::tie(other.public_sets_version_, other.entries_, other.aliases_,
-                  other.manual_config_, other.manual_aliases_);
-}
+bool GlobalFirstPartySets::operator==(const GlobalFirstPartySets& other) const =
+    default;
 
-bool GlobalFirstPartySets::operator!=(const GlobalFirstPartySets& other) const {
-  return !(*this == other);
-}
+bool GlobalFirstPartySets::operator!=(const GlobalFirstPartySets& other) const =
+    default;
 
 GlobalFirstPartySets GlobalFirstPartySets::Clone() const {
   return GlobalFirstPartySets(public_sets_version_, entries_, aliases_,
@@ -206,9 +201,9 @@ void GlobalFirstPartySets::ApplyManuallySpecifiedSet(
 
   // We handle the manually-specified set the same way as we handle
   // replacement enterprise policy sets.
-  manual_config_ = ComputeConfig(
+  manual_config_ = ComputeConfig(SetsMutation(
       /*replacement_sets=*/{manual_entries},
-      /*addition_sets=*/{});
+      /*addition_sets=*/{}));
   manual_aliases_ = std::move(manual_aliases);
 }
 
@@ -219,8 +214,9 @@ void GlobalFirstPartySets::UnsafeSetManualConfig(
 }
 
 FirstPartySetsContextConfig GlobalFirstPartySets::ComputeConfig(
-    const std::vector<SingleSet>& replacement_sets,
-    const std::vector<SingleSet>& addition_sets) const {
+    const SetsMutation& mutation) const {
+  const std::vector<SingleSet>& replacement_sets = mutation.replacements();
+  const std::vector<SingleSet>& addition_sets = mutation.additions();
   if (base::ranges::all_of(replacement_sets,
                            [](const SingleSet& set) { return set.empty(); }) &&
       base::ranges::all_of(addition_sets,

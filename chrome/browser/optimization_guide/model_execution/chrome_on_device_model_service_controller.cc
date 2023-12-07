@@ -37,24 +37,21 @@ ChromeOnDeviceModelServiceController::~ChromeOnDeviceModelServiceController() {
 }
 
 void ChromeOnDeviceModelServiceController::LaunchService() {
-  CHECK(
-      base::FeatureList::IsEnabled(features::kOptimizationGuideOnDeviceModel));
+  CHECK(features::CanLaunchOnDeviceModelService());
   if (service_remote_) {
     return;
   }
-  content::ServiceProcessHost::Launch<
-      on_device_model::mojom::OnDeviceModelService>(
-      service_remote_.BindNewPipeAndPassReceiver(),
-      content::ServiceProcessHost::Options()
-          .WithDisplayName("On-Device Model Service")
-          .Pass());
+  auto receiver = service_remote_.BindNewPipeAndPassReceiver();
   service_remote_.reset_on_disconnect();
   service_remote_.set_idle_handler(
       features::GetOnDeviceModelIdleTimeout(),
-      base::BindRepeating(
-          [](mojo::Remote<on_device_model::mojom::OnDeviceModelService>*
-                 remote) { remote->reset(); },
-          &service_remote_));
+      base::BindRepeating(&OnDeviceModelServiceController::OnRemoteIdle,
+                          base::Unretained(this)));
+  content::ServiceProcessHost::Launch<
+      on_device_model::mojom::OnDeviceModelService>(
+      std::move(receiver), content::ServiceProcessHost::Options()
+                               .WithDisplayName("On-Device Model Service")
+                               .Pass());
 }
 
 }  // namespace optimization_guide

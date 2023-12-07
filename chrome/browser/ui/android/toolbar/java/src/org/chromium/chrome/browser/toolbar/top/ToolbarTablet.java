@@ -34,6 +34,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.widget.ImageViewCompat;
 
 import org.chromium.base.metrics.RecordUserAction;
+import org.chromium.base.supplier.ObservableSupplier;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.omnibox.LocationBar;
 import org.chromium.chrome.browser.omnibox.LocationBarCoordinator;
@@ -45,7 +46,6 @@ import org.chromium.chrome.browser.toolbar.ButtonData;
 import org.chromium.chrome.browser.toolbar.ButtonData.ButtonSpec;
 import org.chromium.chrome.browser.toolbar.KeyboardNavigationListener;
 import org.chromium.chrome.browser.toolbar.R;
-import org.chromium.chrome.browser.toolbar.TabCountProvider;
 import org.chromium.chrome.browser.toolbar.ToolbarDataProvider;
 import org.chromium.chrome.browser.toolbar.ToolbarFeatures;
 import org.chromium.chrome.browser.toolbar.ToolbarTabController;
@@ -106,7 +106,7 @@ public class ToolbarTablet extends ToolbarLayout
     private AnimatorSet mButtonVisibilityAnimators;
     private HistoryDelegate mHistoryDelegate;
     private OfflineDownloader mOfflineDownloader;
-    private TabCountProvider mTabCountProvider;
+    private ObservableSupplier<Integer> mTabCountSupplier;
     private TabletCaptureStateToken mLastCaptureStateToken;
     private @DrawableRes int mBookmarkButtonImageRes;
 
@@ -469,12 +469,13 @@ public class ToolbarTablet extends ToolbarLayout
 
     private TabletCaptureStateToken generateCaptureStateToken() {
         UrlBarData urlBarData = getToolbarDataProvider().getUrlBarData();
+        @DrawableRes
         int securityIconResource =
                 getToolbarDataProvider().getSecurityIconResource(/* isTablet= */ true);
         VisibleUrlText visibleUrlText =
                 new VisibleUrlText(
                         urlBarData.displayText, mLocationBar.getOmniboxVisibleTextPrefixHint());
-        int tabCount = mTabCountProvider == null ? 0 : mTabCountProvider.getTabCount();
+        int tabCount = mTabCountSupplier == null ? 0 : mTabCountSupplier.get();
 
         return new TabletCaptureStateToken(
                 mHomeButton,
@@ -522,7 +523,7 @@ public class ToolbarTablet extends ToolbarLayout
     }
 
     @Override
-    public void onThemeColorChanged(int color, boolean shouldAnimate) {
+    public void onThemeColorChanged(@ColorInt int color, boolean shouldAnimate) {
         setBackgroundColor(color);
         final @ColorInt int textBoxColor =
                 ThemeUtils.getTextBoxColorForToolbarBackgroundInNonNativePage(
@@ -656,9 +657,9 @@ public class ToolbarTablet extends ToolbarLayout
     }
 
     @Override
-    void setTabCountProvider(TabCountProvider tabCountProvider) {
-        mSwitcherButton.setTabCountProvider(tabCountProvider);
-        mTabCountProvider = tabCountProvider;
+    void setTabCountSupplier(ObservableSupplier<Integer> tabCountSupplier) {
+        mSwitcherButton.setTabCountSupplier(tabCountSupplier, this::isIncognito);
+        mTabCountSupplier = tabCountSupplier;
     }
 
     @Override

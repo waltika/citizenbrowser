@@ -6,14 +6,14 @@
 #define THIRD_PARTY_BLINK_RENDERER_CORE_LAYOUT_GRID_GRID_LAYOUT_ALGORITHM_H_
 
 #include "third_party/blink/renderer/core/core_export.h"
+#include "third_party/blink/renderer/core/layout/block_break_token.h"
+#include "third_party/blink/renderer/core/layout/box_fragment_builder.h"
+#include "third_party/blink/renderer/core/layout/constraint_space.h"
 #include "third_party/blink/renderer/core/layout/grid/grid_break_token_data.h"
 #include "third_party/blink/renderer/core/layout/grid/grid_node.h"
 #include "third_party/blink/renderer/core/layout/grid/grid_placement.h"
 #include "third_party/blink/renderer/core/layout/grid/grid_sizing_tree.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_block_break_token.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_box_fragment_builder.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_constraint_space.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_layout_algorithm.h"
+#include "third_party/blink/renderer/core/layout/layout_algorithm.h"
 #include "third_party/blink/renderer/platform/wtf/vector.h"
 
 namespace blink {
@@ -234,10 +234,7 @@ class CORE_EXPORT GridLayoutAlgorithm
   ConstraintSpace CreateConstraintSpaceForMeasure(
       const SubgriddedItemData& subgridded_item,
       GridTrackSizingDirection track_direction,
-      const LogicalSize& fixed_available_size = kIndefiniteLogicalSize) const;
-
-  ConstraintSpace CreateConstraintSpaceForSubgridAlgorithm(
-      const SubgriddedItemData& subgrid_data) const;
+      absl::optional<LayoutUnit> opt_fixed_inline_size = absl::nullopt) const;
 
   // Layout the |grid_items|, and add them to the builder.
   //

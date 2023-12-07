@@ -385,7 +385,9 @@
       <template is="dom-repeat" id="resultsRepeat" items="[[results_]]"
           on-dom-change="onResultsRender_">
         <div class="tile result" tabindex="0" role="button"
-            on-click="onResultClick_">
+            on-click="onResultClick_"
+            aria-label="[[getResultAriaLabel_(index, resultsDescriptors_)]]"
+            aria-current$="[[getBackgroundCheckedStatus_(item.id, theme_)]]">
           <customize-chrome-check-mark-wrapper class="image-check-mark"
               checked="[[isBackgroundSelected_(item.id, theme_)]]">
             <div class="image-container">
@@ -404,7 +406,22 @@
       </template>
     </cr-grid>
     <div id="footer">
-      $i18n{experimentalFeatureDisclaimer}
+      <div id="disclaimer">$i18n{experimentalFeatureDisclaimer}</div>
+      <div hidden$="[[!loading_]]">
+        <cr-loading-gradient>
+          <svg height="16" width="44" xmlns="http://www.w3.org/2000/svg">
+            <clipPath>
+              <circle cx="8" cy="8" r="8"></circle>
+              <circle cx="36" cy="8" r="8"></circle>
+            </clipPath>
+          </svg>
+        </cr-loading-gradient>
+      </div>
+      <cr-feedback-buttons id="feedbackButtons"
+          hidden$="[[!shouldShowFeedbackButtons_(loading_, results_)]]"
+          selected-option="[[selectedFeedbackOption_]]"
+          on-selected-option-changed="onFeedbackSelectedOptionChanged_">
+      </cr-feedback-buttons>
     </div>
   </div>
 </div>
@@ -417,12 +434,16 @@
     <cr-grid columns="3" disable-arrow-navigation>
       <template is="dom-repeat" id="historyRepeat" items="[[history_]]">
         <div class="tile result" tabindex="0" role="button"
-            aria-label="[[getHistoryTileTitle_(index)]]"
-            on-click="onHistoryImageClick_">
-          <div class="image-container">
-            <img src="data:image/png;base64,[[item.image]]">
-            </img>
-          </div>
+            aria-label$="[[getHistoryTileTitle_(index)]]"
+            on-click="onHistoryImageClick_"
+            aria-current$="[[getBackgroundCheckedStatus_(item.id, theme_)]]">
+          <customize-chrome-check-mark-wrapper class="image-check-mark"
+            checked="[[isBackgroundSelected_(item.id, theme_)]]">
+            <div class="image-container">
+              <img src="data:image/png;base64,[[item.image]]">
+              </img>
+            </div>
+          </customize-chrome-check-mark-wrapper>
         </div>
       </template>
       <template is="dom-repeat"

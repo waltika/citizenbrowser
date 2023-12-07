@@ -12,7 +12,7 @@
 #include "third_party/blink/renderer/core/html/html_br_element.h"
 #include "third_party/blink/renderer/core/layout/inline/fragment_item.h"
 #include "third_party/blink/renderer/core/layout/inline/inline_cursor.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_physical_box_fragment.h"
+#include "third_party/blink/renderer/core/layout/physical_box_fragment.h"
 #include "third_party/blink/renderer/core/testing/core_unit_test_helper.h"
 
 namespace blink {
@@ -39,7 +39,7 @@ class LayoutTextCombineTest : public RenderingTest {
   }
 
   static PhysicalRect ContentsInkOverflow(const FragmentItem& item) {
-    if (const NGPhysicalBoxFragment* box_fragment = item.BoxFragment()) {
+    if (const PhysicalBoxFragment* box_fragment = item.BoxFragment()) {
       return box_fragment->ContentsInkOverflowRect();
     }
     if (!item.HasInkOverflow()) {

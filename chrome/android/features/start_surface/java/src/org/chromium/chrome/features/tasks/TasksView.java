@@ -32,7 +32,6 @@ import org.chromium.chrome.R;
 import org.chromium.chrome.browser.feed.FeedStreamViewResizer;
 import org.chromium.chrome.browser.feed.FeedSurfaceCoordinator;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
-import org.chromium.chrome.browser.flags.MutableFlagWithSafeDefault;
 import org.chromium.chrome.browser.lifecycle.ActivityLifecycleDispatcher;
 import org.chromium.chrome.browser.ntp.IncognitoDescriptionView;
 import org.chromium.chrome.browser.ntp.search.SearchBoxCoordinator;
@@ -48,8 +47,6 @@ import org.chromium.ui.base.WindowAndroid;
 
 /** The view of the tasks surface. Set public for testing. */
 public class TasksView extends CoordinatorLayoutForPointer {
-    private static final MutableFlagWithSafeDefault sIncognitoRevampFlag =
-            new MutableFlagWithSafeDefault(ChromeFeatureList.INCOGNITO_NTP_REVAMP, false);
 
     private final Context mContext;
     private FrameLayout mCarouselTabSwitcherContainer;
@@ -251,7 +248,8 @@ public class TasksView extends CoordinatorLayoutForPointer {
 
         ViewStub incognitoDescriptionViewStub =
                 (ViewStub) findViewById(R.id.task_view_incognito_layout_stub);
-        if (sIncognitoRevampFlag.isEnabled()) {
+        boolean isIncognitoNtpRevampEnabled = ChromeFeatureList.sIncognitoNtpRevamp.isEnabled();
+        if (isIncognitoNtpRevampEnabled) {
             incognitoDescriptionViewStub.setLayoutResource(
                     R.layout.revamped_incognito_description_layout);
         } else {
@@ -264,14 +262,14 @@ public class TasksView extends CoordinatorLayoutForPointer {
         // Inflate the correct cookie/tracking protection card.
         ViewStub cardStub = findViewById(R.id.cookie_card_stub);
         if (cardStub == null) return;
-        if (shouldShowTrackingProtectionNTP()) {
+        if (shouldShowTrackingProtectionNtp()) {
             cardStub.setLayoutResource(
-                    sIncognitoRevampFlag.isEnabled()
+                    isIncognitoNtpRevampEnabled
                             ? R.layout.revamped_incognito_tracking_protection_card
                             : R.layout.incognito_tracking_protection_card);
         } else {
             cardStub.setLayoutResource(
-                    sIncognitoRevampFlag.isEnabled()
+                    isIncognitoNtpRevampEnabled
                             ? R.layout.revamped_incognito_cookie_controls_card
                             : R.layout.incognito_cookie_controls_card);
         }
@@ -531,7 +529,7 @@ public class TasksView extends CoordinatorLayoutForPointer {
         mHeaderView.setBackgroundColor(backgroundColor);
     }
 
-    boolean shouldShowTrackingProtectionNTP() {
+    boolean shouldShowTrackingProtectionNtp() {
         Profile profile =
                 Profile.getLastUsedRegularProfile()
                         .getPrimaryOTRProfile(/* createIfNeeded= */ true);

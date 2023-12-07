@@ -35,6 +35,7 @@
 #include "components/optimization_guide/core/model_execution/model_execution_manager.h"
 #include "components/optimization_guide/core/model_execution/on_device_model_service_controller.h"
 #include "components/optimization_guide/core/model_quality/model_quality_log_entry.h"
+#include "components/optimization_guide/core/model_quality/model_quality_logs_uploader_service.h"
 #include "components/optimization_guide/core/model_util.h"
 #include "components/optimization_guide/core/optimization_guide_constants.h"
 #include "components/optimization_guide/core/optimization_guide_features.h"
@@ -65,6 +66,8 @@
 #endif
 
 namespace {
+
+using ::optimization_guide::OnDeviceModelPerformanceClass;
 
 // Deletes old store paths that were written in incorrect locations.
 void DeleteOldStorePaths(const base::FilePath& profile_path) {
@@ -103,6 +106,71 @@ Profile* GetProfileForOTROptimizationGuide(Profile* profile) {
   return profile->GetOriginalProfile();
 }
 
+OnDeviceModelPerformanceClass ConvertToOnDeviceModelPerformanceClass(
+    std::optional<on_device_model::mojom::PerformanceClass> performance_class) {
+  if (!performance_class) {
+    return OnDeviceModelPerformanceClass::kServiceCrash;
+  }
+
+  switch (*performance_class) {
+    case on_device_model::mojom::PerformanceClass::kError:
+      return OnDeviceModelPerformanceClass::kError;
+    case on_device_model::mojom::PerformanceClass::kVeryLow:
+      return OnDeviceModelPerformanceClass::kVeryLow;
+    case on_device_model::mojom::PerformanceClass::kLow:
+      return OnDeviceModelPerformanceClass::kLow;
+    case on_device_model::mojom::PerformanceClass::kMedium:
+      return OnDeviceModelPerformanceClass::kMedium;
+    case on_device_model::mojom::PerformanceClass::kHigh:
+      return OnDeviceModelPerformanceClass::kHigh;
+    case on_device_model::mojom::PerformanceClass::kVeryHigh:
+      return OnDeviceModelPerformanceClass::kVeryHigh;
+    case on_device_model::mojom::PerformanceClass::kGpuBlocked:
+      return OnDeviceModelPerformanceClass::kGpuBlocked;
+    case on_device_model::mojom::PerformanceClass::kFailedToLoadLibrary:
+      return OnDeviceModelPerformanceClass::kFailedToLoadLibrary;
+  }
+}
+
+std::string OnDeviceModelPerformanceClassToString(
+    OnDeviceModelPerformanceClass performance_class) {
+  switch (performance_class) {
+    case OnDeviceModelPerformanceClass::kUnknown:
+      return "Unknown";
+    case OnDeviceModelPerformanceClass::kError:
+      return "Error";
+    case OnDeviceModelPerformanceClass::kVeryLow:
+      return "VeryLow";
+    case OnDeviceModelPerformanceClass::kLow:
+      return "Low";
+    case OnDeviceModelPerformanceClass::kMedium:
+      return "Medium";
+    case OnDeviceModelPerformanceClass::kHigh:
+      return "High";
+    case OnDeviceModelPerformanceClass::kVeryHigh:
+      return "VeryHigh";
+    case OnDeviceModelPerformanceClass::kGpuBlocked:
+      return "GpuBlocked";
+    case OnDeviceModelPerformanceClass::kFailedToLoadLibrary:
+      return "FailedToLoadLibrary";
+    case OnDeviceModelPerformanceClass::kServiceCrash:
+      return "ServiceCrash";
+  }
+}
+
+scoped_refptr<optimization_guide::OnDeviceModelServiceController>
+GetOnDeviceModelServiceController() {
+  scoped_refptr<optimization_guide::OnDeviceModelServiceController>
+      service_controller = optimization_guide::
+          ChromeOnDeviceModelServiceController::GetSingleInstanceMayBeNull();
+  if (!service_controller) {
+    service_controller = base::MakeRefCounted<
+        optimization_guide::ChromeOnDeviceModelServiceController>();
+    service_controller->Init();
+  }
+  return service_controller;
+}
+
 }  // namespace
 
 // static
@@ -129,6 +197,30 @@ void OptimizationGuideKeyedService::
   }
   model_execution_features_controller_
       ->SimulateBrowserRestartForTesting();  // IN-TEST
+}
+
+// static
+void OptimizationGuideKeyedService::LogOnDeviceMetrics() {
+  auto controller = GetOnDeviceModelServiceController();
+  controller->GetEstimatedPerformanceClass(base::BindOnce(
+      [](scoped_refptr<optimization_guide::OnDeviceModelServiceController>
+             controller,
+         std::optional<on_device_model::mojom::PerformanceClass>
+             performance_class) {
+        auto optimization_guide_performance_class =
+            ConvertToOnDeviceModelPerformanceClass(performance_class);
+        base::UmaHistogramEnumeration(
+            "OptimizationGuide.ModelExecution.OnDeviceModelPerformanceClass",
+            optimization_guide_performance_class);
+
+        ChromeMetricsServiceAccessor::RegisterSyntheticFieldTrial(
+            "SyntheticOnDeviceModelPerformanceClass",
+            OnDeviceModelPerformanceClassToString(
+                optimization_guide_performance_class),
+            variations::SyntheticTrialAnnotationMode::kCurrentLog);
+        controller->ShutdownServiceIfNoModelLoaded();
+      },
+      controller));
 }
 
 OptimizationGuideKeyedService::OptimizationGuideKeyedService(
@@ -271,23 +363,37 @@ void OptimizationGuideKeyedService::Initialize() {
 
   if (!profile->IsOffTheRecord() &&
       base::FeatureList::IsEnabled(
+          optimization_guide::features::kLogOnDeviceMetricsOnStartup)) {
+    base::SequencedTaskRunner::GetCurrentDefault()->PostDelayedTask(
+        FROM_HERE,
+        base::BindOnce(&OptimizationGuideKeyedService::LogOnDeviceMetrics),
+        optimization_guide::features::GetOnDeviceStartupMetricDelay());
+  }
+
+  if (!profile->IsOffTheRecord() &&
+      base::FeatureList::IsEnabled(
           optimization_guide::features::kOptimizationGuideModelExecution)) {
     scoped_refptr<optimization_guide::OnDeviceModelServiceController>
         service_controller;
     if (base::FeatureList::IsEnabled(
             optimization_guide::features::kOptimizationGuideOnDeviceModel)) {
-      service_controller = optimization_guide::
-          ChromeOnDeviceModelServiceController::GetSingleInstanceMayBeNull();
-      if (!service_controller) {
-        service_controller = base::MakeRefCounted<
-            optimization_guide::ChromeOnDeviceModelServiceController>();
-        service_controller->Init();
-      }
+      service_controller = GetOnDeviceModelServiceController();
     }
     model_execution_manager_ =
         std::make_unique<optimization_guide::ModelExecutionManager>(
             url_loader_factory, IdentityManagerFactory::GetForProfile(profile),
             std::move(service_controller), optimization_guide_logger_.get());
+  }
+
+  if (!profile->IsOffTheRecord() &&
+      // Don't create logs uploader service when feature is disabled. All the
+      // logs upload get route through this service which exists one per
+      // session.
+      base::FeatureList::IsEnabled(
+          optimization_guide::features::kModelQualityLogging)) {
+    model_quality_logs_uploader_service_ =
+        std::make_unique<optimization_guide::ModelQualityLogsUploaderService>(
+            url_loader_factory);
   }
 
   // Register for profile initialization event to initialize the model
@@ -444,6 +550,7 @@ void OptimizationGuideKeyedService::ExecuteModel(
     return;
   }
   model_execution_manager_->ExecuteModel(feature, request_metadata,
+                                         /*log_ai_data_request=*/nullptr,
                                          std::move(callback));
 }
 
@@ -451,8 +558,12 @@ void OptimizationGuideKeyedService::UploadModelQualityLogs(
     std::unique_ptr<optimization_guide::ModelQualityLogEntry> log_entry) {
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
 
-  // TODO(b/301301447): Uploads logs by passing the log entry's ownership to the
-  // server.
+  if (!model_quality_logs_uploader_service_) {
+    return;
+  }
+
+  model_quality_logs_uploader_service_.get()->UploadModelQualityLogs(
+      std::move(log_entry));
 }
 
 void OptimizationGuideKeyedService::OnProfileInitializationComplete(

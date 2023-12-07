@@ -89,6 +89,7 @@
 #include "net/test/url_request/url_request_failed_job.h"
 #include "testing/gmock/include/gmock/gmock-matchers.h"
 #include "third_party/blink/public/common/chrome_debug_urls.h"
+#include "third_party/blink/public/common/features.h"
 #include "third_party/blink/public/common/web_preferences/web_preferences.h"
 
 using base::ASCIIToUTF16;
@@ -5528,6 +5529,11 @@ class RenderFrameHostManagerUnloadBrowserTest
     rfh->SetSubframeUnloadTimeoutForTesting(base::Seconds(30));
   }
 
+  void SetUpCommandLine(base::CommandLine* command_line) override {
+    RenderFrameHostManagerTest::SetUpCommandLine(command_line);
+    feature_list_.InitAndDisableFeature(blink::features::kDeprecateUnload);
+  }
+
  protected:
   void SetUpOnMainThread() override {
     // Request interceptor needs to be installed before the test server is
@@ -5565,6 +5571,7 @@ class RenderFrameHostManagerUnloadBrowserTest
   std::string request_content_ GUARDED_BY(lock_);
   bool saw_request_url_ GUARDED_BY(lock_) = false;
   std::unique_ptr<base::RunLoop> run_loop_ GUARDED_BY(lock_);
+  base::test::ScopedFeatureList feature_list_;
 };
 
 // Ensure that after a main frame with a cross-site iframe is itself navigated
@@ -6657,6 +6664,49 @@ IN_PROC_BROWSER_TEST_P(RenderFrameHostManagerTest,
   GURL url_c(embedded_test_server()->GetURL("c.com", "/title1.html"));
   ASSERT_TRUE(NavigateFrameToURL(subframe, url_c));
   ASSERT_TRUE(subframe->current_frame_host()->IsRenderFrameLive());
+}
+
+// From https://crbug.com/1503038.
+// The RuntimeFeatureStateDocumentData should be re-created when the main frame
+// recovers from a crash.
+IN_PROC_BROWSER_TEST_P(
+    RenderFrameHostManagerTest,
+    RuntimeFeatureStateDocumentDataShouldBeRecreatedAfterCrash) {
+  StartEmbeddedServer();
+
+  GURL url(embedded_test_server()->GetURL("a.com", "/empty.html"));
+
+  ASSERT_TRUE(NavigateToURL(shell(), url));
+
+  // Crash the frame.
+  WebContentsImpl* web_contents =
+      static_cast<WebContentsImpl*>(shell()->web_contents());
+  RenderFrameHostImpl* rfh = web_contents->GetPrimaryMainFrame();
+  RenderProcessHost* process = rfh->GetProcess();
+  {
+    RenderProcessHostWatcher crash_observer(
+        process, RenderProcessHostWatcher::WATCH_FOR_PROCESS_EXIT);
+    process->Shutdown(0);
+    crash_observer.Wait();
+  }
+  ASSERT_FALSE(rfh->IsRenderFrameLive());
+
+  auto* root = web_contents->GetPrimaryFrameTree().root();
+  RenderFrameHostManager* manager = root->render_manager();
+
+  manager->InitializeMainRenderFrameForImmediateUse();
+
+  // Add a new iframe. As part of this iframe's creation
+  // RenderFrameHostImpl::SetOriginDependentStateOfNewFrame() will be called
+  // which will attempt to copy the parent frame's
+  // RuntimeFeatureStateDocumentData.
+  std::string script =
+      "var new_iframe = document.createElement('iframe');"
+      "document.documentElement.appendChild(new_iframe);";
+
+  // If the parent's RuntimeFeatureStateDocumentData exists then this will
+  // succeed, otherwise we'll hit a CHECK.
+  EXPECT_TRUE(ExecJs(shell(), script));
 }
 
 // Tests that enable clearing window.name on cross-site

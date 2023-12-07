@@ -117,6 +117,18 @@ BASE_FEATURE(kQuickOfficeForceFileDownload,
              base::FEATURE_ENABLED_BY_DEFAULT);
 #endif  // BUILDFLAG(IS_CHROMEOS)
 
+#if BUILDFLAG(IS_ANDROID)
+// Enable boarding pass detector on Chrome Android.
+BASE_FEATURE(kBoardingPassDetector,
+             "BoardingPassDetector",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+const char kBoardingPassDetectorUrlParamName[] = "boarding_pass_detector_urls";
+const base::FeatureParam<std::string> kBoardingPassDetectorUrlParam(
+    &kBoardingPassDetector,
+    kBoardingPassDetectorUrlParamName,
+    "");
+#endif  // BUILDFLAG(IS_ANDROID)
+
 #if BUILDFLAG(IS_CHROMEOS_ASH)
 // Enable Borealis on Chrome OS.
 BASE_FEATURE(kBorealis, "Borealis", base::FEATURE_DISABLED_BY_DEFAULT);
@@ -459,6 +471,12 @@ BASE_FEATURE(kFlashDeprecationWarning,
              "FlashDeprecationWarning",
              base::FEATURE_ENABLED_BY_DEFAULT);
 #endif
+
+#if BUILDFLAG(IS_CHROMEOS)
+BASE_FEATURE(kForcedAppRelaunchOnPlaceholderUpdate,
+             "ForcedAppRelaunchOnPlaceholderUpdate",
+             base::FEATURE_ENABLED_BY_DEFAULT);
+#endif  // BUILDFLAG(IS_CHROMEOS)
 
 // Controls whether the GeoLanguage system is enabled. GeoLanguage uses IP-based
 // coarse geolocation to provide an estimate (for use by other Chrome features
@@ -947,13 +965,6 @@ BASE_FEATURE(kMeteredShowToggle,
 BASE_FEATURE(kShowHiddenNetworkToggle,
              "ShowHiddenNetworkToggle",
              base::FEATURE_ENABLED_BY_DEFAULT);
-#endif
-
-#if BUILDFLAG(IS_ANDROID)
-// Enables the new design of metrics settings.
-BASE_FEATURE(kMetricsSettingsAndroid,
-             "MetricsSettingsAndroid",
-             base::FEATURE_DISABLED_BY_DEFAULT);
 #endif
 
 BASE_FEATURE(kMoveWebApp,

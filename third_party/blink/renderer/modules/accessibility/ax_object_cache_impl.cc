@@ -110,7 +110,6 @@
 #include "third_party/blink/renderer/modules/accessibility/ax_virtual_object.h"
 #include "third_party/blink/renderer/modules/permissions/permission_utils.h"
 #include "third_party/blink/renderer/platform/instrumentation/tracing/trace_event.h"
-#include "third_party/blink/renderer/platform/wtf/functional.h"
 #include "ui/accessibility/ax_common.h"
 #include "ui/accessibility/ax_enums.mojom-blink.h"
 #include "ui/accessibility/ax_event.h"
@@ -832,7 +831,7 @@ AXObject* AXObjectCacheImpl::Root() {
   if (AXObject* root = SafeGet(document_))
     return root;
 
-  ProcessDeferredAccessibilityEvents(GetDocument());
+  ProcessDeferredAccessibilityEvents(GetDocument(), /*force*/ true);
   return SafeGet(document_.Get());
 }
 
@@ -883,9 +882,7 @@ void AXObjectCacheImpl::UpdateAXForAllDocuments() {
   // Next flush all accessibility events and dirty objects, for both the main
   // and popup document, and update tree if needed.
   if (IsDirty() || HasDirtyObjects()) {
-    node_to_parse_before_more_tree_updates_ = nullptr;
-    pause_tree_updates_until_more_loaded_content_ = false;
-    ProcessDeferredAccessibilityEvents(GetDocument());
+    ProcessDeferredAccessibilityEvents(GetDocument(), /*force*/ true);
   }
 }
 
@@ -1301,8 +1298,9 @@ bool AXObjectCacheImpl::IsRelevantPseudoElementDescendant(
       return false;
     if (ancestor->IsPseudoElement()) {
       // When an ancestor is exposed using CSS alt text, descendants are pruned.
-      if (AXNodeObject::GetCSSAltText(ancestor->GetNode()))
+      if (AXNodeObject::GetCSSAltText(To<Element>(ancestor->GetNode()))) {
         return false;
+      }
       return IsRelevantPseudoElement(*ancestor->GetNode());
     }
     if (!ancestor->IsAnonymous())
@@ -2817,14 +2815,21 @@ void AXObjectCacheImpl::UpdateTreeIfNeeded() {
 
 void AXObjectCacheImpl::CheckStyleIsComplete(Document& document) const {
 #if EXPENSIVE_DCHECKS_ARE_ON()
+  Element* root_element = document.documentElement();
+  if (!root_element) {
+    return;
+  }
+
   {
     // Check that all style is up-to-date when layout is clean, when a11y is on.
     // This allows content-visibility: auto subtrees to have proper a11y
     // semantics, e.g. for the hidden and focusable states.
-    Node* node = &document;
+    Node* node = root_element;
     do {
       CHECK(!node->NeedsStyleRecalc()) << "Need style on: " << node;
-      const ComputedStyle* style = node->GetComputedStyle();
+      auto* element = DynamicTo<Element>(node);
+      const ComputedStyle* style =
+          element ? element->GetComputedStyle() : nullptr;
       if (!style || style->ContentVisibility() == EContentVisibility::kHidden ||
           style->IsEnsuredInDisplayNone()) {
         // content-visibility:hidden nodes are an exception and do not
@@ -2840,9 +2845,11 @@ void AXObjectCacheImpl::CheckStyleIsComplete(Document& document) const {
   {
     // Check results of ChildNeedsStyleRecalc() as well, just to be sure there
     // isn't a discrepancy there.
-    Node* node = &document;
+    Node* node = root_element;
     do {
-      const ComputedStyle* style = node->GetComputedStyle();
+      auto* element = DynamicTo<Element>(node);
+      const ComputedStyle* style =
+          element ? element->GetComputedStyle() : nullptr;
       if (!style || style->ContentVisibility() == EContentVisibility::kHidden ||
           style->IsEnsuredInDisplayNone()) {
         // content-visibility:hidden nodes are an exception and do not
@@ -2864,8 +2871,21 @@ void AXObjectCacheImpl::CheckTreeIsUpdated() {
   CHECK(tree_update_callback_queue_popup_.empty());
 
 #if DCHECK_IS_ON()
+  // The following checks can make tests flaky if the tree being checked
+  // is quite large. Therefore cap the number of objects we check.
+  constexpr int kMaxObjectsToCheckAfterTreeUpdate = 10000;
+  if (objects_.size() > kMaxObjectsToCheckAfterTreeUpdate) {
+    DLOG(INFO) << "AXObjectCacheImpl::CheckTreeIsUpdated: Only checking first "
+               << kMaxObjectsToCheckAfterTreeUpdate
+               << " items in objects_ (size: " << objects_.size() << ")";
+  }
+
   // First loop checks that tree structure is consistent.
+  int count = 0;
   for (const auto& entry : objects_) {
+    if (count > kMaxObjectsToCheckAfterTreeUpdate) {
+      break;
+    }
     const AXObject* object = entry.value;
     DCHECK(!object->IsDetached());
     DCHECK(object->GetDocument());
@@ -2898,11 +2918,16 @@ void AXObjectCacheImpl::CheckTreeIsUpdated() {
             << "\n* Included parent: " << included_parent->ToString(true);
       }
     }
+    count++;
   }
 
   // Second loop checks that all dirty bits to update properties or children
   // have been cleared.
+  count = 0;
   for (const auto& entry : objects_) {
+    if (count > kMaxObjectsToCheckAfterTreeUpdate) {
+      break;
+    }
     const AXObject* object = entry.value;
     if (object->HasDirtyDescendants()) {
       // This an error: log the top ancestor that still has dirty descendants.
@@ -2932,26 +2957,13 @@ void AXObjectCacheImpl::CheckTreeIsUpdated() {
         << "No cached values should require an update at this point: "
         << "\n* Object: " << object->ToString(true)
         << "\n* Included parent: " << included_parent->ToString(true);
+    count++;
   }
 #endif
 }
 
-int AXObjectCacheImpl::GetDeferredEventsDelay() const {
-  // The amount of time, in milliseconds, to wait before sending non-interactive
-  // events that are deferred before the initial page load.
-  constexpr int kDelayForDeferredUpdatesBeforePageLoad = 350;
-
-  // The amount of time, in milliseconds, to wait before sending non-interactive
-  // events that are deferred after the initial page load.
-  // Shync with same constant in CrossPlatformAccessibilityBrowserTest.
-  constexpr int kDelayForDeferredUpdatesAfterPageLoad = 150;
-
-  return GetDocument().IsLoadCompleted()
-             ? kDelayForDeferredUpdatesAfterPageLoad
-             : kDelayForDeferredUpdatesBeforePageLoad;
-}
-
-void AXObjectCacheImpl::ProcessDeferredAccessibilityEvents(Document& document) {
+void AXObjectCacheImpl::ProcessDeferredAccessibilityEvents(Document& document,
+                                                           bool force) {
   if (IsPopup(document)) {
     // Only process popup document together with main document.
     DCHECK_EQ(&document, GetPopupDocumentIfShowing());
@@ -2967,17 +2979,20 @@ void AXObjectCacheImpl::ProcessDeferredAccessibilityEvents(Document& document) {
   CHECK(!processing_deferred_events_);
 
   if (tree_updates_paused_) {
-    LOG(INFO) << "Accessibility tree updates will be resumed after rebuilding "
-                 "the tree from root";
-    MarkDocumentDirty();
     tree_updates_paused_ = false;
-    return;
+    if (!force) {
+      LOG(INFO)
+          << "Accessibility tree updates will be resumed after rebuilding "
+             "the tree from root";
+      MarkDocumentDirty();
+      return;
+    }
   }
 
   // Don't update the tree at an awkward time during page load.
   // Example: when the last node is whitespace, there is not yet enough context
   // to determine the relevance of the whitespace.
-  if (pause_tree_updates_until_more_loaded_content_) {
+  if (pause_tree_updates_until_more_loaded_content_ && !force) {
     if (IsParsingMainDocument()) {
       return;
     }
@@ -3017,8 +3032,10 @@ void AXObjectCacheImpl::ProcessDeferredAccessibilityEvents(Document& document) {
     if (IsDirty()) {
       if (GetPopupDocumentIfShowing()) {
         ProcessDeferredAccessibilityEventsImpl(*GetPopupDocumentIfShowing());
+        CHECK(tree_update_callback_queue_popup_.empty());
       }
       ProcessDeferredAccessibilityEventsImpl(document);
+      CHECK(tree_update_callback_queue_main_.empty());
     }
 
 #if BUILDFLAG(IS_ANDROID)
@@ -3038,36 +3055,6 @@ void AXObjectCacheImpl::ProcessDeferredAccessibilityEvents(Document& document) {
     UpdateTreeIfNeeded();
   }
 
-  if (serialize_post_lifecycle_) {
-    if (IsSerializationInFlight()) {
-      // Another serialization is in flight. When it's finished, a new
-      // serialization will be triggered if necessary.
-      return;
-    }
-
-    const auto& now = base::Time::Now();
-    const auto& delay_between_serializations =
-        base::Milliseconds(GetDeferredEventsDelay());
-    const auto& elapsed_since_last_serialization =
-        now - last_serialization_timestamp_;
-    const auto& delay_until_next_serialization =
-        delay_between_serializations - elapsed_since_last_serialization;
-    if (delay_until_next_serialization.is_positive()) {
-      if (!weak_factory_for_serialization_pipeline_.HasWeakPtrs()) {
-        document.GetTaskRunner(blink::TaskType::kInternalDefault)
-            ->PostDelayedTask(
-                FROM_HERE,
-                WTF::BindOnce(
-                    &AXObjectCacheImpl::ScheduleAXUpdate,
-                    weak_factory_for_serialization_pipeline_.GetWeakPtr()),
-                delay_until_next_serialization);
-      }
-      return;  // No serialization needed yet.
-    }
-
-    weak_factory_for_serialization_pipeline_.InvalidateWeakPtrs();
-  }
-
   // ------------------------ Freeze and serialize ---------------------------
   {
     // The frozen state begins immediately after processing deferred events.
@@ -3078,7 +3065,7 @@ void AXObjectCacheImpl::ProcessDeferredAccessibilityEvents(Document& document) {
     // TODO(accessibility) It's a bit confusing that this can be true when the
     // IsDirty() is false, but this is the case for objects marked dirty from
     // RenderAccessibilityImpl, e.g. for the kEndOfTest event.
-    if (serialize_post_lifecycle_ && HasDirtyObjects()) {
+    if (HasDirtyObjects()) {
       if (auto* client = GetWebLocalFrameClient()) {
         client->AXReadyCallback();
       }
@@ -4291,165 +4278,6 @@ WebLocalFrameClient* AXObjectCacheImpl::GetWebLocalFrameClient() const {
   return client;
 }
 
-bool AXObjectCacheImpl::IsImmediateProcessingRequiredForEvent(
-    const ui::AXEvent& event) const {
-  DCHECK(serialize_post_lifecycle_);
-  if (last_serialization_timestamp_ == kSerializeAtNextOpportunity) {
-    return true;  // Already scheduled for immediate mode.
-  }
-
-  if (event.event_from == ax::mojom::blink::EventFrom::kAction) {
-    return true;  // Actions should result in an immediate response.
-  }
-
-  switch (event.event_type) {
-    case ax::mojom::blink::Event::kActiveDescendantChanged:
-    case ax::mojom::blink::Event::kBlur:
-    case ax::mojom::blink::Event::kCheckedStateChanged:
-    case ax::mojom::blink::Event::kClicked:
-    case ax::mojom::blink::Event::kDocumentSelectionChanged:
-    case ax::mojom::blink::Event::kFocus:
-    case ax::mojom::blink::Event::kHover:
-    case ax::mojom::blink::Event::kLoadComplete:
-    case ax::mojom::blink::Event::kLoadStart:
-    case ax::mojom::blink::Event::kValueChanged:
-      return true;
-
-    case ax::mojom::blink::Event::kDocumentTitleChanged:
-    case ax::mojom::blink::Event::kExpandedChanged:
-    case ax::mojom::blink::Event::kHide:
-    case ax::mojom::blink::Event::kLayoutComplete:
-    case ax::mojom::blink::Event::kLocationChanged:
-    case ax::mojom::blink::Event::kMenuListValueChanged:
-    case ax::mojom::blink::Event::kRowCollapsed:
-    case ax::mojom::blink::Event::kRowCountChanged:
-    case ax::mojom::blink::Event::kRowExpanded:
-    case ax::mojom::blink::Event::kScrollPositionChanged:
-    case ax::mojom::blink::Event::kScrolledToAnchor:
-    case ax::mojom::blink::Event::kSelectedChildrenChanged:
-    case ax::mojom::blink::Event::kShow:
-    case ax::mojom::blink::Event::kTextChanged:
-      return false;
-
-    // These events are not fired from Blink.
-    // This list is duplicated in WebFrameTestProxy::PostAccessibilityEvent().
-    case ax::mojom::blink::Event::kAlert:
-    case ax::mojom::blink::Event::kAriaAttributeChangedDeprecated:
-    case ax::mojom::blink::Event::kAutocorrectionOccured:
-    case ax::mojom::blink::Event::kChildrenChanged:
-    case ax::mojom::blink::Event::kControlsChanged:
-    case ax::mojom::blink::Event::kEndOfTest:
-    case ax::mojom::blink::Event::kFocusAfterMenuClose:
-    case ax::mojom::blink::Event::kFocusContext:
-    case ax::mojom::blink::Event::kHitTestResult:
-    case ax::mojom::blink::Event::kImageFrameUpdated:
-    case ax::mojom::blink::Event::kLiveRegionCreated:
-    case ax::mojom::blink::Event::kLiveRegionChanged:
-    case ax::mojom::blink::Event::kMediaStartedPlaying:
-    case ax::mojom::blink::Event::kMediaStoppedPlaying:
-    case ax::mojom::blink::Event::kMenuEnd:
-    case ax::mojom::blink::Event::kMenuPopupEnd:
-    case ax::mojom::blink::Event::kMenuPopupStart:
-    case ax::mojom::blink::Event::kMenuStart:
-    case ax::mojom::blink::Event::kMouseCanceled:
-    case ax::mojom::blink::Event::kMouseDragged:
-    case ax::mojom::blink::Event::kMouseMoved:
-    case ax::mojom::blink::Event::kMousePressed:
-    case ax::mojom::blink::Event::kMouseReleased:
-    case ax::mojom::blink::Event::kNone:
-    case ax::mojom::blink::Event::kSelection:
-    case ax::mojom::blink::Event::kSelectionAdd:
-    case ax::mojom::blink::Event::kSelectionRemove:
-    case ax::mojom::blink::Event::kStateChanged:
-    case ax::mojom::blink::Event::kTextSelectionChanged:
-    case ax::mojom::blink::Event::kTooltipClosed:
-    case ax::mojom::blink::Event::kTooltipOpened:
-    case ax::mojom::blink::Event::kTreeChanged:
-    case ax::mojom::blink::Event::kWindowActivated:
-    case ax::mojom::blink::Event::kWindowDeactivated:
-    case ax::mojom::blink::Event::kWindowVisibilityChanged:
-      // Never fired from Blink.
-      NOTREACHED() << "Event not expected from Blink: " << event.event_type;
-      return false;
-  }
-}
-
-// The lifecycle serialization works as follows:
-// 1) Dirty objects and events are fired through
-// AXObjectCacheImpl::PostPlatformNotification which in turn makes a call to
-// AXObjectCacheImpl::AddEventToSerializationQueue to queue it.
-//
-// 2) When the lifecycle is ready to be serialized,
-// AXObjectCacheImpl::ProcessDeferredAccessibilityEvents is called which first
-// checks if it's time to make a new serialization, and if not, it will early
-// return in order to add a delay between serializations.
-//
-// 3) AXObjectCacheImpl::ProcessDeferredAccessibilityEvents then calls
-// RenderAccessibilityImpl:AXReadyCallback to start serialization process.
-//
-// Check the below CL for more information:
-// https://chromium-review.googlesource.com/c/chromium/src/+/4994320
-void AXObjectCacheImpl::AddEventToSerializationQueue(
-    const ui::AXEvent& event,
-    bool immediate_serialization) {
-  AXObject* obj = ObjectFromAXID(event.id);
-  DCHECK(!obj->IsDetached());
-
-  pending_events_.push_back(event);
-
-  AddDirtyObjectToSerializationQueue(obj, false, event.event_from,
-                                     event.event_from_action,
-                                     event.event_intents);
-
-  if (immediate_serialization) {
-    ScheduleImmediateSerialization();
-  }
-}
-
-void AXObjectCacheImpl::OnSerializationCancelled() {
-  serialization_in_flight_ = false;
-}
-
-void AXObjectCacheImpl::OnSerializationStartSend() {
-  serialization_in_flight_ = true;
-}
-
-bool AXObjectCacheImpl::IsSerializationInFlight() const {
-  return serialization_in_flight_;
-}
-
-void AXObjectCacheImpl::OnSerializationReceived() {
-  serialization_in_flight_ = false;
-  last_serialization_timestamp_ = base::Time::Now();
-
-  // Another serialization may be needed, in the case where the AXObjectCache is
-  // dirty. In that case, make sure a visual update is scheduled so that
-  // AXReadyCallback() will be called. ScheduleAXUpdate() will only schedule a
-  // visual update if the AXObjectCache is dirty.
-  if (serialize_immediately_after_current_serialization_) {
-    serialize_immediately_after_current_serialization_ = false;
-    ScheduleImmediateSerialization();
-  } else {
-    ScheduleAXUpdate();
-  }
-}
-
-void AXObjectCacheImpl::ScheduleImmediateSerialization() {
-  DCHECK(serialize_post_lifecycle_);
-
-  // This makes sure that we'll serialize at the next available opportunity.
-  last_serialization_timestamp_ = kSerializeAtNextOpportunity;
-
-  if (IsSerializationInFlight()) {
-    serialize_immediately_after_current_serialization_ = true;
-    return;  // Wait until current serialization message has been received.
-  }
-
-  // Call ScheduleAXUpdate() to ensure lifecycle does not get stalled.
-  // Will call AXReadyCallback() at the next available opportunity.
-  ScheduleAXUpdate();
-}
-
 void AXObjectCacheImpl::PostPlatformNotification(
     AXObject* obj,
     ax::mojom::blink::Event event_type,
@@ -4473,21 +4301,15 @@ void AXObjectCacheImpl::PostPlatformNotification(
   for (auto agent : agents_)
     agent->AXEventFired(obj, event_type);
 
-  if (serialize_post_lifecycle_) {
-    AddEventToSerializationQueue(event,
-                                 IsImmediateProcessingRequiredForEvent(event));
-
-    // TODO(aleventhal) This is for web tests only, in order to record MarkDirty
-    // events. Is there a way to avoid these calls for normal browsing?
-    // Maybe we should use dependency injection from AccessibilityController.
-    if (auto* client = GetWebLocalFrameClient()) {
-      client->HandleWebAccessibilityEventForTest(event);
-    }
-  } else {
-    // legacy mode, go through RAI again!
-    if (auto* client = GetWebLocalFrameClient()) {
-      client->PostAccessibilityEvent(event);
-    }
+  if (auto* client = GetWebLocalFrameClient()) {
+    // TODO(accessibility) This doesn't need to call into RAI -- it
+    // can add to pending events and dirty objects here. The only reason to call
+    // into RAI would be during a page load, to inform in the case of an
+    // event that requires immediate serialization, such as focus.
+    // MarkAXObjectDirtyWithDetails(obj, false, event_from, event_from_action,
+    //                              event.event_intents);
+    // AddPendingEvent(event);
+    client->PostAccessibilityEvent(event);
   }
 }
 
@@ -4520,29 +4342,12 @@ void AXObjectCacheImpl::MarkAXObjectDirtyWithCleanLayoutHelper(
   // TODO(aleventhal) This is for web tests only, in order to record MarkDirty
   // events. Is there a way to avoid these calls for normal browsing?
   // Maybe we should use dependency injection from AccessibilityController.
-  if (auto* client = GetWebLocalFrameClient()) {
-    if (serialize_post_lifecycle_) {
-      client->HandleWebAccessibilityEventForTest(
-          WebAXObject(obj), "MarkDirty", std::vector<ui::AXEventIntent>());
-    } else {
-      client->NotifyWebAXObjectMarkedDirty(WebAXObject(obj));
-    }
-  }
-
-  if (serialize_post_lifecycle_) {
-    // It's important for the user to have access to any changes to the
-    // currently focused object, so schedule serializations immediately if that
-    // object changes. The root is an exception because it often has focus while
-    // the page is loading. In that case the event type is used as the signal
-    // (see IsImmediateProcessingRequiredForEvent()).
-    if (obj != Root() && obj->IsFocused()) {
-      ScheduleImmediateSerialization();
-    }
-  }
+  if (auto* client = GetWebLocalFrameClient())
+    client->NotifyWebAXObjectMarkedDirty(WebAXObject(obj));
 
   std::vector<ui::AXEventIntent> event_intents;
-  AddDirtyObjectToSerializationQueue(obj, subtree, event_from,
-                                     event_from_action, event_intents);
+  MarkAXObjectDirtyWithDetails(obj, subtree, event_from, event_from_action,
+                               event_intents);
 
   obj->UpdateCachedAttributeValuesIfNeeded(true);
   for (auto agent : agents_)
@@ -4883,7 +4688,7 @@ bool AXObjectCacheImpl::SerializeEntireTree(
   return true;
 }
 
-void AXObjectCacheImpl::AddDirtyObjectToSerializationQueue(
+void AXObjectCacheImpl::MarkAXObjectDirtyWithDetails(
     AXObject* obj,
     bool subtree,
     ax::mojom::blink::EventFrom event_from,
@@ -5098,7 +4903,6 @@ void AXObjectCacheImpl::GetImagesToAnnotate(
   }
 }
 
-// TODO(accessibility): This function can go when legacy mode is deleted.
 bool AXObjectCacheImpl::AddPendingEvent(const ui::AXEvent& event,
                                         bool insert_at_beginning) {
   if (insert_at_beginning)
@@ -5411,7 +5215,7 @@ void AXObjectCacheImpl::HandleScrollPositionChanged(
 const AtomicString& AXObjectCacheImpl::ComputedRoleForNode(Node* node) {
   // Accessibility tree must be updated before getting an object.
   SCOPED_DISALLOW_LIFECYCLE_TRANSITION();
-  ProcessDeferredAccessibilityEvents(GetDocument());
+  ProcessDeferredAccessibilityEvents(GetDocument(), /*force*/ true);
   ScopedFreezeAXCache scoped_freeze_cache(*this);
   AXObject* obj = SafeGet(node);
   return AXObject::ARIARoleName(obj ? obj->RoleValue()
@@ -5421,7 +5225,7 @@ const AtomicString& AXObjectCacheImpl::ComputedRoleForNode(Node* node) {
 String AXObjectCacheImpl::ComputedNameForNode(Node* node) {
   // Accessibility tree must be updated before getting an object.
   SCOPED_DISALLOW_LIFECYCLE_TRANSITION();
-  ProcessDeferredAccessibilityEvents(GetDocument());
+  ProcessDeferredAccessibilityEvents(GetDocument(), /*force*/ true);
   ScopedFreezeAXCache scoped_freeze_cache(*this);
   AXObject* obj = SafeGet(node);
   return obj ? obj->ComputedName() : "";

@@ -5,6 +5,7 @@
 #include "partition_alloc/shim/allocator_shim_default_dispatch_to_partition_alloc.h"
 
 #include <atomic>
+#include <bit>
 #include <cstddef>
 #include <map>
 #include <string>
@@ -15,7 +16,6 @@
 #include "partition_alloc/chromecast_buildflags.h"
 #include "partition_alloc/memory_reclaimer.h"
 #include "partition_alloc/partition_alloc.h"
-#include "partition_alloc/partition_alloc_base/bits.h"
 #include "partition_alloc/partition_alloc_base/compiler_specific.h"
 #include "partition_alloc/partition_alloc_base/no_destructor.h"
 #include "partition_alloc/partition_alloc_base/numerics/checked_math.h"
@@ -218,7 +218,7 @@ void* AllocateAlignedMemory(size_t alignment, size_t size) {
   // mismatch. (see below the default_dispatch definition).
   if (alignment <= partition_alloc::internal::kAlignment) {
     // This is mandated by |posix_memalign()| and friends, so should never fire.
-    PA_CHECK(partition_alloc::internal::base::bits::IsPowerOfTwo(alignment));
+    PA_CHECK(std::has_single_bit(alignment));
     // TODO(bartekn): See if the compiler optimizes branches down the stack on
     // Mac, where PartitionPageSize() isn't constexpr.
     return Allocator()->AllocInline<partition_alloc::AllocFlags::kNoHooks>(
@@ -426,6 +426,10 @@ size_t PartitionGetSizeEstimate(const AllocatorDispatch*,
 }
 
 #if BUILDFLAG(IS_APPLE)
+size_t PartitionGoodSize(const AllocatorDispatch*, size_t size, void* context) {
+  return Allocator()->AllocationCapacityFromRequestedSize(size);
+}
+
 bool PartitionClaimedAddress(const AllocatorDispatch*,
                              void* address,
                              void* context) {
@@ -721,8 +725,10 @@ const AllocatorDispatch AllocatorDispatch::default_dispatch = {
     &allocator_shim::internal::
         PartitionGetSizeEstimate,  // get_size_estimate_function
 #if BUILDFLAG(IS_APPLE)
+    &allocator_shim::internal::PartitionGoodSize,        // good_size
     &allocator_shim::internal::PartitionClaimedAddress,  // claimed_address
 #else
+    nullptr,  // good_size
     nullptr,  // claimed_address
 #endif
     &allocator_shim::internal::PartitionBatchMalloc,  // batch_malloc_function
@@ -792,7 +798,7 @@ SHIM_ALWAYS_EXPORT struct mallinfo mallinfo(void) __THROW {
                                      &nonquarantinable_allocator_dumper);
   }
 
-  struct mallinfo info = {0};
+  struct mallinfo info = {};
   info.arena = 0;  // Memory *not* allocated with mmap().
 
   // Memory allocated with mmap(), aka virtual size.

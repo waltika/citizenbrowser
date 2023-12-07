@@ -273,6 +273,9 @@ BASE_DECLARE_FEATURE(kTabGridRefactoring);
 // Feature flag enabling the tab grid new compositional layout.
 BASE_DECLARE_FEATURE(kTabGridCompositionalLayout);
 
+// Whether the Tab Grid should use its compositional layout.
+bool IsTabGridCompositionalLayoutEnabled();
+
 // Whether the Safety Check module should be shown in the Magic Stack.
 bool IsSafetyCheckMagicStackEnabled();
 
@@ -359,6 +362,10 @@ BASE_DECLARE_FEATURE(kFullscreenImprovement);
 
 // Feature flag to enable Tab Groups in Grid.
 BASE_DECLARE_FEATURE(kTabGroupsInGrid);
+
+// Feature flag to enable the handling of external actions passed to Chrome.
+// Enabled by default.
+BASE_DECLARE_FEATURE(kIOSExternalActionURLs);
 
 // Feature param under `kEnableFeedBackgroundRefresh` to also enable background
 // refresh for the Following feed.
@@ -639,5 +646,8 @@ bool ShouldHideIrrelevantModules();
 // How many days before showing the Compacted Set Up List module configuration
 // in the Magic Stack.
 int TimeUntilShowingCompactedSetUpList();
+
+// Helper for whether the external action handling flag is enabled.
+bool IsExternalActionSchemeHandlingEnabled();
 
 #endif  // IOS_CHROME_BROWSER_SHARED_PUBLIC_FEATURES_FEATURES_H_

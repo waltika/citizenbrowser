@@ -136,8 +136,8 @@
 #include "components/language/core/browser/pref_names.h"
 #include "components/language/core/common/language_experiments.h"
 #include "components/language/core/common/language_util.h"
-#include "components/metrics/call_stack_profile_metrics_provider.h"
-#include "components/metrics/call_stack_profile_params.h"
+#include "components/metrics/call_stacks/call_stack_profile_metrics_provider.h"
+#include "components/metrics/call_stacks/call_stack_profile_params.h"
 #include "components/metrics/content/subprocess_metrics_provider.h"
 #include "components/metrics/expired_histogram_util.h"
 #include "components/metrics/metrics_reporting_default_state.h"
@@ -771,6 +771,10 @@ int ChromeBrowserMainParts::PreEarlyInitialization() {
   // Create BrowserProcess in PreEarlyInitialization() so that we can load
   // field trials (and all it depends upon).
   browser_process_ = std::make_unique<BrowserProcessImpl>(startup_data_);
+
+#if BUILDFLAG(IS_ANDROID)
+  startup_data_->CreateProfilePrefService();
+#endif
 
   bool failed_to_load_resource_bundle = false;
   const int load_local_state_result =

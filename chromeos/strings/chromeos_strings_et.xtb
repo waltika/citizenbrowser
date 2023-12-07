@@ -31,7 +31,6 @@
 <translation id="1181037720776840403">Eemalda</translation>
 <translation id="1191518099344003522">APN on lubatud.</translation>
 <translation id="1195447618553298278">Tundmatu viga.</translation>
-<translation id="1195784767091936222">Lülita automaatne tume režiim sisse</translation>
 <translation id="1196959502276349371">Versioon <ph name="VERSION" /></translation>
 <translation id="1199355487114804640">Esita/peata</translation>
 <translation id="1201402288615127009">Järgmine</translation>
@@ -152,7 +151,6 @@
 <translation id="1923388006036088459">Aktsentvärvid</translation>
 <translation id="1947737735496445907">Prinditud</translation>
 <translation id="1951012854035635156">Assistent</translation>
-<translation id="1954687945444914660">Fotograafia</translation>
 <translation id="1962550982027027473">Nõutav on vaike-APN.</translation>
 <translation id="1973886230221301399">ChromeVox</translation>
 <translation id="1977994649430373166">Google'i profiilifoto</translation>
@@ -261,6 +259,7 @@
 <translation id="2872961005593481000">Lülita välja</translation>
 <translation id="2873483161362553159">Brauseris navigeerimine</translation>
 <translation id="2874939134665556319">Eelmine lugu</translation>
+<translation id="2875812231449496375">Selle taustapildiga parima tulemuse jaoks lülitage see sisse. Saate selle seade igal ajal välja lülitada.</translation>
 <translation id="2878387241690264070">Tühjenes <ph name="RATE" /> <ph name="NUM_SECONDS" /> sekundiga.</translation>
 <translation id="2880569433548999039">Pilvevoolu ekraanisäästja</translation>
 <translation id="2926057806159140518">Sisestage kasutajanimi ja parool või skannige QR-kood</translation>
@@ -281,7 +280,6 @@
 <translation id="3122464029669770682">Protsessor</translation>
 <translation id="3124039320086536031">Seade on ühendatud.</translation>
 <translation id="3127341325625468058">{PAGE_NUMBER,plural, =0{Kas eemaldada leht?}=1{Kas eemaldada {PAGE_NUMBER}. leht?}other{Kas eemaldada {PAGE_NUMBER}. leht?}}</translation>
-<translation id="3136905423678675159">Kas lülitada automaatne tume režiim sisse?</translation>
 <translation id="3146655726035122603">Ainult teenuses <ph name="PRODUCT_NAME" /></translation>
 <translation id="315116470104423982">Mobiilne andmeside</translation>
 <translation id="3156846309055100599"><ph name="PAGE_NUMBER" />. lehe skannimine …</translation>
@@ -362,7 +360,6 @@
 <translation id="3740976234706877572"><ph name="AVERAGE_SCORE" /> ★ (<ph name="AGGREGATED_COUNT" /> arvustust)</translation>
 <translation id="3748026146096797577">Ühendus puudub</translation>
 <translation id="3749289110408117711">Faili nimi</translation>
-<translation id="3754384069690464321">Selle taustapildiga parima tulemuse saavutamiseks lülitage sisse automaatne tume režiim. Saate rakenduses selle alati tagasi vahetada.</translation>
 <translation id="3771294271822695279">Videofailid</translation>
 <translation id="3784455785234192852">Lukusta</translation>
 <translation id="380097101658023925">RGB juhtelemendid</translation>
@@ -555,6 +552,7 @@
 <translation id="5090362543162270857">IPsec (IKEv2)</translation>
 <translation id="5137451382116112100">Täisekraan</translation>
 <translation id="5142961317498132443">Autentimine</translation>
+<translation id="5145081769226915336">Kas lülitada tume režiim automaatselt sisse?</translation>
 <translation id="5154917547274118687">Mälu</translation>
 <translation id="5160857336552977725">Logige sisse seadmesse <ph name="DEVICE_TYPE" /></translation>
 <translation id="5166918508782100047">Kiirvastuste seaded</translation>
@@ -596,7 +594,6 @@
 <translation id="5389224261615877010">Vikerkaar</translation>
 <translation id="5400907029458559844">Seadet ühendatakse.</translation>
 <translation id="5401938042319910061">Käita kõiki rutiine</translation>
-<translation id="540604120278030498">New York</translation>
 <translation id="5423849171846380976">Aktiveeritud</translation>
 <translation id="5430931332414098647">Automaatne jagamine</translation>
 <translation id="5431318178759467895">Värv</translation>
@@ -806,7 +803,6 @@
 <translation id="7046522406494308071">Kas lähtestada kõik otseteed vaikeväärtustele?</translation>
 <translation id="7058278511608979688">Lõpeta ja salvesta</translation>
 <translation id="7059230779847288458">Laadimine, täislaadimiseks kulub <ph name="TIME_VALUE" /></translation>
-<translation id="7065364575846974659">Pariis</translation>
 <translation id="7066538517128343186">võti <ph name="KEY" /></translation>
 <translation id="7068619307603204412">Seadme ettevalmistamine</translation>
 <translation id="708426984172631313">PEATATUD</translation>
@@ -947,7 +943,6 @@
 <translation id="8094062939584182041">Luban Google'il endale selle teema kohta meile saata</translation>
 <translation id="8104083085214006426">Kasutate avatud ja ebaturvalist võrku</translation>
 <translation id="8111706652656628199">Otsetee pole saadaval. Vajutage uut klahvikombinatsiooni, kasutades tõstuklahvi ja veel ühte muuteklahvi (Ctrl, Alt, otsinguklahv või käivitaja).</translation>
-<translation id="8112538018114444149"><ph name="CHIP_STYLE" /> stiilis park linnas <ph name="CHIP_CITY" />.</translation>
 <translation id="811820734797650957">(Android) Lüüsi saab pingida</translation>
 <translation id="8129620843620772246"><ph name="TEMPERATURE_C" /> °C</translation>
 <translation id="8132480444149501833">Taotle liiklusloendureid</translation>
@@ -1082,7 +1077,6 @@
 <translation id="9058932992221914855">IPv6</translation>
 <translation id="9062831201344759865">DNS-i eraldusvõimel on pikk latentsusaeg</translation>
 <translation id="9065203028668620118">Muuda</translation>
-<translation id="9068296451330120661">Vesivärvide</translation>
 <translation id="9073281213608662541">PAP</translation>
 <translation id="9074739597929991885">Bluetooth</translation>
 <translation id="9082718469794970195">Kasuta seda videot</translation>

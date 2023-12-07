@@ -143,6 +143,7 @@ class CORE_EXPORT CSSMathExpressionNode
   bool HasPercentage() const {
     return category_ == kCalcPercent || category_ == kCalcPercentLength;
   }
+  virtual bool InvolvesPercentage() const { return HasPercentage(); }
 
   // Returns the unit type of the math expression *without doing any type
   // conversion* (e.g., 1px + 1em needs type conversion to resolve).
@@ -403,6 +404,10 @@ class CORE_EXPORT CSSMathExpressionOperation final
     return operator_ == CSSMathOperator::kAdd ||
            operator_ == CSSMathOperator::kSubtract;
   }
+  bool IsMultiplyOrDivide() const {
+    return operator_ == CSSMathOperator::kMultiply ||
+           operator_ == CSSMathOperator::kDivide;
+  }
   bool AllOperandsAreNumeric() const;
   bool IsMinOrMax() const {
     return operator_ == CSSMathOperator::kMin ||
@@ -430,6 +435,8 @@ class CORE_EXPORT CSSMathExpressionOperation final
     return IsMinOrMax() || IsClamp() || IsSteppedValueFunction() ||
            IsTrigonometricFunction() || IsSignRelatedFunction();
   }
+
+  bool InvolvesPercentage() const final;
 
   String CSSTextAsClamp() const;
 
@@ -461,7 +468,7 @@ class CORE_EXPORT CSSMathExpressionOperation final
   double ComputeDouble(const CSSLengthResolver& length_resolver) const final;
 
  private:
-  static const CSSMathExpressionNode* GetNumberSide(
+  static const CSSMathExpressionNode* GetNumericLiteralSide(
       const CSSMathExpressionNode* left_side,
       const CSSMathExpressionNode* right_side);
 

@@ -8,7 +8,6 @@
 #if BUILDFLAG(IOS_USE_BRANDED_SYMBOLS)
 NSString* const kGoogleIconSymbol = @"google_icon";
 NSString* const kGoogleShieldSymbol = @"google_shield";
-NSString* const kChromeSymbol = @"chrome_symbol";
 NSString* const kMulticolorChromeballSymbol = @"multicolor_chromeball";
 NSString* const kGoogleMapsSymbol = @"google_maps";
 NSString* const kGooglePhotosSymbol = @"google_photos";
@@ -35,7 +34,6 @@ NSString* const kReadingListSymbol = @"square_bullet_square";
 NSString* const kRecentTabsSymbol = @"laptopcomputer_and_phone";
 NSString* const kLanguageSymbol = @"language";
 NSString* const kLocationSymbol = @"location";
-NSString* const kLocationFillSymbol = @"location.fill";
 NSString* const kPasswordSymbol = @"password";
 #if !BUILDFLAG(IS_IOS_MACCATALYST)
 NSString* const kMulticolorPasswordSymbol = @"multicolor_password";

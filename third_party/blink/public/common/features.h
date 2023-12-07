@@ -137,6 +137,8 @@ BLINK_COMMON_EXPORT extern const base::FeatureParam<
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kAutoSpeculationRules);
 BLINK_COMMON_EXPORT extern const base::FeatureParam<std::string>
     kAutoSpeculationRulesConfig;
+BLINK_COMMON_EXPORT extern const base::FeatureParam<bool>
+    kAutoSpeculationRulesHoldback;
 
 // Switch to enabling rendering of gainmap-based AVIF HDR images.
 // For this feature to work, kGainmapHdrImages must also be enabled.
@@ -244,6 +246,7 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kClientHintsResourceWidth_DEPRECATED);
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kClientHintsSaveData);
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kClientHintsViewportWidth);
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kClientHintsViewportWidth_DEPRECATED);
+BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kClientHintsXRFormFactor);
 
 // Allows reading unsanitized content from the clipboard. Currently,
 // it is only applicable to HTML format. See crbug.com/1268679.
@@ -406,6 +409,9 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kFencedFrames);
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kFencedFramesM120FeaturesPart1);
 
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kFencedFramesM120FeaturesPart2);
+
+BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
+    kFencedFramesReportingAttestationsChanges);
 
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
     kFencedFramesAutomaticBeaconCredentials);
@@ -929,6 +935,8 @@ BLINK_COMMON_EXPORT extern const base::FeatureParam<bool>
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
     kPrivateAggregationApiMultipleCloudProviders);
 
+BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kPrivateNetworkAccessNullIpAddress);
+
 // If set, HTMLDocumentParser processes data immediately rather than after a
 // delay. This is further controlled by the feature params starting with the
 // same name. Also note that this only applies to uses that are normally
@@ -1346,6 +1354,9 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kTimedHTMLParserBudget);
 
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kUACHOverrideBlank);
 
+BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
+    kEmulateLoadStartedForInspectorOncePerResource);
+
 // Kill switch for using a custom task runner in the blink scheduler that makes
 // DeleteSoon/ReleaseSoon less prone to memory leaks.
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
@@ -1484,6 +1495,13 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
 // scroll translation or other composited transform.
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kExpandCompositedCullRect);
 BLINK_COMMON_EXPORT extern const base::FeatureParam<int> kPixelDistanceToExpand;
+
+// Treat HTTP header `Expires: "0"` as expired value according section 5.3 on
+// RFC 9111.
+// TODO(https://crbug.com/853508): Remove after the bug fix will go well for a
+// while on stable channels.
+BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
+    kTreatHTTPExpiresHeaderValueZeroAsExpiredInBlink);
 
 }  // namespace features
 }  // namespace blink

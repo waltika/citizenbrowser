@@ -5,8 +5,6 @@
 #ifndef CHROME_BROWSER_WEB_APPLICATIONS_WEB_APP_PREFS_UTILS_H_
 #define CHROME_BROWSER_WEB_APPLICATIONS_WEB_APP_PREFS_UTILS_H_
 
-#include <map>
-
 #include "base/strings/string_piece.h"
 #include "base/time/time.h"
 #include "components/webapps/common/web_app_id.h"
@@ -20,8 +18,9 @@ class PrefRegistrySyncable;
 
 namespace web_app {
 
-extern const char kIphIgnoreCount[];
-extern const char kIphLastIgnoreTime[];
+// TODO(b/313491176): Remove all these public utilities once this utility file
+// is retired.
+bool TimeOccurredWithinDays(absl::optional<base::Time> time, int days);
 
 absl::optional<int> GetIntWebAppPref(const PrefService* pref_service,
                                      const webapps::AppId& app_id,
@@ -47,28 +46,6 @@ void RemoveWebAppPref(PrefService* pref_service,
 
 void WebAppPrefsUtilsRegisterProfilePrefs(
     user_prefs::PrefRegistrySyncable* registry);
-
-// Deprecated. See crbug.com/1287292
-absl::optional<int> GetWebAppInstallSourceDeprecated(
-    PrefService* prefs,
-    const webapps::AppId& app_id);
-
-// Looks up all install sources in the web apps prefs dictionary and returns
-// them as a map. Also deletes the values from the dictionary. Used for
-// migration to the WebApp database. This should be safe to delete one year
-// after 02-2022.
-std::map<webapps::AppId, int> TakeAllWebAppInstallSources(PrefService* prefs);
-
-void RecordInstallIphIgnored(PrefService* pref_service,
-                             const webapps::AppId& app_id,
-                             base::Time time);
-
-void RecordInstallIphInstalled(PrefService* pref_service,
-                               const webapps::AppId& app_id);
-
-// Returns whether Web App Install In Product Help should be shown based on
-// previous interactions with this promo.
-bool ShouldShowIph(PrefService* pref_service, const webapps::AppId& app_id);
 
 // -------------------------ML Promotion Guardrails-------------------------
 // Pref entries

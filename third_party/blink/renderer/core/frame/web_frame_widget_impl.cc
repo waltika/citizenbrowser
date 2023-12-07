@@ -1500,11 +1500,10 @@ bool WebFrameWidgetImpl::ShouldReportLongAnimationFrameTiming() const {
 void WebFrameWidgetImpl::OnTaskCompletedForFrame(
     base::TimeTicks start_time,
     base::TimeTicks end_time,
-    base::TimeTicks desired_execution_time,
     LocalFrame* frame) {
   if (animation_frame_timing_monitor_) {
-    animation_frame_timing_monitor_->OnTaskCompleted(
-        start_time, end_time, desired_execution_time, frame);
+    animation_frame_timing_monitor_->OnTaskCompleted(start_time, end_time,
+                                                     frame);
   }
 }
 
@@ -2722,6 +2721,17 @@ void WebFrameWidgetImpl::SetResizable(bool resizable) {
       MediaValueChange::kOther);
 }
 
+void WebFrameWidgetImpl::OverrideDevicePostureForEmulation(
+    device::mojom::blink::DevicePostureType device_posture_param) {
+  LocalFrame* frame = LocalRootImpl()->GetFrame();
+  frame->OverrideDevicePostureForEmulation(device_posture_param);
+}
+
+void WebFrameWidgetImpl::DisableDevicePostureOverrideForEmulation() {
+  LocalFrame* frame = LocalRootImpl()->GetFrame();
+  frame->DisableDevicePostureOverrideForEmulation();
+}
+
 void WebFrameWidgetImpl::SetWindowSegments(
     const std::vector<gfx::Rect>& window_segments_param) {
   WebVector<gfx::Rect> window_segments(window_segments_param);
@@ -3877,17 +3887,17 @@ Vector<gfx::Rect> WebFrameWidgetImpl::CalculateVisibleLineBoundsOnScreen() {
   Vector<gfx::QuadF> bounds_from_blink;
   GetLineBounds(bounds_from_blink, text_control->InnerEditorElement());
 
-  gfx::Rect screen = GetPage()->GetVisualViewport().VisibleContentRect();
+  gfx::Rect screen = LocalRootImpl()->GetFrameView()->FrameToScreen(
+      GetPage()->GetVisualViewport().VisibleContentRect());
   for (auto& quad : bounds_from_blink) {
-    gfx::Rect bounding_box = gfx::ToRoundedRect(quad.BoundingBox());
+    gfx::Rect bounding_box =
+        focused_element->GetLayoutObject()->GetFrameView()->FrameToScreen(
+            gfx::ToRoundedRect(quad.BoundingBox()));
     bounding_box.Intersect(screen);
     if (bounding_box.IsEmpty()) {
       continue;
     }
-
-    bounds_in_dips.push_back(
-        focused_element->GetLayoutObject()->GetFrameView()->FrameToScreen(
-            bounding_box));
+    bounds_in_dips.push_back(bounding_box);
   }
   return bounds_in_dips;
 }

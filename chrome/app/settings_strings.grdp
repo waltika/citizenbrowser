@@ -515,6 +515,18 @@
   <message name="IDS_SETTINGS_CREDIT_CARD_NICKNAME_INVALID" desc="The error message that is shown when user uses digit numbers in credit card nickname">
     Nickname can’t include numbers
   </message>
+  <message name="IDS_SETTINGS_CREDIT_CARD_CVC_TITLE" desc="The title for the input that lets users enter the CVC/security code of the credit card.">
+    Security code
+  </message>
+  <message name="IDS_SETTINGS_CREDIT_CARD_CVC_IMAGE_TITLE" desc="The text shown in a tool-tip when the user hovers over the helper image that guides the user when entering their credit card CVC/security code.">
+    Your security code is on the back of your card
+  </message>
+  <message name="IDS_SETTINGS_CREDIT_CARD_CVC_IMAGE_TITLE_AMEX" desc="The text shown in a tool-tip when the user hovers over the helper image that guides the user when entering their credit card CVC/security code for AmEx cards.">
+    Your security code is on the front of your card
+  </message>
+  <message name="IDS_SETTINGS_CREDIT_CARD_CVC_PLACEHOLDER" desc="The placeholder text for the input that lets users enter the CVC/security code of the credit card, letting users know that this field is optional.">
+    Optional
+  </message>
   <message name="IDS_SETTINGS_ADD_PAYMENT_METHODS" desc="The (accessibility) label that appears in the drop-down button for adding either an IBAN (International Bank Account Number), or a credit/debit card.">
     Add payment methods
   </message>
@@ -959,6 +971,9 @@
   </message>
   <message name="IDS_SETTINGS_CLEAR_COOKIES_AND_SITE_DATA_SUMMARY_BASIC_SUPERVISED_PROFILE" desc="A summary for the 'Cookies and site data' option in the 'Clear Browsing Data' screen, explaining that deleting cookies and site data will sign the the child user out of most websites but your Google account and Family Link settings will stay .">
     Signs you out of most sites. You'll stay signed in to your Google Account so your Family Link settings for Chrome apply.
+  </message>
+  <message name="IDS_SETTINGS_CLEAR_COOKIES_AND_SITE_DATA_SUMMARY_BASIC_SIGNED_IN_PROFILE" desc="A summary for the 'Cookies and site data' option in the 'Clear Browsing Data' screen, explaining that deleting cookies and site data will sign the user out of most websites but your Google sign in will stay.">
+    Signs you out of most sites. You'll stay signed in to your Google Account.
   </message>
   <message name="IDS_SETTINGS_CLEAR_BROWSING_HISTORY_SUMMARY" desc="A subtext for the basic tab explaining browsing history.">
     Clears history, including in the search box
@@ -2181,14 +2196,14 @@
     Manage
   </message>
   <message name="IDS_SETTINGS_SECURE_DNS" desc="Text for secure DNS toggle in Privacy options">
-    Use secure DNS
+    Encrypt the names of sites you visit
   </message>
   <message name="IDS_SETTINGS_SECURE_DNS_DESCRIPTION" desc="Secondary, continued explanation of secure DNS in Privacy options">
-    Use a secure connection to look up a site’s IP address in the DNS (Domain Name System)
+    Use secure Domain Name System (DNS) to prevent people with access to your internet traffic from seeing which sites you visit
   </message>
   <if expr="chromeos_ash">
     <message name="IDS_SETTINGS_SECURE_DNS_WITH_IDENTIFIERS_DESCRIPTION" desc="Secondary, continued explanation of secure DNS in Privacy options">
-      Use a secure connection to look up a site’s IP address in the DNS (Domain Name System). This uses a managed service provider at <ph name="DNS_SERVER_TEMPLATE_WITH_IDENTIFIER">$1<ex>https://dns.example.net/dns-query{?dns}</ex></ph>
+      Use secure Domain Name System (DNS) to prevent people with access to your internet traffic from seeing which sites you visit. This uses a managed service provider at <ph name="DNS_SERVER_TEMPLATE_WITH_IDENTIFIER">$1<ex>https://dns.example.net/dns-query{?dns}</ex></ph>
     </message>
   </if>
   <message name="IDS_SETTINGS_AUTOMATIC_MODE_DESCRIPTION" desc="Text of the select option that puts secure DNS in auto-upgrade mode">
@@ -3110,8 +3125,8 @@
   <message name="IDS_SETTINGS_TRACKING_PROTECTION_SITES_ALLOWED_COOKIES_TITLE" desc="Title of the section on the Tracking Protection settings page that lets users manage which sites are allowed to use third-party cookies.">
     Sites allowed to use third-party cookies
   </message>
-  <message name="IDS_SETTINGS_TRACKING_PROTECTION_SITES_ALLOWED_COOKIES_DESCRIPTION" desc="Description of the section on the Tracking Protection settings page that lets users manage which sites are allowed to use third-party cookies. Explains that third-party cookies are also allowed for subdomains of the listed sites.">
-    Affects the sites listed here and their subdomains. For example, adding “google.com” means that third-party cookies can also be active for mail.google.com, because it’s part of google.com.
+  <message name="IDS_SETTINGS_TRACKING_PROTECTION_SITES_ALLOWED_COOKIES_DESCRIPTION" desc="Description of the section on the Tracking Protection settings page that lets users manage which sites are allowed to use third-party cookies. Explains how to use a wildcard to create an exception for an entire domain.">
+    Affects the sites listed here. Inserting “[*.]” before a domain name creates an exception for the entire domain. For example, adding “[*.]google.com” means that third-party cookies can also be active for mail.google.com, because it’s part of google.com.
   </message>
   <message name="IDS_SETTINGS_TRACKING_PROTECTION_ROLLBACK_NOTICE" desc="Notice text on the top of the 'Third-party cookies' settings page telling users that Tracking Protection is temporarily unavailable.">
     Tracking Protection is temporarily unavailable. While Chrome is updating this feature, sites can temporarily use third-party cookies unless you block them. <ph name="BEGIN_LINK">&lt;a target="_blank" href="$1" aria-label="$2"&gt;</ph>Learn more<ph name="END_LINK">&lt;/a&gt;<ex>&lt;/a&gt;</ex></ph>
@@ -4313,11 +4328,6 @@
   </message>
   <message name="IDS_SETTINGS_SAFETY_HUB_MODULE_NAME_SEPARATOR" desc="The entry point shown on the screenshot leads to Safety Check settings page (chrome://settings/safetyCheck) when at least on of the Safety Check modules have recommendations. The subheader of the entry point lists the modules with recommendations using a separator between them (in English it is a comma used between all items in a series). This string is the separator between the module names and is used like 'Passwords, extensions, notifications'.">
     ,
-  </message>
-
-  <!-- Experimental enterprise plus_addresses settings strings -->
-  <message name="IDS_PLUS_ADDRESS_SETTINGS_LABEL" desc="A button in settings for management of experimental enterprise plus addresses" translateable="false">
-    Lorem Ipsum
   </message>
 
   <!-- Experimental settings strings -->

@@ -105,14 +105,14 @@ public class HomepageSettings extends ChromeBaseSettingsFragment {
         // changes of the preference.
         if (HomepagePolicyManager.isHomepageManagedByPolicy()) return;
 
-        boolean setToUseNTP = newValue.getCheckedOption() == HomepageOption.ENTRY_CHROME_NTP;
+        boolean setToUseNtp = newValue.getCheckedOption() == HomepageOption.ENTRY_CHROME_NTP;
         GURL newHomepage = UrlFormatter.fixupUrl(newValue.getCustomURI());
         if (!newHomepage.isValid()) {
             newHomepage = GURL.emptyGURL();
         }
         boolean useDefaultUri = HomepageManager.getDefaultHomepageGurl().equals(newHomepage);
 
-        mHomepageManager.setHomepagePreferences(setToUseNTP, useDefaultUri, newHomepage);
+        mHomepageManager.setHomepagePreferences(setToUseNtp, useDefaultUri, newHomepage);
     }
 
     /**
@@ -126,10 +126,10 @@ public class HomepageSettings extends ChromeBaseSettingsFragment {
         GURL defaultGurl = HomepageManager.getDefaultHomepageGurl();
         GURL customGurl = mHomepageManager.getPrefHomepageCustomGurl();
         if (mHomepageManager.getPrefHomepageUseDefaultUri()) {
-            return UrlUtilities.isNTPUrl(defaultGurl) ? GURL.emptyGURL() : defaultGurl;
+            return UrlUtilities.isNtpUrl(defaultGurl) ? GURL.emptyGURL() : defaultGurl;
         }
 
-        if (customGurl.isEmpty() && !UrlUtilities.isNTPUrl(defaultGurl)) {
+        if (customGurl.isEmpty() && !UrlUtilities.isNtpUrl(defaultGurl)) {
             return defaultGurl;
         }
 
@@ -142,35 +142,35 @@ public class HomepageSettings extends ChromeBaseSettingsFragment {
         // Check if the NTP button should be checked.
         // Note it is not always checked when homepage is NTP. When user customized homepage is NTP
         // URL, we don't check Chrome's Homepage radio button.
-        boolean shouldCheckNTP;
+        boolean shouldCheckNtp;
         if (isPolicyEnabled) {
-            shouldCheckNTP = UrlUtilities.isNTPUrl(HomepagePolicyManager.getHomepageUrl());
+            shouldCheckNtp = UrlUtilities.isNtpUrl(HomepagePolicyManager.getHomepageUrl());
         } else {
-            shouldCheckNTP =
-                    mHomepageManager.getPrefHomepageUseChromeNTP()
+            shouldCheckNtp =
+                    mHomepageManager.getPrefHomepageUseChromeNtp()
                             || (mHomepageManager.getPrefHomepageUseDefaultUri()
-                                    && UrlUtilities.isNTPUrl(
+                                    && UrlUtilities.isNtpUrl(
                                             HomepageManager.getDefaultHomepageGurl()));
         }
 
         @HomepageOption
         int checkedOption =
-                shouldCheckNTP ? HomepageOption.ENTRY_CHROME_NTP : HomepageOption.ENTRY_CUSTOM_URI;
+                shouldCheckNtp ? HomepageOption.ENTRY_CHROME_NTP : HomepageOption.ENTRY_CUSTOM_URI;
 
         boolean isRadioButtonPreferenceEnabled =
                 !isPolicyEnabled && HomepageManager.isHomepageEnabled();
 
         // NTP should be visible when policy is not enforced or the option is checked.
-        boolean isNTPOptionVisible = !isPolicyEnabled || shouldCheckNTP;
+        boolean isNtpOptionVisible = !isPolicyEnabled || shouldCheckNtp;
 
         // Customized option should be visible when policy is not enforced or the option is checked.
-        boolean isCustomizedOptionVisible = !isPolicyEnabled || !shouldCheckNTP;
+        boolean isCustomizedOptionVisible = !isPolicyEnabled || !shouldCheckNtp;
 
         return new PreferenceValues(
                 checkedOption,
                 getHomepageForEditText().getSpec(),
                 isRadioButtonPreferenceEnabled,
-                isNTPOptionVisible,
+                isNtpOptionVisible,
                 isCustomizedOptionVisible);
     }
 }

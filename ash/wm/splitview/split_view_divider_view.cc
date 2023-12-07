@@ -18,6 +18,7 @@
 #include "ui/chromeos/styles/cros_tokens_color_mappings.h"
 #include "ui/compositor/layer.h"
 #include "ui/compositor/scoped_layer_animation_settings.h"
+#include "ui/display/screen.h"
 #include "ui/gfx/geometry/rect.h"
 #include "ui/views/background.h"
 #include "ui/views/highlight_border.h"
@@ -84,7 +85,7 @@ void SplitViewDividerView::Layout() {
   // `kSnapGroup` is enabled. If we are in clamshell mode without the feature
   // flag and params, then we must be transitioning from tablet mode, and the
   // divider will be destroyed and there is no need to update it.
-  if (!Shell::Get()->tablet_mode_controller()->InTabletMode() &&
+  if (!display::Screen::GetScreen()->InTabletMode() &&
       !IsSnapGroupEnabledInClamshellMode()) {
     return;
   }
@@ -186,8 +187,13 @@ void SplitViewDividerView::SwapWindows() {
 void SplitViewDividerView::OnResizeStatusChanged() {
   // It's possible that when this function is called, split view mode has
   // been ended, and the divider widget is to be deleted soon. In this case
-  // no need to update the divider layout and do the animation.
-  if (!split_view_controller_->InSplitViewMode()) {
+  // no need to update the divider layout and do the animation. Also no need to
+  // update if the divider is not resizing, which can happen if during
+  // mid-gesture we do tablet <-> clamshell transition.
+  // TODO(b/314018158): Remove `split_view_controller_` from
+  // `SplitViewDividerView`.
+  if (!split_view_controller_->InSplitViewMode() ||
+      !split_view_controller_->IsResizingWithDivider()) {
     return;
   }
 

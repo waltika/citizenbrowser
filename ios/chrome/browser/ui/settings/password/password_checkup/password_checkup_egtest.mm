@@ -122,7 +122,7 @@ id<GREYMatcher> CompromisedPasswordIssuesPageTitle(int issue_count) {
 // Matcher for dismissed warnings table view item shown in the compromised
 // issues page.
 id<GREYMatcher> CompromisedPasswordIssuesDismissedWarnings() {
-  return grey_accessibilityID(kDismissedWarningsCellId);
+  return grey_accessibilityID(kDismissedWarningsCellID);
 }
 
 // Matcher for the navigation title of the dismissed warnings page.
@@ -150,7 +150,7 @@ id<GREYMatcher> WeakPasswordIssuesPageTitle(int issue_count) {
 // Matcher for the compromised warning found in a compromised password's details
 // page.
 id<GREYMatcher> CompromisedWarning() {
-  return grey_accessibilityID(kCompromisedWarningId);
+  return grey_accessibilityID(kCompromisedWarningID);
 }
 
 // Matcher for the "Dismiss Warning" button found in a compromised password's
@@ -688,7 +688,6 @@ NSString* LeakedPasswordDescription() {
 
 // Tests resolving the last reused passwords issue by editing a password through
 // Password Checkup.
-// TODO(crbug.com/1462095): Fix and re enable the test.
 - (void)testResolveLastIssueByEditingPassword {
   SaveReusedPasswordForms();
 

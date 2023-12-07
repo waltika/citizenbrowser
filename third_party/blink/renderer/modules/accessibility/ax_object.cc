@@ -1779,8 +1779,8 @@ void AXObject::SerializeScreenReaderAttributes(ui::AXNodeData* node_data) {
     return;
   }
   String display_style;
-  if (Node* node = GetNode(); node && !node->IsDocumentNode()) {
-    if (const ComputedStyle* computed_style = node->GetComputedStyle()) {
+  if (Element* element = GetElement()) {
+    if (const ComputedStyle* computed_style = element->GetComputedStyle()) {
       display_style = CSSProperty::Get(CSSPropertyID::kDisplay)
                           .CSSValueFromComputedStyle(
                               *computed_style, /* layout_object */ nullptr,
@@ -2982,7 +2982,7 @@ bool AXObject::IsVisited() const {
 }
 
 bool AXObject::AccessibilityIsIgnored() const {
-  CHECK(CanAccessCachedValues());
+  CheckCanAccessCachedValues();
   UpdateCachedAttributeValuesIfNeeded();
 #if defined(AX_FAIL_FAST_BUILD)
   if (!cached_is_ignored_ && IsDetached()) {
@@ -3000,7 +3000,7 @@ bool AXObject::AccessibilityIsIgnored() const {
 }
 
 bool AXObject::AccessibilityIsIgnoredButIncludedInTree() const {
-  CHECK(CanAccessCachedValues());
+  CheckCanAccessCachedValues();
 
   UpdateCachedAttributeValuesIfNeeded();
   return cached_is_ignored_but_included_in_tree_;
@@ -3009,14 +3009,16 @@ bool AXObject::AccessibilityIsIgnoredButIncludedInTree() const {
 // AccessibilityIsIncludedInTree should be true for all nodes that should be
 // included in the tree, even if they are ignored
 bool AXObject::AccessibilityIsIncludedInTree() const {
-  CHECK(CanAccessCachedValues());
+  CheckCanAccessCachedValues();
 
   return !AccessibilityIsIgnored() || AccessibilityIsIgnoredButIncludedInTree();
 }
 
-bool AXObject::CanAccessCachedValues() const {
-  return IsDetached() || !NeedsToUpdateCachedValues() ||
-         !AXObjectCache().IsFrozen();
+void AXObject::CheckCanAccessCachedValues() const {
+  if (!IsDetached() && AXObjectCache().IsFrozen()) {
+    DUMP_WILL_BE_CHECK(!NeedsToUpdateCachedValues())
+        << "Stale values: " << ToString(true, true);
+  }
 }
 
 void AXObject::InvalidateCachedValues() {
@@ -3065,7 +3067,12 @@ void AXObject::UpdateCachedAttributeValuesIfNeeded(
       << GetDocument()->Lifecycle().ToString();
 #endif  // DCHECK_IS_ON()
 
-  CHECK(!IsMissingParent()) << "Missing parent: " << ToString(true, true);
+  if (IsMissingParent()) {
+    // TODO(accessibility) Address this more proactively and cleanly
+    // pruning the a11y tree for layout changes.
+    DUMP_WILL_BE_CHECK(!IsMissingParent())
+        << "Missing parent: " << ToString(true, true);
+  }
 
   // Mock objects are created by, owned and dependent on their parents.
   // If the mock object's values change, recompute the parent's as well.
@@ -3278,7 +3285,7 @@ bool AXObject::ShouldIgnoreForHiddenOrInert(
 // In practice, it does not matter because nodes in display:none subtrees are
 // marked ignored either way.
 bool AXObject::IsInert() const {
-  CHECK(CanAccessCachedValues());
+  CheckCanAccessCachedValues();
 
   UpdateCachedAttributeValuesIfNeeded();
   return cached_is_inert_;
@@ -3381,7 +3388,7 @@ bool AXObject::ComputeIsInert(IgnoredReasons* ignored_reasons) const {
 }
 
 bool AXObject::IsAriaHidden() const {
-  CHECK(CanAccessCachedValues());
+  CheckCanAccessCachedValues();
 
   UpdateCachedAttributeValuesIfNeeded();
   return cached_is_aria_hidden_;
@@ -3423,7 +3430,7 @@ bool AXObject::ComputeIsAriaHidden(IgnoredReasons* ignored_reasons) const {
 }
 
 bool AXObject::IsHiddenByChildTree() const {
-  CHECK(CanAccessCachedValues());
+  CheckCanAccessCachedValues();
   UpdateCachedAttributeValuesIfNeeded();
   return cached_is_hidden_by_child_tree_;
 }
@@ -3611,7 +3618,7 @@ bool AXObject::DispatchEventToAOMEventListeners(Event& event) {
 }
 
 bool AXObject::IsDescendantOfDisabledNode() const {
-  CHECK(CanAccessCachedValues());
+  CheckCanAccessCachedValues();
 
   UpdateCachedAttributeValuesIfNeeded();
   return cached_is_descendant_of_disabled_node_;
@@ -4027,7 +4034,7 @@ bool AXObject::CanSetValueAttribute() const {
 }
 
 bool AXObject::CanSetFocusAttribute() const {
-  CHECK(CanAccessCachedValues());
+  CheckCanAccessCachedValues();
 
   UpdateCachedAttributeValuesIfNeeded();
   return cached_can_set_focus_attribute_;
@@ -4301,8 +4308,9 @@ String AXObject::RecursiveTextAlternative(
 
 const ComputedStyle* AXObject::GetComputedStyle() const {
   Node* node = GetNode();
-  if (!node)
+  if (!node) {
     return nullptr;
+  }
 
 #if DCHECK_IS_ON()
   DCHECK(GetDocument());
@@ -4313,14 +4321,18 @@ const ComputedStyle* AXObject::GetComputedStyle() const {
 #endif
 
   // content-visibility:hidden or content-visibility: auto.
-  if (DisplayLockUtilities::IsDisplayLockedPreventingPaint(node))
+  if (DisplayLockUtilities::IsDisplayLockedPreventingPaint(node)) {
     return nullptr;
+  }
 
   // For elements with layout objects we can get their style directly.
-  if (GetLayoutObject())
+  if (GetLayoutObject()) {
     return GetLayoutObject()->Style();
-
-  return node->GetComputedStyle();
+  }
+  if (const Element* element = GetElement()) {
+    return element->GetComputedStyle();
+  }
+  return nullptr;
 }
 
 // There are 4 ways to use CSS to hide something:
@@ -4381,7 +4393,7 @@ bool AXObject::ComputeIsHiddenViaStyle(const ComputedStyle* style) const {
 }
 
 bool AXObject::IsHiddenViaStyle() const {
-  CHECK(CanAccessCachedValues());
+  CheckCanAccessCachedValues();
 
   UpdateCachedAttributeValuesIfNeeded();
   return cached_is_hidden_via_style_;
@@ -4769,6 +4781,7 @@ ax::mojom::blink::DefaultActionVerb AXObject::Action() const {
   switch (RoleValue()) {
     case ax::mojom::blink::Role::kButton:
     case ax::mojom::blink::Role::kDisclosureTriangle:
+    case ax::mojom::blink::Role::kDisclosureTriangleGrouped:
     case ax::mojom::blink::Role::kToggleButton:
       return ax::mojom::blink::DefaultActionVerb::kPress;
     case ax::mojom::blink::Role::kListBoxOption:
@@ -4809,6 +4822,7 @@ bool AXObject::SupportsARIAExpanded() const {
     case ax::mojom::blink::Role::kComboBoxMenuButton:
     case ax::mojom::blink::Role::kComboBoxSelect:
     case ax::mojom::blink::Role::kDisclosureTriangle:
+    case ax::mojom::blink::Role::kDisclosureTriangleGrouped:
     case ax::mojom::blink::Role::kListBox:
     case ax::mojom::blink::Role::kLink:
     case ax::mojom::blink::Role::kPopUpButton:
@@ -5160,7 +5174,7 @@ bool AXObject::IsRichlyEditable() const {
 }
 
 AXObject* AXObject::LiveRegionRoot() const {
-  CHECK(CanAccessCachedValues());
+  CheckCanAccessCachedValues();
 
   UpdateCachedAttributeValuesIfNeeded();
   return cached_live_region_root_.Get();
@@ -5178,7 +5192,7 @@ bool AXObject::LiveRegionAtomic() const {
 }
 
 const AtomicString& AXObject::ContainerLiveRegionStatus() const {
-  CHECK(CanAccessCachedValues());
+  CheckCanAccessCachedValues();
 
   UpdateCachedAttributeValuesIfNeeded();
   return cached_live_region_root_ ? cached_live_region_root_->LiveRegionStatus()
@@ -5186,7 +5200,7 @@ const AtomicString& AXObject::ContainerLiveRegionStatus() const {
 }
 
 const AtomicString& AXObject::ContainerLiveRegionRelevant() const {
-  CHECK(CanAccessCachedValues());
+  CheckCanAccessCachedValues();
 
   UpdateCachedAttributeValuesIfNeeded();
   return cached_live_region_root_
@@ -5195,7 +5209,7 @@ const AtomicString& AXObject::ContainerLiveRegionRelevant() const {
 }
 
 bool AXObject::ContainerLiveRegionAtomic() const {
-  CHECK(CanAccessCachedValues());
+  CheckCanAccessCachedValues();
 
   UpdateCachedAttributeValuesIfNeeded();
   return cached_live_region_root_ &&
@@ -5203,7 +5217,7 @@ bool AXObject::ContainerLiveRegionAtomic() const {
 }
 
 bool AXObject::ContainerLiveRegionBusy() const {
-  CHECK(CanAccessCachedValues());
+  CheckCanAccessCachedValues();
 
   UpdateCachedAttributeValuesIfNeeded();
   return cached_live_region_root_ &&
@@ -7095,6 +7109,7 @@ bool AXObject::SupportsNameFromContents(bool recursive) const {
     case ax::mojom::blink::Role::kDocNoteRef:
     case ax::mojom::blink::Role::kDocGlossRef:
     case ax::mojom::blink::Role::kDisclosureTriangle:
+    case ax::mojom::blink::Role::kDisclosureTriangleGrouped:
     case ax::mojom::blink::Role::kHeading:
     case ax::mojom::blink::Role::kLayoutTableCell:
     case ax::mojom::blink::Role::kLineBreak:
@@ -7577,7 +7592,7 @@ String AXObject::ToString(bool verbose, bool cached_values_only) const {
 
     if (cached_values_need_update_) {
       string_builder = string_builder + " needsToUpdateCachedValues";
-      if (!CanAccessCachedValues()) {
+      if (AXObjectCache().IsFrozen()) {
         cached_values_only = true;
         string_builder = string_builder + "/disallowed";
       }

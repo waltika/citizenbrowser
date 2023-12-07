@@ -29,6 +29,7 @@
 #include "third_party/blink/public/common/interest_group/ad_auction_constants.h"
 #include "third_party/blink/public/common/interest_group/ad_auction_currencies.h"
 #include "third_party/blink/public/common/interest_group/ad_display_size_utils.h"
+#include "third_party/blink/public/common/interest_group/interest_group.h"
 #include "third_party/blink/public/mojom/interest_group/interest_group_types.mojom-blink.h"
 #include "third_party/blink/public/mojom/parakeet/ad_request.mojom-blink.h"
 #include "third_party/blink/public/mojom/permissions_policy/permissions_policy.mojom-blink.h"
@@ -734,6 +735,20 @@ bool CopyTrustedBiddingSignalsKeysFromIdlToMojo(
   output.trusted_bidding_signals_keys.emplace();
   for (const auto& key : input.trustedBiddingSignalsKeys()) {
     output.trusted_bidding_signals_keys->push_back(key);
+  }
+  return true;
+}
+
+bool CopyTrustedBiddingSignalsSlotSizeModeFromIdlToMojo(
+    const AuctionAdInterestGroup& input,
+    mojom::blink::InterestGroup& output) {
+  if (!input.hasTrustedBiddingSignalsSlotSizeMode()) {
+    output.trusted_bidding_signals_slot_size_mode =
+        mojom::blink::InterestGroup::TrustedBiddingSignalsSlotSizeMode::kNone;
+  } else {
+    output.trusted_bidding_signals_slot_size_mode =
+        blink::InterestGroup::ParseTrustedBiddingSignalsSlotSizeMode(
+            input.trustedBiddingSignalsSlotSizeMode());
   }
   return true;
 }
@@ -2164,14 +2179,6 @@ mojom::blink::AuctionAdConfigPtr IdlAuctionConfigToMojo(
   CopyPerBuyerCurrenciesFromIdlToMojo(auction_handle, auction_id.get(), config,
                                       *mojo_config);
 
-  if (mojo_config->server_response && !is_top_level) {
-    // TODO(1457241): Add support for multi-level auctions including server-side
-    // auctions.
-    exception_state.ThrowTypeError(
-        "Only top-level auctions may have 'serverResponse'.");
-    return mojom::blink::AuctionAdConfigPtr();
-  }
-
   if (config.hasSellerTimeout()) {
     mojo_config->auction_ad_config_non_shared_params->seller_timeout =
         base::Milliseconds(config.sellerTimeout());
@@ -2219,10 +2226,10 @@ mojom::blink::AuctionAdConfigPtr IdlAuctionConfigToMojo(
             "nested componentAuctions.");
         return mojom::blink::AuctionAdConfigPtr();
       }
-      // We need decision logic for component auctions even if they have a
-      // server response. We perform reporting client-side for component
-      // auctions.
-      if (!idl_component_auction->hasDecisionLogicURL()) {
+      // We need decision logic for component auctions unless they have a
+      // server response.
+      if (!idl_component_auction->hasDecisionLogicURL() &&
+          !idl_component_auction->hasServerResponse()) {
         exception_state.ThrowTypeError(ErrorMissingRequired(
             "ad auction config decisionLogicURL or serverResponse"));
         return mojom::blink::AuctionAdConfigPtr();
@@ -2944,61 +2951,35 @@ ScriptPromise NavigatorAuction::joinAdInterestGroup(
   }
 
   if (!CopySellerCapabilitiesFromIdlToMojo(*context, exception_state, *group,
-                                           *mojo_group)) {
-    return ScriptPromise();
-  }
-  if (!CopyExecutionModeFromIdlToMojo(*context, exception_state, *group,
-                                      *mojo_group)) {
-    return ScriptPromise();
-  }
-  if (!CopyBiddingLogicUrlFromIdlToMojo(*context, exception_state, *group,
-                                        *mojo_group)) {
-    return ScriptPromise();
-  }
-  if (!CopyWasmHelperUrlFromIdlToMojo(*context, exception_state, *group,
-                                      *mojo_group)) {
-    return ScriptPromise();
-  }
-  if (!CopyUpdateUrlFromIdlToMojo(*context, exception_state, *group,
-                                  *mojo_group)) {
-    return ScriptPromise();
-  }
-  if (!CopyTrustedBiddingSignalsUrlFromIdlToMojo(*context, exception_state,
-                                                 *group, *mojo_group)) {
-    return ScriptPromise();
-  }
-  if (!CopyTrustedBiddingSignalsKeysFromIdlToMojo(*group, *mojo_group)) {
-    return ScriptPromise();
-  }
-  if (!CopyUserBiddingSignalsFromIdlToMojo(*script_state, exception_state,
-                                           *group, *mojo_group)) {
-    return ScriptPromise();
-  }
-  if (!CopyAdsFromIdlToMojo(*context, *script_state, exception_state, *group,
-                            *mojo_group)) {
-    return ScriptPromise();
-  }
-  if (!CopyAdComponentsFromIdlToMojo(*context, *script_state, exception_state,
-                                     *group, *mojo_group)) {
-    return ScriptPromise();
-  }
-  if (!CopyAdSizesFromIdlToMojo(*context, *script_state, exception_state,
-                                *group, *mojo_group)) {
-    return ScriptPromise();
-  }
-  if (!CopySizeGroupsFromIdlToMojo(*context, *script_state, exception_state,
-                                   *group, *mojo_group)) {
-    return ScriptPromise();
-  }
-  if (!CopyAuctionServerRequestFlagsFromIdlToMojo(*context, exception_state,
-                                                  *group, *mojo_group)) {
-    return ScriptPromise();
-  }
-  if (!CopyAdditionalBidKeyFromIdlToMojo(*context, exception_state, *group,
-                                         *mojo_group)) {
-    return ScriptPromise();
-  }
-  if (!CopyAggregationCoordinatorOriginFromIdlToMojo(exception_state, *group,
+                                           *mojo_group) ||
+      !CopyExecutionModeFromIdlToMojo(*context, exception_state, *group,
+                                      *mojo_group) ||
+      !CopyBiddingLogicUrlFromIdlToMojo(*context, exception_state, *group,
+                                        *mojo_group) ||
+      !CopyWasmHelperUrlFromIdlToMojo(*context, exception_state, *group,
+                                      *mojo_group) ||
+      !CopyUpdateUrlFromIdlToMojo(*context, exception_state, *group,
+                                  *mojo_group) ||
+      !CopyTrustedBiddingSignalsUrlFromIdlToMojo(*context, exception_state,
+                                                 *group, *mojo_group) ||
+      !CopyTrustedBiddingSignalsKeysFromIdlToMojo(*group, *mojo_group) ||
+      !CopyTrustedBiddingSignalsSlotSizeModeFromIdlToMojo(*group,
+                                                          *mojo_group) ||
+      !CopyUserBiddingSignalsFromIdlToMojo(*script_state, exception_state,
+                                           *group, *mojo_group) ||
+      !CopyAdsFromIdlToMojo(*context, *script_state, exception_state, *group,
+                            *mojo_group) ||
+      !CopyAdComponentsFromIdlToMojo(*context, *script_state, exception_state,
+                                     *group, *mojo_group) ||
+      !CopyAdSizesFromIdlToMojo(*context, *script_state, exception_state,
+                                *group, *mojo_group) ||
+      !CopySizeGroupsFromIdlToMojo(*context, *script_state, exception_state,
+                                   *group, *mojo_group) ||
+      !CopyAuctionServerRequestFlagsFromIdlToMojo(*context, exception_state,
+                                                  *group, *mojo_group) ||
+      !CopyAdditionalBidKeyFromIdlToMojo(*context, exception_state, *group,
+                                         *mojo_group) ||
+      !CopyAggregationCoordinatorOriginFromIdlToMojo(exception_state, *group,
                                                      *mojo_group)) {
     return ScriptPromise();
   }

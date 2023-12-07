@@ -7,30 +7,23 @@
 #import "base/apple/foundation_util.h"
 #import "base/strings/sys_string_conversions.h"
 #import "ios/chrome/browser/shared/public/features/features.h"
-#import "ios/chrome/browser/shared/ui/table_view/cells/table_view_url_item.h"
 #import "ios/chrome/browser/shared/ui/table_view/legacy_chrome_table_view_styler.h"
 #import "ios/chrome/browser/shared/ui/util/uikit_ui_util.h"
+#import "ios/chrome/browser/ui/search_engine_choice/search_engine_choice_table/cells/snippet_search_engine_cell.h"
 #import "ios/chrome/browser/ui/settings/cells/settings_cells_constants.h"
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
+#import "ios/chrome/common/ui/favicon/favicon_view.h"
 #import "ios/chrome/common/ui/table_view/table_view_cells_constants.h"
 #import "url/gurl.h"
 
 #pragma mark - SnippetSearchEngineItem
-
-@interface SnippetSearchEngineItem ()
-
-// Redefined as read write.
-@property(nonatomic, readwrite, copy) NSString* uniqueIdentifier;
-
-@end
 
 @implementation SnippetSearchEngineItem
 
 - (instancetype)initWithType:(NSInteger)type {
   self = [super initWithType:type];
   if (self) {
-    self.cellClass = TableViewURLCell.class;
-    _enabled = YES;
+    self.cellClass = SnippetSearchEngineCell.class;
   }
   return self;
 }
@@ -38,38 +31,23 @@
 - (void)configureCell:(TableViewCell*)tableCell
            withStyler:(ChromeTableViewStyler*)styler {
   [super configureCell:tableCell withStyler:styler];
-
-  self.uniqueIdentifier = base::SysUTF8ToNSString(self.URL.host());
-
-  TableViewURLCell* cell =
-      base::apple::ObjCCastStrict<TableViewURLCell>(tableCell);
-  cell.titleLabel.text = self.text;
-  cell.URLLabel.text = self.detailText;
-  cell.cellUniqueIdentifier = self.uniqueIdentifier;
+  SnippetSearchEngineCell* cell =
+      base::apple::ObjCCastStrict<SnippetSearchEngineCell>(tableCell);
+  cell.nameLabel.text = self.name;
+  cell.snippetLabel.text = self.snippetDescription;
+  cell.snippetState = self.snippetState;
+  cell.checked = self.checked;
   cell.accessibilityTraits |= UIAccessibilityTraitButton;
-  if (self.enabled) {
-    cell.contentView.alpha = 1.0;
-    cell.userInteractionEnabled = YES;
-    cell.accessibilityTraits &= ~UIAccessibilityTraitNotEnabled;
-  } else {
-    cell.contentView.alpha = 0.4;
-    cell.userInteractionEnabled = NO;
-    cell.accessibilityTraits |= UIAccessibilityTraitNotEnabled;
-  }
-
+  cell.userInteractionEnabled = YES;
+  cell.accessibilityTraits &= ~UIAccessibilityTraitNotEnabled;
+  [cell.faviconView configureWithAttributes:self.faviconAttributes];
   if (styler.cellTitleColor) {
-    cell.titleLabel.textColor = styler.cellTitleColor;
+    cell.nameLabel.textColor = styler.cellTitleColor;
   }
-
-  cell.URLLabel.textColor = [UIColor colorNamed:kTextSecondaryColor];
-
-  [cell configureUILayout];
 }
 
 - (BOOL)isEqual:(SnippetSearchEngineItem*)otherItem {
-  return (self.text == otherItem.text) &&
-         (self.detailText == otherItem.detailText) &&
-         (self.URL == otherItem.URL);
+  return (self.name == otherItem.name) && (self.URL == otherItem.URL);
 }
 
 @end

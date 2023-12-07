@@ -31,7 +31,6 @@
 <translation id="1181037720776840403">తీసివేయండి</translation>
 <translation id="1191518099344003522">APN ఎనేబుల్ చేయబడింది.</translation>
 <translation id="1195447618553298278">తెలియని ఎర్రర్.</translation>
-<translation id="1195784767091936222">ఆటోమేటిక్ డార్క్ మోడ్‌ను ఆన్ చేయండి</translation>
 <translation id="1196959502276349371">వెర్షన్ <ph name="VERSION" /></translation>
 <translation id="1199355487114804640">ప్లే చేయండి/పాజ్ చేయండి</translation>
 <translation id="1201402288615127009">తర్వాత</translation>
@@ -152,7 +151,6 @@
 <translation id="1923388006036088459">యాక్సెంట్ రంగు</translation>
 <translation id="1947737735496445907">ప్రింట్ అయింది</translation>
 <translation id="1951012854035635156">Assistant</translation>
-<translation id="1954687945444914660">ఫోటోగ్రఫీ</translation>
 <translation id="1962550982027027473">ఆటోమేటిక్ సెట్టింగ్ APN అవసరం</translation>
 <translation id="1973886230221301399">ChromeVox</translation>
 <translation id="1977994649430373166">Google ప్రొఫైల్ ఫోటో</translation>
@@ -261,6 +259,7 @@
 <translation id="2872961005593481000">షట్ డౌన్ చేయండి</translation>
 <translation id="2873483161362553159">బ్రౌజర్ నావిగేషన్</translation>
 <translation id="2874939134665556319">మునుపటి ట్రాక్</translation>
+<translation id="2875812231449496375">ఈ వాల్‌పేపర్‌తో ఉత్తమ ఫలితాలను పొందడం కోసం దీన్ని ఆన్ చేయండి. మీరు ఈ సెట్టింగ్‌ను ఏ సమయంలోనైనా ఆఫ్ చేయవచ్చు.</translation>
 <translation id="2878387241690264070"><ph name="NUM_SECONDS" /> సెకన్లలో <ph name="RATE" /> డిశ్చార్జ్ చేయబడింది.</translation>
 <translation id="2880569433548999039">క్లౌడ్ ఫ్లో స్క్రీన్ సేవర్</translation>
 <translation id="2926057806159140518">మీ యూజర్‌నేమ్, పాస్‌వర్డ్‌ను ఎంటర్ చేయండి లేదా మీ QR కోడ్‌ను స్కాన్ చేయండి</translation>
@@ -281,7 +280,6 @@
 <translation id="3122464029669770682">CPU</translation>
 <translation id="3124039320086536031">పరికరం కనెక్ట్ చేయబడింది.</translation>
 <translation id="3127341325625468058">{PAGE_NUMBER,plural, =0{పేజీని తీసివేయాలా?}=1{{PAGE_NUMBER}వ పేజీని తీసివేయాలా?}other{{PAGE_NUMBER}వ పేజీని తీసివేయాలా?}}</translation>
-<translation id="3136905423678675159">ఆటోమేటిక్ డార్క్ మోడ్‌ను ఆన్ చేయాలా?</translation>
 <translation id="3146655726035122603"><ph name="PRODUCT_NAME" /> కోసం ప్రత్యేకమైనది</translation>
 <translation id="315116470104423982">మొబైల్ డేటా</translation>
 <translation id="3156846309055100599"><ph name="PAGE_NUMBER" />వ పేజీని స్కాన్ చేస్తోంది...</translation>
@@ -362,7 +360,6 @@
 <translation id="3740976234706877572"><ph name="AVERAGE_SCORE" /> ★ (<ph name="AGGREGATED_COUNT" /> రివ్యూలు)</translation>
 <translation id="3748026146096797577">కనెక్ట్ కాలేదు</translation>
 <translation id="3749289110408117711">ఫైల్ పేరు</translation>
-<translation id="3754384069690464321">ఈ వాల్‌పేపర్ ఉత్తమ ఫలితాల కోసం, దయచేసి ఆటో-డార్క్ మోడ్‌ను ఆన్ చేయండి. మీరు దీన్ని ఎప్పుడైనా యాప్‌లో తిరిగి మార్చుకోవచ్చు.</translation>
 <translation id="3771294271822695279">వీడియో ఫైళ్లు</translation>
 <translation id="3784455785234192852">లాక్ చేయి</translation>
 <translation id="380097101658023925">rgb కంట్రోల్స్</translation>
@@ -555,6 +552,7 @@
 <translation id="5090362543162270857">IPsec (IKEv2)</translation>
 <translation id="5137451382116112100">పూర్తిగా</translation>
 <translation id="5142961317498132443">ప్రమాణీకరణ</translation>
+<translation id="5145081769226915336">డార్క్ మోడ్‌ను ఆటోమేటిక్‌గా ఆన్ చేయాలా?</translation>
 <translation id="5154917547274118687">మెమరీ</translation>
 <translation id="5160857336552977725">మీ <ph name="DEVICE_TYPE" />కు సైన్ ఇన్ చేయండి</translation>
 <translation id="5166918508782100047">క్విక్ ఆన్సర్స్‌కు సంబంధించిన సెట్టింగ్‌లు</translation>
@@ -596,7 +594,6 @@
 <translation id="5389224261615877010">ఇంద్రధనస్సు</translation>
 <translation id="5400907029458559844">పరికరం కనెక్ట్ అవుతోంది.</translation>
 <translation id="5401938042319910061">అన్ని కమాండ్ రొటీన్‌లను రన్ చేయండి</translation>
-<translation id="540604120278030498">న్యూయార్క్</translation>
 <translation id="5423849171846380976">సక్రియం చేయబడింది</translation>
 <translation id="5430931332414098647">తక్షణ టెథెరింగ్</translation>
 <translation id="5431318178759467895">రంగు</translation>
@@ -806,7 +803,6 @@
 <translation id="7046522406494308071">షార్ట్‌కట్‌లన్నింటినీ ఆటోమేటిక్ సెట్టింగ్‌లకు రీసెట్ చేయాలా?</translation>
 <translation id="7058278511608979688">ఆపివేసి, సేవ్ చేయండి</translation>
 <translation id="7059230779847288458">ఛార్జ్ అవుతోంది, పూర్తి కావడానికి <ph name="TIME_VALUE" /> సమయం పడుతుంది</translation>
-<translation id="7065364575846974659">ప్యారిస్</translation>
 <translation id="7066538517128343186">కీ <ph name="KEY" /></translation>
 <translation id="7068619307603204412">మీ పరికరాన్ని సిద్ధం చేయండి</translation>
 <translation id="708426984172631313">ఆపివేయబడింది</translation>
@@ -947,7 +943,6 @@
 <translation id="8094062939584182041">ఈ సమస్యకు గురించి మీకు ఈమెయిల్ చేయడానికి Googleకు అనుమతినివ్వండి</translation>
 <translation id="8104083085214006426">మీరు ఓపెన్, అసురక్షిత నెట్‌వర్క్‌ను ఉపయోగిస్తున్నారు</translation>
 <translation id="8111706652656628199">షార్ట్‌కట్ అందుబాటులో లేదు. shiftను, ఇంకో మోడిఫయర్ కీని (ctrl, alt, సెర్చ్, లేదా లాంచర్) ఉపయోగించి కొత్త షార్ట్‌కట్‌ను నొక్కండి.</translation>
-<translation id="8112538018114444149"><ph name="CHIP_STYLE" />‌కి సంబంధించిన స్టయిల్‌లో <ph name="CHIP_CITY" />‌లోని ఒక పార్క్.</translation>
 <translation id="811820734797650957">(Android) గేట్‌వేను పింగ్ చేయవచ్చు</translation>
 <translation id="8129620843620772246"><ph name="TEMPERATURE_C" />° C</translation>
 <translation id="8132480444149501833">ట్రాఫిక్ కౌంటర్‌ల కోసం రిక్వెస్ట్ చేయండి</translation>
@@ -1082,7 +1077,6 @@
 <translation id="9058932992221914855">IPv6</translation>
 <translation id="9062831201344759865">DNS రిజల్యూషన్ అధిక ప్రతిస్పందన సమయాన్ని కలిగి ఉంది</translation>
 <translation id="9065203028668620118">ఎడిట్</translation>
-<translation id="9068296451330120661">వాటర్ కలర్</translation>
 <translation id="9073281213608662541">PAP</translation>
 <translation id="9074739597929991885">బ్లూటూత్</translation>
 <translation id="9082718469794970195">ఈ వీడియోను ఉపయోగించండి</translation>

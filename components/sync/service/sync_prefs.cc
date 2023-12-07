@@ -23,6 +23,7 @@
 #include "components/prefs/pref_value_map.h"
 #include "components/prefs/scoped_user_pref_update.h"
 #include "components/signin/public/base/gaia_id_hash.h"
+#include "components/signin/public/base/signin_switches.h"
 #include "components/sync/base/features.h"
 #include "components/sync/base/pref_names.h"
 #include "components/sync/base/user_selectable_type.h"
@@ -211,18 +212,24 @@ UserSelectableTypeSet SyncPrefs::GetSelectedTypesForAccount(
       }
       if (pref_value.has_value()) {
         type_enabled = *pref_value;
-      } else {
-        // All types except for History and Tabs are enabled by default.
-        type_enabled = type != UserSelectableType::kHistory &&
-                       type != UserSelectableType::kTabs
-#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
-                       // Passwords are off by default on Desktop and have
-                       // dedicated opt-in UI.
-                       // Note: If this changes, also update the migration logic
-                       // in MigrateGlobalDataTypePrefsToAccount().
-                       && type != UserSelectableType::kPasswords
+      } else if (type == UserSelectableType::kHistory ||
+                 type == UserSelectableType::kTabs) {
+        // History and Tabs are disabled by default.
+        type_enabled = false;
+      } else if (type == UserSelectableType::kPasswords) {
+#if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_IOS)
+        type_enabled = true;
+#else
+        // kPasswords is only on by default if kUnoDesktop is enabled, otherwise
+        // the type requires a dedicated opt-in.
+        // Note: If this changes, also update the migration logic in
+        // MigrateGlobalDataTypePrefsToAccount().
+        type_enabled = base::FeatureList::IsEnabled(switches::kUnoDesktop);
 #endif
-            ;
+      } else {
+        // All types except for History, Tabs and Password are always enabled by
+        // default.
+        type_enabled = true;
       }
 
 #if BUILDFLAG(IS_IOS)
@@ -246,34 +253,22 @@ UserSelectableTypeSet SyncPrefs::GetSelectedTypesForAccount(
   return selected_types;
 }
 
-UserSelectableTypeSet SyncPrefs::GetSelectedTypes(
-    SyncAccountState account_state) const {
+UserSelectableTypeSet SyncPrefs::GetSelectedTypesForSyncingUser() const {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
   UserSelectableTypeSet selected_types;
 
-  switch (account_state) {
-    case SyncAccountState::kNotSignedIn: {
-      break;
-    }
-    case SyncAccountState::kSignedInNotSyncing: {
-      NOTREACHED_NORETURN() << "Call GetSelectedTypesForAccount() instead";
-    }
-    case SyncAccountState::kSyncing: {
-      for (UserSelectableType type : UserSelectableTypeSet::All()) {
-        const char* pref_name = GetPrefNameForType(type);
-        DCHECK(pref_name);
-        if (pref_service_->GetBoolean(pref_name) ||
-            (!IsTypeManagedByPolicy(type) && !IsTypeManagedByCustodian(type) &&
-             pref_service_->GetBoolean(
-                 prefs::internal::kSyncKeepEverythingSynced))) {
-          // In full-sync mode, the "sync everything" bit is honored. If it's
-          // true, all types are considered selected, irrespective of their
-          // individual prefs.
-          selected_types.Put(type);
-        }
-      }
-      break;
+  for (UserSelectableType type : UserSelectableTypeSet::All()) {
+    const char* pref_name = GetPrefNameForType(type);
+    DCHECK(pref_name);
+    if (pref_service_->GetBoolean(pref_name) ||
+        (!IsTypeManagedByPolicy(type) && !IsTypeManagedByCustodian(type) &&
+         pref_service_->GetBoolean(
+             prefs::internal::kSyncKeepEverythingSynced))) {
+      // In full-sync mode, the "sync everything" bit is honored. If it's
+      // true, all types are considered selected, irrespective of their
+      // individual prefs.
+      selected_types.Put(type);
     }
   }
 
@@ -311,9 +306,10 @@ int SyncPrefs::GetNumberOfAccountsWithPasswordsSelected() const {
 }
 #endif
 
-void SyncPrefs::SetSelectedTypes(bool keep_everything_synced,
-                                 UserSelectableTypeSet registered_types,
-                                 UserSelectableTypeSet selected_types) {
+void SyncPrefs::SetSelectedTypesForSyncingUser(
+    bool keep_everything_synced,
+    UserSelectableTypeSet registered_types,
+    UserSelectableTypeSet selected_types) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
   pref_service_->SetBoolean(prefs::internal::kSyncKeepEverythingSynced,
@@ -605,8 +601,6 @@ bool SyncPrefs::IsTypeSupportedInTransportMode(UserSelectableType type) {
       return base::FeatureList::IsEnabled(kEnableBookmarksAccountStorage);
     case UserSelectableType::kReadingList:
       return base::FeatureList::IsEnabled(
-                 kReadingListEnableDualReadingListModel) &&
-             base::FeatureList::IsEnabled(
                  kReadingListEnableSyncTransportModeUponSignIn);
     case UserSelectableType::kPreferences:
       return base::FeatureList::IsEnabled(kReplaceSyncPromosWithSignInPromos) &&
@@ -903,6 +897,7 @@ void SyncPrefs::MigrateGlobalDataTypePrefsToAccount(
     // Additionally, on desktop, Passwords is considered disabled by default and
     // so also needs to be enabled explicitly.
 #if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
+    // TODO(b/314773312): Remove this when Uno is enabled.
     account_settings->Set(GetPrefNameForType(UserSelectableType::kPasswords),
                           true);
 #endif

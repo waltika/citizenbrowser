@@ -303,8 +303,8 @@ wtf_size_t AVIFImageDecoder::DecodedYUVWidthBytes(cc::YUVIndex index) const {
   //
   // The comments for Dav1dPicAllocator in dav1d/picture.h require the pixel
   // width be padded to a multiple of 128 pixels.
-  wtf_size_t aligned_width =
-      static_cast<wtf_size_t>(base::bits::AlignUp(Size().width(), 128));
+  wtf_size_t aligned_width = static_cast<wtf_size_t>(
+      base::bits::AlignUpDeprecatedDoNotUse(Size().width(), 128));
   if (index == cc::YUVIndex::kU || index == cc::YUVIndex::kV) {
     aligned_width >>= chroma_shift_x_;
   }
@@ -1235,8 +1235,8 @@ bool AVIFImageDecoder::GetGainmapInfoAndData(
 
   // If libavif detected a gain map, it already parsed the metadata from the
   // 'tmap' box.
-  if (decoder_->gainMapPresent) {
-    const avifGainMapMetadata& metadata = decoder_->image->gainMap.metadata;
+  if (decoder_->gainMapPresent && decoder_->image->gainMap) {
+    const avifGainMapMetadata& metadata = decoder_->image->gainMap->metadata;
     if (metadata.baseHdrHeadroomD == 0 || metadata.alternateHdrHeadroomD == 0) {
       DVLOG(1) << "Invalid gainmap metadata: a denominator value is zero";
       return false;

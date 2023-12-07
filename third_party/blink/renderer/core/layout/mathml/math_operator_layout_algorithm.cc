@@ -4,10 +4,10 @@
 
 #include "third_party/blink/renderer/core/layout/mathml/math_operator_layout_algorithm.h"
 
+#include "third_party/blink/renderer/core/layout/block_break_token.h"
 #include "third_party/blink/renderer/core/layout/inline/inline_child_layout_context.h"
 #include "third_party/blink/renderer/core/layout/inline/inline_node.h"
 #include "third_party/blink/renderer/core/layout/mathml/math_layout_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_block_break_token.h"
 #include "third_party/blink/renderer/core/mathml/mathml_operator_element.h"
 #include "third_party/blink/renderer/platform/fonts/shaping/stretchy_operator_shaper.h"
 
@@ -146,7 +146,7 @@ const LayoutResult* MathOperatorLayoutAlgorithm::Layout() {
   // the one of the stretched glyph, but LayoutNG currently relies on the
   // min-max sizes. This means there can be excessive gap around vertical
   // stretchy operators and that unstretched size will be used for horizontal
-  // stretchy operators. See also NGMathMLPainter::PaintOperator.
+  // stretchy operators. See also MathMLPainter::PaintOperator.
   LayoutUnit operator_ascent = LayoutUnit::FromFloatFloor(metrics.ascent);
   LayoutUnit operator_descent = LayoutUnit::FromFloatFloor(metrics.descent);
 

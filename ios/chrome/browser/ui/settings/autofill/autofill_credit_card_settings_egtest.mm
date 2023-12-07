@@ -10,7 +10,7 @@
 #import "components/autofill/core/browser/metrics/payments/mandatory_reauth_metrics.h"
 #import "components/autofill/core/common/autofill_payments_features.h"
 #import "components/strings/grit/components_strings.h"
-#import "ios/chrome/browser/metrics/metrics_app_interface.h"
+#import "ios/chrome/browser/metrics/model/metrics_app_interface.h"
 #import "ios/chrome/browser/ui/autofill/autofill_app_interface.h"
 #import "ios/chrome/browser/ui/settings/autofill/autofill_constants.h"
 #import "ios/chrome/browser/ui/settings/settings_root_table_constants.h"
@@ -55,12 +55,17 @@ const DisplayStringIDToExpectedResult kExpectedFields[] = {
 
 NSString* const kCreditCardLabelTemplate = @"Test User, %@";
 
+NSString* const kServerCardHolderName = @"Bonnie Parker";
+
 NSString* const kMandatoryReauthOptOutHistogramName =
     @"Autofill.PaymentMethods.MandatoryReauth.OptChangeEvent.SettingsPage."
     @"OptOut";
 NSString* const kMandatoryReauthOptInHistogramName =
     @"Autofill.PaymentMethods.MandatoryReauth.OptChangeEvent.SettingsPage."
     @"OptIn";
+NSString* const kMandatoryReauthDeleteCardHistogramName =
+    @"Autofill.PaymentMethods.MandatoryReauth.AuthEvent.SettingsPage."
+    @"DeleteCard";
 
 // Return the edit button from the navigation bar.
 id<GREYMatcher> NavigationBarEditButton() {
@@ -74,11 +79,6 @@ id<GREYMatcher> NavigationBarEditButton() {
 // screen.
 id<GREYMatcher> BottomToolbar() {
   return grey_accessibilityID(kAutofillPaymentMethodsToolbarId);
-}
-
-// Matcher for the toolbar's done button.
-id<GREYMatcher> SettingToolbarDoneButton() {
-  return grey_accessibilityID(kSettingsToolbarEditDoneButtonId);
 }
 
 }  // namespace
@@ -159,11 +159,12 @@ id<GREYMatcher> SettingToolbarDoneButton() {
   [ChromeEarlGreyUI waitForAppToIdle];
 }
 
-// Test that the page for viewing Autofill credit card details is as expected.
-- (void)testCreditCardViewPage {
-  NSString* lastDigits = [AutofillAppInterface saveLocalCreditCard];
+// Test that the page for viewing Autofill credit card details is as expected
+// when Mandatory Reauth is enabled.
+- (void)testCreditCardViewPageMandatoryReauthEnabled {
   [AutofillAppInterface mockReauthenticationModuleExpectedResult:
                             ReauthenticationResult::kSuccess];
+  NSString* lastDigits = [AutofillAppInterface saveLocalCreditCard];
   [self openEditCreditCard:[self creditCardLabel:lastDigits]];
 
   // Check that all fields and values match the expectations.
@@ -181,6 +182,86 @@ id<GREYMatcher> SettingToolbarDoneButton() {
   [[EarlGrey selectElementWithMatcher:SettingsMenuBackButton(0)]
       performAction:grey_tap()];
 
+  [self exitSettingsMenu];
+}
+
+// Test that the page for viewing Autofill credit card details is as expected
+// when Mandatory Reauth is disabled.
+- (void)testCreditCardViewPageMandatoryReauthDisabled {
+  [AutofillAppInterface setMandatoryReauthEnabled:FALSE];
+  NSString* lastDigits = [AutofillAppInterface saveLocalCreditCard];
+  [self openEditCreditCard:[self creditCardLabel:lastDigits]];
+
+  // Check that all fields and values match the expectations.
+  for (const DisplayStringIDToExpectedResult& expectation : kExpectedFields) {
+    [[EarlGrey selectElementWithMatcher:
+                   grey_accessibilityLabel([NSString
+                       stringWithFormat:@"%@, %@",
+                                        l10n_util::GetNSString(
+                                            expectation.display_string_id),
+                                        expectation.expected_result])]
+        assertWithMatcher:grey_notNil()];
+  }
+
+  // Go back to the list view page.
+  [[EarlGrey selectElementWithMatcher:SettingsMenuBackButton(0)]
+      performAction:grey_tap()];
+
+  [self exitSettingsMenu];
+}
+
+// Test that the page for viewing Autofill credit card details is not reached
+// if the Mandatory Reauth feature is enabled and the user fails the
+// authentication prompt.
+- (void)testCreditCardViewPageMandatoryReauthFailed {
+  [AutofillAppInterface mockReauthenticationModuleExpectedResult:
+                            ReauthenticationResult::kFailure];
+  NSString* lastDigits = [AutofillAppInterface saveLocalCreditCard];
+  [self openEditCreditCard:[self creditCardLabel:lastDigits]];
+
+  // Confirm that we have not reached the card details page by confirming that
+  // none of its fields are present.
+  for (const DisplayStringIDToExpectedResult& expectation : kExpectedFields) {
+    [[EarlGrey selectElementWithMatcher:
+                   grey_accessibilityLabel([NSString
+                       stringWithFormat:@"%@, %@",
+                                        l10n_util::GetNSString(
+                                            expectation.display_string_id),
+                                        expectation.expected_result])]
+        assertWithMatcher:grey_nil()];
+  }
+
+  // Confirm we are still on the credit card settings page by confirming the
+  // presence of the mandatory reauth toggle.
+  [[EarlGrey
+      selectElementWithMatcher:chrome_test_util::TableViewSwitchCell(
+                                   kAutofillCreditCardSwitchViewId, YES, YES)]
+      assertWithMatcher:grey_notNil()];
+
+  [self exitSettingsMenu];
+}
+
+// Test that reaching the credit card details page for a server card does not
+// require reauthentication.
+- (void)testServerCardViewSkipsMandatoryReauth {
+  [AutofillAppInterface saveMaskedCreditCard];
+  [self openEditCreditCard:kServerCardHolderName];
+
+  // Confirm we have arrived at the card details page by specifying the presence
+  // of the cardholder name field and its correct value.
+  [[EarlGrey selectElementWithMatcher:
+                 grey_accessibilityLabel([NSString
+                     stringWithFormat:@"%@, %@",
+                                      l10n_util::GetNSString(
+                                          IDS_IOS_AUTOFILL_CARDHOLDER),
+                                      kServerCardHolderName])]
+      assertWithMatcher:grey_notNil()];
+
+  // Go back to the list view page.
+  [[EarlGrey selectElementWithMatcher:SettingsMenuBackButton(0)]
+      performAction:grey_tap()];
+
+  [AutofillAppInterface clearAllServerDataForTesting];
   [self exitSettingsMenu];
 }
 
@@ -223,52 +304,72 @@ id<GREYMatcher> SettingToolbarDoneButton() {
 // Autofill credit cards / mandatory reauth switches are disabled.
 - (void)testListViewEditMode {
   [AutofillAppInterface saveLocalCreditCard];
+  for (ReauthenticationResult result :
+       {ReauthenticationResult::kFailure, ReauthenticationResult::kSuccess,
+        ReauthenticationResult::kSkipped}) {
+    // Reset the HistogramTester at the beginning of each run.
+    GREYAssertNil([MetricsAppInterface releaseHistogramTester],
+                  @"Cannot reset histogram tester.");
+    GREYAssertNil([MetricsAppInterface setupHistogramTester],
+                  @"Cannot setup histogram tester.");
 
-  [self openCreditCardsSettings];
+    [self openCreditCardsSettings];
 
-  [AutofillAppInterface mockReauthenticationModuleExpectedResult:
-                            ReauthenticationResult::kSuccess];
+    [AutofillAppInterface mockReauthenticationModuleExpectedResult:result];
 
-  // Switch on edit mode.
-  [[EarlGrey selectElementWithMatcher:NavigationBarEditButton()]
-      performAction:grey_tap()];
+    // Switch on edit mode.
+    [[EarlGrey selectElementWithMatcher:NavigationBarEditButton()]
+        performAction:grey_tap()];
 
-  // Check the Autofill credit card switch is disabled.
-  [[EarlGrey selectElementWithMatcher:chrome_test_util::TableViewSwitchCell(
-                                          kAutofillCreditCardSwitchViewId, YES,
-                                          NO)] assertWithMatcher:grey_notNil()];
+    // Check the Autofill credit card switch is enabled if the reauthentication
+    // result is a failure.
+    bool enabled = (result == ReauthenticationResult::kFailure);
+    [[EarlGrey selectElementWithMatcher:chrome_test_util::TableViewSwitchCell(
+                                            kAutofillCreditCardSwitchViewId,
+                                            YES, enabled)]
+        assertWithMatcher:grey_notNil()];
 
-  // Check the Autofill mandatory reauth switch is disabled.
-  [[EarlGrey selectElementWithMatcher:chrome_test_util::TableViewSwitchCell(
-                                          kAutofillMandatoryReauthSwitchViewId,
-                                          YES, NO)]
-      assertWithMatcher:grey_notNil()];
+    // Check the Autofill mandatory reauth switch is enabled if the
+    // reauthentication result is a failure.
+    [[EarlGrey
+        selectElementWithMatcher:chrome_test_util::TableViewSwitchCell(
+                                     kAutofillMandatoryReauthSwitchViewId, YES,
+                                     enabled)] assertWithMatcher:grey_notNil()];
 
-  // Tap Done button to exit the edit mode.
-  [[EarlGrey selectElementWithMatcher:SettingToolbarDoneButton()]
-      performAction:grey_tap()];
+    GREYAssertNil([MetricsAppInterface
+                      expectTotalCount:2
+                          forHistogram:kMandatoryReauthDeleteCardHistogramName],
+                  @"Mandatory reauth delete card event count incorrect");
+    GREYAssertNil(
+        [MetricsAppInterface
+             expectCount:1
+               forBucket:
+                   static_cast<int>(
+                       MandatoryReauthAuthenticationFlowEvent::kFlowStarted)
+            forHistogram:kMandatoryReauthDeleteCardHistogramName],
+        @"Mandatory reauth delete card flow-started event count incorrect");
 
-  // Config next reauth attempt to fail.
-  [AutofillAppInterface mockReauthenticationModuleExpectedResult:
-                            ReauthenticationResult::kFailure];
+    MandatoryReauthAuthenticationFlowEvent event;
+    switch (result) {
+      case ReauthenticationResult::kFailure:
+        event = MandatoryReauthAuthenticationFlowEvent::kFlowFailed;
+        break;
+      case ReauthenticationResult::kSuccess:
+        event = MandatoryReauthAuthenticationFlowEvent::kFlowSucceeded;
+        break;
+      case ReauthenticationResult::kSkipped:
+        event = MandatoryReauthAuthenticationFlowEvent::kFlowSkipped;
+        break;
+    }
+    GREYAssertNil(
+        [MetricsAppInterface
+             expectCount:1
+               forBucket:static_cast<int>(event)
+            forHistogram:kMandatoryReauthDeleteCardHistogramName],
+        @"Mandatory reauth delete card flow result event count incorrect");
 
-  // Try to switch on edit mode again.
-  [[EarlGrey selectElementWithMatcher:NavigationBarEditButton()]
-      performAction:grey_tap()];
-
-  // Check the Autofill credit card switch is enabled. Didn't enter edit mode.
-  [[EarlGrey
-      selectElementWithMatcher:chrome_test_util::TableViewSwitchCell(
-                                   kAutofillCreditCardSwitchViewId, YES, YES)]
-      assertWithMatcher:grey_notNil()];
-
-  // Check the Autofill mandatory reauth switch is enabled.
-  [[EarlGrey selectElementWithMatcher:chrome_test_util::TableViewSwitchCell(
-                                          kAutofillMandatoryReauthSwitchViewId,
-                                          YES, YES)]
-      assertWithMatcher:grey_notNil()];
-
-  [self exitSettingsMenu];
+    [self exitSettingsMenu];
+  }
 }
 
 // Checks that the Autofill credit card switch can be toggled on/off and the

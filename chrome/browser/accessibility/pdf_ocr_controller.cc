@@ -26,6 +26,7 @@
 #include "content/public/browser/render_widget_host.h"
 #include "content/public/browser/render_widget_host_iterator.h"
 #include "content/public/browser/web_contents.h"
+#include "ui/accessibility/accessibility_features.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/views/accessibility/view_accessibility.h"
 
@@ -82,7 +83,7 @@ std::vector<content::WebContents*> GetPdfHtmlWebContentses(Profile* profile) {
 
 // Invoke screen reader alert to notify the user of the state.
 void AnnounceToScreenReader(const int message_id) {
-// TODO(crbug.com/1443341): Sending announcements results in a failure in
+// TODO(crbug.com/1442928): Sending announcements results in a failure in
 // `AuraLinuxAccessibilityInProcessBrowserTest::IndexInParentWithModal` and
 // flaky fail when running Chrome.
 #if !BUILDFLAG(IS_LINUX)
@@ -129,10 +130,13 @@ PdfOcrController::PdfOcrController(Profile* profile) : profile_(profile) {
       base::BindRepeating(&PdfOcrController::OnPdfOcrAlwaysActiveChanged,
                           weak_ptr_factory_.GetWeakPtr()));
 
-  // Trigger if the preference is already set and a screen reader is enabled.
+  // Trigger if the preference is already set, and a screen reader or Select-to-
+  // Speak on ChromeOS is enabled.
   if (profile_->GetPrefs()->GetBoolean(
           prefs::kAccessibilityPdfOcrAlwaysActive) &&
-      accessibility_state_utils::IsScreenReaderEnabled()) {
+      (accessibility_state_utils::IsScreenReaderEnabled() ||
+       (features::IsAccessibilityPdfOcrForSelectToSpeakEnabled() &&
+        accessibility_state_utils::IsSelectToSpeakEnabled()))) {
     OnPdfOcrAlwaysActiveChanged();
   }
 }

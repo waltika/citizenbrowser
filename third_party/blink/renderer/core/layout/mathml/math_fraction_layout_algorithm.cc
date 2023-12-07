@@ -4,11 +4,11 @@
 
 #include "third_party/blink/renderer/core/layout/mathml/math_fraction_layout_algorithm.h"
 
+#include "third_party/blink/renderer/core/layout/length_utils.h"
+#include "third_party/blink/renderer/core/layout/logical_box_fragment.h"
 #include "third_party/blink/renderer/core/layout/mathml/math_layout_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_box_fragment.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_length_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_out_of_flow_layout_part.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_physical_box_fragment.h"
+#include "third_party/blink/renderer/core/layout/out_of_flow_layout_part.h"
+#include "third_party/blink/renderer/core/layout/physical_box_fragment.h"
 #include "third_party/blink/renderer/platform/fonts/opentype/open_type_math_support.h"
 
 namespace blink {
@@ -173,11 +173,10 @@ const LayoutResult* MathFractionLayoutAlgorithm::Layout() {
 
   const LogicalBoxFragment numerator_fragment(
       GetConstraintSpace().GetWritingDirection(),
-      To<NGPhysicalBoxFragment>(
-          numerator_layout_result->GetPhysicalFragment()));
+      To<PhysicalBoxFragment>(numerator_layout_result->GetPhysicalFragment()));
   const LogicalBoxFragment denominator_fragment(
       GetConstraintSpace().GetWritingDirection(),
-      To<NGPhysicalBoxFragment>(
+      To<PhysicalBoxFragment>(
           denominator_layout_result->GetPhysicalFragment()));
   const auto baseline_type = Style().GetFontBaseline();
 

@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -47,7 +48,6 @@
 #include "base/time/time.h"
 #include "cc/paint/paint_flags.h"
 #include "chromeos/constants/chromeos_features.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 #include "third_party/skia/include/core/SkCanvas.h"
 #include "third_party/skia/include/core/SkColor.h"
 #include "ui/accessibility/ax_node_data.h"
@@ -119,22 +119,20 @@ static const int kTouchDragImageVerticalOffset = 25;
 // The drag and drop app icon should get scaled by this factor.
 constexpr float kDragDropAppIconScale = 1.2f;
 
-// The icon for promise apps should be scaled down by these factors depending on
-// the app state.
-constexpr float kPromiseIconScalePending = 24.0f / 36.0f;
-constexpr float kPromiseIconScaleInstalling = 28.0f / 36.0f;
+// The promise app placeholder icon should use this size.
+constexpr int kPlaceholderIconDimension = 24;
 
-// The promise apps should scale the base constants for bounding proportionally
-// to this icon size.
-constexpr float kPromiseRingBaseIconSize = 36.0f;
+// The width of the promise app progress ring.
+constexpr int kPromiseRingStrokeSize = 2;
 
 // The duration of the animation to animate an app list item view in as a
 // promise app replacement.
 constexpr base::TimeDelta kSwapPromiseIconDuration = base::Milliseconds(100);
 
 // The amount of space between the progress ring and the promise app background
-// and icon.
-constexpr float kProgressRingMargin = -2.0f;
+// and icon depending on the app_state.
+constexpr gfx::Insets kProgressRingMarginInstalling = gfx::Insets(-2);
+constexpr gfx::Insets kProgressRingMarginPending = gfx::Insets(-3);
 
 // The drag and drop icon scaling up or down animation transition duration.
 constexpr int kDragDropAppIconScaleTransitionInMs = 200;
@@ -160,8 +158,8 @@ constexpr size_t kMaxItemCounterCount = 100u;
 class PromiseIconBackground : public views::Background {
  public:
   PromiseIconBackground(ui::ColorId color_id,
-                        const gfx::RectF& icon_bounds,
-                        const gfx::InsetsF& insets)
+                        const gfx::Rect& icon_bounds,
+                        const gfx::Insets& insets)
       : color_id_(color_id), icon_bounds_(icon_bounds), insets_(insets) {}
 
   PromiseIconBackground(const PromiseIconBackground&) = delete;
@@ -170,8 +168,8 @@ class PromiseIconBackground : public views::Background {
 
   // views::Background:
   void Paint(gfx::Canvas* canvas, views::View* view) const override {
-    gfx::RectF bounds = icon_bounds_;
-    bounds.Inset(insets_);
+    gfx::RectF bounds = gfx::RectF(icon_bounds_);
+    bounds.Inset(gfx::InsetsF(insets_));
 
     const float radius =
         std::min(bounds.size().width(), bounds.size().height()) / 2.f;
@@ -190,8 +188,8 @@ class PromiseIconBackground : public views::Background {
 
  private:
   const ui::ColorId color_id_;
-  const gfx::RectF icon_bounds_;
-  const gfx::InsetsF insets_;
+  const gfx::Rect icon_bounds_;
+  const gfx::Insets insets_;
 };
 
 // Draws a dot with no shadow.
@@ -313,11 +311,11 @@ class AppListItemView::FolderIconView : public views::View,
   // The count shows on the item counter is the number of items that aren't
   // drawn on the folder icon. Returns nullopt if the counter should not be
   // drawn.
-  absl::optional<size_t> GetItemCounterCount() const {
+  std::optional<size_t> GetItemCounterCount() const {
     size_t item_count = folder_item_->item_list()->item_count();
     size_t icons_in_folder = GetDraggedItem() ? item_count - 1 : item_count;
     if (icons_in_folder <= FolderImage::kNumFolderTopItems) {
-      return absl::nullopt;
+      return std::nullopt;
     }
 
     size_t count = icons_in_folder - (FolderImage::kNumFolderTopItems - 1);
@@ -604,9 +602,9 @@ AppListItemView::AppListItemView(const AppListConfig* app_list_config,
   icon_background_->SetCanProcessEventsWithinSubtree(false);
   icon_background_->SetVisible(is_folder_);
 
-  // If the item icon is used, set the icon in ImageView and paint the view.
   if (use_item_icon_) {
-    if (chromeos::features::IsSeparateWebAppShortcutBadgeIconEnabled()) {
+    // If the item icon is used, set the icon in ImageView and paint the view.
+    if (features::IsSeparateWebAppShortcutBadgeIconEnabled()) {
       shortcut_background_container_ =
           AddChildView(std::make_unique<views::View>());
     }
@@ -662,7 +660,7 @@ AppListItemView::AppListItemView(const AppListConfig* app_list_config,
   preview_circle_radius_ = 0;
 
   if (features::IsUserEducationEnabled() && context == Context::kAppsGridView) {
-    if (absl::optional<ui::ElementIdentifier> element_identifier =
+    if (std::optional<ui::ElementIdentifier> element_identifier =
             UserEducationController::Get()->GetElementIdentifierForAppId(
                 item->id())) {
       // NOTE: Set `kHelpBubbleContextKey` before `views::kElementIdentifierKey`
@@ -772,11 +770,15 @@ void AppListItemView::SetIcon(const gfx::ImageSkia& icon) {
     return;
   }
 
-  const gfx::Size icon_size = gfx::ScaleToRoundedSize(
-      GetIconSize(), GetAdjustedIconScaleForProgressRing());
+  const gfx::Size icon_size =
+      gfx::ScaleToRoundedSize(GetIconSize(), icon_scale_);
 
   gfx::ImageSkia resized = gfx::ImageSkiaOperations::CreateResizedImage(
       icon, skia::ImageOperations::RESIZE_BEST, icon_size);
+  if (is_promise_app_ || ShouldUseFallbackIconImageModel()) {
+    resized = gfx::ImageSkiaOperations::CreateImageWithRoundRectClip(
+        icon_size.width(), resized);
+  }
   icon_->SetImage(resized);
 
   Layout();
@@ -789,6 +791,10 @@ gfx::Size AppListItemView::GetIconSize() const {
 
   if (has_host_badge_) {
     return app_list_config_->GetShortcutIconSize();
+  }
+
+  if (is_promise_app_ && features::ArePromiseIconsEnabled() && item_weak_) {
+    return GetPreferredIconSizeForProgressRing();
   }
 
   return app_list_config_->grid_icon_size();
@@ -870,28 +876,29 @@ void AppListItemView::UpdateDraggedItem(const AppListItem* dragged_item) {
   }
 }
 
-float AppListItemView::GetAdjustedIconScaleForProgressRing() {
-  // Account for the promise icon scale (if needed).
-  if (is_promise_app_ && features::ArePromiseIconsEnabled() && item_weak_) {
-    switch (item_weak_->app_status()) {
-      case AppStatus::kPending:
-        return icon_scale_ * kPromiseIconScalePending;
-      case AppStatus::kInstalling:
-      case AppStatus::kInstallCancelled:
-      case AppStatus::kInstallSuccess:
-      case AppStatus::kPaused:
-        // Placeholder icons do not change size between states.
-        if (icon_image_model_.IsVectorIcon()) {
-          return icon_scale_ * kPromiseIconScalePending;
-        }
-        return icon_scale_ * kPromiseIconScaleInstalling;
-      case AppStatus::kReady:
-      case AppStatus::kBlocked:
-        return icon_scale_;
-    }
+gfx::Size AppListItemView::GetPreferredIconSizeForProgressRing() const {
+  DCHECK(is_promise_app_);
+  CHECK(item_weak_);
+  // Placeholder icons do not change size between states.
+  // TODO(b/314251625): Evaluate the correct size for icons across spec.
+  if (icon_image_model_.IsVectorIcon()) {
+    return gfx::Size(kPlaceholderIconDimension, kPlaceholderIconDimension);
   }
 
-  return icon_scale_;
+  switch (item_weak_->app_status()) {
+    case AppStatus::kPending:
+      return gfx::Size(app_list_config_->promise_icon_dimension_pending(),
+                       app_list_config_->promise_icon_dimension_pending());
+    case AppStatus::kInstalling:
+    case AppStatus::kInstallCancelled:
+    case AppStatus::kInstallSuccess:
+    case AppStatus::kPaused:
+      return gfx::Size(app_list_config_->promise_icon_dimension_installing(),
+                       app_list_config_->promise_icon_dimension_installing());
+    case AppStatus::kReady:
+    case AppStatus::kBlocked:
+      return app_list_config_->grid_icon_size();
+  }
 }
 
 void AppListItemView::ScaleIconImmediatly(float scale_factor) {
@@ -1379,8 +1386,7 @@ void AppListItemView::Layout() {
   const gfx::Size icon_size = GetIconSize();
 
   const gfx::Rect icon_bounds = GetIconBoundsForTargetViewBounds(
-      app_list_config_, rect,
-      gfx::ScaleToRoundedSize(icon_size, GetAdjustedIconScaleForProgressRing()),
+      app_list_config_, rect, gfx::ScaleToRoundedSize(icon_size, icon_scale_),
       icon_scale_);
 
   const int shortcut_background_container_dimension =
@@ -1408,7 +1414,7 @@ void AppListItemView::Layout() {
         GetIconBoundsForTargetViewBounds(
             app_list_config_, rect,
             gfx::ScaleToRoundedSize(shortcut_background_container_size,
-                                    GetAdjustedIconScaleForProgressRing()),
+                                    icon_scale_),
             icon_scale_);
 
     shortcut_background_container_->SetBoundsRect(
@@ -1438,7 +1444,7 @@ void AppListItemView::Layout() {
   }
 
   if (host_badge_icon_container_ && host_badge_icon_view_ &&
-      chromeos::features::IsSeparateWebAppShortcutBadgeIconEnabled()) {
+      features::IsSeparateWebAppShortcutBadgeIconEnabled()) {
     gfx::Rect host_badge_icon_container_bounds =
         GetHostBadgeIconContainerBoundsForTargetViewBounds(
             icon_bounds,
@@ -1891,8 +1897,16 @@ void AppListItemView::AnimateInFromPromiseApp(
   new_install_dot_->layer()->SetOpacity(0.0f);
 
   const gfx::Point center_point = gfx::Rect(GetIconSize()).CenterPoint();
-  icon_view->layer()->SetTransform(
-      gfx::GetScaleTransform(center_point, kPromiseIconScaleInstalling));
+  const float starting_size =
+      fallback_icon_image_model_.IsVectorIcon()
+          ? kPlaceholderIconDimension
+          : static_cast<float>(
+                app_list_config_->promise_icon_dimension_installing());
+
+  icon_view->layer()->SetTransform(gfx::GetScaleTransform(
+      center_point,
+      starting_size /
+          static_cast<float>(app_list_config_->grid_icon_dimension())));
 
   // Animate the app list view out of the promise app state.
   views::AnimationBuilder animation;
@@ -1936,7 +1950,7 @@ void AppListItemView::OnAnimatedInFromPromiseApp(
   callback.Run();
 }
 
-absl::optional<size_t> AppListItemView::item_counter_count_for_test() const {
+std::optional<size_t> AppListItemView::item_counter_count_for_test() const {
   DCHECK(!use_item_icon_);
   return folder_icon_->GetItemCounterCount();
 }
@@ -2003,7 +2017,7 @@ gfx::ImageSkia AppListItemView::GetDragImage() const {
     return folder_icon_->CreateDragImage();
   }
   if (has_host_badge_ && host_badge_icon_view_ &&
-      chromeos::features::IsSeparateWebAppShortcutBadgeIconEnabled()) {
+      features::IsSeparateWebAppShortcutBadgeIconEnabled()) {
     const int background_radius =
         std::round(app_list_config_->GetShortcutBackgroundContainerDimension() /
                    2.0f * kDragDropAppIconScale);
@@ -2163,7 +2177,7 @@ void AppListItemView::UpdateProgressIndicatorState() {
   if (!progress_indicator_) {
     progress_indicator_ =
         ProgressIndicator::CreateDefaultInstance(base::BindRepeating(
-            [](AppListItemView* view) -> absl::optional<float> {
+            [](AppListItemView* view) -> std::optional<float> {
               if (view->forced_progress_indicator_value_) {
                 return *view->forced_progress_indicator_value_;
               }
@@ -2181,8 +2195,7 @@ void AppListItemView::UpdateProgressIndicatorState() {
     progress_indicator_->SetInnerIconVisible(false);
     progress_indicator_->SetInnerRingVisible(false);
     progress_indicator_->SetOuterRingStrokeWidth(
-        2.0 * app_list_config_->grid_icon_dimension() /
-        kPromiseRingBaseIconSize);
+        static_cast<float>(kPromiseRingStrokeSize));
     EnsureLayer();
     layer()->Add(progress_indicator_->CreateLayer(base::BindRepeating(
         [](AppListItemView* view, ui::ColorId color_id) {
@@ -2194,14 +2207,11 @@ void AppListItemView::UpdateProgressIndicatorState() {
   EnsureLayer();
 
   if (item()->app_status() == AppStatus::kPending) {
-    // TODO(b/311460259): Set rounded caps by default after improving the
-    // drawing algorithm for the progress indicator.
-    progress_indicator_->SetHasRoundCap(false);
     progress_indicator_->SetColorId(cros_tokens::kCrosSysHighlightShape);
     progress_indicator_->SetOuterRingTrackVisible(true);
   } else {
-    progress_indicator_->SetHasRoundCap(true);
-    progress_indicator_->SetColorId(cros_tokens::kCrosSysPrimary);
+    progress_indicator_->SetColorId(
+        cros_tokens::kCrosSysSystemPrimaryContainer);
     progress_indicator_->SetOuterRingTrackVisible(false);
   }
 
@@ -2216,17 +2226,23 @@ void AppListItemView::UpdateProgressRingBounds() {
 
   CHECK(!is_folder_);
 
-  gfx::RectF progress_bounds = gfx::RectF(
+  gfx::Rect progress_bounds = gfx::Rect(
       views::View::ConvertRectToTarget(icon_, this, icon_->GetImageBounds()));
 
-  const gfx::InsetsF progress_ring_padding = gfx::InsetsF(
-      kProgressRingMargin * app_list_config_->grid_icon_dimension() /
-      kPromiseRingBaseIconSize);
+  const gfx::Insets progress_ring_padding =
+      icon_image_model_.IsVectorIcon() ||
+              item()->app_status() != AppStatus::kPending
+          ? kProgressRingMarginInstalling
+          : kProgressRingMarginPending;
 
   progress_bounds.Inset(progress_ring_padding);
 
-  progress_indicator_->layer()->SetBounds(
-      gfx::ToEnclosingRect(progress_bounds));
+  // The Progress indicator paints the ring within the bounds of the layer, so
+  // add padding for the promise ring.
+  progress_bounds.Inset(-gfx::Insets(kPromiseRingStrokeSize));
+
+  progress_indicator_->layer()->SetBounds(progress_bounds);
+
   layer()->StackAtBottom(progress_indicator_->layer());
   progress_indicator_->InvalidateLayer();
 

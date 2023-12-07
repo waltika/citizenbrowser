@@ -49,10 +49,10 @@
 #include "third_party/blink/renderer/core/layout/layout_object_child_list.h"
 #include "third_party/blink/renderer/core/layout/map_coordinates_flags.h"
 #include "third_party/blink/renderer/core/layout/min_max_sizes.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_outline_type.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_style_variant.h"
 #include "third_party/blink/renderer/core/layout/outline_rect_collector.h"
+#include "third_party/blink/renderer/core/layout/outline_type.h"
 #include "third_party/blink/renderer/core/layout/selection_state.h"
+#include "third_party/blink/renderer/core/layout/style_variant.h"
 #include "third_party/blink/renderer/core/loader/resource/image_resource_observer.h"
 #include "third_party/blink/renderer/core/paint/fragment_data.h"
 #include "third_party/blink/renderer/core/paint/paint_phase.h"
@@ -807,6 +807,9 @@ class CORE_EXPORT LayoutObject : public GarbageCollected<LayoutObject>,
 #endif
 
   void AddAbsoluteRectForLayer(gfx::Rect& result);
+
+ protected:
+  // A helper for AddChild().
   bool RequiresAnonymousTableWrappers(const LayoutObject*) const;
 
  public:
@@ -1114,7 +1117,7 @@ class CORE_EXPORT LayoutObject : public GarbageCollected<LayoutObject>,
 
   // Returns true if the text is generated (from, e.g., list marker,
   // pseudo-element, ...) instead of from a DOM text node. See
-  // |NGTextType::kLayoutGenerated| for the other type of generated text.
+  // |TextFragmentType::kLayoutGenerated| for the other type of generated text.
   bool IsStyleGenerated() const;
 
   bool HasCounterNodeMap() const {
@@ -1462,24 +1465,6 @@ class CORE_EXPORT LayoutObject : public GarbageCollected<LayoutObject>,
   // For non-boxes, for better performance, the caller can prepare
   // |block_for_flipping| (= ContainingBlock()) if it will loop through many
   // rects/points to flip to avoid the cost of repeated ContainingBlock() calls.
-  [[nodiscard]] DeprecatedLayoutRect FlipForWritingMode(
-      const PhysicalRect& r,
-      const LayoutBox* box_for_flipping = nullptr) const {
-    NOT_DESTROYED();
-    if (LIKELY(!HasFlippedBlocksWritingMode()))
-      return r.ToLayoutRect();
-    return {FlipForWritingModeInternal(r.X(), r.Width(), box_for_flipping),
-            r.Y(), r.Width(), r.Height()};
-  }
-  [[nodiscard]] PhysicalRect FlipForWritingMode(
-      const DeprecatedLayoutRect& r,
-      const LayoutBox* box_for_flipping = nullptr) const {
-    NOT_DESTROYED();
-    if (LIKELY(!HasFlippedBlocksWritingMode()))
-      return PhysicalRect(r);
-    return {FlipForWritingModeInternal(r.X(), r.Width(), box_for_flipping),
-            r.Y(), r.Width(), r.Height()};
-  }
   [[nodiscard]] LayoutPoint FlipForWritingMode(
       const PhysicalOffset& p,
       const LayoutBox* box_for_flipping = nullptr) const {
@@ -1488,15 +1473,6 @@ class CORE_EXPORT LayoutObject : public GarbageCollected<LayoutObject>,
       return p.ToLayoutPoint();
     return {FlipForWritingModeInternal(p.left, LayoutUnit(), box_for_flipping),
             p.top};
-  }
-  [[nodiscard]] PhysicalOffset FlipForWritingMode(
-      const LayoutPoint& p,
-      const LayoutBox* box_for_flipping = nullptr) const {
-    NOT_DESTROYED();
-    if (LIKELY(!HasFlippedBlocksWritingMode()))
-      return PhysicalOffset(p);
-    return {FlipForWritingModeInternal(p.X(), LayoutUnit(), box_for_flipping),
-            p.Y()};
   }
 
   bool HasLayer() const {
@@ -2651,6 +2627,11 @@ class CORE_EXPORT LayoutObject : public GarbageCollected<LayoutObject>,
       PhysicalRect&,
       VisualRectFlags = kDefaultVisualRectFlags) const;
 
+  bool MapToVisualRectInAncestorSpace(
+      const LayoutBoxModelObject* ancestor,
+      gfx::RectF&,
+      VisualRectFlags = kDefaultVisualRectFlags) const;
+
   // Do not call this method directly. Call mapToVisualRectInAncestorSpace
   // instead.
   virtual bool MapToVisualRectInAncestorSpaceInternal(
@@ -3597,7 +3578,7 @@ class CORE_EXPORT LayoutObject : public GarbageCollected<LayoutObject>,
   // The return value of this method is whether the fast path could be used.
   bool MapToVisualRectInAncestorSpaceInternalFastPath(
       const LayoutBoxModelObject* ancestor,
-      PhysicalRect&,
+      gfx::RectF&,
       VisualRectFlags,
       bool& intersects) const;
 

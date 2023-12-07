@@ -34,6 +34,10 @@ TabOrganizationSession::~TabOrganizationSession() {
   for (auto& observer : observers_) {
     observer.OnTabOrganizationSessionDestroyed(session_id());
   }
+
+  if (request_) {
+    request_->LogResults(this);
+  }
 }
 
 // static
@@ -144,6 +148,7 @@ void TabOrganizationSession::PopulateAndCreate(
 
 void TabOrganizationSession::PopulateOrganizations(
     const TabOrganizationResponse* response) {
+  feedback_id_ = response->feedback_id;
   // for each of the organizations, make sure that the TabData is valid for
   // grouping.
   for (const TabOrganizationResponse::Organization& response_organization :

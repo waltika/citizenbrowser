@@ -1,12 +1,15 @@
 {
   "$build/chromium_tests_builder_config": {
     "builder_config": {
+      "additional_exclusions": [
+        "infra/config/generated/builders/try/linux-wpt-chromium-rel/gn-args.json"
+      ],
       "builder_db": {
         "entries": [
           {
             "builder_id": {
               "bucket": "ci",
-              "builder": "linux-wpt-fyi-rel",
+              "builder": "linux-wpt-chromium-rel",
               "project": "chromium"
             },
             "builder_spec": {
@@ -31,7 +34,7 @@
       "builder_ids": [
         {
           "bucket": "ci",
-          "builder": "linux-wpt-fyi-rel",
+          "builder": "linux-wpt-chromium-rel",
           "project": "chromium"
         }
       ],

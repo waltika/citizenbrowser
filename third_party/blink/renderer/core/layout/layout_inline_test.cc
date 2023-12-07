@@ -9,8 +9,8 @@
 #include "testing/gtest/include/gtest/gtest.h"
 #include "third_party/blink/renderer/core/layout/inline/inline_cursor.h"
 #include "third_party/blink/renderer/core/layout/layout_block_flow.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_physical_box_fragment.h"
-#include "third_party/blink/renderer/core/paint/ng/ng_box_fragment_painter.h"
+#include "third_party/blink/renderer/core/layout/physical_box_fragment.h"
+#include "third_party/blink/renderer/core/paint/box_fragment_painter.h"
 #include "third_party/blink/renderer/core/testing/core_unit_test_helper.h"
 #include "third_party/blink/renderer/platform/runtime_enabled_features.h"
 #include "third_party/blink/renderer/platform/testing/runtime_enabled_features_test_helpers.h"
@@ -30,9 +30,9 @@ class LayoutInlineTest : public RenderingTest {
     }
     const LayoutBox& box = To<LayoutBox>(object);
     DCHECK_EQ(box.PhysicalFragmentCount(), 1u);
-    const NGPhysicalBoxFragment& fragment = *box.GetPhysicalFragment(0);
-    return NGBoxFragmentPainter(fragment).HitTestAllPhases(result, location,
-                                                           offset);
+    const PhysicalBoxFragment& fragment = *box.GetPhysicalFragment(0);
+    return BoxFragmentPainter(fragment).HitTestAllPhases(result, location,
+                                                         offset);
   }
 };
 

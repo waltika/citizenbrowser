@@ -11,6 +11,7 @@
 #include "build/branding_buildflags.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/tabs/organization/tab_organization_service_factory.h"
+#include "chrome/browser/ui/tabs/organization/tab_organization_utils.h"
 #include "chrome/browser/ui/ui_features.h"
 #include "chrome/browser/ui/webui/favicon_source.h"
 #include "chrome/browser/ui/webui/tab_search/tab_search_prefs.h"
@@ -69,6 +70,7 @@ TabSearchUI::TabSearchUI(content::WebUI* web_ui)
       {"tabCount", IDS_TAB_SEARCH_TAB_COUNT},
       {"tabSearchTabName", IDS_TAB_SEARCH_TAB_NAME},
       // Tab organization UI strings
+      {"checkNow", IDS_TAB_ORGANIZATION_CHECK_NOW},
       {"createGroup", IDS_TAB_ORGANIZATION_CREATE_GROUP},
       {"dismiss", IDS_TAB_ORGANIZATION_DISMISS},
       {"failureBodyGeneric", IDS_TAB_ORGANIZATION_FAILURE_BODY_GENERIC},
@@ -97,6 +99,8 @@ TabSearchUI::TabSearchUI(content::WebUI* web_ui)
       {"tipAction", IDS_TAB_ORGANIZATION_TIP_ACTION},
       {"tipBody", IDS_TAB_ORGANIZATION_TIP_BODY},
       {"tipTitle", IDS_TAB_ORGANIZATION_TIP_TITLE},
+      {"thumbsDown", IDS_THUMBS_DOWN},
+      {"thumbsUp", IDS_THUMBS_UP},
   };
   webui::SetupChromeRefresh2023(source);
   source->AddLocalizedStrings(kStrings);
@@ -134,7 +138,7 @@ TabSearchUI::TabSearchUI(content::WebUI* web_ui)
       features::kTabSearchRecentlyClosedDefaultItemDisplayCount.Get());
 
   bool tab_organization_enabled = false;
-  if (features::IsTabOrganization()) {
+  if (TabOrganizationUtils::GetInstance()->IsEnabled(profile)) {
     const auto* const tab_organization_service =
         TabOrganizationServiceFactory::GetForProfile(profile);
     if (tab_organization_service) {

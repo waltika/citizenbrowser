@@ -104,9 +104,11 @@ enum class ProfileSignout {
   // reverted to the initial state, signed out in the profile but keeping the
   // account on the web only.
   kCancelSyncConfirmationOnWebOnlySignedIn = 30,
-
+  // Profile signout when IdleTimeoutActions enterprise policy triggers sign
+  // out.
+  kIdleTimeoutPolicyTriggeredSignOut = 31,
   // Keep this as the last enum.
-  kMaxValue = kCancelSyncConfirmationOnWebOnlySignedIn
+  kMaxValue = kIdleTimeoutPolicyTriggeredSignOut
 };
 
 // Enum values used for use with "Signin.AllAccessPointActions" histograms.
@@ -239,7 +241,7 @@ enum class ReauthAccessPoint {
   kPasswordSettings = 3,
   kGeneratePasswordDropdown = 4,
   kGeneratePasswordContextMenu = 5,
-  kPasswordMoveBubble = 6,
+  // kPasswordMoveBubble = 6, (deprecated)
   // The password save bubble *without* a destination picker, i.e. the password
   // was already saved locally.
   kPasswordSaveLocallyBubble = 7,

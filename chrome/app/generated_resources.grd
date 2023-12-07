@@ -5577,6 +5577,9 @@ are declared in tools/grit/grit_rule.gni.
           <message name="IDS_EXTENSION_PROMPT_WARNING_CHROMEOS_EVENTS" desc="Permission string for chrome.os.events API.">
             Subscribe to ChromeOS Flex system events
           </message>
+          <message name="IDS_EXTENSION_PROMPT_WARNING_CHROMEOS_MANAGEMENT_AUDIO" desc="Permission string for chrome.os.management.audio API.">
+            Manage ChromeOS Flex audio settings
+          </message>
           <message name="IDS_EXTENSION_PROMPT_WARNING_CHROMEOS_TELEMETRY" desc="Permission string for chrome.os.telemetry API.">
             Read ChromeOS Flex device information and data
           </message>
@@ -5599,6 +5602,9 @@ are declared in tools/grit/grit_rule.gni.
           </message>
           <message name="IDS_EXTENSION_PROMPT_WARNING_CHROMEOS_EVENTS" desc="Permission string for chrome.os.events API.">
             Subscribe to ChromeOS system events
+          </message>
+          <message name="IDS_EXTENSION_PROMPT_WARNING_CHROMEOS_MANAGEMENT_AUDIO" desc="Permission string for chrome.os.management.audio API.">
+            Manage ChromeOS audio settings
           </message>
           <message name="IDS_EXTENSION_PROMPT_WARNING_CHROMEOS_TELEMETRY" desc="Permission string for chrome.os.telemetry API.">
             Read ChromeOS device information and data
@@ -6567,6 +6573,20 @@ Keep your key file in a safe place. You will need it to create new versions of y
         Allow
       </message>
       <message name="IDS_EXTENSIONS_PRINTING_API_PRINT_REQUEST_DENY" desc="Text for the deny button on the print job confirmation dialog">
+        Deny
+      </message>
+
+      <!-- Strings for the documentscanner confirmation dialogs triggered by chrome.documentScan -->
+      <message name="IDS_EXTENSIONS_DOCUMENT_SCAN_API_DISCOVERY_REQUEST_BUBBLE_TITLE" desc="Title of a bubble with scanner discovery confirmation dialog triggered by chrome.documentScan API">
+        Find document scanners
+      </message>
+      <message name="IDS_EXTENSIONS_DOCUMENT_SCAN_API_DISCOVERY_REQUEST_BUBBLE_HEADING" desc="Heading of a bubble with scanner discovery confirmation dialog triggered by chrome.documentScan API">
+        "<ph name="EXTENSION_NAME">$1<ex>Scanner Forwarder</ex></ph>" wants to find and access document scanners.
+      </message>
+      <message name="IDS_EXTENSIONS_DOCUMENT_SCAN_API_DISCOVERY_REQUEST_ALLOW" desc="Text for the allow button on the document scanner discovery confirmation dialog">
+        Allow
+      </message>
+      <message name="IDS_EXTENSIONS_DOCUMENT_SCAN_API_DISCOVERY_REQUEST_DENY" desc="Text for the deny button on the document scanner discovery confirmation dialog">
         Deny
       </message>
 
@@ -7853,6 +7873,9 @@ Keep your key file in a safe place. You will need it to create new versions of y
       <message name="IDS_NTP_WEBSTORE_TOAST_BUTTON_TEXT" desc="The text displayed in the New Tab Page webstore themes toast button">
         Find themes
       </message>
+      <message name="IDS_NTP_WALLPAPER_SEARCH_FEEDBACK_PLACEHOLDER" translateable="false" desc="Placeholder text for Wallpaper Search feedback dialog." >
+        Send feedback for Wallpaper Search
+      </message>
       <message name="IDS_NTP_WALLPAPER_SEARCH_GENERIC_ERROR_DESCRIPTION" desc="The description of the generic error displayed when wallpaper search fails.">
         Please try again later.
       </message>
@@ -7897,6 +7920,18 @@ Keep your key file in a safe place. You will need it to create new versions of y
       </message>
       <message name="IDS_NTP_WALLPAPER_SEARCH_TRY_AGAIN_CTA" desc="Call to action displayed when wallpaper search fails that asks user to try again.">
         Try again
+      </message>
+      <message name="IDS_NTP_WALLPAPER_SEARCH_RESULT_LABEL" desc="Accessibility label for a wallpaper search result, with only descriptor A." translateable="false">
+        Image <ph name="INDEX">$1<ex>2</ex></ph> of <ph name="A">$2</ph>
+      </message>
+      <message name="IDS_NTP_WALLPAPER_SEARCH_RESULT_LABEL_WITH_DESCRIPTOR_B" desc="Accessibility label for a wallpaper search result, with descriptors A and B." translateable="false">
+        Image <ph name="INDEX">$1<ex>2</ex></ph> of <ph name="A">$2</ph>, <ph name="B">$3</ph>
+      </message>
+      <message name="IDS_NTP_WALLPAPER_SEARCH_RESULT_LABEL_WITH_DESCRIPTOR_C" desc="Accessibility label for a wallpaper search result, with descriptors A and C." translateable="false">
+        Image <ph name="INDEX">$1<ex>2</ex></ph> of <ph name="A">$2</ph>, <ph name="C">$3</ph>.
+      </message>
+      <message name="IDS_NTP_WALLPAPER_SEARCH_RESULT_LABEL_WITH_DESCRIPTORS_B_AND_C" desc="Accessibility label for a wallpaper search result, with descriptors A, B, and C." translateable="false">
+        Image <ph name="INDEX">$1<ex>2</ex></ph> of <ph name="A">$2</ph>, <ph name="B">$3</ph>, <ph name="C">$4</ph>.
       </message>
 
       <!-- NTP Modules -->
@@ -8288,6 +8323,15 @@ Keep your key file in a safe place. You will need it to create new versions of y
       <message name="IDS_ACCNAME_SEARCH_SUGG" desc="The accessible name for the search suggestion tile in the NTP Journeys Module.">
         Search for <ph name="QUERY_CLUSTER_NAME">$1<ex>Office Chairs</ex></ph>
       </message>
+      <message name="IDS_NTP_TAB_RESUMPTION_TITLE" desc="Name of the tab resumption module in sentence case shown in various UIs.">
+        Tabs from other devices
+      </message>
+      <message name="IDS_NTP_MODULES_TAB_RESUMPTION_INFO" desc="Text shown in the body of the info dialog of the tab resumption module.">
+        You’re seeing tabs from other devices to help you easily get back to your most recent activity.
+        <ph name="BREAK">&lt;br&gt;</ph>
+        <ph name="BREAK">&lt;br&gt;</ph>
+        You can manage settings from the card menu or see more options in Customize Chrome.
+      </message>
 
       <!-- Extensions NTP Middle Slot Promo -->
       <message name="IDS_EXTENSIONS_PROMO_PERFORMANCE">
@@ -8469,13 +8513,25 @@ Keep your key file in a safe place. You will need it to create new versions of y
       <message name="IDS_SIDE_PANEL_HEADER_PIN_BUTTON_TOOLTIP" desc="The tooltip for pinning a side panel toolbar button.">
         Pin to toolbar
       </message>
+      <message name="IDS_SIDE_PANEL_UNPINNED" is_accessibility_with_no_ui="true" desc="Used to indicate to a screen reader user that a side panel has been unpinned.">
+        Side panel unpinned
+      </message>
+      <message name="IDS_SIDE_PANEL_PINNED" is_accessibility_with_no_ui="true" desc="Used to indicate to a screen reader user that a side panel has been pinned.">
+        Side panel pinned
+      </message>
+      <message name="IDS_PINNED_ACTION_BUTTON_ACCESSIBLE_TITLE" is_accessibility_with_no_ui="true" desc="Used to indicate to a screen reader user that an action is pinned in the toolbar">
+        <ph name="ACTION_NAME">$1<ex>Bookmarks</ex></ph> - pinned
+      </message>
       <message name="IDS_SIDE_PANEL_GENERIC_MENU_IPH" desc="The body text of the IPH describing how to find side panel entry points in the Chrome menu.">
         You can open most side panel features through the Chrome menu
+      </message>
+      <message name="IDS_SIDE_PANEL_GENERIC_MENU_IPH_SCREENREADER" desc="The screen reader text of the IPH describing how to find side panel entry points in the Chrome menu. The phrase 'top right' should read as 'top left' in rtl languages.">
+        You can open most side panel features through the Chrome menu at the top right
       </message>
       <message name="IDS_SIDE_PANEL_GENERIC_PINNABLE_IPH" desc="The body text of the IPH describing a side panel is pinnable.">
         You can pin this side panel for easy access
       </message>
-      <message name="IDS_SIDE_PANEL_GENERIC_PINNABLE_IPH_SCREENREADER" desc="The screen reader text of the IPH describing a side panel is pinnable.">
+      <message name="IDS_SIDE_PANEL_GENERIC_PINNABLE_IPH_SCREENREADER" desc="The screen reader text of the IPH describing a side panel is pinnable. The phrase 'top right' should read as 'top left' in rtl languages.">
         To easily get back to the side panel, click Pin at the top right
       </message>
 
@@ -8992,9 +9048,6 @@ Keep your key file in a safe place. You will need it to create new versions of y
       <message name="IDS_TOOLTIP_SAVE_CREDIT_CARD_PENDING" desc="The tooltip for the icon that shows the credit card upload is in progress">
         Saving card
       </message>
-      <message name="IDS_TOOLTIP_SAVE_CREDIT_CARD_FAILURE" desc="The tooltip for the icon that shows the credit card is not successfully uploaded">
-        Can't save card right now
-      </message>
       <message name="IDS_TOOLTIP_SAVE_CVC" desc="The tooltip for the icon that shows the save CVC bubble">
         Save CVC
       </message>
@@ -9032,6 +9085,9 @@ Keep your key file in a safe place. You will need it to create new versions of y
       </message>
       <message name="IDS_TOOLTIP_TAB_ORGANIZE_CLOSE" desc="The tooltip for the close button within the Tab Organization button." translateable="false">
         Close
+      </message>
+      <message name="IDS_TAB_ORGANIZATION_FEEDBACK_PLACEHOLDER" desc="Placeholder text for the Tab Organization feedback dialog." translateable="false">
+        Send feedback for tab organization
       </message>
       <if expr="use_titlecase">
         <message name="IDS_TAB_ORGANIZE_MENU" desc="In Title Case: The text label for all tab organization menu items." translateable="false">
@@ -9749,6 +9805,9 @@ Check your passwords anytime in <ph name="GOOGLE_PASSWORD_MANAGER">$1<ex>Google 
         </message>
         <message name="IDS_PASSWORD_MANAGER_TOOLTIP_SHARED_NOTIFICATION" desc="Text for the 'Manage Passwords' icon's 'shared password notification' state">
           New password received
+        </message>
+        <message name="IDS_PASSWORD_MANAGER_TOOLTIP_KEYCHAIN_ERROR" desc="Text for the 'Manage Passwords' icon's 'keychain error' state">
+          Fix password error
         </message>
         <message name="IDS_PASSWORD_MANAGER_IMPORT_DIALOG_TITLE" desc="The title of the file selection dialog for importing passwords">
           Import Passwords To Chrome
@@ -10612,6 +10671,9 @@ Check your passwords anytime in <ph name="GOOGLE_PASSWORD_MANAGER">$1<ex>Google 
       </message>
       <message name="IDS_TAB_ORGANIZATION_LEARN_MORE" desc="The actionable text in the tab organization UI results state for getting more information" translateable="false">
         Learn more
+      </message>
+      <message name="IDS_TAB_ORGANIZATION_CHECK_NOW" desc="The actionable text in the tab organization UI failure state for trying again" translateable="false">
+        Check now
       </message>
 
       <!-- Strings for Window Titles in Menus -->
@@ -13451,29 +13513,53 @@ Please help our engineers fix this problem. Tell us what happened right before y
         </message>
 
       <!-- Web MIDI messages -->
+      <message name="IDS_ALLOWED_MIDI_TITLE" desc="Title of the info bubble shown when a site is allowed to use MIDI messages.">
+        MIDI devices allowed
+      </message>
+      <message name="IDS_BLOCKED_MIDI_TITLE" desc="Title of the info bubble shown when a site is denied to use MIDI smessages.">
+        MIDI devices blocked
+      </message>
+      <message name="IDS_ALLOWED_MIDI_MESSAGE" desc="Info bubble message and location bar icon tooltip text shown when a site has been allowed to use MIDI messages.">
+        This site is using your MIDI devices.
+      </message>
+      <message name="IDS_ALLOWED_MIDI_BLOCK" desc="Radio button to block access to use MIDI messages.">
+        Always block <ph name="HOST">$1<ex>example.com</ex></ph> from using your MIDI devices.
+      </message>
+      <message name="IDS_ALLOWED_MIDI_NO_ACTION" desc="Radio button to keep allowing access to use MIDI messages.">
+        Continue allowing this site to use your MIDI devices.
+      </message>
+      <message name="IDS_BLOCKED_MIDI_MESSAGE" desc="Info bubble message and location bar icon tooltip text shown when a site has been denied access to use MIDI messages.">
+        This site has been blocked from using your MIDI devices.
+      </message>
+      <message name="IDS_BLOCKED_MIDI_UNBLOCK" desc="Radio button choice to unblock a site from using MIDI messages.">
+        Always allow <ph name="HOST">$1<ex>mail.google.com</ex></ph> to use your MIDI devices.
+      </message>
+      <message name="IDS_BLOCKED_MIDI_NO_ACTION" desc="Radio button choice to continue blocking a site from using MIDI messages.">
+        Continue blocking this site from using your MIDI devices.
+      </message>
       <message name="IDS_ALLOWED_MIDI_SYSEX_TITLE" desc="Title of the info bubble shown when a site is allowed to use MIDI system exclusive messages.">
-        Full control of MIDI devices allowed
+        Control and reprogramming of MIDI devices allowed
       </message>
       <message name="IDS_BLOCKED_MIDI_SYSEX_TITLE" desc="Title of the info bubble shown when a site is denied to use MIDI system exclusive messages.">
-        Full control of MIDI devices denied
+        Control and reprogramming of MIDI devices blocked
       </message>
       <message name="IDS_ALLOWED_MIDI_SYSEX_MESSAGE" desc="Info bubble message and location bar icon tooltip text shown when a site has been allowed to use MIDI system exclusive messages.">
-        This page has full control of MIDI devices.
+        This site can control and reprogram your MIDI devices (SysEx).
       </message>
       <message name="IDS_ALLOWED_MIDI_SYSEX_BLOCK" desc="Radio button to block access to use MIDI system exclusive messages.">
-        Always block <ph name="HOST">$1<ex>example.com</ex></ph> from having full control of MIDI devices.
+        Always block <ph name="HOST">$1<ex>example.com</ex></ph> from controlling and reprogramming your MIDI devices.
       </message>
       <message name="IDS_ALLOWED_MIDI_SYSEX_NO_ACTION" desc="Radio button to keep allowing access to use MIDI system exclusive messages.">
-        Continue allowing this site to have full control of MIDI devices
+        Continue allowing this site to control and reprogram your MIDI devices.
       </message>
       <message name="IDS_BLOCKED_MIDI_SYSEX_MESSAGE" desc="Info bubble message and location bar icon tooltip text shown when a site has been denied access to use MIDI system exclusive messages.">
-        This site has been blocked from having full control of MIDI devices.
+        This site has been blocked from controlling and reprogramming your MIDI devices (SysEx).
       </message>
       <message name="IDS_BLOCKED_MIDI_SYSEX_UNBLOCK" desc="Radio button choice to unblock a site from using MIDI system exclusive messages.">
-        Always allow <ph name="HOST">$1<ex>mail.google.com</ex></ph> to have full control of MIDI devices
+        Always allow <ph name="HOST">$1<ex>mail.google.com</ex></ph> to control and reprogram your MIDI devices.
       </message>
       <message name="IDS_BLOCKED_MIDI_SYSEX_NO_ACTION" desc="Radio button choice to continue blocking a site from using MIDI system exclusive messages.">
-        Continue blocking this site from having full control of MIDI devices
+        Continue blocking this site from controlling and reprogramming your MIDI devices.
       </message>
 
       <!-- Media Stream -->

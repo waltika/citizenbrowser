@@ -382,7 +382,7 @@ BASE_FEATURE(kFedCmError, "FedCmError", base::FEATURE_ENABLED_BY_DEFAULT);
 // the RP site.
 BASE_FEATURE(kFedCmExemptIdpWithThirdPartyCookies,
              "FedCmExemptIdpWithThirdPartyCookies",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Enables usage of the FedCM IdP Registration API.
 BASE_FEATURE(kFedCmIdPRegistration,
@@ -718,15 +718,15 @@ BASE_FEATURE(kPrivateNetworkAccessForWorkersWarningOnly,
              "PrivateNetworkAccessForWorkersWarningOnly",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
-// Enables Private Network Access checks for iframe navigations.
+// Enables Private Network Access checks for navigations.
 //
 // The exact checks run are the same as for document subresources, and depend on
 // the state of other Private Network Access feature flags:
 //  - `kBlockInsecurePrivateNetworkRequests`
 //  - `kPrivateNetworkAccessSendPreflights`
 //  - `kPrivateNetworkAccessRespectPreflightResults`
-BASE_FEATURE(kPrivateNetworkAccessForIframes,
-             "PrivateNetworkAccessForIframes",
+BASE_FEATURE(kPrivateNetworkAccessForNavigations,
+             "PrivateNetworkAccessForNavigations",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Requires that CORS preflight requests succeed before sending private network
@@ -1249,11 +1249,6 @@ BASE_FEATURE(kAccessibilityPageZoom,
 const base::FeatureParam<bool> kAccessibilityPageZoomOSLevelAdjustment{
     &kAccessibilityPageZoom, "AdjustForOSLevel", true};
 
-// Disables use of performance improvements for experimental testing/dev.
-BASE_FEATURE(kAccessibilityPerformanceTesting,
-             "AccessibilityPerformanceTesting",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
 // Allows the use of "Smart Zoom", an alternative form of page zoom, and
 // enables the associated UI.
 BASE_FEATURE(kSmartZoom, "SmartZoom", base::FEATURE_DISABLED_BY_DEFAULT);
@@ -1301,12 +1296,6 @@ BASE_FEATURE(kRequestDesktopSiteZoom,
 // Send background signal to GPU stack for synchronous compositor.
 BASE_FEATURE(kSynchronousCompositorBackgroundSignal,
              "SynchronousCompositorBackgroundSignal",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
-// Text autosizing uses heuristics to inflate text sizes on devices with
-// small screens. This feature is for disabling these heuristics.
-BASE_FEATURE(kForceOffTextAutosizing,
-             "ForceOffTextAutosizing",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Screen Capture API support for Android

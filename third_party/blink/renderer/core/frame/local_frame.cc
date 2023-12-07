@@ -1587,6 +1587,15 @@ void LocalFrame::UpdateViewportSegmentCSSEnvironmentVariables(
   }
 }
 
+void LocalFrame::OverrideDevicePostureForEmulation(
+    device::mojom::blink::DevicePostureType device_posture_param) {
+  mojo_handler_->OverrideDevicePostureForEmulation(device_posture_param);
+}
+
+void LocalFrame::DisableDevicePostureOverrideForEmulation() {
+  mojo_handler_->DisableDevicePostureOverrideForEmulation();
+}
+
 device::mojom::blink::DevicePostureType LocalFrame::GetDevicePosture() {
   return mojo_handler_->GetDevicePosture();
 }
@@ -1720,8 +1729,8 @@ LocalFrame::LocalFrame(LocalFrameClient* client,
                               ? interface_registry
                               : InterfaceRegistry::GetEmptyInterfaceRegistry()),
       v8_local_compile_hints_producer_(
-          MakeGarbageCollected<
-              v8_compile_hints::V8LocalCompileHintsProducer>()) {
+          MakeGarbageCollected<v8_compile_hints::V8LocalCompileHintsProducer>(
+              this)) {
   auto frame_tracking_result =
       GetLocalFramesMap().insert(FrameToken::Hasher()(GetFrameToken()), this);
   CHECK(frame_tracking_result.stored_value) << "Inserting a duplicate item.";
@@ -2565,11 +2574,9 @@ const base::UnguessableToken& LocalFrame::GetAgentClusterId() const {
 }
 
 void LocalFrame::OnTaskCompleted(base::TimeTicks start_time,
-                                 base::TimeTicks end_time,
-                                 base::TimeTicks desired_execution_time) {
+                                 base::TimeTicks end_time) {
   if (FrameWidget* widget = GetWidgetForLocalRoot()) {
-    widget->OnTaskCompletedForFrame(start_time, end_time,
-                                    desired_execution_time, this);
+    widget->OnTaskCompletedForFrame(start_time, end_time, this);
   }
 }
 
@@ -2577,11 +2584,16 @@ void LocalFrame::MainFrameInteractive() {
   if (Page* page = GetPage()) {
     page->GetV8CrowdsourcedCompileHintsProducer().GenerateData();
   }
-  v8_local_compile_hints_producer_->GenerateData(this);
+  v8_local_compile_hints_producer_->GenerateData();
 }
 
 mojom::blink::ReportingServiceProxy* LocalFrame::GetReportingService() {
   return mojo_handler_->ReportingService();
+}
+
+device::mojom::blink::DevicePostureProvider*
+LocalFrame::GetDevicePostureProvider() {
+  return mojo_handler_->DevicePostureProvider();
 }
 
 // static

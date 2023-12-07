@@ -9,7 +9,7 @@
 #include "third_party/blink/renderer/core/core_export.h"
 #include "third_party/blink/renderer/core/layout/inline/inline_node_data.h"
 #include "third_party/blink/renderer/core/layout/layout_block_flow.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_layout_input_node.h"
+#include "third_party/blink/renderer/core/layout/layout_input_node.h"
 #include "third_party/blink/renderer/core/layout/svg/svg_character_data.h"
 #include "third_party/blink/renderer/platform/wtf/casting.h"
 #include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
@@ -105,7 +105,7 @@ class CORE_EXPORT InlineNode : public LayoutInputNode {
   bool IsBisectLineBreakDisabled() const {
     return Data().IsBisectLineBreakDisabled();
   }
-  // True if this node can't use the `NGScorehLineBreaker`, that can be
+  // True if this node can't use the `ScoreLineBreaker`, that can be
   // determined by `CollectInlines`. Conditions that can change without
   // `CollectInlines` are in `LineBreaker::ShouldDisableScoreLineBreak()`.
   bool IsScoreLineBreakDisabled() const {
@@ -185,8 +185,8 @@ class CORE_EXPORT InlineNode : public LayoutInputNode {
     return To<LayoutBlockFlow>(box_.Get())->GetInlineNodeData();
   }
   const InlineNodeData& Data() const {
-    DCHECK(IsPrepareLayoutFinished() &&
-           !GetLayoutBlockFlow()->NeedsCollectInlines());
+    DCHECK(IsPrepareLayoutFinished());
+    DCHECK(!GetLayoutBlockFlow()->NeedsCollectInlines());
     return *To<LayoutBlockFlow>(box_.Get())->GetInlineNodeData();
   }
   // Same as |Data()| but can access even when |NeedsCollectInlines()| is set.

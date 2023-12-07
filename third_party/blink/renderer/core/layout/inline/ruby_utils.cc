@@ -9,7 +9,7 @@
 #include "third_party/blink/renderer/core/layout/inline/inline_item_result.h"
 #include "third_party/blink/renderer/core/layout/inline/line_info.h"
 #include "third_party/blink/renderer/core/layout/inline/logical_line_item.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_physical_box_fragment.h"
+#include "third_party/blink/renderer/core/layout/physical_box_fragment.h"
 #include "third_party/blink/renderer/platform/fonts/font_height.h"
 
 namespace blink {
@@ -261,7 +261,7 @@ AnnotationMetrics ComputeAnnotationOverflow(
       const auto* fragment = item.GetPhysicalFragment();
       if (fragment && fragment->IsRubyColumn()) {
         PhysicalRect rect =
-            To<NGPhysicalBoxFragment>(fragment)->ComputeRubyEmHeightBox();
+            To<PhysicalBoxFragment>(fragment)->ComputeRubyEmHeightBox();
         LayoutUnit block_size;
         if (IsHorizontalWritingMode(line_style.GetWritingMode())) {
           item_under = item_over + rect.Bottom();

@@ -4,18 +4,25 @@
 
 source_set("cells") {
   sources = [
+    "snippet_search_engine_cell.h",
+    "snippet_search_engine_cell.mm",
     "snippet_search_engine_item.h",
     "snippet_search_engine_item.mm",
   ]
   deps = [
     "//base",
     "//ios/chrome/browser/shared/public/features",
+    "//ios/chrome/browser/shared/ui/symbols",
     "//ios/chrome/browser/shared/ui/table_view:styler",
     "//ios/chrome/browser/shared/ui/table_view/cells",
     "//ios/chrome/browser/shared/ui/util",
+    "//ios/chrome/browser/ui/search_engine_choice:constants",
     "//ios/chrome/browser/ui/settings/cells:public",
     "//ios/chrome/common/ui/colors",
+    "//ios/chrome/common/ui/favicon",
+    "//ios/chrome/common/ui/table_view",
     "//ios/chrome/common/ui/table_view:cells_constants",
+    "//ios/chrome/common/ui/util",
     "//url",
   ]
   frameworks = [ "UIKit.framework" ]

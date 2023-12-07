@@ -631,6 +631,16 @@ UIWindow* WindowWithAccessibilityIdentifier(NSString* accessibility_id) {
                     grey_sufficientlyVisible(), nil);
 }
 
++ (id<GREYMatcher>)identityChooserScrim {
+  return [ChromeMatchersAppInterface
+      buttonWithAccessibilityLabelID:(IDS_IOS_TOOLBAR_CLOSE_MENU)];
+}
+
++ (id<GREYMatcher>)fakeFakeAddAccountScreenCancelButton {
+  return grey_allOf(grey_buttonTitle(@"Cancel"), grey_sufficientlyVisible(),
+                    nil);
+}
+
 + (id<GREYMatcher>)settingsAccountButton {
   return grey_accessibilityID(kSettingsAccountCellId);
 }
@@ -1060,7 +1070,7 @@ UIWindow* WindowWithAccessibilityIdentifier(NSString* accessibility_id) {
 }
 
 + (id<GREYMatcher>)settingsPasswordSearchMatcher {
-  return grey_accessibilityID(kPasswordsSearchBarId);
+  return grey_accessibilityID(kPasswordsSearchBarID);
 }
 
 + (id<GREYMatcher>)settingsProfileMatcher {
@@ -1159,7 +1169,7 @@ UIWindow* WindowWithAccessibilityIdentifier(NSString* accessibility_id) {
 }
 
 + (id<GREYMatcher>)passwordsTableViewMatcher {
-  return grey_accessibilityID(kPasswordsTableViewId);
+  return grey_accessibilityID(kPasswordsTableViewID);
 }
 
 + (id<GREYMatcher>)defaultBrowserSettingsTableViewMatcher {

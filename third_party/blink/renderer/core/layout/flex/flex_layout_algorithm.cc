@@ -7,6 +7,11 @@
 #include <memory>
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "third_party/blink/renderer/core/frame/web_feature.h"
+#include "third_party/blink/renderer/core/layout/baseline_utils.h"
+#include "third_party/blink/renderer/core/layout/block_break_token.h"
+#include "third_party/blink/renderer/core/layout/constraint_space.h"
+#include "third_party/blink/renderer/core/layout/constraint_space_builder.h"
+#include "third_party/blink/renderer/core/layout/disable_layout_side_effects_scope.h"
 #include "third_party/blink/renderer/core/layout/flex/devtools_flex_info.h"
 #include "third_party/blink/renderer/core/layout/flex/flex_child_iterator.h"
 #include "third_party/blink/renderer/core/layout/flex/flex_item_iterator.h"
@@ -17,18 +22,13 @@
 #include "third_party/blink/renderer/core/layout/geometry/box_strut.h"
 #include "third_party/blink/renderer/core/layout/geometry/logical_size.h"
 #include "third_party/blink/renderer/core/layout/layout_box.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_baseline_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_block_break_token.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_box_fragment.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_constraint_space.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_constraint_space_builder.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_disable_side_effects_scope.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_fragment.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_layout_input_node.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_length_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_out_of_flow_layout_part.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_physical_box_fragment.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_space_utils.h"
+#include "third_party/blink/renderer/core/layout/layout_input_node.h"
+#include "third_party/blink/renderer/core/layout/length_utils.h"
+#include "third_party/blink/renderer/core/layout/logical_box_fragment.h"
+#include "third_party/blink/renderer/core/layout/logical_fragment.h"
+#include "third_party/blink/renderer/core/layout/out_of_flow_layout_part.h"
+#include "third_party/blink/renderer/core/layout/physical_box_fragment.h"
+#include "third_party/blink/renderer/core/layout/space_utils.h"
 #include "third_party/blink/renderer/core/layout/table/table_node.h"
 #include "third_party/blink/renderer/core/paint/paint_layer_scrollable_area.h"
 #include "third_party/blink/renderer/core/style/computed_style.h"
@@ -1519,7 +1519,7 @@ LayoutResult::EStatus FlexLayoutAlgorithm::GiveItemsFinalPositionAndSize(
       }
 
       const auto& physical_fragment =
-          To<NGPhysicalBoxFragment>(layout_result->GetPhysicalFragment());
+          To<PhysicalBoxFragment>(layout_result->GetPhysicalFragment());
 
       const auto writing_direction = GetConstraintSpace().GetWritingDirection();
       LogicalBoxFragment fragment(writing_direction, physical_fragment);
@@ -1910,7 +1910,7 @@ FlexLayoutAlgorithm::GiveItemsFinalPositionAndSizeForFragmentation(
     }
 
     const auto& physical_fragment =
-        To<NGPhysicalBoxFragment>(layout_result->GetPhysicalFragment());
+        To<PhysicalBoxFragment>(layout_result->GetPhysicalFragment());
 
     LogicalBoxFragment fragment(GetConstraintSpace().GetWritingDirection(),
                                 physical_fragment);
@@ -2142,7 +2142,7 @@ void FlexLayoutAlgorithm::AdjustButtonBaseline(
   DCHECK(!child.fragment->IsLineBox());
   const auto& space = GetConstraintSpace();
   LogicalBoxFragment fragment(space.GetWritingDirection(),
-                              To<NGPhysicalBoxFragment>(*child.fragment));
+                              To<PhysicalBoxFragment>(*child.fragment));
   absl::optional<LayoutUnit> child_baseline =
       space.GetBaselineAlgorithmType() == BaselineAlgorithmType::kDefault
           ? fragment.FirstBaseline()

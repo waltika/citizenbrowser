@@ -2007,6 +2007,12 @@ void RenderViewContextMenu::AppendVideoItems() {
                                     IDS_CONTENT_CONTEXT_COPYVIDEOFRAME);
   }
 
+  menu_model_.AddItemWithStringId(IDC_CONTENT_CONTEXT_COPYAVLOCATION,
+                                  IDS_CONTENT_CONTEXT_COPYVIDEOLOCATION);
+  menu_model_.AddCheckItemWithStringId(IDC_CONTENT_CONTEXT_PICTUREINPICTURE,
+                                       IDS_CONTENT_CONTEXT_PICTUREINPICTURE);
+  AppendMediaRouterItem();
+
   if (base::FeatureList::IsEnabled(media::kContextMenuSearchForVideoFrame)) {
     const auto* provider = GetImageSearchProvider();
     if (!provider) {
@@ -2017,17 +2023,9 @@ void RenderViewContextMenu::AppendVideoItems() {
         GetSearchForVideoFrameIdc(),
         l10n_util::GetStringFUTF16(IDS_CONTENT_CONTEXT_SEARCHFORVIDEOFRAME,
                                    GetImageSearchProviderName(provider)));
-    if (companion::IsNewBadgeEnabledForSearchMenuItem(GetBrowser())) {
-      menu_model_.SetIsNewFeatureAt(menu_model_.GetItemCount() - 1, true);
-    }
+    menu_model_.SetIsNewFeatureAt(menu_model_.GetItemCount() - 1, true);
     MaybePrepareForLensQuery();
   }
-
-  menu_model_.AddItemWithStringId(IDC_CONTENT_CONTEXT_COPYAVLOCATION,
-                                  IDS_CONTENT_CONTEXT_COPYVIDEOLOCATION);
-  menu_model_.AddCheckItemWithStringId(IDC_CONTENT_CONTEXT_PICTUREINPICTURE,
-                                       IDS_CONTENT_CONTEXT_PICTUREINPICTURE);
-  AppendMediaRouterItem();
 }
 
 void RenderViewContextMenu::AppendMediaItems() {
@@ -3078,7 +3076,15 @@ void RenderViewContextMenu::ExecuteCommand(int id, int event_flags) {
       break;
 
     case IDC_CONTENT_CONTEXT_SEARCHLENSFORVIDEOFRAME:
+      RecordAmbientSearchQuery(
+          lens::AmbientSearchEntryPoint::
+              CONTEXT_MENU_SEARCH_VIDEO_FRAME_WITH_GOOGLE_LENS);
+      ExecSearchForVideoFrame();
+      break;
+
     case IDC_CONTENT_CONTEXT_SEARCHWEBFORVIDEOFRAME:
+      RecordAmbientSearchQuery(lens::AmbientSearchEntryPoint::
+                                   CONTEXT_MENU_SEARCH_VIDEO_FRAME_WITH_WEB);
       ExecSearchForVideoFrame();
       break;
 
@@ -3918,7 +3924,8 @@ void RenderViewContextMenu::ExecInspectBackgroundPage() {
   DCHECK(platform_app);
   DCHECK(platform_app->is_platform_app());
 
-  extensions::devtools_util::InspectBackgroundPage(platform_app, GetProfile());
+  extensions::devtools_util::InspectBackgroundPage(
+      platform_app, GetProfile(), DevToolsOpenedByAction::kContextMenuInspect);
 }
 
 #if BUILDFLAG(ENABLE_SUPERVISED_USERS)
@@ -4371,9 +4378,9 @@ void RenderViewContextMenu::SearchForVideoFrame(const gfx::ImageSkia& image) {
   }
 
   if (search::DefaultSearchProviderIsGoogle(GetProfile())) {
-    // TODO(crbug.com/1453681): Add an entry point for VideoFrame search.
-    core_tab_helper->SearchWithLens(gfx::Image(image),
-                                    lens::EntryPoint::UNKNOWN);
+    core_tab_helper->SearchWithLens(
+        gfx::Image(image),
+        lens::EntryPoint::CHROME_VIDEO_FRAME_SEARCH_CONTEXT_MENU_ITEM);
   } else {
     core_tab_helper->SearchByImage(gfx::Image(image));
   }

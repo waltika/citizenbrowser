@@ -6,11 +6,11 @@
 
 #include "third_party/blink/renderer/core/frame/local_frame_view.h"
 #include "third_party/blink/renderer/core/frame/settings.h"
+#include "third_party/blink/renderer/core/layout/fragmentation_utils.h"
 #include "third_party/blink/renderer/core/layout/layout_box.h"
 #include "third_party/blink/renderer/core/layout/layout_box_model_object.h"
 #include "third_party/blink/renderer/core/layout/layout_view.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_fragmentation_utils.h"
-#include "third_party/blink/renderer/core/layout/ng/ng_physical_box_fragment.h"
+#include "third_party/blink/renderer/core/layout/physical_box_fragment.h"
 #include "third_party/blink/renderer/core/layout/table/layout_table_cell.h"
 #include "third_party/blink/renderer/core/paint/paint_info.h"
 #include "third_party/blink/renderer/core/paint/paint_layer.h"
@@ -275,14 +275,13 @@ PhysicalRect BackgroundImageGeometry::FixedAttachmentPositioningArea(
 namespace {
 
 // Computes the stitched table-grid rect relative to the current fragment.
-PhysicalRect ComputeStitchedTableGridRect(
-    const NGPhysicalBoxFragment& fragment) {
+PhysicalRect ComputeStitchedTableGridRect(const PhysicalBoxFragment& fragment) {
   const auto writing_direction = fragment.Style().GetWritingDirection();
   LogicalRect table_grid_rect;
   LogicalRect fragment_local_grid_rect;
   LayoutUnit stitched_block_size;
 
-  for (const NGPhysicalBoxFragment& walker :
+  for (const PhysicalBoxFragment& walker :
        To<LayoutBox>(fragment.GetLayoutObject())->PhysicalFragments()) {
     LogicalRect local_grid_rect = walker.TableGridRect();
     local_grid_rect.offset.block_offset += stitched_block_size;
@@ -341,7 +340,7 @@ BackgroundImageGeometry::BackgroundImageGeometry(const LayoutTableCell& cell,
 }
 
 BackgroundImageGeometry::BackgroundImageGeometry(
-    const NGPhysicalBoxFragment& fragment)
+    const PhysicalBoxFragment& fragment)
     : BackgroundImageGeometry(
           To<LayoutBoxModelObject>(fragment.GetLayoutObject()),
           To<LayoutBoxModelObject>(fragment.GetLayoutObject())) {
@@ -800,51 +799,26 @@ void BackgroundImageGeometry::CalculateFillTileSize(
   return;
 }
 
-void BackgroundImageGeometry::Calculate(const PaintInfo& paint_info,
-                                        const FillLayer& fill_layer,
-                                        const PhysicalRect& paint_rect) {
-  DCHECK_GE(box_->GetDocument().Lifecycle().GetState(),
-            DocumentLifecycle::kPrePaintClean);
-
-  // Unsnapped positioning area is used to derive quantities
-  // that reference source image maps and define non-integer values, such
-  // as phase and position.
-  PhysicalRect unsnapped_positioning_area =
-      ComputePositioningArea(paint_info, fill_layer, paint_rect);
-
-  // Snapped positioning area is used for sizing images based on the
-  // background area (like cover and contain), and for setting the repeat
-  // spacing.
-  PhysicalRect snapped_positioning_area;
-
-  // Additional offset from the corner of the positioning_box_
-  PhysicalOffset unsnapped_box_offset;
-  PhysicalOffset snapped_box_offset;
-
-  // This method also sets the destination rects.
-  AdjustPositioningArea(paint_info, fill_layer, paint_rect,
-                        unsnapped_positioning_area, snapped_positioning_area,
-                        unsnapped_box_offset, snapped_box_offset);
-
-  // Sets the tile_size_.
-  CalculateFillTileSize(fill_layer, unsnapped_positioning_area.size,
-                        snapped_positioning_area.size);
-
+void BackgroundImageGeometry::CalculateRepeatAndPosition(
+    const FillLayer& fill_layer,
+    const PhysicalSize& unsnapped_positioning_area_size,
+    const PhysicalSize& snapped_positioning_area_size,
+    const PhysicalOffset& unsnapped_box_offset,
+    const PhysicalOffset& snapped_box_offset) {
   EFillRepeat background_repeat_x = fill_layer.Repeat().x;
   EFillRepeat background_repeat_y = fill_layer.Repeat().y;
 
   // Maintain both snapped and unsnapped available widths and heights.
   // Unsnapped values are used for most thing, but snapped are used
   // to computed sizes that must fill the area, such as round and space.
-  LayoutUnit unsnapped_available_width =
-      unsnapped_positioning_area.Width() - tile_size_.width;
-  LayoutUnit unsnapped_available_height =
-      unsnapped_positioning_area.Height() - tile_size_.height;
-  LayoutUnit snapped_available_width =
-      snapped_positioning_area.Width() - tile_size_.width;
-  LayoutUnit snapped_available_height =
-      snapped_positioning_area.Height() - tile_size_.height;
-  PhysicalSize snapped_positioning_area_size = snapped_positioning_area.size;
+  const LayoutUnit unsnapped_available_width =
+      unsnapped_positioning_area_size.width - tile_size_.width;
+  const LayoutUnit unsnapped_available_height =
+      unsnapped_positioning_area_size.height - tile_size_.height;
+  const LayoutUnit snapped_available_width =
+      snapped_positioning_area_size.width - tile_size_.width;
+  const LayoutUnit snapped_available_height =
+      snapped_positioning_area_size.height - tile_size_.height;
 
   // Computed position is for placing things within the destination, so use
   // snapped values.
@@ -868,7 +842,11 @@ void BackgroundImageGeometry::Calculate(const PaintInfo& paint_info,
     tile_size_.width = rounded_width;
 
     // Force the first tile to line up with the edge of the positioning area.
-    SetPhaseX(ComputeTilePhase(computed_x_position + unsnapped_box_offset.left,
+    const LayoutUnit x_offset =
+        fill_layer.BackgroundXOrigin() == BackgroundEdgeOrigin::kRight
+            ? snapped_available_width - computed_x_position
+            : computed_x_position;
+    SetPhaseX(ComputeTilePhase(x_offset + unsnapped_box_offset.left,
                                tile_size_.width));
     SetSpaceSize(PhysicalSize());
   }
@@ -886,7 +864,11 @@ void BackgroundImageGeometry::Calculate(const PaintInfo& paint_info,
     tile_size_.height = rounded_height;
 
     // Force the first tile to line up with the edge of the positioning area.
-    SetPhaseY(ComputeTilePhase(computed_y_position + unsnapped_box_offset.top,
+    const LayoutUnit y_offset =
+        fill_layer.BackgroundYOrigin() == BackgroundEdgeOrigin::kBottom
+            ? snapped_available_height - computed_y_position
+            : computed_y_position;
+    SetPhaseY(ComputeTilePhase(y_offset + unsnapped_box_offset.top,
                                tile_size_.height));
     SetSpaceSize(PhysicalSize());
   }
@@ -948,6 +930,42 @@ void BackgroundImageGeometry::Calculate(const PaintInfo& paint_info,
     SetNoRepeatY(fill_layer, unsnapped_box_offset.top + y_offset,
                  snapped_box_offset.top + snapped_y_offset);
   }
+}
+
+void BackgroundImageGeometry::Calculate(const PaintInfo& paint_info,
+                                        const FillLayer& fill_layer,
+                                        const PhysicalRect& paint_rect) {
+  DCHECK_GE(box_->GetDocument().Lifecycle().GetState(),
+            DocumentLifecycle::kPrePaintClean);
+
+  // Unsnapped positioning area is used to derive quantities
+  // that reference source image maps and define non-integer values, such
+  // as phase and position.
+  PhysicalRect unsnapped_positioning_area =
+      ComputePositioningArea(paint_info, fill_layer, paint_rect);
+
+  // Snapped positioning area is used for sizing images based on the
+  // background area (like cover and contain), and for setting the repeat
+  // spacing.
+  PhysicalRect snapped_positioning_area;
+
+  // Additional offset from the corner of the positioning_box_
+  PhysicalOffset unsnapped_box_offset;
+  PhysicalOffset snapped_box_offset;
+
+  // This method also sets the destination rects.
+  AdjustPositioningArea(paint_info, fill_layer, paint_rect,
+                        unsnapped_positioning_area, snapped_positioning_area,
+                        unsnapped_box_offset, snapped_box_offset);
+
+  // Sets the tile_size_.
+  CalculateFillTileSize(fill_layer, unsnapped_positioning_area.size,
+                        snapped_positioning_area.size);
+
+  // Applies *-repeat and *-position.
+  CalculateRepeatAndPosition(fill_layer, unsnapped_positioning_area.size,
+                             snapped_positioning_area.size,
+                             unsnapped_box_offset, snapped_box_offset);
 
   if (ShouldUseFixedAttachment(fill_layer))
     UseFixedAttachment(paint_rect.offset);
@@ -967,26 +985,11 @@ const ImageResourceObserver& BackgroundImageGeometry::ImageClient() const {
   return *(painting_view_ ? box_ : positioning_box_);
 }
 
-const Document& BackgroundImageGeometry::ImageDocument() const {
-  return box_->GetDocument();
-}
-
 const ComputedStyle& BackgroundImageGeometry::ImageStyle(
     const ComputedStyle& fragment_style) const {
   if (painting_view_ || cell_using_container_background_)
     return positioning_box_->StyleRef();
   return fragment_style;
-}
-
-InterpolationQuality BackgroundImageGeometry::ImageInterpolationQuality()
-    const {
-  return box_->StyleRef().GetInterpolationQuality();
-}
-
-cc::PaintFlags::DynamicRangeLimit BackgroundImageGeometry::DynamicRangeLimit()
-    const {
-  return static_cast<cc::PaintFlags::DynamicRangeLimit>(
-      box_->StyleRef().DynamicRangeLimit());
 }
 
 PhysicalOffset BackgroundImageGeometry::OffsetInBackground(

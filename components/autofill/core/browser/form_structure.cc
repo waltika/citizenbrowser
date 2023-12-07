@@ -488,9 +488,11 @@ void FormStructure::DetermineHeuristicTypes(
     LogManager* log_manager) {
   SCOPED_UMA_HISTOGRAM_TIMER("Autofill.Timing.DetermineHeuristicTypes");
 
+  client_country_ = client_country;
+
   // The active heuristic source might not be a pattern source.
   if (absl::optional<PatternSource> pattern_source = GetActivePatternSource()) {
-    ParseFieldTypesWithPatterns(*pattern_source, client_country, log_manager);
+    ParseFieldTypesWithPatterns(*pattern_source, log_manager);
   }
 
   if (!base::FeatureList::IsEnabled(
@@ -498,8 +500,7 @@ void FormStructure::DetermineHeuristicTypes(
     for (HeuristicSource heuristic_source : GetNonActiveHeuristicSources()) {
       if (auto shadow_source =
               HeuristicSourceToPatternSource(heuristic_source)) {
-        ParseFieldTypesWithPatterns(*shadow_source, client_country,
-                                    log_manager);
+        ParseFieldTypesWithPatterns(*shadow_source, log_manager);
       }
     }
   }
@@ -513,7 +514,8 @@ void FormStructure::DetermineHeuristicTypes(
     rationalizer.RationalizeRepeatedFields(
         form_signature_, form_interactions_ukm_logger, log_manager);
   }
-  rationalizer.RationalizeFieldTypePredictions(main_frame_origin_, log_manager);
+  rationalizer.RationalizeFieldTypePredictions(
+      main_frame_origin_, client_country_, current_page_language_, log_manager);
 
   // Log the field type predicted by rationalization.
   // The sections are mapped to consecutive natural numbers starting at 1.
@@ -864,8 +866,10 @@ void FormStructure::ProcessQueryResponse(
       }
       field->set_server_predictions({field_suggestion->predictions().begin(),
                                      field_suggestion->predictions().end()});
-      field->set_may_use_prefilled_placeholder(
-          field_suggestion->may_use_prefilled_placeholder());
+      if (field_suggestion->has_may_use_prefilled_placeholder()) {
+        field->set_may_use_prefilled_placeholder(
+            field_suggestion->may_use_prefilled_placeholder());
+      }
       if (heuristic_type != field->Type().GetStorableType()) {
         query_response_overrode_heuristics = true;
       }
@@ -904,8 +908,9 @@ void FormStructure::ProcessQueryResponse(
     rationalizer.RationalizeAutocompleteAttributes(log_manager);
     rationalizer.RationalizeRepeatedFields(
         form->form_signature_, form_interactions_ukm_logger, log_manager);
-    rationalizer.RationalizeFieldTypePredictions(form->main_frame_origin_,
-                                                 log_manager);
+    rationalizer.RationalizeFieldTypePredictions(
+        form->main_frame_origin_, form->client_country_,
+        form->current_page_language_, log_manager);
     // TODO(crbug.com/1154080): By calling this with true, autocomplete section
     // attributes will be ignored.
     form->IdentifySections(/*ignore_autocomplete=*/true);
@@ -1337,7 +1342,6 @@ bool FormStructure::SetSectionsFromAutocompleteOrReset() {
 
 void FormStructure::ParseFieldTypesWithPatterns(
     PatternSource pattern_source,
-    const GeoIpCountryCode& client_country,
     LogManager* log_manager) {
   FieldCandidatesMap field_type_map;
   const LanguageCode& page_language =
@@ -1345,14 +1349,14 @@ void FormStructure::ParseFieldTypesWithPatterns(
           ? current_page_language_
           : LanguageCode();
   if (ShouldRunHeuristics()) {
-    FormField::ParseFormFields(fields_, client_country, page_language,
+    FormField::ParseFormFields(fields_, client_country_, page_language,
                                is_form_tag_, pattern_source, field_type_map,
                                log_manager);
   } else if (ShouldRunHeuristicsForSingleFieldForms()) {
-    FormField::ParseSingleFieldForms(fields_, client_country, page_language,
+    FormField::ParseSingleFieldForms(fields_, client_country_, page_language,
                                      is_form_tag_, pattern_source,
                                      field_type_map, log_manager);
-    FormField::ParseStandaloneCVCFields(fields_, client_country, page_language,
+    FormField::ParseStandaloneCVCFields(fields_, client_country_, page_language,
                                         pattern_source, field_type_map,
                                         log_manager);
 
@@ -1362,7 +1366,7 @@ void FormStructure::ParseFieldTypesWithPatterns(
     if (is_form_tag_ &&
         base::FeatureList::IsEnabled(
             features::kAutofillEnableEmailHeuristicOnlyAddressForms)) {
-      FormField::ParseStandaloneEmailFields(fields_, client_country,
+      FormField::ParseStandaloneEmailFields(fields_, client_country_,
                                             page_language, pattern_source,
                                             field_type_map, log_manager);
     }
@@ -1503,12 +1507,20 @@ void FormStructure::EncodeFormFieldsForUpload(
     }
 
     // Don't upload checkable fields.
-    if (IsCheckable(field->check_status))
+    if (IsCheckable(field->check_status)) {
       continue;
+    }
 
     // Add the same field elements as the query and a few more below.
-    if (ShouldSkipField(*field))
+    if (ShouldSkipField(*field)) {
       continue;
+    }
+
+    // Do not upload fields that were filled with a fallback type, as this would
+    // introduce unnecessary noise in the field votes.
+    if (field->WasAutofilledWithFallback()) {
+      continue;
+    }
 
     auto* added_field = upload->add_field();
 

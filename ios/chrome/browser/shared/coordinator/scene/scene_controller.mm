@@ -58,7 +58,7 @@
 #import "ios/chrome/browser/mailto_handler/model/mailto_handler_service.h"
 #import "ios/chrome/browser/mailto_handler/model/mailto_handler_service_factory.h"
 #import "ios/chrome/browser/main/model/browser_util.h"
-#import "ios/chrome/browser/ntp/new_tab_page_tab_helper.h"
+#import "ios/chrome/browser/ntp/model/new_tab_page_tab_helper.h"
 #import "ios/chrome/browser/passwords/model/ios_chrome_password_check_manager.h"
 #import "ios/chrome/browser/passwords/model/ios_chrome_password_check_manager_factory.h"
 #import "ios/chrome/browser/passwords/model/password_checkup_utils.h"
@@ -71,7 +71,6 @@
 #import "ios/chrome/browser/reading_list/model/reading_list_browser_agent.h"
 #import "ios/chrome/browser/screenshot/model/screenshot_delegate.h"
 #import "ios/chrome/browser/sessions/session_saving_scene_agent.h"
-#import "ios/chrome/browser/sessions/session_service_ios.h"
 #import "ios/chrome/browser/shared/coordinator/default_browser_promo/non_modal_default_browser_promo_scheduler_scene_agent.h"
 #import "ios/chrome/browser/shared/coordinator/layout_guide/layout_guide_scene_agent.h"
 #import "ios/chrome/browser/shared/coordinator/scene/scene_ui_provider.h"
@@ -123,6 +122,7 @@
 #import "ios/chrome/browser/ui/authentication/signin_notification_infobar_delegate.h"
 #import "ios/chrome/browser/ui/browser_view/browser_view_controller.h"
 #import "ios/chrome/browser/ui/credential_provider_promo/credential_provider_promo_scene_agent.h"
+#import "ios/chrome/browser/ui/first_run/omnibox_position/promo/omnibox_position_choice_scene_agent.h"
 #import "ios/chrome/browser/ui/first_run/orientation_limiting_navigation_controller.h"
 #import "ios/chrome/browser/ui/history/history_coordinator.h"
 #import "ios/chrome/browser/ui/history/history_coordinator_delegate.h"
@@ -175,6 +175,14 @@
 #import "ui/base/l10n/l10n_util.h"
 
 namespace {
+
+// Killswitch, can be removed around February 2024. If enabled,
+// createInitialUI will call makeKeyAndVisible before mainCoordinator start.
+// When disabled, this fix resolves a flicker when starting the app in light
+// mode
+BASE_FEATURE(kMakeKeyAndVisibleBeforeMainCoordinatorStart,
+             "MakeKeyAndVisibleBeforeMainCoordinatorStart",
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Feature to control whether Search Intents (Widgets, Application
 // Shortcuts menu) forcibly open a new tab, rather than reusing an
@@ -477,7 +485,8 @@ void InjectNTP(Browser* browser) {
                            appState:self.sceneState.appState];
   }
   if (self.sceneState.connectionOptions.shortcutItem) {
-    userActivityBrowserAgent->Handle3DTouchApplicationShortcuts();
+    userActivityBrowserAgent->Handle3DTouchApplicationShortcuts(
+        self.sceneState.connectionOptions.shortcutItem);
   }
 
   // See if this scene launched as part of a multiwindow URL opening.
@@ -620,7 +629,7 @@ void InjectNTP(Browser* browser) {
   UserActivityBrowserAgent* userActivityBrowserAgent =
       UserActivityBrowserAgent::FromBrowser(self.currentInterface.browser);
   BOOL handledShortcutItem =
-      userActivityBrowserAgent->Handle3DTouchApplicationShortcuts();
+      userActivityBrowserAgent->Handle3DTouchApplicationShortcuts(shortcutItem);
   if (completionHandler) {
     completionHandler(handledShortcutItem);
   }
@@ -973,16 +982,17 @@ void InjectNTP(Browser* browser) {
   [sceneState addAgent:[[WhatsNewSceneAgent alloc]
                            initWithPromosManager:promosManager]];
 
-  if (ios::provider::IsChoiceEnabled()) {
-    [sceneState addAgent:ios::provider::CreateChoiceSceneAgent(promosManager,
-                                                               browserState)];
-  }
-
   // Do not gate by feature flag so it can run for enabled -> disabled
   // scenarios.
   [sceneState addAgent:[[CredentialProviderPromoSceneAgent alloc]
                            initWithPromosManager:promosManager
                                      prefService:browserState->GetPrefs()]];
+
+  if (IsBottomOmniboxPromoFlagEnabled(BottomOmniboxPromoType::kAppLaunch)) {
+    [sceneState addAgent:[[OmniboxPositionChoiceSceneAgent alloc]
+                             initWithPromosManager:promosManager
+                                   forBrowserState:browserState]];
+  }
 }
 
 // Determines the mode (normal or incognito) the initial UI should be in.
@@ -1047,12 +1057,22 @@ void InjectNTP(Browser* browser) {
       _webStateListForwardingObserver.get());
   _mainWebStateObserver->Observe(self.mainInterface.browser->GetWebStateList());
 
-  // Enables UI initializations to query the keyWindow's size.
-  [self.sceneState.window makeKeyAndVisible];
+  if (base::FeatureList::IsEnabled(
+          kMakeKeyAndVisibleBeforeMainCoordinatorStart)) {
+    [self.sceneState.window makeKeyAndVisible];
+  }
 
   // Lazy init of mainCoordinator.
   [self.mainCoordinator start];
 
+  if (!base::FeatureList::IsEnabled(
+          kMakeKeyAndVisibleBeforeMainCoordinatorStart)) {
+    // Enables UI initializations to query the keyWindow's size. Do this after
+    // `mainCoordinator start` as it sets self.window.rootViewController to work
+    // around crbug.com/850387, causing a flicker if -makeKeyAndVisible has been
+    // called.
+    [self.sceneState.window makeKeyAndVisible];
+  }
   [self.mainCoordinator setActivePage:[self activePage]];
 
   if (!self.sceneState.appState.startupInformation.isFirstRun) {
