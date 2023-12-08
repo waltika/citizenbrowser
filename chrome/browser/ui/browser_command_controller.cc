@@ -681,6 +681,9 @@ bool BrowserCommandController::ExecuteCommandWithDisposition(
     case IDC_SHARING_HUB:
       SharingHubFromPageAction(browser_);
       break;
+    case IDC_CITIZEN_X:
+          SharingHubFromPageAction(browser_); // TODO: Change to correct one
+      break;
     case IDC_SHARING_HUB_SCREENSHOT:
       ScreenshotCaptureFromPageAction(browser_);
       break;

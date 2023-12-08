@@ -50,6 +50,7 @@
 #include "chrome/browser/sessions/session_service_lookup.h"
 #include "chrome/browser/sessions/tab_restore_service_factory.h"
 #include "chrome/browser/sharing_hub/sharing_hub_features.h"
+#include "chrome/browser/citizen_x/citizen_x_features.h"
 #include "chrome/browser/translate/chrome_translate_client.h"
 #include "chrome/browser/ui/accelerator_utils.h"
 #include "chrome/browser/ui/autofill/payments/iban_bubble_controller_impl.h"
@@ -85,6 +86,7 @@
 #include "chrome/browser/ui/send_tab_to_self/send_tab_to_self_bubble.h"
 #include "chrome/browser/ui/sharing_hub/screenshot/screenshot_captured_bubble_controller.h"
 #include "chrome/browser/ui/sharing_hub/sharing_hub_bubble_controller.h"
+#include "chrome/browser/ui/citizen_x/citizen_x_bubble_controller.h"
 #include "chrome/browser/ui/startup/startup_tab.h"
 #include "chrome/browser/ui/status_bubble.h"
 #include "chrome/browser/ui/tab_contents/core_tab_helper.h"
@@ -1614,6 +1616,15 @@ void SharingHubFromPageAction(Browser* browser) {
       browser->tab_strip_model()->GetActiveWebContents();
   sharing_hub::SharingHubBubbleController* controller =
       sharing_hub::SharingHubBubbleController::CreateOrGetFromWebContents(
+          web_contents);
+  controller->ShowBubble(share::ShareAttempt(web_contents));
+}
+
+void CitizenXFromPageAction(Browser* browser) {
+  WebContents* web_contents =
+      browser->tab_strip_model()->GetActiveWebContents();
+    citizen_x::CitizenXBubbleController* controller =
+    citizen_x::CitizenXBubbleController::CreateOrGetFromWebContents(
           web_contents);
   controller->ShowBubble(share::ShareAttempt(web_contents));
 }

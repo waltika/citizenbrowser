@@ -184,6 +184,7 @@ void SendTabToSelfFromPageAction(Browser* browser);
 bool CanGenerateQrCode(const Browser* browser);
 void GenerateQRCodeFromPageAction(Browser* browser);
 void SharingHubFromPageAction(Browser* browser);
+void CitizenXPageAction(Browser* browser);
 void ScreenshotCaptureFromPageAction(Browser* browser);
 void SavePage(Browser* browser);
 bool CanSavePage(const Browser* browser);
