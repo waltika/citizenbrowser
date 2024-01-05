@@ -37,6 +37,8 @@ std::ostream& operator<<(std::ostream& out,
       return out << "kChromeViewsDelegate";
     case ProfileKeepAliveOrigin::kDevToolsWindow:
       return out << "kDevToolsWindow";
+    case ProfileKeepAliveOrigin::kCitizenNotesWindow:
+      return out << "kCitizenNotesWindow";
     case ProfileKeepAliveOrigin::kWebAppPermissionDialogWindow:
       return out << "kWebAppPermissionDialogWindow";
     case ProfileKeepAliveOrigin::kSessionDataDeleter:
