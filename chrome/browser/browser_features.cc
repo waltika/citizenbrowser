@@ -58,6 +58,13 @@ BASE_FEATURE(kDevToolsVeLogging,
              "DevToolsVeLogging",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
+// Let DevTools front-end log extensive VisualElements-style UMA metrics for
+// impressions and interactions.
+BASE_FEATURE(kCitizenNotesVeLogging,
+             "CitizenNotesVeLogging",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+
 // Let the DevTools front-end query an AIDA endpoint for explanations and
 // insights regarding console (error) messages.
 BASE_FEATURE(kDevToolsConsoleInsights,
