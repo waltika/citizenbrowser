@@ -45,6 +45,8 @@ enum class KeepAliveOrigin {
   REMOTE_DEBUGGING,
   DEVTOOLS_WINDOW,
 
+  CITIZENNOTES_WINDOW,
+
   // c/b/extensions
   NATIVE_MESSAGING_HOST_ERROR_REPORT,
 

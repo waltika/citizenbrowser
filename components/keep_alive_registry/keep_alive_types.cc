@@ -42,6 +42,8 @@ std::ostream& operator<<(std::ostream& out, const KeepAliveOrigin& origin) {
       return out << "REMOTE_DEBUGGING";
     case KeepAliveOrigin::DEVTOOLS_WINDOW:
       return out << "DEVTOOLS_WINDOW";
+    case KeepAliveOrigin::CITIZENNOTES_WINDOW:
+      return out << "CITIZENNOTES_WINDOW";
     case KeepAliveOrigin::NATIVE_MESSAGING_HOST_ERROR_REPORT:
       return out << "NATIVE_MESSAGING_HOST_ERROR_REPORT";
     case KeepAliveOrigin::NOTIFICATION:

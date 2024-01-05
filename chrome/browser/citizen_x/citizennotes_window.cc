@@ -138,7 +138,7 @@ void SetPreferencesFromJson(Profile* profile, const std::string& json) {
   absl::optional<base::Value> parsed = base::JSONReader::Read(json);
   if (!parsed || !parsed->is_dict())
     return;
-  ScopedDictPrefUpdate update(profile->GetPrefs(), prefs::kDevToolsPreferences);
+  ScopedDictPrefUpdate update(profile->GetPrefs(), prefs::kCitizenNotesPreferences);
   for (auto dict_value : parsed->GetDict()) {
     if (!dict_value.second.is_string())
       continue;
@@ -189,7 +189,7 @@ content::WebContents* CitizenNotesToolboxDelegate::OpenURLFromTab(
     content::WebContents* source,
     const content::OpenURLParams& params) {
   DCHECK(source == web_contents());
-  if (!params.url.SchemeIs(content::kChromeDevToolsScheme))
+  if (!params.url.SchemeIs(content::kChromeCitizenNotesScheme))
     return nullptr;
   source->GetController().LoadURLWithParams(
       content::NavigationController::LoadURLParams(params));
@@ -240,7 +240,7 @@ GURL DecorateFrontendURL(const GURL& base_url) {
   if (command_line->HasSwitch(switches::kCitizenNotesFlags)) {
     frontend_url = frontend_url +
                    ((frontend_url.find("?") == std::string::npos) ? "?" : "&") +
-                   command_line->GetSwitchValueASCII(switches::kDevToolsFlags);
+                   command_line->GetSwitchValueASCII(switches::kCitizenNotesFlags);
   }
 
   if (command_line->HasSwitch(switches::kCustomCitizenNotesFrontend)) {
@@ -399,7 +399,7 @@ class CitizenNotesWindow::OwnedMainWebContents {
  public:
   explicit OwnedMainWebContents(
       std::unique_ptr<content::WebContents> web_contents)
-      : keep_alive_(KeepAliveOrigin::DEVTOOLS_WINDOW,
+      : keep_alive_(KeepAliveOrigin::CITIZENNOTES_WINDOW,
                     KeepAliveRestartOption::DISABLED),
         web_contents_(std::move(web_contents)) {
     Profile* profile = GetProfileForCitizenNotesWindow(web_contents_.get());
@@ -407,7 +407,7 @@ class CitizenNotesWindow::OwnedMainWebContents {
     if (!profile->IsOffTheRecord()) {
       // ScopedProfileKeepAlive does not support OTR profiles.
       profile_keep_alive_ = std::make_unique<ScopedProfileKeepAlive>(
-          profile, ProfileKeepAliveOrigin::kDevToolsWindow);
+          profile, ProfileKeepAliveOrigin::kCitizenNotesWindow);
     }
   }
 
@@ -489,29 +489,29 @@ CitizenNotesWindow::~CitizenNotesWindow() {
 // static
 void CitizenNotesWindow::RegisterProfilePrefs(
     user_prefs::PrefRegistrySyncable* registry) {
-  registry->RegisterDictionaryPref(prefs::kDevToolsEditedFiles);
-  registry->RegisterDictionaryPref(prefs::kDevToolsFileSystemPaths);
-  registry->RegisterStringPref(prefs::kDevToolsAdbKey, std::string());
+  registry->RegisterDictionaryPref(prefs::kCitizenNotesEditedFiles);
+  registry->RegisterDictionaryPref(prefs::kCitizenNotesFileSystemPaths);
+  registry->RegisterStringPref(prefs::kCitizenNotesAdbKey, std::string());
 
-  registry->RegisterBooleanPref(prefs::kDevToolsDiscoverUsbDevicesEnabled,
+  registry->RegisterBooleanPref(prefs::kCitizenNotesDiscoverUsbDevicesEnabled,
                                 true);
-  registry->RegisterBooleanPref(prefs::kDevToolsPortForwardingEnabled, false);
-  registry->RegisterBooleanPref(prefs::kDevToolsPortForwardingDefaultSet,
+  registry->RegisterBooleanPref(prefs::kCitizenNotesPortForwardingEnabled, false);
+  registry->RegisterBooleanPref(prefs::kCitizenNotesPortForwardingDefaultSet,
                                 false);
-  registry->RegisterDictionaryPref(prefs::kDevToolsPortForwardingConfig);
-  registry->RegisterBooleanPref(prefs::kDevToolsDiscoverTCPTargetsEnabled,
+  registry->RegisterDictionaryPref(prefs::kCitizenNotesPortForwardingConfig);
+  registry->RegisterBooleanPref(prefs::kCitizenNotesDiscoverTCPTargetsEnabled,
                                 true);
-  registry->RegisterListPref(prefs::kDevToolsTCPDiscoveryConfig);
-  registry->RegisterDictionaryPref(prefs::kDevToolsPreferences);
+  registry->RegisterListPref(prefs::kCitizenNotesTCPDiscoveryConfig);
+  registry->RegisterDictionaryPref(prefs::kCitizenNotesPreferences);
   registry->RegisterBooleanPref(
-      prefs::kDevToolsSyncPreferences,
+      prefs::kCitizenNotesSyncPreferences,
       CitizenNotesSettings::kSyncCitizenNotesPreferencesDefault,
       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
   registry->RegisterDictionaryPref(
-      prefs::kDevToolsSyncedPreferencesSyncEnabled,
+      prefs::kCitizenNotesSyncedPreferencesSyncEnabled,
       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
   registry->RegisterDictionaryPref(
-      prefs::kDevToolsSyncedPreferencesSyncDisabled);
+      prefs::kCitizenNotesSyncedPreferencesSyncDisabled);
 }
 
 // static
@@ -785,7 +785,7 @@ namespace {
 
 scoped_refptr<CitizenNotesAgentHost> GetOrCreateCitizenNotesHostForWebContents(
     WebContents* wc) {
-  return base::FeatureList::IsEnabled(::features::kDevToolsTabTarget)
+  return base::FeatureList::IsEnabled(::features::kCitizenNotesTabTarget)
              ? CitizenNotesAgentHost::GetOrCreateForTab(wc)
              : CitizenNotesAgentHost::GetOrCreateFor(wc);
 }
@@ -881,7 +881,7 @@ void CitizenNotesWindow::LogCitizenNotesOpenedByAction(
 void CitizenNotesWindow::LogCitizenNotesOpenedUKM(content::WebContents* web_contents) {
   ukm::SourceId source_id =
       web_contents->GetPrimaryMainFrame()->GetPageUkmSourceId();
-  ukm::builders::DevTools_Opened(source_id).SetHasOccurred(true).Record(
+  ukm::builders::CitizenNotes_Opened(source_id).SetHasOccurred(true).Record(
       ukm::UkmRecorder::Get());
 }
 
@@ -1239,16 +1239,16 @@ GURL CitizenNotesWindow::GetCitizenNotesURL(Profile* profile,
         url += "&can_dock=true";
       if (!panel.empty())
         url += "&panel=" + panel;
-      if (base::FeatureList::IsEnabled(::features::kDevToolsTabTarget)) {
+      if (base::FeatureList::IsEnabled(::features::kCitizenNotesTabTarget)) {
         url += "&targetType=tab";
       }
-      if (base::FeatureList::IsEnabled(::features::kDevToolsVeLogging)) {
+      if (base::FeatureList::IsEnabled(::features::kCitizenNotesVeLogging)) {
         url += "&veLogging=true";
       }
 #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
-      if (base::FeatureList::IsEnabled(::features::kDevToolsConsoleInsights)) {
+      if (base::FeatureList::IsEnabled(::features::kCitizenNotesConsoleInsights)) {
         url += "&enableAida=true&aidaApiKey=" +
-               features::kDevToolsConsoleInsightsApiKey.Get();
+               features::kCitizenNotesConsoleInsightsApiKey.Get();
       }
 #endif
       break;

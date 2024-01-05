@@ -165,7 +165,10 @@ enum class ProfileKeepAliveOrigin {
   // closed.
   kRemoteDebugging = 38,
 
-  kMaxValue = kRemoteDebugging,
+  // A CitizenNotes window is open.
+  kCitizenNotesWindow = 39,
+
+  kMaxValue = kCitizenNotesWindow,
 };
 // LINT.ThenChange(/tools/metrics/histograms/enums.xml)
 
