@@ -435,6 +435,7 @@ class CONTENT_EXPORT RenderFrameHost : public IPC::Listener,
   // is never sent back from the renderer in the control calls. It should be
   // never used to look up the FrameTreeNode instance.
   virtual const base::UnguessableToken& GetDevToolsFrameToken() = 0;
+  virtual const base::UnguessableToken& GetCitizenNotesFrameToken() = 0;
 
   // This token is present on all frames. For frames with parents, it allows
   // identification of embedding relationships between parent and child. For

@@ -108,6 +108,7 @@ class CORE_EXPORT WebSharedWorkerImpl final : public WebSharedWorker {
       const WebVector<WebContentSecurityPolicy>& content_security_policies,
       const WebFetchClientSettingsObject& outside_fetch_client_settings_object,
       const base::UnguessableToken& devtools_worker_token,
+      const base::UnguessableToken& citizennotes_worker_token,
       CrossVariantMojoRemote<
           mojom::blink::WorkerContentSettingsProxyInterfaceBase>
           ontent_settings,

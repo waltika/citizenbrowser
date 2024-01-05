@@ -12,6 +12,7 @@
 #include "base/time/time.h"
 #include "build/build_config.h"
 #include "chrome/browser/devtools/devtools_toggle_action.h"
+#include "chrome/browser/citizen_x/citizennotes_toggle_action.h"
 #include "chrome/browser/ui/chrome_pages.h"
 #include "chrome/browser/ui/tabs/tab_strip_model_delegate.h"
 #include "chrome/browser/ui/tabs/tab_strip_user_gesture_details.h"
@@ -26,6 +27,7 @@ class CommandObserver;
 class GURL;
 class Profile;
 enum class DevToolsOpenedByAction;
+enum class CitizenNotesOpenedByAction;
 
 namespace content {
 class NavigationHandle;
@@ -221,6 +223,9 @@ void FocusWebContentsPane(Browser* browser);
 void ToggleDevToolsWindow(Browser* browser,
                           DevToolsToggleAction action,
                           DevToolsOpenedByAction opened_by);
+void ToggleCitizenNotesWindow(Browser* browser,
+                              CitizenNotesToggleAction action,
+                              CitizenNotesOpenedByAction opened_by);
 bool CanOpenTaskManager();
 // Opens task manager UI. Note that |browser| can be nullptr as input.
 void OpenTaskManager(Browser* browser);

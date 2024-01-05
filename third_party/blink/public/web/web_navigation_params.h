@@ -147,6 +147,9 @@ struct BLINK_EXPORT WebNavigationInfo {
   // The initiator of this navigation used by DevTools.
   WebString devtools_initiator_info;
 
+  // The initiator of this navigation used by DevTools.
+  WebString citizennotes_initiator_info;
+
   // Whether this navigation should check CSP.
   network::mojom::CSPDisposition
       should_check_main_world_content_security_policy =
@@ -216,7 +219,8 @@ struct BLINK_EXPORT WebNavigationParams {
   // rather than randomly creating new ones.
   explicit WebNavigationParams(
       const blink::DocumentToken& document_token,
-      const base::UnguessableToken& devtools_navigation_token);
+      const base::UnguessableToken& devtools_navigation_token,
+      const base::UnguessableToken& citizennotes_navigation_token);
 
   // Shortcut for navigating based on WebNavigationInfo parameters.
   //
@@ -382,6 +386,7 @@ struct BLINK_EXPORT WebNavigationParams {
   // The devtools token for this navigation. See DocumentLoader
   // for details.
   base::UnguessableToken devtools_navigation_token;
+  base::UnguessableToken citizennotes_navigation_token;
   // Known timings related to navigation. If the navigation has
   // started in another process, timings are propagated from there.
   WebNavigationTimings navigation_timings;

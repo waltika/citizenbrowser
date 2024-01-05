@@ -11,6 +11,8 @@ blink_core_sources_exported = [
   "web_custom_element.cc",
   "web_dev_tools_agent_impl.cc",
   "web_dev_tools_agent_impl.h",
+  "web_citizen_notes_agent_impl.cc",
+  "web_citizen_notes_agent_impl.h",
   "web_disallow_transition_scope.cc",
   "web_document.cc",
   "web_dom_activity_logger.cc",

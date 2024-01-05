@@ -1263,6 +1263,22 @@
     "includes": [8440],
   },
 
+  # This file is generated during the build.
+  # .grd extension is required because it's checked before var interpolation.
+  "<(CITIZENNOTES_GRD_PATH).grd": {
+    # In debug build, citizennotes frontend sources are not bundled and therefore
+    # includes a lot of individual resources
+    "META": {"sizes": {"includes": [3000],}},
+    "includes": [8500],
+  },
+
+  # This file is generated during the build.
+  "<(SHARED_INTERMEDIATE_DIR)/resources/cn_inspector_overlay/inspector_overlay_resources.grd": {
+    "META": {"sizes": {"includes": [50],}},
+    "includes": [8600],
+  },
+
+
   # END "everything else" section.
   # Everything but chrome/, components/, content/, and ios/
 

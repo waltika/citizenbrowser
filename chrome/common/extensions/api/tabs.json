@@ -137,7 +137,7 @@
       {
         "id": "WindowType",
         "type": "string",
-        "enum": ["normal", "popup", "panel", "app", "devtools"],
+        "enum": ["normal", "popup", "panel", "app", "devtools", "citizennotes"],
         "description": "The type of window."
       }
     ],

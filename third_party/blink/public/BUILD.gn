@@ -4,6 +4,7 @@
 
 import("//build/buildflag_header.gni")
 import("//build/config/devtools.gni")
+import("//build/config/citizennotes.gni")
 import("//mojo/public/tools/bindings/mojom.gni")
 import("//third_party/blink/public/public_features.gni")
 import("//third_party/blink/renderer/build/scripts/scripts.gni")
@@ -426,6 +427,7 @@ source_set("blink_headers") {
 
   public_deps = [
     ":devtools_inspector_resources_grit",
+    ":citizennotes_inspector_resources_grit",
     ":resources_grit",
     ":runtime_features_for_public",
     "//net",
@@ -511,6 +513,25 @@ group("blink_generate_devtools_grd") {
   public_deps = [ "$devtools_frontend_path:generate_devtools_grd" ]
 }
 
+citizennotes_frontend_path = "//$citizennotes_root_location"
+
+group("blink_citizennotes_frontend_resources") {
+  public_deps = [ "$citizennotes_frontend_path:citizennotes_frontend_resources" ]
+}
+
+group("blink_citizennotes_inspector_resources") {
+  public_deps = [ ":citizennotes_inspector_resources_grit" ]
+}
+
+group("blink_citizennotes_frontend_resources_files") {
+  testonly = true
+  data_deps = [ "$citizennotes_frontend_path:citizennotes_all_files" ]
+}
+
+group("blink_generate_citizennotes_grd") {
+  public_deps = [ "$citizennotes_frontend_path:generate_citizennotes_grd" ]
+}
+
 resources_out_dir = "$blink_public_output_dir/resources"
 
 grit("resources") {
@@ -546,6 +567,32 @@ grit("devtools_inspector_resources") {
 
   deps = [
     "$devtools_frontend_path:generate_devtools_inspector_overlay_resources",
+  ]
+}
+
+grit("citizennotes_inspector_resources") {
+  # Required because the .grd is generated.
+  enable_input_discovery_for_gn_analyze = false
+
+  source = "$root_out_dir/resources/cn_inspector_overlay/inspector_overlay_resources.grd"
+  output_dir = resources_out_dir
+  outputs = [
+    "grit/cn_inspector_overlay_resources_map.h",
+    "cn_inspector_overlay_resources.pak",
+  ]
+
+  _shared_intermediate_dir = rebase_path(root_out_dir, root_build_dir)
+  _citizennotes_grd_path = "$shared_intermediate_dir/$citizennotes_grd_location"
+  _citizennotes_grd_path_no_ext = get_path_info(_citizennotes_grd_path, "dir") + "/" +
+                              get_path_info(_citizennotes_grd_path, "name")
+
+  defines = [
+    "SHARED_INTERMEDIATE_DIR=" + _shared_intermediate_dir,
+    "CITIZENNOTES_GRD_PATH=" + _citizennotes_grd_path_no_ext,
+  ]
+
+  deps = [
+    "$citizennotes_frontend_path:generate_citizennotes_inspector_overlay_resources",
   ]
 }
 

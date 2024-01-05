@@ -299,6 +299,9 @@ class CORE_EXPORT Frame : public GarbageCollected<Frame> {
   const base::UnguessableToken& GetDevToolsFrameToken() const {
     return devtools_frame_token_;
   }
+  const base::UnguessableToken& GetCitizenNotesFrameToken() const {
+    return citizennotes_frame_token_;
+  }
   const std::string& GetFrameIdForTracing();
 
   void SetEmbeddingToken(const base::UnguessableToken& embedding_token);
@@ -462,6 +465,7 @@ class CORE_EXPORT Frame : public GarbageCollected<Frame> {
         FrameInsertType insert_type,
         const FrameToken& frame_token,
         const base::UnguessableToken& devtools_frame_token,
+        const base::UnguessableToken& citizennotes_frame_token,
         WindowProxyManager*,
         WindowAgentFactory* inheriting_agent_factory);
 
@@ -550,6 +554,7 @@ class CORE_EXPORT Frame : public GarbageCollected<Frame> {
   bool is_loading_;
   // Contains token to be used as a frame id in the devtools protocol.
   base::UnguessableToken devtools_frame_token_;
+  base::UnguessableToken citizennotes_frame_token_;
   absl::optional<std::string> trace_value_;
 
   // Embedding token, if existing, associated to this frame. For local frames

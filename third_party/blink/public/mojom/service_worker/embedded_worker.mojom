@@ -70,6 +70,9 @@ struct EmbeddedWorkerStartParams {
   // Unique token identifying this worker for DevTools.
   mojo_base.mojom.UnguessableToken devtools_worker_token;
 
+  // Unique token identifying this worker for DevTools.
+  mojo_base.mojom.UnguessableToken citizennotes_worker_token;
+
   // The URL of the service worker script that should skip throttles when
   // loaded, because the browser process has already started loading it and
   // already throttled the request. For more detail, during the service worker

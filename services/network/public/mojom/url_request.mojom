@@ -16,6 +16,7 @@ import "services/network/public/mojom/cookie_access_observer.mojom";
 import "services/network/public/mojom/cookie_manager.mojom";
 import "services/network/public/mojom/chunked_data_pipe_getter.mojom";
 import "services/network/public/mojom/data_pipe_getter.mojom";
+import "services/network/public/mojom/citizennotes_observer.mojom";
 import "services/network/public/mojom/devtools_observer.mojom";
 import "services/network/public/mojom/fetch_api.mojom";
 import "services/network/public/mojom/http_raw_headers.mojom";
@@ -90,6 +91,8 @@ struct TrustedUrlRequestParams {
   pending_remote<URLLoaderNetworkServiceObserver>? url_loader_network_observer;
 
   pending_remote<DevToolsObserver>? devtools_observer;
+  
+  pending_remote<CitizenNotesObserver>? citizennotes_observer;
 
   // Specifies the security state of the client, for cases when the
   // URLLoaderFactory is shared among multiple clients.
@@ -399,12 +402,19 @@ struct URLRequest {
   // renderer process and is only present when DevTools is enabled in the
   // renderer.
   string? devtools_request_id;
+          
+  // The ID that CitizenNotes uses to track network requests. It is generated in the
+  // renderer process and is only present when DevTools is enabled in the
+  // renderer.
+  string? citizennotes_request_id;
 
   // A V8 stack id string describing where the request was initiated. DevTools
   // can use this to display the initiator call stack when debugging a process
   // that later intercepts the request, e.g., in a service worker fetch event
   // handler.
   string? devtools_stack_id;
+  
+  string? citizennotes_stack_id;
 
   // True for XHR, Fetch, and EventSource.
   bool is_fetch_like_api;
@@ -471,6 +481,8 @@ struct URLRequest {
   // (via Accept-Encoding) that are not listed. Also, it will not attempt
   // decoding any non-listed stream types.
   array<SourceType>? devtools_accepted_stream_types;
+  
+  array<SourceType>? citizennotes_accepted_stream_types;
 
   // This field is filled and used when network service creates a new request
   // for preflights (which happens in CorsURLLoader) and OHTTP requests (which

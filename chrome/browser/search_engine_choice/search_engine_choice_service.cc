@@ -47,6 +47,7 @@ bool IsBrowserTypeSupported(const Browser& browser) {
     case Browser::TYPE_PICTURE_IN_PICTURE:
     case Browser::TYPE_APP:
     case Browser::TYPE_DEVTOOLS:
+    case Browser::TYPE_CITIZENNOTES:
 #if BUILDFLAG(IS_CHROMEOS_ASH)
     case Browser::TYPE_CUSTOM_TAB:
 #endif

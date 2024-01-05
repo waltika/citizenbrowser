@@ -116,6 +116,7 @@ struct CreateViewParams {
   // in the browser process, as the token is shared, making the mapping
   // ambiguous and non-authoritative.
   mojo_base.mojom.UnguessableToken devtools_main_frame_token;
+  mojo_base.mojom.UnguessableToken citizennotes_main_frame_token;
 
   CreateMainFrameUnion main_frame;
 
@@ -303,6 +304,7 @@ struct CreateFrameParams {
   // |devtools_frame_token| is only defined by the browser and is never
   // sent back from the renderer in the control calls.
   mojo_base.mojom.UnguessableToken devtools_frame_token;
+  mojo_base.mojom.UnguessableToken citizennotes_frame_token;
 
   // When the new frame has a parent, |frame_owner_properties| holds the
   // properties of the HTMLFrameOwnerElement from the parent process.
@@ -658,6 +660,7 @@ struct CreateNewWindowReply {
   // in the browser process, as the token is shared, making the mapping
   // ambiguous and non-authoritative.
   mojo_base.mojom.UnguessableToken devtools_main_frame_token;
+  mojo_base.mojom.UnguessableToken citizennotes_main_frame_token;
 
   // Used by devtools instrumentation to tell devtools agent in the renderer
   // that it should pause created window and wait for an explicit resume command

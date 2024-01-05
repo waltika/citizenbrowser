@@ -1507,13 +1507,16 @@ RenderFrameImpl* RenderFrameImpl::Create(
     mojo::PendingAssociatedRemote<blink::mojom::AssociatedInterfaceProvider>
         associated_interface_provider,
     const base::UnguessableToken& devtools_frame_token,
+    const base::UnguessableToken& citizennotes_frame_token,
     bool is_for_nested_main_frame) {
   DCHECK(routing_id != MSG_ROUTING_NONE);
   CreateParams params(agent_scheduling_group, routing_id,
                       std::move(frame_receiver),
                       std::move(browser_interface_broker),
                       std::move(associated_interface_provider),
-                      devtools_frame_token, is_for_nested_main_frame);
+                      devtools_frame_token,
+                      citizennotes_frame_token,
+                      is_for_nested_main_frame);
 
   if (g_create_render_frame_impl)
     return g_create_render_frame_impl(std::move(params));
@@ -1544,6 +1547,7 @@ RenderFrameImpl* RenderFrameImpl::CreateMainFrame(
     bool is_for_scalable_page,
     blink::mojom::FrameReplicationStatePtr replication_state,
     const base::UnguessableToken& devtools_frame_token,
+    const base::UnguessableToken& citizennotes_frame_token,
     mojom::CreateLocalMainFrameParamsPtr params,
     const blink::WebURL& base_url) {
   // A main frame RenderFrame must have a RenderWidget.
@@ -1553,7 +1557,7 @@ RenderFrameImpl* RenderFrameImpl::CreateMainFrame(
       agent_scheduling_group, params->routing_id, std::move(params->frame),
       std::move(params->interface_broker),
       std::move(params->associated_interface_provider_remote),
-      devtools_frame_token, is_for_nested_main_frame);
+      devtools_frame_token, citizennotes_frame_token, is_for_nested_main_frame);
 
   WebLocalFrame* web_frame = WebLocalFrame::CreateMainFrame(
       web_view, render_frame, render_frame->blink_interface_registry_.get(),
@@ -1645,6 +1649,7 @@ void RenderFrameImpl::CreateFrame(
     const absl::optional<blink::FrameToken>& parent_frame_token,
     const absl::optional<blink::FrameToken>& previous_sibling_frame_token,
     const base::UnguessableToken& devtools_frame_token,
+    const base::UnguessableToken& citizennotes_frame_token,
     blink::mojom::TreeScopeType tree_scope_type,
     blink::mojom::FrameReplicationStatePtr replicated_state,
     mojom::CreateFrameWidgetParamsPtr widget_params,
@@ -1692,7 +1697,7 @@ void RenderFrameImpl::CreateFrame(
     render_frame = RenderFrameImpl::Create(
         agent_scheduling_group, routing_id, std::move(frame_receiver),
         std::move(browser_interface_broker),
-        std::move(associated_interface_provider), devtools_frame_token,
+        std::move(associated_interface_provider), devtools_frame_token, citizennotes_frame_token,
         is_for_nested_main_frame);
     render_frame->unique_name_helper_.set_propagated_name(
         replicated_state->unique_name);
@@ -1739,7 +1744,7 @@ void RenderFrameImpl::CreateFrame(
     render_frame = RenderFrameImpl::Create(
         agent_scheduling_group, routing_id, std::move(frame_receiver),
         std::move(browser_interface_broker),
-        std::move(associated_interface_provider), devtools_frame_token,
+        std::move(associated_interface_provider), devtools_frame_token, citizennotes_frame_token,
         is_for_nested_main_frame);
     web_frame = blink::WebLocalFrame::CreateProvisional(
         render_frame, render_frame->blink_interface_registry_.get(),
@@ -1853,6 +1858,7 @@ RenderFrameImpl::CreateParams::CreateParams(
     mojo::PendingAssociatedRemote<blink::mojom::AssociatedInterfaceProvider>
         associated_interface_provider,
     const base::UnguessableToken& devtools_frame_token,
+    const base::UnguessableToken& citizennotes_frame_token,
     bool is_for_nested_main_frame)
     : agent_scheduling_group(&agent_scheduling_group),
       routing_id(routing_id),
@@ -1860,6 +1866,7 @@ RenderFrameImpl::CreateParams::CreateParams(
       browser_interface_broker(std::move(browser_interface_broker)),
       associated_interface_provider(std::move(associated_interface_provider)),
       devtools_frame_token(devtools_frame_token),
+      citizennotes_frame_token(citizennotes_frame_token),
       is_for_nested_main_frame(is_for_nested_main_frame) {}
 RenderFrameImpl::CreateParams::~CreateParams() = default;
 RenderFrameImpl::CreateParams::CreateParams(CreateParams&&) = default;
@@ -1889,6 +1896,7 @@ RenderFrameImpl::RenderFrameImpl(CreateParams params)
           base::BindRepeating(&RenderFrameImpl::RequestOverlayRoutingToken,
                               base::Unretained(this))),
       devtools_frame_token_(params.devtools_frame_token),
+      citizennotes_frame_token_(params.citizennotes_frame_token),
       is_for_nested_main_frame_(params.is_for_nested_main_frame) {
   DCHECK(RenderThread::IsMainThread());
   blink_interface_registry_ = std::make_unique<BlinkInterfaceRegistryImpl>(
@@ -2614,6 +2622,7 @@ void RenderFrameImpl::CommitNavigation(
         fetch_later_loader_factory,
     const blink::DocumentToken& document_token,
     const base::UnguessableToken& devtools_navigation_token,
+    const base::UnguessableToken& citizennotes_navigation_token,
     const absl::optional<blink::ParsedPermissionsPolicy>& permissions_policy,
     blink::mojom::PolicyContainerPtr policy_container,
     mojo::PendingRemote<blink::mojom::CodeCacheHost> code_cache_host,
@@ -2655,7 +2664,7 @@ void RenderFrameImpl::CommitNavigation(
   bool is_client_redirect =
       !!(common_params->transition & ui::PAGE_TRANSITION_CLIENT_REDIRECT);
   auto navigation_params = std::make_unique<WebNavigationParams>(
-      document_token, devtools_navigation_token);
+      document_token, devtools_navigation_token, citizennotes_navigation_token);
   navigation_params->navigation_delivery_type =
       commit_params->navigation_delivery_type;
   navigation_params->is_client_redirect = is_client_redirect;
@@ -2987,7 +2996,8 @@ void RenderFrameImpl::CommitFailedNavigation(
       blink::CreateDefaultRendererContentSettings();
   auto navigation_params = std::make_unique<WebNavigationParams>(
       document_token,
-      /*devtools_navigation_token=*/base::UnguessableToken::Create());
+      /*devtools_navigation_token=*/base::UnguessableToken::Create(),
+      /*citizennotes_navigation_token=*/base::UnguessableToken::Create());
   FillNavigationParamsRequest(*common_params, *commit_params,
                               navigation_params.get());
   // Use kUnreachableWebDataURL as the document URL (instead of the URL that
@@ -3551,9 +3561,10 @@ blink::WebLocalFrame* RenderFrameImpl::CreateChildFrame(
   int child_routing_id;
   blink::LocalFrameToken frame_token;
   base::UnguessableToken devtools_frame_token;
+  base::UnguessableToken citizennotes_frame_token;
   blink::DocumentToken document_token;
   if (!RenderThread::Get()->GenerateFrameRoutingID(
-          child_routing_id, frame_token, devtools_frame_token,
+          child_routing_id, frame_token, devtools_frame_token, citizennotes_frame_token,
           document_token)) {
     return nullptr;
   }
@@ -3603,7 +3614,7 @@ blink::WebLocalFrame* RenderFrameImpl::CreateChildFrame(
   RenderFrameImpl* child_render_frame = RenderFrameImpl::Create(
       *agent_scheduling_group_, child_routing_id,
       std::move(pending_frame_receiver), std::move(browser_interface_broker),
-      std::move(associated_interface_provider), devtools_frame_token,
+      std::move(associated_interface_provider), devtools_frame_token, citizennotes_frame_token,
       /*is_for_nested_main_frame=*/false);
   child_render_frame->SetLoaderFactoryBundle(CloneLoaderFactories());
   child_render_frame->unique_name_helper_.set_propagated_name(
@@ -4290,6 +4301,10 @@ bool RenderFrameImpl::SwapOutAndDeleteThis(
 
 base::UnguessableToken RenderFrameImpl::GetDevToolsFrameToken() {
   return devtools_frame_token_;
+}
+
+base::UnguessableToken RenderFrameImpl::GetCitizenNotesFrameToken() {
+  return citizennotes_frame_token_;
 }
 
 void RenderFrameImpl::AbortClientNavigation() {
@@ -5995,6 +6010,16 @@ void RenderFrameImpl::BeginNavigationInternal(
     }
   }
 
+  absl::optional<base::Value::Dict> citizennotes_initiator;
+  if (!info->citizennotes_initiator_info.IsNull()) {
+    absl::optional<base::Value> citizennotes_initiator_value =
+        base::JSONReader::Read(info->citizennotes_initiator_info.Utf8());
+    if (citizennotes_initiator_value && citizennotes_initiator_value->is_dict()) {
+        citizennotes_initiator = std::move(*citizennotes_initiator_value).TakeDict();
+    }
+  }
+
+    
   blink::mojom::NavigationInitiatorActivationAndAdStatus
       initiator_activation_and_ad_status =
           blink::GetNavigationInitiatorActivationAndAdStatus(
@@ -6012,6 +6037,7 @@ void RenderFrameImpl::BeginNavigationInternal(
           info->force_history_push, searchable_form_url,
           searchable_form_encoding, client_side_redirect_url,
           std::move(devtools_initiator),
+          std::move(citizennotes_initiator),
           info->url_request.TrustTokenParams()
               ? info->url_request.TrustTokenParams()->Clone()
               : nullptr,
@@ -6642,6 +6668,7 @@ WebView* RenderFrameImpl::CreateNewWindow(
   view_params->replication_state->frame_policy.sandbox_flags = sandbox_flags;
   view_params->replication_state->name = frame_name_utf8;
   view_params->devtools_main_frame_token = reply->devtools_main_frame_token;
+  view_params->citizennotes_main_frame_token = reply->citizennotes_main_frame_token;
   view_params->browsing_context_group_info = reply->browsing_context_group_info;
   view_params->color_provider_colors = reply->color_provider_colors;
 

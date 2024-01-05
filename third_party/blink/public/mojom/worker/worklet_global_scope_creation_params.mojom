@@ -5,6 +5,7 @@
 module blink.mojom;
 
 import "third_party/blink/public/mojom/devtools/devtools_agent.mojom";
+import "third_party/blink/public/mojom/citizennotes/citizennotes_agent.mojom";
 import "third_party/blink/public/mojom/origin_trial_feature/origin_trial_feature.mojom";
 import "mojo/public/mojom/base/unguessable_token.mojom";
 import "url/mojom/url.mojom";
@@ -20,6 +21,16 @@ interface WorkletDevToolsHost {
     pending_receiver<blink.mojom.DevToolsAgentHost> agent_host);
 };
 
+// Interface implemented in the browser for the worklets to forward
+// ready-for-inspection notification.
+interface WorkletCitizenNotesHost {
+  // Indicates that the worklet is ready for inspection, passes a CitizenNotesAgent
+  // interface for this worklet and requests a corresponding host.
+  OnReadyForInspection(
+    pending_remote<blink.mojom.CitizenNotesAgent> agent,
+    pending_receiver<blink.mojom.CitizenNotesAgentHost> agent_host);
+};
+
 // Parameters for initializing WorkerOrWorkletGlobalScope. This is suitable for
 // worklets starting from a different process.
 struct WorkletGlobalScopeCreationParams {
@@ -31,5 +42,7 @@ struct WorkletGlobalScopeCreationParams {
   array<OriginTrialFeature> origin_trial_features;
   mojo_base.mojom.UnguessableToken devtools_token;
   pending_remote<WorkletDevToolsHost> devtools_host;
+  mojo_base.mojom.UnguessableToken citizennotes_token;
+  pending_remote<WorkletCitizenNotesHost> citizennotes_host;
   bool wait_for_debugger;
 };

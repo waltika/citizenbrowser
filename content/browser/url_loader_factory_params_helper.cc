@@ -7,6 +7,7 @@
 #include "base/command_line.h"
 #include "base/strings/string_piece.h"
 #include "content/browser/devtools/network_service_devtools_observer.h"
+#include "content/browser/citizen_x/network_service_citizennotes_observer.h"
 #include "content/browser/renderer_host/frame_tree_node.h"
 #include "content/browser/renderer_host/navigation_request.h"
 #include "content/browser/renderer_host/render_frame_host_impl.h"
@@ -77,6 +78,7 @@ network::mojom::URLLoaderFactoryParamsPtr CreateParams(
     mojo::PendingRemote<network::mojom::URLLoaderNetworkServiceObserver>
         url_loader_network_observer,
     mojo::PendingRemote<network::mojom::DevToolsObserver> devtools_observer,
+    mojo::PendingRemote<network::mojom::CitizenNotesObserver> citizennotes_observer,
     network::mojom::TrustTokenOperationPolicyVerdict
         trust_token_issuance_policy,
     network::mojom::TrustTokenOperationPolicyVerdict
@@ -134,6 +136,7 @@ network::mojom::URLLoaderFactoryParamsPtr CreateParams(
   params->shared_dictionary_observer = std::move(shared_dictionary_observer);
   params->url_loader_network_observer = std::move(url_loader_network_observer);
   params->devtools_observer = std::move(devtools_observer);
+  params->citizennotes_observer = std::move(citizennotes_observer);
 
   params->cookie_setting_overrides = cookie_setting_overrides;
 
@@ -174,6 +177,7 @@ URLLoaderFactoryParamsHelper::CreateForFrame(
       frame->CreateSharedDictionaryAccessObserver(),
       frame->CreateURLLoaderNetworkObserver(),
       NetworkServiceDevToolsObserver::MakeSelfOwned(frame->frame_tree_node()),
+      NetworkServiceCitizenNotesObserver::MakeSelfOwned(frame->frame_tree_node()),
       trust_token_issuance_policy, trust_token_redemption_policy,
       cookie_setting_overrides, debug_tag);
 }
@@ -206,6 +210,7 @@ URLLoaderFactoryParamsHelper::CreateForIsolatedWorld(
       frame->CreateSharedDictionaryAccessObserver(),
       frame->CreateURLLoaderNetworkObserver(),
       NetworkServiceDevToolsObserver::MakeSelfOwned(frame->frame_tree_node()),
+      NetworkServiceCitizenNotesObserver::MakeSelfOwned(frame->frame_tree_node()),
       trust_token_issuance_policy, trust_token_redemption_policy,
       cookie_setting_overrides, "ParamHelper::CreateForIsolatedWorld");
 }
@@ -235,6 +240,7 @@ URLLoaderFactoryParamsHelper::CreateForPrefetch(
       frame->CreateSharedDictionaryAccessObserver(),
       frame->CreateURLLoaderNetworkObserver(),
       NetworkServiceDevToolsObserver::MakeSelfOwned(frame->frame_tree_node()),
+      NetworkServiceCitizenNotesObserver::MakeSelfOwned(frame->frame_tree_node()),
       network::mojom::TrustTokenOperationPolicyVerdict::kForbid,
       network::mojom::TrustTokenOperationPolicyVerdict::kForbid,
       cookie_setting_overrides, "ParamHelper::CreateForPrefetch");
@@ -255,6 +261,7 @@ URLLoaderFactoryParamsHelper::CreateForWorker(
     mojo::PendingRemote<network::mojom::URLLoaderNetworkServiceObserver>
         url_loader_network_observer,
     mojo::PendingRemote<network::mojom::DevToolsObserver> devtools_observer,
+    mojo::PendingRemote<network::mojom::CitizenNotesObserver> citizennotes_observer,
     network::mojom::ClientSecurityStatePtr client_security_state,
     base::StringPiece debug_tag) {
   return CreateParams(
@@ -273,7 +280,9 @@ URLLoaderFactoryParamsHelper::CreateForWorker(
           ->CreateTrustTokenAccessObserverForServiceWorker(),
       static_cast<StoragePartitionImpl*>(process->GetStoragePartition())
           ->CreateSharedDictionaryAccessObserverForServiceWorker(),
-      std::move(url_loader_network_observer), std::move(devtools_observer),
+      std::move(url_loader_network_observer),
+      std::move(devtools_observer),
+      std::move(citizennotes_observer),
       // Trust Token redemption and signing operations require the Permissions
       // Policy. It seems Permissions Policy in worker contexts
       // is currently an open issue (as of 06/21/2022):
@@ -332,6 +341,7 @@ URLLoaderFactoryParamsHelper::CreateForEarlyHintsPreload(
       std::move(trust_token_observer), std::move(shared_dictionary_observer),
       std::move(url_loader_network_observer),
       /*devtools_observer=*/mojo::NullRemote(),
+      /*citizennotes_observer=*/mojo::NullRemote(),
       network::mojom::TrustTokenOperationPolicyVerdict::kForbid,
       network::mojom::TrustTokenOperationPolicyVerdict::kForbid,
       net::CookieSettingOverrides(), "ParamHelper::CreateForEarlyHintsPreload");

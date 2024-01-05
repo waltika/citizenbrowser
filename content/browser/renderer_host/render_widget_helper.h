@@ -47,6 +47,7 @@ class RenderWidgetHelper
       int32_t routing_id,
       blink::LocalFrameToken& frame_token,
       base::UnguessableToken& devtools_frame_token,
+      base::UnguessableToken& citizennotes_frame_token,
       blink::DocumentToken& document_token);
 
   // Store a set of frame tokens given a routing id. This is usually called on
@@ -56,6 +57,7 @@ class RenderWidgetHelper
       int32_t routing_id,
       const blink::LocalFrameToken& frame_token,
       const base::UnguessableToken& devtools_frame_token,
+      const base::UnguessableToken& citizennotes_frame_token,
       const blink::DocumentToken& document_token);
 
   // IO THREAD ONLY -----------------------------------------------------------
@@ -72,6 +74,7 @@ class RenderWidgetHelper
   struct FrameTokens {
     FrameTokens(const blink::LocalFrameToken& frame_token,
                 const base::UnguessableToken& devtools_frame_token,
+                const base::UnguessableToken& citizennotes_frame_token,
                 const blink::DocumentToken& document_token);
     FrameTokens(const FrameTokens& other);
     FrameTokens& operator=(const FrameTokens& other);
@@ -79,6 +82,7 @@ class RenderWidgetHelper
 
     blink::LocalFrameToken frame_token;
     base::UnguessableToken devtools_frame_token;
+    base::UnguessableToken citizennotes_frame_token;
     blink::DocumentToken document_token;
   };
 

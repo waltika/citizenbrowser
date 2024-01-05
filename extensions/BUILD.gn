@@ -203,6 +203,7 @@ repack("shell_and_test_pak") {
 
   sources = [
     "$root_gen_dir/content/browser/devtools/devtools_resources.pak",
+    "$root_gen_dir/content/browser/citizen_x/citizennotes_resources.pak",
     "$root_gen_dir/content/content_resources.pak",
     "$root_gen_dir/content/shell/shell_resources.pak",
     "$root_gen_dir/device/bluetooth/strings/bluetooth_strings_en-US.pak",
@@ -227,6 +228,7 @@ repack("shell_and_test_pak") {
     ":extensions_resources",
     "//content:content_resources",
     "//content/browser/devtools:devtools_resources",
+    "//content/browser/citizen_x:citizennotes_resources",
     "//content/shell:resources",
     "//device/bluetooth/strings",
     "//extensions/shell:resources",

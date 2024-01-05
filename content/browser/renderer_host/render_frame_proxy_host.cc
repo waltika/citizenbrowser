@@ -256,6 +256,9 @@ bool RenderFrameProxyHost::InitRenderFrameProxy(
   const ::base::UnguessableToken& devtools_frame_token =
       frame_tree_node_->current_frame_host()->devtools_frame_token();
 
+  const ::base::UnguessableToken& citizennotes_frame_token =
+      frame_tree_node_->current_frame_host()->citizennotes_frame_token();
+
   if (frame_tree_node_->parent()) {
     // It is safe to use GetRenderFrameProxyHost to get the parent proxy, since
     // new child frames always start out as local frames, so a new proxy should
@@ -292,7 +295,7 @@ bool RenderFrameProxyHost::InitRenderFrameProxy(
           frame_tree_node_->tree_scope_type(),
           frame_tree_node_->current_replication_state().Clone(),
           frame_tree_node_->frame_owner_properties().Clone(),
-          frame_tree_node_->IsLoading(), devtools_frame_token,
+          frame_tree_node_->IsLoading(), devtools_frame_token, citizennotes_frame_token,
           CreateAndBindRemoteFrameInterfaces(), parent_global_id);
 
       // Don't call `SetRenderFrameProxyCreated(true)` here, since the proxy
@@ -305,7 +308,7 @@ bool RenderFrameProxyHost::InitRenderFrameProxy(
           frame_token_, opener_frame_token, frame_tree_node_->tree_scope_type(),
           frame_tree_node_->current_replication_state().Clone(),
           frame_tree_node_->frame_owner_properties().Clone(),
-          frame_tree_node_->IsLoading(), devtools_frame_token,
+          frame_tree_node_->IsLoading(), devtools_frame_token, citizennotes_frame_token,
           CreateAndBindRemoteFrameInterfaces());
       SetRenderFrameProxyCreated(true);
     }
@@ -313,7 +316,7 @@ bool RenderFrameProxyHost::InitRenderFrameProxy(
     GetRenderViewHost()->GetAssociatedPageBroadcast()->CreateRemoteMainFrame(
         frame_token_, opener_frame_token,
         frame_tree_node_->current_replication_state().Clone(),
-        frame_tree_node_->IsLoading(), devtools_frame_token,
+        frame_tree_node_->IsLoading(), devtools_frame_token, citizennotes_frame_token,
         CreateAndBindRemoteFrameInterfaces(),
         CreateAndBindRemoteMainFrameInterfaces());
     SetRenderFrameProxyCreated(true);

@@ -16,6 +16,8 @@
 #include "content/browser/code_cache/generated_code_cache_context.h"
 #include "content/browser/devtools/devtools_instrumentation.h"
 #include "content/browser/devtools/shared_worker_devtools_manager.h"
+#include "content/browser/citizen_x/citizennotes_instrumentation.h"
+#include "content/browser/citizen_x/shared_worker_citizennotes_manager.h"
 #include "content/browser/network/cross_origin_embedder_policy_reporter.h"
 #include "content/browser/renderer_host/code_cache_host_impl.h"
 #include "content/browser/renderer_host/private_network_access_util.h"
@@ -100,6 +102,45 @@ class SharedWorkerHost::ScopedDevToolsHandle {
   base::UnguessableToken dev_tools_token_;
 };
 
+class SharedWorkerHost::ScopedCitizenNotesHandle {
+ public:
+  explicit ScopedCitizenNotesHandle(SharedWorkerHost* owner) : owner_(owner) {
+    SharedWorkerCitizenNotesManager::GetInstance()->WorkerCreated(
+        owner, &pause_on_start_, &citizen_notes_token_);
+  }
+
+  ScopedCitizenNotesHandle(const ScopedCitizenNotesHandle&) = delete;
+  ScopedCitizenNotesHandle& operator=(const ScopedCitizenNotesHandle&) = delete;
+
+  ~ScopedCitizenNotesHandle() {
+    SharedWorkerCitizenNotesManager::GetInstance()->WorkerDestroyed(owner_);
+  }
+
+  void WorkerReadyForInspection(
+      mojo::PendingRemote<blink::mojom::CitizenNotesAgent> agent_remote,
+      mojo::PendingReceiver<blink::mojom::CitizenNotesAgentHost>
+          agent_host_receiver) {
+    SharedWorkerCitizenNotesManager::GetInstance()->WorkerReadyForInspection(
+        owner_, std::move(agent_remote), std::move(agent_host_receiver));
+  }
+
+  bool pause_on_start() const { return pause_on_start_; }
+
+  const base::UnguessableToken& citizen_notes_token() const {
+    return citizen_notes_token_;
+  }
+
+ private:
+  raw_ptr<SharedWorkerHost> owner_;
+
+  // Indicates if the worker should be paused when it is started. This is set
+  // when a dev tools agent host already exists for that shared worker, which
+  // happens when a shared worker is restarted while it is being debugged.
+  bool pause_on_start_;
+
+  base::UnguessableToken citizen_notes_token_;
+};
+
 class SharedWorkerHost::ScopedProcessHostRef {
  public:
   explicit ScopedProcessHostRef(RenderProcessHost* render_process_host)
@@ -135,25 +176,30 @@ SharedWorkerHost::SharedWorkerHost(
           std::make_unique<ScopedProcessHostRef>(site_instance_->GetProcess())),
       next_connection_request_id_(1),
       devtools_handle_(std::make_unique<ScopedDevToolsHandle>(this)),
+      citizennotes_handle_(std::make_unique<ScopedCitizenNotesHandle>(this)),
       code_cache_host_receivers_(GetProcessHost()
                                      ->GetStoragePartition()
                                      ->GetGeneratedCodeCacheContext()),
       ukm_source_id_(ukm::ConvertToSourceId(ukm::AssignNewSourceId(),
                                             ukm::SourceIdType::WORKER_ID)),
       reporting_source_(base::UnguessableToken::Create()),
-      creator_policy_container_host_(std::move(creator_policy_container_host)) {
-  DCHECK(GetProcessHost());
-  DCHECK(GetProcessHost()->IsInitializedAndNotDead());
+creator_policy_container_host_(std::move(creator_policy_container_host)) {
+    DCHECK(GetProcessHost());
+    DCHECK(GetProcessHost()->IsInitializedAndNotDead());
+    
+    GetProcessHost()->AddObserver(this);
+    
+    // Set up the worker pending receiver. This is needed first in either
+    // AddClient() or Start(). AddClient() can sometimes be called before Start()
+    // when two clients call new SharedWorker() at around the same time.
+    worker_receiver_ = worker_.BindNewPipeAndPassReceiver();
+    
+    service_->NotifyWorkerCreated(token_, GetProcessHost()->GetID(),
+                                  devtools_handle_->dev_tools_token());
 
-  GetProcessHost()->AddObserver(this);
+    service_->NotifyWorkerCreated(token_, GetProcessHost()->GetID(),
+                                  citizennotes_handle_->citizen_notes_token());
 
-  // Set up the worker pending receiver. This is needed first in either
-  // AddClient() or Start(). AddClient() can sometimes be called before Start()
-  // when two clients call new SharedWorker() at around the same time.
-  worker_receiver_ = worker_.BindNewPipeAndPassReceiver();
-
-  service_->NotifyWorkerCreated(token_, GetProcessHost()->GetID(),
-                                devtools_handle_->dev_tools_token());
 }
 
 SharedWorkerHost::~SharedWorkerHost() {
@@ -357,6 +403,7 @@ void SharedWorkerHost::Start(
           GetProcessHost()->GetBrowserContext()),
       GetContentClient()->browser()->GetUserAgentMetadata(),
       devtools_handle_->pause_on_start(), devtools_handle_->dev_tools_token(),
+                               citizennotes_handle_->citizen_notes_token(),
       std::move(renderer_preferences), std::move(preference_watcher_receiver),
       std::move(content_settings), service_worker_handle_->TakeContainerInfo(),
       std::move(main_script_load_params),
@@ -430,6 +477,7 @@ SharedWorkerHost::CreateNetworkFactoryParamsForSubresources() {
           std::move(coep_reporter),
           /*url_loader_network_observer=*/mojo::NullRemote(),
           /*devtools_observer=*/mojo::NullRemote(),
+          /*citizennotes_observer=*/mojo::NullRemote(),
           mojo::Clone(worker_client_security_state_),
           /*debug_tag=*/
           "SharedWorkerHost::CreateNetworkFactoryForSubresource");
@@ -767,6 +815,10 @@ bool SharedWorkerHost::HasClients() const {
 
 const base::UnguessableToken& SharedWorkerHost::GetDevToolsToken() const {
   return devtools_handle_->dev_tools_token();
+}
+
+const base::UnguessableToken& SharedWorkerHost::GetCitizenNotesToken() const {
+  return citizennotes_handle_->citizen_notes_token();
 }
 
 mojo::Remote<blink::mojom::SharedWorker>

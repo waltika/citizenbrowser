@@ -31,9 +31,11 @@ void AddWidgetHelper(int render_process_id,
 RenderWidgetHelper::FrameTokens::FrameTokens(
     const blink::LocalFrameToken& frame_token,
     const base::UnguessableToken& devtools_frame_token,
+    const base::UnguessableToken& citizennotes_frame_token,
     const blink::DocumentToken& document_token)
     : frame_token(frame_token),
       devtools_frame_token(devtools_frame_token),
+      citizennotes_frame_token(citizennotes_frame_token),
       document_token(document_token) {}
 
 RenderWidgetHelper::FrameTokens::FrameTokens(const FrameTokens& other) =
@@ -77,6 +79,7 @@ bool RenderWidgetHelper::TakeFrameTokensForFrameRoutingID(
     int32_t routing_id,
     blink::LocalFrameToken& frame_token,
     base::UnguessableToken& devtools_frame_token,
+    base::UnguessableToken& citizennotes_frame_token,
     blink::DocumentToken& document_token) {
   base::AutoLock lock(frame_token_map_lock_);
   auto iter = frame_token_routing_id_map_.find(routing_id);
@@ -84,6 +87,7 @@ bool RenderWidgetHelper::TakeFrameTokensForFrameRoutingID(
     return false;
   frame_token = iter->second.frame_token;
   devtools_frame_token = iter->second.devtools_frame_token;
+  citizennotes_frame_token = iter->second.citizennotes_frame_token;
   document_token = iter->second.document_token;
   frame_token_routing_id_map_.erase(iter);
   return true;
@@ -93,12 +97,12 @@ void RenderWidgetHelper::StoreNextFrameRoutingID(
     int32_t routing_id,
     const blink::LocalFrameToken& frame_token,
     const base::UnguessableToken& devtools_frame_token,
+    const base::UnguessableToken& citizennotes_frame_token,
     const blink::DocumentToken& document_token) {
   base::AutoLock lock(frame_token_map_lock_);
   bool result =
       frame_token_routing_id_map_
-          .emplace(routing_id, FrameTokens(frame_token, devtools_frame_token,
-                                           document_token))
+          .emplace(routing_id, FrameTokens(frame_token, devtools_frame_token, citizennotes_frame_token, document_token))
           .second;
   DCHECK(result);
 }

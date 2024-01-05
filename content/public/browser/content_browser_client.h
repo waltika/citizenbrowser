@@ -222,6 +222,7 @@ class BrowserURLHandler;
 class ClientCertificateDelegate;
 class ControllerPresentationServiceDelegate;
 class DevToolsManagerDelegate;
+class CitizenNotesManagerDelegate;
 class DirectSocketsDelegate;
 class FeatureObserverClient;
 class FontAccessDelegate;
@@ -1317,6 +1318,10 @@ class CONTENT_EXPORT ContentBrowserClient {
   // Creates a new DevToolsManagerDelegate. It's valid to return nullptr.
   virtual std::unique_ptr<content::DevToolsManagerDelegate>
   CreateDevToolsManagerDelegate();
+
+  // Creates a new DevToolsManagerDelegate. It's valid to return nullptr.
+  virtual std::unique_ptr<content::CitizenNotesManagerDelegate>
+  CreateCitizenNotesManagerDelegate();
 
   // Stores the new expiration time up until which events related to |service|
   // can still be logged. |service| is the int value of the

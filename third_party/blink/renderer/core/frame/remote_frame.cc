@@ -101,6 +101,7 @@ RemoteFrame::RemoteFrame(
     WindowAgentFactory* inheriting_agent_factory,
     WebFrameWidget* ancestor_widget,
     const base::UnguessableToken& devtools_frame_token,
+    const base::UnguessableToken& citizennotes_frame_token,
     mojo::PendingAssociatedRemote<mojom::blink::RemoteFrameHost>
         remote_frame_host,
     mojo::PendingAssociatedReceiver<mojom::blink::RemoteFrame> receiver)
@@ -112,6 +113,7 @@ RemoteFrame::RemoteFrame(
             insert_type,
             frame_token,
             devtools_frame_token,
+            citizennotes_frame_token,
             MakeGarbageCollected<RemoteWindowProxyManager>(
                 page.GetAgentGroupScheduler().Isolate(),
                 *this),
@@ -1102,10 +1104,11 @@ void RemoteFrame::CreateRemoteChild(
     mojom::blink::FrameOwnerPropertiesPtr owner_properties,
     bool is_loading,
     const base::UnguessableToken& devtools_frame_token,
+    const base::UnguessableToken& citizennotes_frame_token,
     mojom::blink::RemoteFrameInterfacesFromBrowserPtr remote_frame_interfaces) {
   Client()->CreateRemoteChild(
       token, opener_frame_token, tree_scope_type, std::move(replication_state),
-      std::move(owner_properties), is_loading, devtools_frame_token,
+      std::move(owner_properties), is_loading, devtools_frame_token, citizennotes_frame_token,
       std::move(remote_frame_interfaces));
 }
 

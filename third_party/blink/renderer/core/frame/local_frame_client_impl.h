@@ -45,6 +45,7 @@
 #include "third_party/blink/public/common/responsiveness_metrics/user_interaction_latency.h"
 #include "third_party/blink/public/common/subresource_load_metrics.h"
 #include "third_party/blink/public/mojom/devtools/devtools_agent.mojom-blink-forward.h"
+#include "third_party/blink/public/mojom/citizennotes/citizennotes_agent.mojom-blink-forward.h"
 #include "third_party/blink/renderer/core/core_export.h"
 #include "third_party/blink/renderer/core/frame/local_frame_client.h"
 #include "third_party/blink/renderer/core/frame/web_local_frame_impl.h"
@@ -56,6 +57,7 @@ namespace blink {
 
 class BrowserInterfaceBrokerProxy;
 class WebDevToolsAgentImpl;
+class WebCitizenNotesAgentImpl;
 class WebLocalFrameImpl;
 class WebSpellCheckPanelHostClient;
 
@@ -240,6 +242,8 @@ class CORE_EXPORT LocalFrameClientImpl final : public LocalFrameClient {
   void AnnotatedRegionsChanged() override;
 
   base::UnguessableToken GetDevToolsFrameToken() const override;
+  
+  base::UnguessableToken GetCitizenNotesFrameToken() const override;
 
   String evaluateInInspectorOverlayForTesting(const String& script) override;
 
@@ -293,9 +297,16 @@ class CORE_EXPORT LocalFrameClientImpl final : public LocalFrameClient {
       mojo::PendingAssociatedReceiver<mojom::blink::DevToolsAgent> receiver)
       override;
 
+  void BindCitizenNotesAgent(
+      mojo::PendingAssociatedRemote<mojom::blink::CitizenNotesAgentHost> host,
+      mojo::PendingAssociatedReceiver<mojom::blink::CitizenNotesAgent> receiver)
+      override;
+
+    
  private:
   bool IsLocalFrameClientImpl() const override { return true; }
   WebDevToolsAgentImpl* DevToolsAgent();
+  WebCitizenNotesAgentImpl* CitizenNotesAgent();
 
   // The WebFrame that owns this object and manages its lifetime. Therefore,
   // the web frame object is guaranteed to exist.

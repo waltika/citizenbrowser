@@ -37,6 +37,9 @@ namespace chrome_manifest_urls {
 const GURL& GetDevToolsPage(const Extension* extension) {
   return ManifestURL::Get(extension, keys::kDevToolsPage);
 }
+const GURL& GetCitizenNotesPage(const Extension* extension) {
+  return ManifestURL::Get(extension, keys::kCitizenNotesPage);
+}
 }
 
 URLOverrides::URLOverrides() = default;
@@ -180,4 +183,34 @@ base::span<const char* const> URLOverridesHandler::Keys() const {
   return kKeys;
 }
 
+CitizenNotesPageHandler::CitizenNotesPageHandler() = default;
+CitizenNotesPageHandler::~CitizenNotesPageHandler() = default;
+
+bool CitizenNotesPageHandler::Parse(Extension* extension, std::u16string* error) {
+  std::unique_ptr<ManifestURL> manifest_url(new ManifestURL);
+  const std::string* devtools_str =
+      extension->manifest()->FindStringPath(keys::kCitizenNotesPage);
+  if (!devtools_str) {
+    *error = errors::kInvalidDevToolsPage;
+    return false;
+  }
+  GURL url = extension->GetResourceURL(*devtools_str);
+  const bool is_extension_url =
+      url.SchemeIs(kExtensionScheme) && url.host_piece() == extension->id();
+  // TODO(caseq): using http(s) is unsupported and will be disabled in m83.
+  if (!is_extension_url && !url.SchemeIsHTTPOrHTTPS()) {
+    *error = errors::kInvalidDevToolsPage;
+    return false;
+  }
+  manifest_url->url_ = std::move(url);
+  extension->SetManifestData(keys::kCitizenNotesPage, std::move(manifest_url));
+  PermissionsParser::AddAPIPermission(extension,
+                                      mojom::APIPermissionID::kDevtools);
+  return true;
+}
+
+base::span<const char* const> CitizenNotesPageHandler::Keys() const {
+  static constexpr const char* kKeys[] = {keys::kCitizenNotesPage};
+  return kKeys;
+}
 }  // namespace extensions

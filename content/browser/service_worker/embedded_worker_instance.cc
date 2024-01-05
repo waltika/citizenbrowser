@@ -17,6 +17,7 @@
 #include "base/trace_event/trace_event.h"
 #include "content/browser/bad_message.h"
 #include "content/browser/data_url_loader_factory.h"
+#include "content/browser/citizen_x/network_service_citizennotes_observer.h"
 #include "content/browser/devtools/devtools_instrumentation.h"
 #include "content/browser/devtools/network_service_devtools_observer.h"
 #include "content/browser/devtools/service_worker_devtools_agent_host.h"
@@ -380,7 +381,8 @@ void EmbeddedWorkerInstance::Start(
           rph, routing_id, owner_version_->key(), client_security_state.Clone(),
           std::move(coep_reporter_for_scripts),
           ContentBrowserClient::URLLoaderFactoryType::kServiceWorkerScript,
-          params->devtools_worker_token.ToString());
+          params->devtools_worker_token.ToString(),
+          params->citizennotes_worker_token.ToString());
     }
 
     // The bundle for the renderer is passed to the service worker, and
@@ -393,7 +395,8 @@ void EmbeddedWorkerInstance::Start(
         std::move(client_security_state),
         std::move(coep_reporter_for_subresources),
         ContentBrowserClient::URLLoaderFactoryType::kServiceWorkerSubResource,
-        params->devtools_worker_token.ToString());
+        params->devtools_worker_token.ToString(),
+        params->citizennotes_worker_token.ToString());
   }
 
   // To enable runtime features, the render process must be locked to the site.
@@ -836,7 +839,8 @@ EmbeddedWorkerInstance::CreateFactoryBundle(
     mojo::PendingRemote<network::mojom::CrossOriginEmbedderPolicyReporter>
         coep_reporter,
     ContentBrowserClient::URLLoaderFactoryType factory_type,
-    const std::string& devtools_worker_token) {
+    const std::string& devtools_worker_token,
+    const std::string& citizennotes_worker_token) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
   auto factory_bundle =
       std::make_unique<blink::PendingURLLoaderFactoryBundle>();
@@ -859,6 +863,7 @@ EmbeddedWorkerInstance::CreateFactoryBundle(
           static_cast<StoragePartitionImpl*>(rph->GetStoragePartition())
               ->CreateAuthCertObserverForServiceWorker(),
           NetworkServiceDevToolsObserver::MakeSelfOwned(devtools_worker_token),
+          NetworkServiceCitizenNotesObserver::MakeSelfOwned(citizennotes_worker_token),
           std::move(client_security_state),
           "EmbeddedWorkerInstance::CreateFactoryBundle");
 

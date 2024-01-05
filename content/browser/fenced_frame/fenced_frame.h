@@ -50,7 +50,8 @@ class CONTENT_EXPORT FencedFrame : public blink::mojom::FencedFrameOwnerHost,
       blink::mojom::RemoteFrameInterfacesFromRendererPtr
           remote_frame_interfaces,
       const blink::RemoteFrameToken& frame_token,
-      const base::UnguessableToken& devtools_frame_token);
+      const base::UnguessableToken& devtools_frame_token,
+      const base::UnguessableToken& citizennotes_frame_token);
 
   // blink::mojom::FencedFrameOwnerHost implementation.
   void Navigate(const GURL& url,
@@ -73,6 +74,11 @@ class CONTENT_EXPORT FencedFrame : public blink::mojom::FencedFrameOwnerHost,
   // main frame.
   const base::UnguessableToken& GetDevToolsFrameToken() const;
 
+  // Returns the citizennotes frame token of the fenced frame's inner FrameTree's
+  // main frame.
+  const base::UnguessableToken& GetCitizenNotesFrameToken() const;
+
+                                       
   RenderFrameHostImpl* GetInnerRoot() { return frame_tree_->GetMainFrame(); }
 
  private:

@@ -70,12 +70,14 @@ class InspectorIssueStorage;
 class KURL;
 class WorkerBackingThread;
 class WorkerInspectorController;
+class CNWorkerInspectorController;
 class WorkerOrWorkletGlobalScope;
 class WorkerReportingProxy;
 class WorkerResourceTimingNotifier;
 struct CrossThreadFetchClientSettingsObjectData;
 struct GlobalScopeCreationParams;
 struct WorkerDevToolsParams;
+struct WorkerCitizenNotesParams;
 struct WorkerMainScriptLoadParameters;
 
 // WorkerThread is a kind of WorkerBackingThread client. Each worker mechanism
@@ -115,7 +117,9 @@ class CORE_EXPORT WorkerThread : public Thread::TaskObserver {
   // (https://crbug.com/710364)
   void Start(std::unique_ptr<GlobalScopeCreationParams>,
              const absl::optional<WorkerBackingThreadStartupData>&,
-             std::unique_ptr<WorkerDevToolsParams>);
+             std::unique_ptr<WorkerDevToolsParams>,
+             std::unique_ptr<WorkerCitizenNotesParams>
+             );
 
   // Posts a task to evaluate a top-level classic script on the worker thread.
   // Called on the parent thread after Start().
@@ -191,10 +195,15 @@ class CORE_EXPORT WorkerThread : public Thread::TaskObserver {
     return devtools_worker_token_;
   }
 
+  const base::UnguessableToken& GetCitizenNotesWorkerToken() const {
+    return citizennotes_worker_token_;
+  }
+
   // Can be called only on the worker thread, WorkerOrWorkletGlobalScope
   // and WorkerInspectorController are not thread safe.
   WorkerOrWorkletGlobalScope* GlobalScope();
   WorkerInspectorController* GetWorkerInspectorController();
+  CNWorkerInspectorController* GetCNWorkerInspectorController();
 
   // Number of active worker threads.
   static unsigned WorkerThreadCount();
@@ -339,7 +348,8 @@ class CORE_EXPORT WorkerThread : public Thread::TaskObserver {
   void InitializeOnWorkerThread(
       std::unique_ptr<GlobalScopeCreationParams>,
       const absl::optional<WorkerBackingThreadStartupData>&,
-      std::unique_ptr<WorkerDevToolsParams>) LOCKS_EXCLUDED(lock_);
+      std::unique_ptr<WorkerDevToolsParams>,
+      std::unique_ptr<WorkerCitizenNotesParams>) LOCKS_EXCLUDED(lock_);
 
   void EvaluateClassicScriptOnWorkerThread(
       const KURL& script_url,
@@ -428,6 +438,7 @@ class CORE_EXPORT WorkerThread : public Thread::TaskObserver {
 
   scoped_refptr<InspectorTaskRunner> inspector_task_runner_;
   base::UnguessableToken devtools_worker_token_;
+  base::UnguessableToken citizennotes_worker_token_;
   InspectorIssueStorage inspector_issue_storage_;
   int debugger_task_counter_ GUARDED_BY(lock_) = 0;
 
@@ -470,6 +481,7 @@ class CORE_EXPORT WorkerThread : public Thread::TaskObserver {
   CrossThreadPersistent<ConsoleMessageStorage> console_message_storage_;
   CrossThreadPersistent<WorkerOrWorkletGlobalScope> global_scope_;
   CrossThreadPersistent<WorkerInspectorController> worker_inspector_controller_;
+  CrossThreadPersistent<CNWorkerInspectorController> cnworker_inspector_controller_;
 
   // Signaled when the thread completes termination on the worker thread. Only
   // the parent context thread should wait on this event after calling

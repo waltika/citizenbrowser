@@ -44,6 +44,7 @@ class MapValueIterator {
 // These constants are copied from extensions/common/extension_constants.h and
 // content/public/common/url_constants.h to avoid complicated dependencies.
 const char kChromeDevToolsScheme[] = "devtools";
+const char kChromeCitizenNotesScheme[] = "citizennotes";
 const char kChromeUIScheme[] = "chrome";
 const char kExtensionScheme[] = "chrome-extension";
 

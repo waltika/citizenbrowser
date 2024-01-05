@@ -46,6 +46,8 @@
 #include "chrome/browser/defaults.h"
 #include "chrome/browser/devtools/devtools_toggle_action.h"
 #include "chrome/browser/devtools/devtools_window.h"
+#include "chrome/browser/citizen_x/citizennotes_toggle_action.h"
+#include "chrome/browser/citizen_x/citizennotes_window.h"
 #include "chrome/browser/download/bubble/download_bubble_ui_controller.h"
 #include "chrome/browser/download/bubble/download_display_controller.h"
 #include "chrome/browser/download/download_core_service.h"
@@ -189,6 +191,7 @@
 #include "components/zoom/zoom_controller.h"
 #include "content/public/browser/color_chooser.h"
 #include "content/public/browser/devtools_agent_host.h"
+#include "content/public/browser/citizennotes_agent_host.h"
 #include "content/public/browser/file_select_listener.h"
 #include "content/public/browser/invalidate_type.h"
 #include "content/public/browser/keyboard_event_processing_result.h"
@@ -419,6 +422,14 @@ Browser::CreateParams Browser::CreateParams::CreateForDevTools(
     Profile* profile) {
   CreateParams params(TYPE_DEVTOOLS, profile, true);
   params.app_name = DevToolsWindow::kDevToolsApp;
+  params.trusted_source = true;
+  return params;
+}
+
+Browser::CreateParams Browser::CreateParams::CreateForCitizenNotes(
+    Profile* profile) {
+  CreateParams params(TYPE_CITIZENNOTES, profile, true);
+  params.app_name = CitizenNotesWindow::kCitizenNotesApp;
   params.trusted_source = true;
   return params;
 }
@@ -816,7 +827,7 @@ std::u16string Browser::GetWindowTitleFromWebContents(
   // ensures that the native window gets a title which is important for a11y,
   // for example the window selector uses the Aura window title.
   if (title.empty() &&
-      (is_type_app() || is_type_app_popup() || is_type_devtools()) &&
+      (is_type_app() || is_type_app_popup() || is_type_devtools() || is_type_citizennotes()) &&
       include_app_name) {
     return app_controller_ ? app_controller_->GetAppShortName()
                            : base::UTF8ToUTF16(app_name());
@@ -1363,7 +1374,7 @@ void Browser::SetTopControlsGestureScrollInProgress(bool in_progress) {
 
 bool Browser::CanOverscrollContent() {
 #if defined(USE_AURA)
-  return !is_type_devtools() &&
+  return !is_type_devtools() && !is_type_citizennotes()
          base::FeatureList::IsEnabled(features::kOverscrollHistoryNavigation) &&
          overscroll_pref_manager_->IsOverscrollHistoryNavigationEnabled();
 #else
@@ -1407,7 +1418,9 @@ bool Browser::HandleKeyboardEvent(content::WebContents* source,
                                   const NativeWebKeyboardEvent& event) {
   DevToolsWindow* devtools_window =
       DevToolsWindow::GetInstanceForInspectedWebContents(source);
-  return (devtools_window && devtools_window->ForwardKeyboardEvent(event)) ||
+  CitizenNotesWindow* citizennotes_window =
+    CitizenNotesWindow::GetInstanceForInspectedWebContents(source);
+  return (devtools_window && devtools_window->ForwardKeyboardEvent(event)) || (citizennotes_window && citizennotes_window->ForwardKeyboardEvent(event)) ||
          window()->HandleKeyboardEvent(event);
 }
 
@@ -1603,6 +1616,13 @@ WebContents* Browser::OpenURLFromTab(WebContents* source,
     return window->OpenURLFromTab(source, params);
   }
 
+  if (is_type_citizennotes()) {
+    CitizenNotesWindow* window = CitizenNotesWindow::AsCitizenNotesWindow(source);
+    DCHECK(window);
+    return window->OpenURLFromTab(source, params);
+  }
+
+    
 #if BUILDFLAG(IS_CHROMEOS_ASH)
   // Try to intercept the request and open the URL with Lacros.
   if (ash::TryOpenUrl(params.url, params.disposition)) {
@@ -1832,6 +1852,10 @@ void Browser::BeforeUnloadFired(WebContents* web_contents,
   if (is_type_devtools() && DevToolsWindow::HandleBeforeUnload(
                                 web_contents, proceed, proceed_to_fire_unload))
     return;
+
+  if (is_type_citizennotes() && CitizenNotesWindow::HandleBeforeUnload(
+                                  web_contents, proceed, proceed_to_fire_unload))
+      return;
 
   *proceed_to_fire_unload =
       unload_controller_.BeforeUnloadFired(web_contents, proceed);
@@ -2093,7 +2117,7 @@ blink::mojom::DisplayMode Browser::GetDisplayMode(
   if (window_->IsFullscreen())
     return blink::mojom::DisplayMode::kFullscreen;
 
-  if (is_type_app() || is_type_devtools() || is_type_app_popup()) {
+  if (is_type_app() || is_type_devtools() || is_type_citizennotes() || is_type_app_popup()) {
     if (app_controller_ && app_controller_->HasMinimalUiButtons())
       return blink::mojom::DisplayMode::kMinimalUi;
 
@@ -3119,6 +3143,7 @@ bool Browser::SupportsWindowFeatureImpl(WindowFeature feature,
       // TODO(crbug.com/992834): Change legacy apps to TYPE_APP_POPUP.
       return AppPopupBrowserSupportsWindowFeature(feature, check_can_support);
     case TYPE_DEVTOOLS:
+    case TYPE_CITIZENNOTES:
     case TYPE_APP_POPUP:
       return AppPopupBrowserSupportsWindowFeature(feature, check_can_support);
 #if BUILDFLAG(IS_CHROMEOS_ASH)

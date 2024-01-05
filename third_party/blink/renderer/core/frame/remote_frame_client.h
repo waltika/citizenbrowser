@@ -36,6 +36,7 @@ class RemoteFrameClient : public FrameClient {
       mojom::blink::FrameOwnerPropertiesPtr owner_properties,
       bool is_loading,
       const base::UnguessableToken& devtools_frame_token,
+      const base::UnguessableToken& citizennotes_frame_token,
       mojom::blink::RemoteFrameInterfacesFromBrowserPtr
           remote_frame_interfaces) = 0;
 

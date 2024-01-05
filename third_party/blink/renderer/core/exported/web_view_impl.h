@@ -97,6 +97,7 @@ class Frame;
 class FullscreenController;
 class PageScaleConstraintsSet;
 class WebDevToolsAgentImpl;
+class WebCitizenNotesAgentImpl;
 class WebLocalFrame;
 class WebLocalFrameImpl;
 class WebSettingsImpl;
@@ -318,6 +319,7 @@ class CORE_EXPORT WebViewImpl final : public WebView,
       mojom::blink::FrameReplicationStatePtr replicated_state,
       bool is_loading,
       const base::UnguessableToken& devtools_frame_token,
+      const base::UnguessableToken& citizennotes_frame_token,
       mojom::blink::RemoteFrameInterfacesFromBrowserPtr remote_frame_interfaces,
       mojom::blink::RemoteMainFrameInterfacesPtr remote_main_frame_interfaces)
       override;
@@ -366,6 +368,7 @@ class CORE_EXPORT WebViewImpl final : public WebView,
   WebViewClient* Client() { return web_view_client_; }
 
   WebDevToolsAgentImpl* MainFrameDevToolsAgentImpl();
+  WebCitizenNotesAgentImpl* MainFrameCitizenNotesAgentImpl();
 
   DevToolsEmulator* GetDevToolsEmulator() const {
     return dev_tools_emulator_.Get();

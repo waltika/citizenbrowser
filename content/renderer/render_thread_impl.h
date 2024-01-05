@@ -169,6 +169,7 @@ class CONTENT_EXPORT RenderThreadImpl
   bool GenerateFrameRoutingID(int32_t& routing_id,
                               blink::LocalFrameToken& frame_token,
                               base::UnguessableToken& devtools_frame_token,
+                              base::UnguessableToken& citizennotes_frame_token,
                               blink::DocumentToken& document_token) override;
   void AddFilter(IPC::MessageFilter* filter) override;
   void RemoveFilter(IPC::MessageFilter* filter) override;

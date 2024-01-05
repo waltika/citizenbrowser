@@ -264,7 +264,8 @@ class CONTENT_EXPORT EmbeddedWorkerInstance
       mojo::PendingRemote<network::mojom::CrossOriginEmbedderPolicyReporter>
           coep_reporter,
       ContentBrowserClient::URLLoaderFactoryType factory_type,
-      const std::string& devtools_worker_token);
+      const std::string& devtools_worker_token,
+      const std::string& citizennotes_worker_token);
 
   // Returns the unique token that has been generated to identify this worker
   // instance, and its corresponding GlobalScope in the renderer process. If the

@@ -23,6 +23,7 @@
 #include "services/accessibility/public/mojom/automation.mojom-forward.h"
 #include "services/accessibility/public/mojom/file_loader.mojom-forward.h"
 #include "third_party/blink/public/mojom/devtools/devtools_agent.mojom.h"
+#include "third_party/blink/public/mojom/citizennotes/citzennotes_agent.mojom.h"
 #include "v8/include/v8-context.h"
 #include "v8/include/v8-local-handle.h"
 
@@ -41,6 +42,7 @@ class AutomationInternalBindings;
 class InterfaceBinder;
 class V8Manager;
 class OSDevToolsAgent;
+class OSCitizenNotesAgent;
 
 // A V8Environment owns a V8 context within the Accessibility Service, the
 // bindings that belong to that context, as well as loading the Javascript that
@@ -71,6 +73,10 @@ class V8Environment : public BindingsIsolateHolder {
   // Creates a devtools agent to debug javascript running in this environment.
   void ConnectDevToolsAgent(
       mojo::PendingAssociatedReceiver<blink::mojom::DevToolsAgent> agent);
+
+  // Creates a devtools agent to debug javascript running in this environment.
+  void ConnectCitizenNotesAgent(
+      mojo::PendingAssociatedReceiver<blink::mojom::CitizenNotesAgent> agent);
 
   // All of the APIs needed for this V8Manager (based on the AT type) should be
   // installed before adding V8 bindings.
@@ -120,6 +126,7 @@ class V8Environment : public BindingsIsolateHolder {
   std::unique_ptr<gin::ContextHolder> context_holder_;
 
   std::unique_ptr<OSDevToolsAgent> devtools_agent_;
+  std::unique_ptr<OSCitizenNotesAgent> citizennotes_agent_;
 };
 
 // Owns the V8Environment and any Mojo interfaces exposed to that V8Environment.
@@ -156,6 +163,10 @@ class V8Manager {
   // Instructs V8Environment to create a devtools agent.
   void ConnectDevToolsAgent(
       mojo::PendingAssociatedReceiver<blink::mojom::DevToolsAgent> agent);
+
+    // Instructs V8Environment to create a devtools agent.
+    void ConnectCitizenNotesAgent(
+        mojo::PendingAssociatedReceiver<blink::mojom::CitizenNotesAgent> agent);
 
   // Called by V8Environment when JS wants to bind a Mojo interface.
   void BindInterface(const std::string& interface_name,

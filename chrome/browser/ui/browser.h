@@ -134,6 +134,8 @@ class Browser : public TabStripModelObserver,
     // * Legacy packaged app ("v1 packaged app")
     // * Hosted app (e.g. the Web Store "app" preinstalled on Chromebooks)
     TYPE_APP,
+    // Citizennotes browser.
+    TYPE_CITIZENNOTES,
     // Devtools browser.
     TYPE_DEVTOOLS,
     // App popup browser. It behaves like an app browser (e.g. it should have an
@@ -242,6 +244,8 @@ class Browser : public TabStripModelObserver,
                                           bool user_gesture);
 
     static CreateParams CreateForDevTools(Profile* profile);
+
+    static CreateParams CreateForCitizenNotes(Profile* profile);
 
     // The browser type.
     Type type;
@@ -760,6 +764,7 @@ class Browser : public TabStripModelObserver,
   bool is_type_app() const { return type_ == TYPE_APP; }
   bool is_type_app_popup() const { return type_ == TYPE_APP_POPUP; }
   bool is_type_devtools() const { return type_ == TYPE_DEVTOOLS; }
+  bool is_type_citizennotes() const { return type_ == TYPE_CITIZENNOTES; }
 #if BUILDFLAG(IS_CHROMEOS_ASH)
   bool is_type_custom_tab() const { return type_ == TYPE_CUSTOM_TAB; }
 #endif

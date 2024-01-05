@@ -462,6 +462,7 @@ mojom("url_loader_base") {
     "cross_origin_opener_policy.mojom",
     "data_pipe_getter.mojom",
     "devtools_observer.mojom",
+    "citizennotes_observer.mojom",
     "early_hints.mojom",
     "encoded_body_length.mojom",
     "fetch_api.mojom",
@@ -640,6 +641,7 @@ mojom("url_loader_base") {
       ]
       traits_private_headers = [
         "//services/network/public/mojom/devtools_observer.mojom.h",
+        "//services/network/public/mojom/citizennotes_observer.mojom.h",
         "//services/network/public/mojom/cookie_access_observer.mojom.h",
         "//services/network/public/mojom/trust_token_access_observer.mojom.h",
       ]

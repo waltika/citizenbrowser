@@ -9,11 +9,12 @@ import "third_party/blink/public/mojom/tokens/tokens.mojom";
 
 interface RenderMessageFilter {
   // Similar to GenerateRoutingID but also generates a `frame token`,
-  // `devtools_frame_token`, and `document_token`. A subsequent call to
+  // `devtools_frame_token`, 'citizennotes_frame_token' and `document_token`. A subsequent call to
   // `FrameHost::CreateChildFrame` is expected after this call.
   [Sync] GenerateFrameRoutingID() => (int32 routing_id,
                    blink.mojom.LocalFrameToken frame_token,
                    mojo_base.mojom.UnguessableToken devtools_frame_token,
+                   mojo_base.mojom.UnguessableToken citizennotes_frame_token,
                    blink.mojom.DocumentToken document_token);
 
   // A renderer sends this when it wants to know whether a gpu process exists.

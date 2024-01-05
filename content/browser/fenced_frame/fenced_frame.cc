@@ -33,7 +33,7 @@ FrameTreeNode* CreateDelegateFrameTreeNode(
       /*policy_container_bind_params=*/nullptr,
       /*associated_interface_provider_receiver=*/mojo::NullAssociatedReceiver(),
       blink::mojom::TreeScopeType::kDocument, "", "", true,
-      blink::LocalFrameToken(), base::UnguessableToken::Create(),
+      blink::LocalFrameToken(), base::UnguessableToken::Create(), base::UnguessableToken::Create(),
       blink::DocumentToken(), blink::FramePolicy(),
       blink::mojom::FrameOwnerProperties(), false,
       blink::FrameOwnerElementType::kFencedframe,
@@ -186,7 +186,8 @@ RenderFrameProxyHost*
 FencedFrame::InitInnerFrameTreeAndReturnProxyToOuterFrameTree(
     blink::mojom::RemoteFrameInterfacesFromRendererPtr remote_frame_interfaces,
     const blink::RemoteFrameToken& frame_token,
-    const base::UnguessableToken& devtools_frame_token) {
+    const base::UnguessableToken& devtools_frame_token,
+    const base::UnguessableToken& citizennotes_frame_token                                                              ) {
   DCHECK(remote_frame_interfaces);
   DCHECK(outer_delegate_frame_tree_node_);
 
@@ -210,7 +211,8 @@ FencedFrame::InitInnerFrameTreeAndReturnProxyToOuterFrameTree(
                     /*renderer_initiated_creation=*/false,
                     /*main_frame_name=*/"",
                     /*opener_for_origin=*/nullptr, frame_policy,
-                    devtools_frame_token);
+                    devtools_frame_token,
+                    citizennotes_frame_token);
   // Note that pending frame policy will be passed as `frame_policy` in
   // `replication_state` in `mojom::CreateFrameParams`.
   // See `RenderFrameHostImpl::CreateRenderFrame`.
@@ -282,6 +284,11 @@ FencedFrame::InitInnerFrameTreeAndReturnProxyToOuterFrameTree(
 const base::UnguessableToken& FencedFrame::GetDevToolsFrameToken() const {
   DCHECK(frame_tree_);
   return frame_tree_->GetMainFrame()->GetDevToolsFrameToken();
+}
+
+const base::UnguessableToken& FencedFrame::GetCitizenNotesFrameToken() const {
+  DCHECK(frame_tree_);
+  return frame_tree_->GetMainFrame()->GetCitizenNotesFrameToken();
 }
 
 void FencedFrame::NotifyBeforeFormRepostWarningShow() {}

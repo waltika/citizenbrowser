@@ -11,6 +11,9 @@
 #include "base/strings/stringprintf.h"
 #include "components/crash/core/common/crash_key.h"
 
+#include <iostream>
+using namespace std;  
+
 namespace android_webview {
 
 namespace {
@@ -62,6 +65,7 @@ void SetCrashKeysFromFeaturesAndSwitches(
   }
 
   for (auto value : switches) {
+      cout << "switch name: " << value << endl;
     runtime_crash_keys->emplace_back(
         base::StringPrintf("switch-%zu", ++switches_count));
     (*runtime_crash_keys)[crash_id++].Set(value);

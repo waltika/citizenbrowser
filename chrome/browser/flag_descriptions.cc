@@ -5198,6 +5198,10 @@ const char kDevToolsTabTargetLiteralName[] = "DevTools using Tab Target";
 const char kDevToolsTabTargetLiteralDescription[] =
     "Makes DevTools use an experimental CDP Tab target.";
 
+const char kCitizenNotesTabTargetLiteralName[] = "CitizenNotes using Tab Target";
+const char kCitizenNotesTabTargetLiteralDescription[] =
+    "Makes CitizenNotes use an experimental CDP Tab target.";
+
 const char kNewConfirmationBubbleForGeneratedPasswordsName[] =
     "New confirmation bubble for forms with generated password";
 const char kNewConfirmationBubbleForGeneratedPasswordsDescription[] =

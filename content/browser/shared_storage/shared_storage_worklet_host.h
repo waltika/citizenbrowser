@@ -182,6 +182,7 @@ class CONTENT_EXPORT SharedStorageWorkletHost
 
  private:
   class ScopedDevToolsHandle;
+  class ScopedCitizenNotesHandle;
 
   void OnRunURLSelectionOperationOnWorkletScriptExecutionFinished(
       const GURL& urn_uuid,
@@ -223,6 +224,9 @@ class CONTENT_EXPORT SharedStorageWorkletHost
 
   // RAII helper object for talking to `SharedStorageWorkletDevToolsManager`.
   std::unique_ptr<ScopedDevToolsHandle> devtools_handle_;
+
+  // RAII helper object for talking to `SharedStorageWorkletDevToolsManager`.
+  std::unique_ptr<ScopedCitizenNotesHandle> citizennotes_handle_;
 
   // The URL of the module script. Set when `AddModuleOnWorklet` is invoked.
   GURL script_source_url_;

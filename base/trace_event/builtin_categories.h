@@ -76,6 +76,9 @@
   X("devtools")                                                          \
   X("devtools.contrast")                                                 \
   X("devtools.timeline")                                                 \
+  X("citizennotes")                                                      \
+  X("citizennotes.contrast")                                             \
+  X("citizennotes.timeline")                                             \
   X("disk_cache")                                                        \
   X("download")                                                          \
   X("download_service")                                                  \
@@ -230,6 +233,14 @@
   X(TRACE_DISABLED_BY_DEFAULT("devtools.timeline.layers"))               \
   X(TRACE_DISABLED_BY_DEFAULT("devtools.timeline.picture"))              \
   X(TRACE_DISABLED_BY_DEFAULT("devtools.timeline.stack"))                \
+  X(TRACE_DISABLED_BY_DEFAULT("citizennotes.screenshot"))                \
+  X(TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline"))                  \
+  X(TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline.frame"))            \
+  X(TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline.inputs"))           \
+  X(TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline.invalidationTracking")) \
+  X(TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline.layers"))           \
+  X(TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline.picture"))          \
+  X(TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline.stack"))            \
   X(TRACE_DISABLED_BY_DEFAULT("file"))                                   \
   X(TRACE_DISABLED_BY_DEFAULT("fonts"))                                  \
   X(TRACE_DISABLED_BY_DEFAULT("gpu_cmd_queue"))                          \
@@ -318,9 +329,11 @@
   X("blink,blink.resource")                                                   \
   X("blink,blink_style")                                                      \
   X("blink,devtools.timeline")                                                \
+  X("blink,citizennotes.timeline")                                            \
   X("blink,loading")                                                          \
   X("blink,rail")                                                             \
   X("blink.animations,devtools.timeline,benchmark,rail")                      \
+  X("blink.animations,citizennotes.timeline,benchmark,rail")                  \
   X("blink.user_timing,rail")                                                 \
   X("browser,content,navigation")                                             \
   X("browser,navigation")                                                     \
@@ -330,12 +343,15 @@
   X("cc,benchmark")                                                           \
   X("cc,benchmark,input,input.scrolling")                                     \
   X("cc,benchmark," TRACE_DISABLED_BY_DEFAULT("devtools.timeline.frame"))     \
+  X("cc,benchmark," TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline.frame")) \
   X("cc,input")                                                               \
   X("cc,raf_investigation")                                                   \
   X("cc," TRACE_DISABLED_BY_DEFAULT("devtools.timeline"))                     \
   X("cc,benchmark," TRACE_DISABLED_BY_DEFAULT("devtools.timeline.frame"))     \
+  X("cc,benchmark," TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline.frame")) \
   X("content,navigation")                                                     \
   X("devtools.timeline,rail")                                                 \
+  X("citizennotes.timeline,rail")                                             \
   X("drm,hwoverlays")                                                         \
   X("dwrite,fonts")                                                           \
   X("fonts,ui")                                                               \
@@ -350,7 +366,9 @@
   X("inc,inc2")                                                               \
   X("input,benchmark")                                                        \
   X("input,benchmark,devtools.timeline")                                      \
+  X("input,benchmark,citizennotes.timeline")                                      \
   X("input,benchmark,devtools.timeline,latencyInfo")                          \
+  X("input,benchmark,citizennotes.timeline,latencyInfo")                          \
   X("input,benchmark,latencyInfo")                                            \
   X("input,latency")                                                          \
   X("input,rail")                                                             \
@@ -359,9 +377,11 @@
   X("ipc,security")                                                           \
   X("ipc,toplevel")                                                           \
   X("Java,devtools," TRACE_DISABLED_BY_DEFAULT("devtools.timeline"))          \
+  X("Java,citizennotes," TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline"))          \
   X("loading,interactions")                                                   \
   X("loading,rail")                                                           \
   X("loading,rail,devtools.timeline")                                         \
+  X("loading,rail,citizennotes.timeline")                                         \
   X("media,gpu")                                                              \
   X("media,rail")                                                             \
   X("navigation,benchmark,rail")                                              \
@@ -371,6 +391,7 @@
   X("renderer_host,navigation")                                               \
   X("renderer_host," TRACE_DISABLED_BY_DEFAULT("viz.surface_id_flow"))        \
   X("scheduler,devtools.timeline,loading")                                    \
+  X("scheduler,citizennotes.timeline,loading")                                    \
   X("shutdown,viz")                                                           \
   X("startup,benchmark,rail")                                                 \
   X("startup,rail")                                                           \
@@ -382,14 +403,19 @@
   X("v8," TRACE_DISABLED_BY_DEFAULT("v8.compile"))                            \
   X("v8,devtools.timeline")                                                   \
   X("v8,devtools.timeline," TRACE_DISABLED_BY_DEFAULT("v8.compile"))          \
+  X("v8,citizennotes.timeline")                                                   \
+  X("v8,citizennotes.timeline," TRACE_DISABLED_BY_DEFAULT("v8.compile"))          \
   X("viz,benchmark")                                                          \
   X("viz,benchmark,graphics.pipeline")                                        \
   X("WebCore,benchmark,rail")                                                 \
   X(TRACE_DISABLED_BY_DEFAULT("cc.debug") "," TRACE_DISABLED_BY_DEFAULT(      \
       "viz.quads") "," TRACE_DISABLED_BY_DEFAULT("devtools.timeline.layers")) \
+  X(TRACE_DISABLED_BY_DEFAULT("cc.debug") "," TRACE_DISABLED_BY_DEFAULT(      \
+    "viz.quads") "," TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline.layers")) \
   X(TRACE_DISABLED_BY_DEFAULT("cc.debug.display_items") "," \
       TRACE_DISABLED_BY_DEFAULT("cc.debug.picture") "," \
       TRACE_DISABLED_BY_DEFAULT("devtools.timeline.picture"))                 \
+      TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline.picture"))                 \
   X(TRACE_DISABLED_BY_DEFAULT("v8.inspector") "," TRACE_DISABLED_BY_DEFAULT(  \
       "v8.stack_trace"))
 

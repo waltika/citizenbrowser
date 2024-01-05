@@ -89,6 +89,7 @@ base::LazyInstance<std::set<content::BrowserContext*>>::Leaky
 namespace {
 
 const char kDevToolsOTRProfileIDPrefix[] = "Devtools::BrowserContext";
+const char kCitizenNotesOTRProfileIDPrefix[] = "Citizennotes::BrowserContext";
 const char kMediaRouterOTRProfileIDPrefix[] = "MediaRouter::Presentation";
 const char kTestOTRProfileIDPrefix[] = "Test::OTR";
 
@@ -105,10 +106,12 @@ Profile::OTRProfileID::OTRProfileID(const std::string& profile_id)
 
 bool Profile::OTRProfileID::AllowsBrowserWindows() const {
   // Non-Primary OTR profiles are not supposed to create Browser windows.
-  // DevTools::BrowserContext, MediaRouter::Presentation, and
+  // DevTools::BrowserContext, CitizenNotes::BrowserContext, MediaRouter::Presentation, and
   // CaptivePortal::Signin are exceptions to this ban.
   if (*this == PrimaryID() ||
       base::StartsWith(profile_id_, kDevToolsOTRProfileIDPrefix,
+                       base::CompareCase::SENSITIVE) ||
+      base::StartsWith(profile_id_, kCitizenNotesOTRProfileIDPrefix,
                        base::CompareCase::SENSITIVE) ||
       base::StartsWith(profile_id_, kMediaRouterOTRProfileIDPrefix,
                        base::CompareCase::SENSITIVE)) {
@@ -148,6 +151,10 @@ Profile::OTRProfileID Profile::OTRProfileID::CreateUnique(
 // static
 Profile::OTRProfileID Profile::OTRProfileID::CreateUniqueForDevTools() {
   return CreateUnique(kDevToolsOTRProfileIDPrefix);
+}
+
+Profile::OTRProfileID Profile::OTRProfileID::CreateUniqueForCitizenNotes() {
+  return CreateUnique(kCitizenNotesOTRProfileIDPrefix);
 }
 
 // static

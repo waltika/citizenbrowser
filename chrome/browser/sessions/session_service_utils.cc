@@ -20,6 +20,8 @@ sessions::SessionWindow::WindowType WindowTypeForBrowserType(
       return sessions::SessionWindow::TYPE_APP;
     case Browser::TYPE_DEVTOOLS:
       return sessions::SessionWindow::TYPE_DEVTOOLS;
+    case Browser::TYPE_CITIZENNOTES:
+    return sessions::SessionWindow::TYPE_CITIZENNOTES;
     case Browser::TYPE_APP_POPUP:
       return sessions::SessionWindow::TYPE_APP_POPUP;
 #if BUILDFLAG(IS_CHROMEOS_ASH)
@@ -42,6 +44,8 @@ Browser::Type BrowserTypeForWindowType(
       return Browser::TYPE_APP;
     case sessions::SessionWindow::TYPE_DEVTOOLS:
       return Browser::TYPE_DEVTOOLS;
+    case sessions::SessionWindow::TYPE_CITIZENNOTES:
+      return Browser::TYPE_CITIZENNOTES;
     case sessions::SessionWindow::TYPE_APP_POPUP:
       return Browser::TYPE_APP_POPUP;
 #if BUILDFLAG(IS_CHROMEOS_ASH)

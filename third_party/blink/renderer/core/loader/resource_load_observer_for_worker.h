@@ -24,7 +24,8 @@ class ResourceLoadObserverForWorker final : public ResourceLoadObserver {
       CoreProbeSink& probe,
       const ResourceFetcherProperties& properties,
       WorkerFetchContext& worker_fetch_context,
-      const base::UnguessableToken& devtools_worker_token);
+      const base::UnguessableToken& devtools_worker_token,
+      const base::UnguessableToken& citizennotes_worker_token);
   ~ResourceLoadObserverForWorker() override;
 
   // ResourceLoadObserver implementation.
@@ -67,6 +68,7 @@ class ResourceLoadObserverForWorker final : public ResourceLoadObserver {
   const Member<const ResourceFetcherProperties> fetcher_properties_;
   const Member<WorkerFetchContext> worker_fetch_context_;
   const base::UnguessableToken devtools_worker_token_;
+  const base::UnguessableToken citizennotes_worker_token_;
 };
 
 }  // namespace blink

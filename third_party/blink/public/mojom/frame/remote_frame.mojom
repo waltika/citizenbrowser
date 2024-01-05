@@ -74,6 +74,7 @@ struct CreateRemoteChildParams {
   blink.mojom.FrameOwnerProperties owner_properties;
   bool is_loading;
   mojo_base.mojom.UnguessableToken devtools_frame_token;
+  mojo_base.mojom.UnguessableToken citizennotes_frame_token;
   blink.mojom.RemoteFrameInterfacesFromBrowser frame_interfaces;
 
   array<CreateRemoteChildParams> child_params;
@@ -439,6 +440,7 @@ interface RemoteFrame {
                    blink.mojom.FrameOwnerProperties owner_properties,
                    bool is_loading,
                    mojo_base.mojom.UnguessableToken devtools_frame_token,
+                   mojo_base.mojom.UnguessableToken citizennotes_frame_token,
                    RemoteFrameInterfacesFromBrowser remote_frame_interfaces);
 
   // Creates a `RemoteFrame` for each node in `params`. The resulting tree of

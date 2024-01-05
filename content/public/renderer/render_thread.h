@@ -77,6 +77,7 @@ class CONTENT_EXPORT RenderThread : virtual public ChildThread {
       int32_t& routing_id,
       blink::LocalFrameToken& frame_token,
       base::UnguessableToken& devtools_frame_token,
+      base::UnguessableToken& citizennotes_frame_token,
       blink::DocumentToken& document_token) = 0;
 
   // These map to IPC::ChannelProxy methods.

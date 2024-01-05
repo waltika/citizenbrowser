@@ -16,6 +16,7 @@ namespace extensions {
 
 namespace chrome_manifest_urls {
 const GURL& GetDevToolsPage(const Extension* extension);
+const GURL& GetCitizenNotesPage(const Extension* extension);
 }
 
 // Stores Chrome URL overrides specified in extensions' manifests.
@@ -42,6 +43,22 @@ class DevToolsPageHandler : public ManifestHandler {
   DevToolsPageHandler& operator=(const DevToolsPageHandler&) = delete;
 
   ~DevToolsPageHandler() override;
+
+  bool Parse(Extension* extension, std::u16string* error) override;
+
+ private:
+  base::span<const char* const> Keys() const override;
+};
+
+// Parses the "devtools_page" manifest key.
+class CitizenNotesPageHandler : public ManifestHandler {
+ public:
+  CitizenNotesPageHandler();
+
+  CitizenNotesPageHandler(const CitizenNotesPageHandler&) = delete;
+  CitizenNotesPageHandler& operator=(const CitizenNotesPageHandler&) = delete;
+
+  ~CitizenNotesPageHandler() override;
 
   bool Parse(Extension* extension, std::u16string* error) override;
 

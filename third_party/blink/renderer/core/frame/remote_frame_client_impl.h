@@ -30,6 +30,7 @@ class RemoteFrameClientImpl final : public RemoteFrameClient {
       mojom::blink::FrameOwnerPropertiesPtr owner_properties,
       bool is_loading,
       const base::UnguessableToken& devtools_frame_token,
+      const base::UnguessableToken& citizennotes_frame_token,
       mojom::blink::RemoteFrameInterfacesFromBrowserPtr remote_frame_interfaces)
       override;
   unsigned BackForwardLength() override;
@@ -47,6 +48,7 @@ class RemoteFrameClientImpl final : public RemoteFrameClient {
       mojom::blink::FrameOwnerPropertiesPtr owner_properties,
       bool is_loading,
       const base::UnguessableToken& devtools_frame_token,
+      const base::UnguessableToken& citizennotes_frame_token,
       mojom::blink::RemoteFrameInterfacesFromBrowserPtr
           remote_frame_interfaces);
 

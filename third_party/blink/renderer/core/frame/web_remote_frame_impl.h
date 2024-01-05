@@ -36,6 +36,7 @@ class CORE_EXPORT WebRemoteFrameImpl final
       const RemoteFrameToken& frame_token,
       bool is_loading,
       const base::UnguessableToken& devtools_frame_token,
+      const base::UnguessableToken& citizennotes_frame_token,
       WebFrame* opener,
       mojo::PendingAssociatedRemote<mojom::blink::RemoteFrameHost>
           remote_frame_host,
@@ -48,6 +49,7 @@ class CORE_EXPORT WebRemoteFrameImpl final
       mojom::blink::TreeScopeType,
       const RemoteFrameToken& frame_token,
       const base::UnguessableToken& devtools_frame_token,
+      const base::UnguessableToken& citizennotes_frame_token,
       HTMLFrameOwnerElement* frame_owner,
       mojo::PendingAssociatedRemote<mojom::blink::RemoteFrameHost>
           remote_frame_host,
@@ -93,6 +95,7 @@ class CORE_EXPORT WebRemoteFrameImpl final
       const AtomicString& name,
       WindowAgentFactory*,
       const base::UnguessableToken& devtools_frame_token,
+      const base::UnguessableToken& citizennotes_frame_token,
       mojo::PendingAssociatedRemote<mojom::blink::RemoteFrameHost>
           remote_frame_host,
       mojo::PendingAssociatedReceiver<mojom::blink::RemoteFrame> receiver);
@@ -103,6 +106,7 @@ class CORE_EXPORT WebRemoteFrameImpl final
       const RemoteFrameToken& frame_token,
       bool is_loading,
       const base::UnguessableToken& devtools_frame_token,
+      const base::UnguessableToken& citizennotes_frame_token,
       WebFrame* opener,
       mojo::PendingAssociatedRemote<mojom::blink::RemoteFrameHost>
           remote_frame_host,

@@ -793,9 +793,10 @@ bool RenderThreadImpl::GenerateFrameRoutingID(
     int32_t& routing_id,
     blink::LocalFrameToken& frame_token,
     base::UnguessableToken& devtools_frame_token,
+    base::UnguessableToken& citizennotes_frame_token,
     blink::DocumentToken& document_token) {
   return render_message_filter()->GenerateFrameRoutingID(
-      &routing_id, &frame_token, &devtools_frame_token, &document_token);
+      &routing_id, &frame_token, &devtools_frame_token, &citizennotes_frame_token, &document_token);
 }
 
 void RenderThreadImpl::AddFilter(IPC::MessageFilter* filter) {
@@ -942,6 +943,13 @@ void RenderThreadImpl::RegisterSchemes() {
   WebSecurityPolicy::RegisterURLSchemeAsSupportingFetchAPI(devtools_scheme);
   WebSecurityPolicy::RegisterURLSchemeAsNotAllowingJavascriptURLs(
       devtools_scheme);
+
+  // devtools:
+  WebString citizennotes_scheme(WebString::FromASCII(kChromeCitizenNotesScheme));
+  WebSecurityPolicy::RegisterURLSchemeAsDisplayIsolated(citizennotes_scheme);
+  WebSecurityPolicy::RegisterURLSchemeAsSupportingFetchAPI(citizennotes_scheme);
+  WebSecurityPolicy::RegisterURLSchemeAsNotAllowingJavascriptURLs(
+      citizennotes_scheme);
 
   // view-source:
   WebString view_source_scheme(WebString::FromASCII(kViewSourceScheme));

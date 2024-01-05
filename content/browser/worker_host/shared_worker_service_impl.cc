@@ -17,6 +17,7 @@
 #include "base/functional/callback_helpers.h"
 #include "base/observer_list.h"
 #include "content/browser/devtools/shared_worker_devtools_agent_host.h"
+#include "content/browser/citizen_x/shared_worker_citizennotes_agent_host.h"
 #include "content/browser/loader/file_url_loader_factory.h"
 #include "content/browser/renderer_host/private_network_access_util.h"
 #include "content/browser/service_worker/service_worker_main_resource_handle.h"
@@ -378,6 +379,7 @@ SharedWorkerHost* SharedWorkerServiceImpl::CreateWorker(
       std::move(blob_url_loader_factory), url_loader_factory_override_,
       storage_partition_, storage_domain, host->ukm_source_id(),
       SharedWorkerDevToolsAgentHost::GetFor(host), host->GetDevToolsToken(),
+      SharedWorkerCitizenNotesAgentHost::GetFor(host), host->GetCitizenNotesToken(),
       base::BindOnce(&SharedWorkerServiceImpl::StartWorker,
                      weak_factory_.GetWeakPtr(), weak_host, message_port,
                      std::move(cloned_outside_fetch_client_settings_object)));

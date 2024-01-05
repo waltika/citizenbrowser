@@ -1702,6 +1702,7 @@ LocalFrame::LocalFrame(LocalFrameClient* client,
             insert_type,
             frame_token,
             client->GetDevToolsFrameToken(),
+            client->GetCitizenNotesFrameToken(),
             MakeGarbageCollected<LocalWindowProxyManager>(
                 page.GetAgentGroupScheduler().Isolate(),
                 *this),

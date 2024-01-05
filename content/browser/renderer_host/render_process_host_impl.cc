@@ -142,6 +142,7 @@
 #include "content/public/browser/child_process_host.h"
 #include "content/public/browser/device_service.h"
 #include "content/public/browser/devtools_agent_host.h"
+#include "content/public/browser/citizennotes_agent_host.h"
 #include "content/public/browser/global_routing_id.h"
 #include "content/public/browser/isolated_context_util.h"
 #include "content/public/browser/network_service_instance.h"
@@ -484,9 +485,10 @@ bool MayReuseAndIsSuitableWithMainFrameThreshold(
 
   size_t main_frame_count = 0;
   bool devtools_attached = false;
+  bool citizennotes_attached = false;
   host->ForEachRenderFrameHost(
       [&main_frame_count,
-       &devtools_attached](RenderFrameHost* render_frame_host) {
+       &devtools_attached, &citizennotes_attached](RenderFrameHost* render_frame_host) {
         if (static_cast<RenderFrameHostImpl*>(render_frame_host)
                 ->IsOutermostMainFrame()) {
           ++main_frame_count;
@@ -495,6 +497,10 @@ bool MayReuseAndIsSuitableWithMainFrameThreshold(
         if (DevToolsAgentHost::GetForId(
                 render_frame_host->GetDevToolsFrameToken().ToString())) {
           devtools_attached = true;
+        }
+        if (CitizenNotesAgentHost::GetForId(
+                render_frame_host->GetCitizenNotesFrameToken().ToString())) {
+          citizennotes_attached = true;
         }
       });
 
@@ -509,7 +515,7 @@ bool MayReuseAndIsSuitableWithMainFrameThreshold(
   // TODO(https://crbug.com/1449114): This is just a heuristic and won't work if
   // DevTools is attached later, and hence this should be eventually removed and
   // fixed properly in the renderer process.
-  if (devtools_attached) {
+  if (devtools_attached || citizennotes_attached) {
     return false;
   }
 
@@ -2904,9 +2910,10 @@ bool RenderProcessHostImpl::TakeFrameTokensForFrameRoutingID(
     int32_t new_routing_id,
     blink::LocalFrameToken& frame_token,
     base::UnguessableToken& devtools_frame_token,
+    base::UnguessableToken& citizennotes_frame_token,
     blink::DocumentToken& document_token) {
   return widget_helper_->TakeFrameTokensForFrameRoutingID(
-      new_routing_id, frame_token, devtools_frame_token, document_token);
+      new_routing_id, frame_token, devtools_frame_token, citizennotes_frame_token, document_token);
 }
 
 void RenderProcessHostImpl::AddObserver(RenderProcessHostObserver* observer) {

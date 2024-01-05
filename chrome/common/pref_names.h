@@ -2261,56 +2261,110 @@ inline constexpr char kNtpShownPage[] = "ntp.shown_page";
 // A private RSA key for ADB handshake.
 inline constexpr char kDevToolsAdbKey[] = "devtools.adb_key";
 
+// A private RSA key for ADB handshake.
+inline constexpr char kCitizenNotesAdbKey[] = "citizennotes.adb_key";
+
 // Defines administrator-set availability of developer tools.
 inline constexpr char kDevToolsAvailability[] = "devtools.availability";
+
+// Defines administrator-set availability of developer tools.
+inline constexpr char kCitizenNotesAvailability[] = "citizennotes.availability";
 
 // Defines administrator-set availability of developer tools remote debugging.
 inline constexpr char kDevToolsRemoteDebuggingAllowed[] =
     "devtools.remote_debugging.allowed";
 
+// Defines administrator-set availability of developer tools remote debugging.
+inline constexpr char kCitizenNotesRemoteDebuggingAllowed[] =
+    "citizennotes.remote_debugging.allowed";
+
 // Dictionary from background service to recording expiration time.
 inline constexpr char kDevToolsBackgroundServicesExpirationDict[] =
     "devtools.backgroundserviceexpiration";
+
+// Dictionary from background service to recording expiration time.
+inline constexpr char kCitizenNotesBackgroundServicesExpirationDict[] =
+    "citizennotes.backgroundserviceexpiration";
 
 // Determines whether devtools should be discovering usb devices for
 // remote debugging at chrome://inspect.
 inline constexpr char kDevToolsDiscoverUsbDevicesEnabled[] =
     "devtools.discover_usb_devices";
 
+// Determines whether devtools should be discovering usb devices for
+// remote debugging at chrome://inspect.
+inline constexpr char kCitizenNotesDiscoverUsbDevicesEnabled[] =
+    "citizennotes.discover_usb_devices";
+
 // Maps of files edited locally using DevTools.
 inline constexpr char kDevToolsEditedFiles[] = "devtools.edited_files";
+
+// Maps of files edited locally using DevTools.
+inline constexpr char kCitizenNotesEditedFiles[] = "citizennotes.edited_files";
 
 // List of file system paths added in DevTools.
 inline constexpr char kDevToolsFileSystemPaths[] = "devtools.file_system_paths";
 
+// List of file system paths added in DevTools.
+inline constexpr char kCitizenNotesFileSystemPaths[] = "citizennotes.file_system_paths";
+
 // A boolean specifying whether port forwarding should be enabled.
 inline constexpr char kDevToolsPortForwardingEnabled[] =
     "devtools.port_forwarding_enabled";
+
+// A boolean specifying whether port forwarding should be enabled.
+inline constexpr char kCitizenNotesPortForwardingEnabled[] =
+    "citizennotes.port_forwarding_enabled";
 
 // A boolean specifying whether default port forwarding configuration has been
 // set.
 inline constexpr char kDevToolsPortForwardingDefaultSet[] =
     "devtools.port_forwarding_default_set";
 
+// A boolean specifying whether default port forwarding configuration has been
+// set.
+inline constexpr char kCitizenNotesPortForwardingDefaultSet[] =
+    "citizennotes.port_forwarding_default_set";
+
 // A dictionary of port->location pairs for port forwarding.
 inline constexpr char kDevToolsPortForwardingConfig[] =
     "devtools.port_forwarding_config";
+
+// A dictionary of port->location pairs for port forwarding.
+inline constexpr char kCitizenNotesPortForwardingConfig[] =
+    "ctizennotes.port_forwarding_config";
 
 // A boolean specifying whether or not Chrome will scan for available remote
 // debugging targets.
 inline constexpr char kDevToolsDiscoverTCPTargetsEnabled[] =
     "devtools.discover_tcp_targets";
 
+// A boolean specifying whether or not Chrome will scan for available remote
+// debugging targets.
+inline constexpr char kCitizenNotesDiscoverTCPTargetsEnabled[] =
+    "citizennotes.discover_tcp_targets";
+
 // A list of strings representing devtools target discovery servers.
 inline constexpr char kDevToolsTCPDiscoveryConfig[] =
     "devtools.tcp_discovery_config";
 
+// A list of strings representing devtools target discovery servers.
+inline constexpr char kCitizenNotesTCPDiscoveryConfig[] =
+    "citizennotes.tcp_discovery_config";
+
 // A dictionary with all unsynced DevTools settings.
 inline constexpr char kDevToolsPreferences[] = "devtools.preferences";
+
+// A dictionary with all unsynced DevTools settings.
+inline constexpr char kCitizenNotesPreferences[] = "citizennotes.preferences";
 
 // A boolean specifying whether the "syncable" subset of DevTools preferences
 // should be synced or not.
 inline constexpr char kDevToolsSyncPreferences[] = "devtools.sync_preferences";
+
+// A boolean specifying whether the "syncable" subset of DevTools preferences
+// should be synced or not.
+inline constexpr char kCitizenNotesSyncPreferences[] = "citizennotes.sync_preferences";
 
 // Dictionaries with all synced DevTools settings. Depending on the state of the
 // kDevToolsSyncPreferences toggle, one or the other dictionary will be used.
@@ -2322,6 +2376,11 @@ inline constexpr char kDevToolsSyncedPreferencesSyncEnabled[] =
     "devtools.synced_preferences_sync_enabled";
 inline constexpr char kDevToolsSyncedPreferencesSyncDisabled[] =
     "devtools.synced_preferences_sync_disabled";
+
+inline constexpr char kCitizenNotesSyncedPreferencesSyncEnabled[] =
+    "citizennotes.synced_preferences_sync_enabled";
+inline constexpr char kCitizenNotesSyncedPreferencesSyncDisabled[] =
+    "citizennotes.synced_preferences_sync_disabled";
 
 #if !BUILDFLAG(IS_ANDROID)
 // Tracks the number of times the dice signin promo has been shown in the user

@@ -14,6 +14,7 @@ static_library("http_server") {
     ":net_http_server_fuzzer_deps",
     ":tests",
     "//chrome/browser/devtools",
+    "//chrome/browser/citizen_x",
     "//chrome/test/chromedriver/*",
     "//content/browser",
     "//net:net_web_socket_encoder_fuzzer_deps",

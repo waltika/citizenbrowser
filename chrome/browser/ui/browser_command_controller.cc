@@ -21,6 +21,7 @@
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/defaults.h"
 #include "chrome/browser/devtools/devtools_window.h"
+#include "chrome/browser/citizen_x/citizennotes_window.h"
 #include "chrome/browser/extensions/extension_service.h"
 #include "chrome/browser/lifetime/application_lifetime.h"
 #include "chrome/browser/prefs/incognito_mode_prefs.h"
@@ -682,7 +683,8 @@ bool BrowserCommandController::ExecuteCommandWithDisposition(
       SharingHubFromPageAction(browser_);
       break;
     case IDC_CITIZEN_X:
-          SharingHubFromPageAction(browser_); // TODO: Change to correct one
+      ToggleCitizenNotesWindow(browser_, CitizenNotesToggleAction::Show(),
+                               CitizenNotesOpenedByAction::kMainMenuOrMainShortcut);
       break;
     case IDC_SHARING_HUB_SCREENSHOT:
       ScreenshotCaptureFromPageAction(browser_);

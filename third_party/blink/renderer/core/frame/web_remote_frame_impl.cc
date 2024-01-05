@@ -94,6 +94,7 @@ WebRemoteFrame* WebRemoteFrame::CreateMainFrame(
     const RemoteFrameToken& frame_token,
     bool is_loading,
     const base::UnguessableToken& devtools_frame_token,
+    const base::UnguessableToken& citizennotes_frame_token,
     WebFrame* opener,
     CrossVariantMojoAssociatedRemote<mojom::blink::RemoteFrameHostInterfaceBase>
         remote_frame_host,
@@ -101,7 +102,7 @@ WebRemoteFrame* WebRemoteFrame::CreateMainFrame(
         receiver,
     mojom::FrameReplicationStatePtr replicated_state) {
   return WebRemoteFrameImpl::CreateMainFrame(
-      web_view, frame_token, is_loading, devtools_frame_token, opener,
+      web_view, frame_token, is_loading, devtools_frame_token, citizennotes_frame_token, opener,
       std::move(remote_frame_host), std::move(receiver),
       ToBlinkFrameReplicationState(std::move(replicated_state)));
 }
@@ -112,6 +113,7 @@ WebRemoteFrameImpl* WebRemoteFrameImpl::CreateMainFrame(
     const RemoteFrameToken& frame_token,
     bool is_loading,
     const base::UnguessableToken& devtools_frame_token,
+    const base::UnguessableToken& citizennotes_frame_token,
     WebFrame* opener,
     mojo::PendingAssociatedRemote<mojom::blink::RemoteFrameHost>
         remote_frame_host,
@@ -132,7 +134,7 @@ WebRemoteFrameImpl* WebRemoteFrameImpl::CreateMainFrame(
       page, nullptr, nullptr, nullptr, FrameInsertType::kInsertInConstructor,
       g_null_atom,
       opener ? &ToCoreFrame(*opener)->window_agent_factory() : nullptr,
-      devtools_frame_token, std::move(remote_frame_host), std::move(receiver));
+      devtools_frame_token, citizennotes_frame_token, std::move(remote_frame_host), std::move(receiver));
   frame->SetReplicatedState(std::move(replicated_state));
   Frame* opener_frame = opener ? ToCoreFrame(*opener) : nullptr;
   ToCoreFrame(*frame)->SetOpenerDoNotNotify(opener_frame);
@@ -146,6 +148,7 @@ WebRemoteFrameImpl* WebRemoteFrameImpl::CreateForPortalOrFencedFrame(
     mojom::blink::TreeScopeType scope,
     const RemoteFrameToken& frame_token,
     const base::UnguessableToken& devtools_frame_token,
+    const base::UnguessableToken& citizennotes_frame_token,
     HTMLFrameOwnerElement* frame_owner,
     mojo::PendingAssociatedRemote<mojom::blink::RemoteFrameHost>
         remote_frame_host,
@@ -162,8 +165,7 @@ WebRemoteFrameImpl* WebRemoteFrameImpl::CreateForPortalOrFencedFrame(
   frame->InitializeCoreFrame(
       *host_frame->GetPage(), frame_owner, /*parent=*/nullptr,
       /*previous_sibling=*/nullptr, FrameInsertType::kInsertInConstructor,
-      g_null_atom, &host_frame->window_agent_factory(), devtools_frame_token,
-      std::move(remote_frame_host), std::move(receiver));
+      g_null_atom, &host_frame->window_agent_factory(), devtools_frame_token, citizennotes_frame_token, std::move(remote_frame_host), std::move(receiver));
   frame->SetReplicatedState(std::move(replicated_state));
   return frame;
 }
@@ -265,6 +267,7 @@ void WebRemoteFrameImpl::InitializeCoreFrame(
     const AtomicString& name,
     WindowAgentFactory* window_agent_factory,
     const base::UnguessableToken& devtools_frame_token,
+    const base::UnguessableToken& citizennotes_frame_token,
     mojo::PendingAssociatedRemote<mojom::blink::RemoteFrameHost>
         remote_frame_host,
     mojo::PendingAssociatedReceiver<mojom::blink::RemoteFrame>
@@ -297,7 +300,7 @@ void WebRemoteFrameImpl::InitializeCoreFrame(
   SetCoreFrame(MakeGarbageCollected<RemoteFrame>(
       frame_client_.Get(), page, owner, parent_frame, previous_sibling_frame,
       insert_type, GetRemoteFrameToken(), window_agent_factory, ancestor_widget,
-      devtools_frame_token, std::move(remote_frame_host),
+      devtools_frame_token, citizennotes_frame_token, std::move(remote_frame_host),
       std::move(remote_frame_receiver)));
 
   if (ancestor_widget)
@@ -312,6 +315,7 @@ WebRemoteFrameImpl* WebRemoteFrameImpl::CreateRemoteChild(
     const RemoteFrameToken& frame_token,
     bool is_loading,
     const base::UnguessableToken& devtools_frame_token,
+    const base::UnguessableToken& citizennotes_frame_token,
     WebFrame* opener,
     mojo::PendingAssociatedRemote<mojom::blink::RemoteFrameHost>
         remote_frame_host,
@@ -331,8 +335,10 @@ WebRemoteFrameImpl* WebRemoteFrameImpl::CreateRemoteChild(
   child->InitializeCoreFrame(*GetFrame()->GetPage(), owner, this, LastChild(),
                              FrameInsertType::kInsertInConstructor,
                              AtomicString(replicated_state->name),
-                             window_agent_factory, devtools_frame_token,
-                             std::move(remote_frame_host), std::move(receiver));
+                             window_agent_factory,
+                             devtools_frame_token, citizennotes_frame_token,
+                             std::move(remote_frame_host),
+                             std::move(receiver));
   child->SetReplicatedState(std::move(replicated_state));
   Frame* opener_frame = opener ? ToCoreFrame(*opener) : nullptr;
   ToCoreFrame(*child)->SetOpenerDoNotNotify(opener_frame);

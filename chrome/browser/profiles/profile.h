@@ -107,6 +107,9 @@ class Profile : public content::BrowserContext {
     // Creates a unique OTR profile id to be used for DevTools browser contexts.
     static OTRProfileID CreateUniqueForDevTools();
 
+      // Creates a unique OTR profile id to be used for CitizenNotes browser contexts.
+    static OTRProfileID CreateUniqueForCitizenNotes();
+
     // Creates a unique OTR profile id to be used for media router.
     static OTRProfileID CreateUniqueForMediaRouter();
 

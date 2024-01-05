@@ -23,13 +23,14 @@ namespace extensions {
 WindowController::TypeFilter WindowController::GetAllWindowFilter() {
   // This needs to be updated if there is a change to
   // extensions::api::windows:WindowType.
-  static_assert(base::to_underlying(api::windows::WindowType::kMaxValue) == 5,
+  static_assert(base::to_underlying(api::windows::WindowType::kMaxValue) == 6,
                 "Update extensions WindowController to match WindowType");
   return ((1 << base::to_underlying(api::windows::WindowType::kNormal)) |
           (1 << base::to_underlying(api::windows::WindowType::kPanel)) |
           (1 << base::to_underlying(api::windows::WindowType::kPopup)) |
           (1 << base::to_underlying(api::windows::WindowType::kApp)) |
-          (1 << base::to_underlying(api::windows::WindowType::kDevtools)));
+          (1 << base::to_underlying(api::windows::WindowType::kDevtools))|
+          (1 << base::to_underlying(api::windows::WindowType::kCitizennotes)));
 }
 
 // static

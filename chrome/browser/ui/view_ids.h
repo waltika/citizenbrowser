@@ -92,6 +92,11 @@ enum ViewID {
   // Docked dev tools.
   VIEW_ID_DEV_TOOLS_DOCKED,
 
+
+  // Docked citizen notes.
+  VIEW_ID_CITIZEN_NOTES_DOCKED,
+
+
   // The contents split.
   VIEW_ID_CONTENTS_SPLIT,
 

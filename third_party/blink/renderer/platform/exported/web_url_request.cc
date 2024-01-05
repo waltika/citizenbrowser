@@ -419,6 +419,11 @@ const absl::optional<base::UnguessableToken>& WebURLRequest::GetDevToolsToken()
   return resource_request_->GetDevToolsToken();
 }
 
+const absl::optional<base::UnguessableToken>& WebURLRequest::GetCitizenNotesToken()
+    const {
+  return resource_request_->GetDevToolsToken();
+}
+
 const WebString WebURLRequest::GetRequestedWithHeader() const {
   return resource_request_->GetRequestedWithHeader();
 }

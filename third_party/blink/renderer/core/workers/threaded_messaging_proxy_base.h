@@ -11,6 +11,7 @@
 #include "third_party/blink/renderer/core/core_export.h"
 #include "third_party/blink/renderer/core/frame/web_feature_forward.h"
 #include "third_party/blink/renderer/core/inspector/worker_devtools_params.h"
+#include "third_party/blink/renderer/core/inspector/worker_citizennotes_params.h"
 #include "third_party/blink/renderer/core/workers/parent_execution_context_task_runners.h"
 #include "third_party/blink/renderer/core/workers/worker_backing_thread_startup_data.h"
 #include "third_party/blink/renderer/core/workers/worker_thread.h"
@@ -87,7 +88,9 @@ class CORE_EXPORT ThreadedMessagingProxyBase
       const absl::optional<WorkerBackingThreadStartupData>&,
       const absl::optional<const blink::DedicatedWorkerToken>&,
       std::unique_ptr<WorkerDevToolsParams> client_provided_devtools_params =
-          nullptr);
+          nullptr,
+      std::unique_ptr<WorkerCitizenNotesParams> client_provided_citizennotes_params =
+                              nullptr);
 
   ExecutionContext* GetExecutionContext() const;
   ParentExecutionContextTaskRunners* GetParentExecutionContextTaskRunners()

@@ -63,6 +63,7 @@ struct CORE_EXPORT GlobalScopeCreationParams final {
       std::unique_ptr<WebContentSettingsClient>,
       const Vector<mojom::blink::OriginTrialFeature>* inherited_trial_features,
       const base::UnguessableToken& parent_devtools_token,
+      const base::UnguessableToken& parent_citizennotes_token,
       std::unique_ptr<WorkerSettings>,
       mojom::blink::V8CacheOptions,
       WorkletModuleResponsesMap*,
@@ -170,6 +171,7 @@ struct CORE_EXPORT GlobalScopeCreationParams final {
   std::unique_ptr<WebContentSettingsClient> content_settings_client;
 
   base::UnguessableToken parent_devtools_token;
+  base::UnguessableToken parent_citizennotes_token;
 
   std::unique_ptr<WorkerSettings> worker_settings;
 

@@ -484,6 +484,7 @@ class BrowserView : public BrowserWindow,
   void BookmarkBarStateChanged(
       BookmarkBar::AnimateChangeType change_type) override;
   void UpdateDevTools() override;
+  void UpdateCitizenNotes() override;
   void UpdateLoadingAnimations(bool is_visible) override;
   void SetStarredState(bool is_starred) override;
   void SetTranslateIconToggled(bool is_lit) override;
@@ -897,6 +898,9 @@ class BrowserView : public BrowserWindow,
   void UpdateDevToolsForContents(content::WebContents* web_contents,
                                  bool update_devtools_web_contents);
 
+  void UpdateCitizenNotesForContents(content::WebContents* web_contents,
+                                     bool update_devtools_web_contents);
+
   // Updates various optional child Views, e.g. Bookmarks Bar, Info Bar or the
   // Download Shelf in response to a change notification from the specified
   // |contents|. |contents| can be null. In this case, all optional UI will be
@@ -1149,6 +1153,10 @@ class BrowserView : public BrowserWindow,
   raw_ptr<views::WebView, AcrossTasksDanglingUntriaged> devtools_web_view_ =
       nullptr;
 
+  // The view that contains devtools window for the selected WebContents.
+  raw_ptr<views::WebView, AcrossTasksDanglingUntriaged> citizennotes_web_view_ =
+      nullptr;
+
   // The view managing the devtools and contents positions.
   // Handled by ContentsLayoutManager.
   raw_ptr<views::View, AcrossTasksDanglingUntriaged> contents_container_ =
@@ -1177,6 +1185,11 @@ class BrowserView : public BrowserWindow,
   // devtools_web_view_ or any of its children. Used to restore focus once
   // the devtools_web_view_ is hidden.
   std::unique_ptr<views::ExternalFocusTracker> devtools_focus_tracker_;
+
+  // Tracks and stores the last focused view which is not the
+  // citizennotes_web_view_ or any of its children. Used to restore focus once
+  // the citizennotes_web_view_ is hidden.
+  std::unique_ptr<views::ExternalFocusTracker> citizennotes_focus_tracker_;
 
   // The Status information bubble that appears at the bottom of the window.
   std::unique_ptr<StatusBubbleViews> status_bubble_;
@@ -1295,6 +1308,10 @@ class BrowserView : public BrowserWindow,
   DevToolsDockedPlacement current_devtools_docked_placement_ =
       DevToolsDockedPlacement::kNone;
 
+  DevToolsDockedPlacement current_citizennotes_docked_placement_ =
+      DevToolsDockedPlacement::kNone;
+
+                        
   PrefChangeRegistrar registrar_;
 
   ui::OmniboxPopupCloser omnibox_popup_closer_{this};

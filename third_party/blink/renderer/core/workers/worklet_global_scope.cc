@@ -81,6 +81,7 @@ WorkletGlobalScope::WorkletGlobalScope(
               v8::MicrotaskQueue::New(isolate, v8::MicrotasksPolicy::kScoped)),
           creation_params->global_scope_name,
           creation_params->parent_devtools_token,
+          creation_params->parent_citizennotes_token,
           creation_params->v8_cache_options,
           creation_params->worker_clients,
           std::move(creation_params->content_settings_client),
@@ -230,6 +231,13 @@ const base::UnguessableToken& WorkletGlobalScope::GetDevToolsToken() const {
     return frame_->GetDevToolsFrameToken();
   }
   return GetThread()->GetDevToolsWorkerToken();
+}
+
+const base::UnguessableToken& WorkletGlobalScope::GetCitizenNotesToken() const {
+  if (IsMainThreadWorkletGlobalScope()) {
+    return frame_->GetCitizenNotesFrameToken();
+  }
+  return GetThread()->GetCitizenNotesWorkerToken();
 }
 
 CodeCacheHost* WorkletGlobalScope::GetCodeCacheHost() {

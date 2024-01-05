@@ -193,6 +193,7 @@ class CONTENT_EXPORT RenderFrameImpl
       bool is_for_scalable_page,
       blink::mojom::FrameReplicationStatePtr replication_state,
       const base::UnguessableToken& devtools_frame_token,
+      const base::UnguessableToken& citizennotes_frame_token,
       mojom::CreateLocalMainFrameParamsPtr params,
       const blink::WebURL& base_url);
 
@@ -238,6 +239,7 @@ class CONTENT_EXPORT RenderFrameImpl
       const absl::optional<blink::FrameToken>& parent_frame_token,
       const absl::optional<blink::FrameToken>& previous_sibling_frame_token,
       const base::UnguessableToken& devtools_frame_token,
+      const base::UnguessableToken& citizennotes_frame_token,
       blink::mojom::TreeScopeType tree_scope_type,
       blink::mojom::FrameReplicationStatePtr replicated_state,
       mojom::CreateFrameWidgetParamsPtr widget_params,
@@ -264,6 +266,7 @@ class CONTENT_EXPORT RenderFrameImpl
         mojo::PendingAssociatedRemote<blink::mojom::AssociatedInterfaceProvider>
             associated_interface_provider,
         const base::UnguessableToken& devtools_frame_token,
+        const base::UnguessableToken& citizennotes_frame_token,
         bool is_for_nested_main_frame);
     ~CreateParams();
 
@@ -278,6 +281,7 @@ class CONTENT_EXPORT RenderFrameImpl
     mojo::PendingAssociatedRemote<blink::mojom::AssociatedInterfaceProvider>
         associated_interface_provider;
     base::UnguessableToken devtools_frame_token;
+    base::UnguessableToken citizennotes_frame_token;
     bool is_for_nested_main_frame;
   };
 
@@ -467,6 +471,7 @@ class CONTENT_EXPORT RenderFrameImpl
           fetch_later_loader_factory,
       const blink::DocumentToken& document_token,
       const base::UnguessableToken& devtools_navigation_token,
+     const base::UnguessableToken& citizennotes_navigation_token,
       const absl::optional<blink::ParsedPermissionsPolicy>& permissions_policy,
       blink::mojom::PolicyContainerPtr policy_container,
       mojo::PendingRemote<blink::mojom::CodeCacheHost> code_cache_host,
@@ -585,6 +590,7 @@ class CONTENT_EXPORT RenderFrameImpl
   void NotifyCurrentHistoryItemChanged() override;
   void DidUpdateCurrentHistoryItem() override;
   base::UnguessableToken GetDevToolsFrameToken() override;
+  base::UnguessableToken GetCitizenNotesFrameToken() override;
   void AbortClientNavigation() override;
   void DidChangeSelection(bool is_empty_selection,
                           blink::SyncCondition force_sync) override;
@@ -864,6 +870,7 @@ class CONTENT_EXPORT RenderFrameImpl
       mojo::PendingAssociatedRemote<blink::mojom::AssociatedInterfaceProvider>
           associated_interface_provider,
       const base::UnguessableToken& devtools_frame_token,
+      const base::UnguessableToken& citizennotes_frame_token,
       bool is_for_nested_main_frame);
 
   // Functions to add and remove observers for this object.
@@ -1483,6 +1490,7 @@ class CONTENT_EXPORT RenderFrameImpl
   // |devtools_frame_token_| is only defined by the browser and is never
   // sent back from the renderer in the control calls.
   base::UnguessableToken devtools_frame_token_;
+  base::UnguessableToken citizennotes_frame_token_;
 
   // True if the frame host wants stack traces on JavaScript console messages of
   // kError severity.

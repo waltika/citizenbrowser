@@ -63,6 +63,8 @@ mojom("mojom_platform") {
     "devtools/devtools_agent.mojom",
     "devtools/devtools_frontend.mojom",
     "devtools/inspector_issue.mojom",
+    "citizennotes/citizennotes_agent.mojom",
+    "citizennotes/citizennotes_frontend.mojom",
     "disk_allocator.mojom",
     "dom_storage/dom_storage.mojom",
     "dom_storage/session_storage_namespace.mojom",

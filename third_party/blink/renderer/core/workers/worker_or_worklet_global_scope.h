@@ -60,6 +60,7 @@ class CORE_EXPORT WorkerOrWorkletGlobalScope
       Agent* agent,
       const String& name,
       const base::UnguessableToken& parent_devtools_token,
+      const base::UnguessableToken& parent_citizennotes_token,
       mojom::blink::V8CacheOptions,
       WorkerClients*,
       std::unique_ptr<WebContentSettingsClient>,
@@ -149,6 +150,11 @@ class CORE_EXPORT WorkerOrWorkletGlobalScope
     return parent_devtools_token_;
   }
   virtual const base::UnguessableToken& GetDevToolsToken() const = 0;
+
+  const base::UnguessableToken& GetParentCitizenNotesToken() {
+    return parent_citizennotes_token_;
+  }
+  virtual const base::UnguessableToken& GetCitizenNotesToken() const = 0;
 
   WorkerClients* Clients() const { return worker_clients_.Get(); }
 
@@ -263,6 +269,7 @@ class CORE_EXPORT WorkerOrWorkletGlobalScope
 
   const String name_;
   const base::UnguessableToken parent_devtools_token_;
+  const base::UnguessableToken parent_citizennotes_token_;
 
   CrossThreadPersistent<WorkerClients> worker_clients_;
   std::unique_ptr<WebContentSettingsClient> content_settings_client_;

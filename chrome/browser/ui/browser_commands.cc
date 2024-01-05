@@ -32,6 +32,7 @@
 #include "chrome/browser/chained_back_navigation_tracker.h"
 #include "chrome/browser/content_settings/cookie_settings_factory.h"
 #include "chrome/browser/devtools/devtools_window.h"
+#include "chrome/browser/citizen_x/citizennotes_window.h"
 #include "chrome/browser/dom_distiller/tab_utils.h"
 #include "chrome/browser/download/download_prefs.h"
 #include "chrome/browser/favicon/favicon_utils.h"
@@ -1848,6 +1849,17 @@ void ToggleDevToolsWindow(Browser* browser,
     base::RecordAction(UserMetricsAction("DevTools_ToggleWindow"));
   }
   DevToolsWindow::ToggleDevToolsWindow(browser, action, opened_by);
+}
+
+void ToggleCitizenNotesWindow(Browser* browser,
+                              CitizenNotesToggleAction action,
+                              CitizenNotesOpenedByAction opened_by) {
+    if (action.type() == CitizenNotesToggleAction::kShowConsolePanel) {
+      base::RecordAction(UserMetricsAction("CitizenNotes_ToggleConsole"));
+    } else {
+      base::RecordAction(UserMetricsAction("CitizenNotes_ToggleWindow"));
+    }
+  CitizenNotesWindow::ToggleCitizenNotesWindow(browser, action, opened_by);
 }
 
 bool CanOpenTaskManager() {

@@ -135,6 +135,7 @@
 #include "third_party/blink/public/mojom/blob/file_backed_blob_factory.mojom-forward.h"
 #include "third_party/blink/public/mojom/broadcastchannel/broadcast_channel.mojom.h"
 #include "third_party/blink/public/mojom/buckets/bucket_manager_host.mojom.h"
+#include "third_party/blink/public/mojom/citizennotes/citizennotes_agent.mojom.h"
 #include "third_party/blink/public/mojom/feature_observer/feature_observer.mojom-forward.h"
 #include "third_party/blink/public/mojom/file_system_access/file_system_access_manager.mojom-forward.h"
 #include "third_party/blink/public/mojom/filesystem/file_system.mojom-forward.h"
@@ -421,6 +422,7 @@ class CONTENT_EXPORT RenderFrameHostImpl
   // subframes. As such, update this method.
   int GetFrameTreeNodeId() const override;
   const base::UnguessableToken& GetDevToolsFrameToken() override;
+  const base::UnguessableToken& GetCitizenNotesFrameToken() override;
   absl::optional<base::UnguessableToken> GetEmbeddingToken() override;
   const std::string& GetFrameName() override;
   bool IsFrameDisplayNone() override;
@@ -753,6 +755,7 @@ class CONTENT_EXPORT RenderFrameHostImpl
       bool is_created_by_script,
       const blink::LocalFrameToken& frame_token,
       const base::UnguessableToken& devtools_frame_token,
+      const base::UnguessableToken& citizennotes_frame_token,
       const blink::DocumentToken& document_token,
       const blink::FramePolicy& frame_policy,
       const blink::mojom::FrameOwnerProperties& frame_owner_properties,
@@ -790,6 +793,7 @@ class CONTENT_EXPORT RenderFrameHostImpl
       const blink::LocalFrameToken& frame_token,
       const blink::DocumentToken& document_token,
       base::UnguessableToken devtools_frame_token,
+      base::UnguessableToken citizennotes_frame_token,
       const blink::FramePolicy& frame_policy,
       std::string frame_name,
       std::string frame_unique_name);
@@ -1492,7 +1496,8 @@ class CONTENT_EXPORT RenderFrameHostImpl
           subresource_overrides,
       blink::mojom::ServiceWorkerContainerInfoForClientPtr container_info,
       const absl::optional<blink::DocumentToken>& document_token,
-      const base::UnguessableToken& devtools_navigation_token);
+      const base::UnguessableToken& devtools_navigation_token,
+      const base::UnguessableToken& citizennotes_navigation_token);
 
   // Indicates that a navigation failed and that this RenderFrame should display
   // an error page.
@@ -1610,6 +1615,11 @@ class CONTENT_EXPORT RenderFrameHostImpl
   void BindDevToolsAgent(
       mojo::PendingAssociatedRemote<blink::mojom::DevToolsAgentHost> host,
       mojo::PendingAssociatedReceiver<blink::mojom::DevToolsAgent> receiver);
+
+  // Binds a CitizenNotesAgent interface for debugging.
+  void BindCitizenNotesAgent(
+      mojo::PendingAssociatedRemote<blink::mojom::CitizenNotesAgentHost> host,
+      mojo::PendingAssociatedReceiver<blink::mojom::CitizenNotesAgent> receiver);
 
 #if BUILDFLAG(IS_ANDROID)
   base::android::ScopedJavaLocalRef<jobject> GetJavaRenderFrameHost() override;
@@ -2452,7 +2462,9 @@ class CONTENT_EXPORT RenderFrameHostImpl
       blink::mojom::RemoteFrameInterfacesFromRendererPtr
           remote_frame_interfaces,
       const blink::RemoteFrameToken& frame_token,
-      const base::UnguessableToken& devtools_frame_token) override;
+      const base::UnguessableToken& devtools_frame_token,
+      const base::UnguessableToken& citizennotes_frame_token) override;
+          
   void OnViewTransitionOptInChanged(blink::mojom::ViewTransitionSameOriginOptIn
                                         view_transition_opt_in) override;
   void StartDragging(blink::mojom::DragDataPtr drag_data,
@@ -2892,6 +2904,11 @@ class CONTENT_EXPORT RenderFrameHostImpl
     return devtools_frame_token_;
   }
 
+  // See comment on the member declaration.
+  const base::UnguessableToken& citizennotes_frame_token() const {
+    return citizennotes_frame_token_;
+  }
+
 #if BUILDFLAG(ENABLE_PPAPI)
   RenderFrameHostImplPpapiSupport& GetPpapiSupport();
 #endif
@@ -2958,6 +2975,8 @@ class CONTENT_EXPORT RenderFrameHostImpl
   // which is a stable identifier used by DevTools to identify frames and is
   // kept constant across navigations in a frame.
   const absl::optional<base::UnguessableToken>& GetDevToolsNavigationToken();
+
+  const absl::optional<base::UnguessableToken>& GetCitizenNotesNavigationToken();
 
   // Returns if the RenderFrameHostImpl is loaded with the "Cache-Control:
   // no-store" header.
@@ -3027,6 +3046,7 @@ class CONTENT_EXPORT RenderFrameHostImpl
       const blink::LocalFrameToken& frame_token,
       const blink::DocumentToken& document_token,
       base::UnguessableToken devtools_frame_token,
+      base::UnguessableToken citizennotes_frame_token,
       bool renderer_initiated_creation_of_main_frame,
       LifecycleStateImpl lifecycle_state,
       scoped_refptr<BrowsingContextState> browsing_context_state,
@@ -3062,7 +3082,8 @@ class CONTENT_EXPORT RenderFrameHostImpl
       const absl::optional<blink::ParsedPermissionsPolicy>& permissions_policy,
       blink::mojom::PolicyContainerPtr policy_container,
       const blink::DocumentToken& document_token,
-      const base::UnguessableToken& devtools_navigation_token);
+      const base::UnguessableToken& devtools_navigation_token,
+      const base::UnguessableToken& citizennotes_navigation_token);
   virtual void SendCommitFailedNavigation(
       mojom::NavigationClient* navigation_client,
       NavigationRequest* navigation_request,
@@ -5098,6 +5119,7 @@ class CONTENT_EXPORT RenderFrameHostImpl
   // and it's meant to generally be stable for the FTN lifetime, but is allowed
   // to change across MPArch activations like prerendering.
   const base::UnguessableToken devtools_frame_token_;
+  const base::UnguessableToken citizennotes_frame_token_;
 
   // BrowserInterfaceBroker implementation through which this
   // RenderFrameHostImpl exposes document-scoped Mojo services to the currently

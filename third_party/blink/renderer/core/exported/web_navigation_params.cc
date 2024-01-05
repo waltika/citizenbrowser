@@ -23,10 +23,12 @@ WebNavigationParams::~WebNavigationParams() = default;
 
 WebNavigationParams::WebNavigationParams(
     const blink::DocumentToken& document_token,
-    const base::UnguessableToken& devtools_navigation_token)
+    const base::UnguessableToken& devtools_navigation_token,
+    const base::UnguessableToken& citizennotes_navigation_token)
     : http_method(http_names::kGET),
       document_token(document_token),
       devtools_navigation_token(devtools_navigation_token),
+      citizennotes_navigation_token(citizennotes_navigation_token),
       content_settings(CreateDefaultRendererContentSettings()) {}
 
 // static

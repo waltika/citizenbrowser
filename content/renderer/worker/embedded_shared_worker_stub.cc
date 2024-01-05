@@ -41,6 +41,7 @@ EmbeddedSharedWorkerStub::EmbeddedSharedWorkerStub(
     const blink::UserAgentMetadata& ua_metadata,
     bool pause_on_start,
     const base::UnguessableToken& devtools_worker_token,
+    const base::UnguessableToken& citizennotes_worker_token,
     const blink::RendererPreferences& renderer_preferences,
     mojo::PendingReceiver<blink::mojom::RendererPreferenceWatcher>
         preference_watcher_receiver,
@@ -122,7 +123,7 @@ EmbeddedSharedWorkerStub::EmbeddedSharedWorkerStub(
       ToWebContentSecurityPolicies(std::move(info->content_security_policies)),
       FetchClientSettingsObjectFromMojomToWeb(
           info->outside_fetch_client_settings_object),
-      devtools_worker_token, std::move(content_settings),
+      devtools_worker_token, citizennotes_worker_token, std::move(content_settings),
       std::move(browser_interface_broker), pause_on_start,
       std::move(worker_main_script_load_params),
       ToWebPolicyContainer(std::move(policy_container)),

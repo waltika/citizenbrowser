@@ -198,6 +198,7 @@ WorkerOrWorkletGlobalScope::WorkerOrWorkletGlobalScope(
     Agent* agent,
     const String& name,
     const base::UnguessableToken& parent_devtools_token,
+    const base::UnguessableToken& parent_citizennotes_token,
     mojom::blink::V8CacheOptions v8_cache_options,
     WorkerClients* worker_clients,
     std::unique_ptr<WebContentSettingsClient> content_settings_client,
@@ -208,6 +209,7 @@ WorkerOrWorkletGlobalScope::WorkerOrWorkletGlobalScope(
       is_creator_secure_context_(is_creator_secure_context),
       name_(name),
       parent_devtools_token_(parent_devtools_token),
+      parent_citizennotes_token_(parent_citizennotes_token),
       worker_clients_(worker_clients),
       content_settings_client_(std::move(content_settings_client)),
       web_worker_fetch_context_(std::move(web_worker_fetch_context)),
@@ -367,7 +369,9 @@ ResourceFetcher* WorkerOrWorkletGlobalScope::CreateFetcherInternal(
         MakeGarbageCollected<ResourceLoadObserverForWorker>(
             *probe::ToCoreProbeSink(static_cast<ExecutionContext*>(this)),
             fetcher->GetProperties(), *worker_fetch_context,
-            GetDevToolsToken()));
+            GetDevToolsToken(),
+            GetCitizenNotesToken()
+                                                            ));
   } else {
     auto& properties =
         *MakeGarbageCollected<DetachableResourceFetcherProperties>(

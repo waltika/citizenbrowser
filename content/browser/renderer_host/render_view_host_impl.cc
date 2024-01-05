@@ -457,6 +457,8 @@ bool RenderViewHostImpl::CreateRenderView(
       frame_tree_node->current_replication_state().Clone();
   params->devtools_main_frame_token =
       frame_tree_node->current_frame_host()->devtools_frame_token();
+  params->citizennotes_main_frame_token =
+        frame_tree_node->current_frame_host()->citizennotes_frame_token();
   DCHECK_EQ(&frame_tree_node->frame_tree(), frame_tree_);
   params->is_prerendering = frame_tree_->is_prerendering() ||
                             frame_tree_->page_delegate()->IsInPreviewMode();

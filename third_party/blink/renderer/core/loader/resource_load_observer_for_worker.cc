@@ -20,11 +20,13 @@ ResourceLoadObserverForWorker::ResourceLoadObserverForWorker(
     CoreProbeSink& probe,
     const ResourceFetcherProperties& properties,
     WorkerFetchContext& worker_fetch_context,
-    const base::UnguessableToken& devtools_worker_token)
+    const base::UnguessableToken& devtools_worker_token,
+    const base::UnguessableToken& citizennotes_worker_token)
     : probe_(probe),
       fetcher_properties_(properties),
       worker_fetch_context_(worker_fetch_context),
-      devtools_worker_token_(devtools_worker_token) {}
+      devtools_worker_token_(devtools_worker_token),
+      citizennotes_worker_token_(citizennotes_worker_token) {}
 
 ResourceLoadObserverForWorker::~ResourceLoadObserverForWorker() = default;
 
@@ -124,6 +126,8 @@ void ResourceLoadObserverForWorker::DidFailLoading(const KURL&,
                                                    IsInternalRequest) {
   probe::DidFailLoading(probe_, identifier, nullptr, error,
                         devtools_worker_token_);
+  probe::DidFailLoading(probe_, identifier, nullptr, error,
+                        citizennotes_worker_token_);
 }
 
 void ResourceLoadObserverForWorker::Trace(Visitor* visitor) const {

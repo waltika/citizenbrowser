@@ -1,0 +1,36 @@
+// Copyright 2017 The Chromium Authors
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+module blink.mojom;
+
+import "mojo/public/mojom/base/values.mojom";
+
+// Provides extra capabilities required for CitizenNotes frontend to function.
+// This includes communication channel from/to inspected target which implements
+// remote debugging protocol. Protocol messages go through browser process.
+//
+// Instances of this interface must be associated with navigation-related
+// interface, since we should setup CitizenNotesFrontend before the navigation
+// commits in the frame.
+interface CitizenNotesFrontend {
+  // Sets up a main frame as a CitizenNotes frontend. This exposes CitizenNotesHost
+  // object (see CitizenNotesHost.idl for details). The |api_script| is executed
+  // on each navigation in the frame before the CitizenNotes frontend starts
+  // loading. It makes use of CitizenNotesHost to expose embedder capabilities to
+  // CitizenNotes (e.g. connection to the inspected target).
+  SetupCitizenNotesFrontend(string api_script,
+                        pending_associated_remote<CitizenNotesFrontendHost> host);
+
+  // Sets up a child frame to expose CitizenNotes extension API by executing script
+  // |extension_api| on each navigation in the frame. This script provides
+  // required capabilities for CitizenNotes extensions to function, implementing
+  // chrome.citizennotes extension API.
+  SetupCitizenNotesExtensionAPI(string extension_api);
+};
+
+// Provides embedder functionality to a frame serving as CitizenNotes frontend.
+interface CitizenNotesFrontendHost {
+  // Sends a message to CitizenNotes frontend embedder.
+  DispatchEmbedderMessage(mojo_base.mojom.DictionaryValue message);
+};

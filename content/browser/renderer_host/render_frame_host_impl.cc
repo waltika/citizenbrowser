@@ -1516,6 +1516,7 @@ RenderFrameHostImpl::RenderFrameHostImpl(
     const blink::LocalFrameToken& frame_token,
     const blink::DocumentToken& document_token,
     base::UnguessableToken devtools_frame_token,
+    base::UnguessableToken citizennotes_frame_token,
     bool renderer_initiated_creation_of_main_frame,
     LifecycleStateImpl lifecycle_state,
     scoped_refptr<BrowsingContextState> browsing_context_state,
@@ -1553,7 +1554,8 @@ RenderFrameHostImpl::RenderFrameHostImpl(
       code_cache_host_receivers_(
           GetProcess()->GetStoragePartition()->GetGeneratedCodeCacheContext()),
       fenced_frame_status_(fenced_frame_status),
-      devtools_frame_token_(devtools_frame_token) {
+      devtools_frame_token_(devtools_frame_token),
+      citizennotes_frame_token_(citizennotes_frame_token) {
   TRACE_EVENT_BEGIN("navigation", "RenderFrameHostImpl",
                     perfetto::Track::FromPointer(this),
                     "render_frame_host_when_created", this);
@@ -2267,6 +2269,10 @@ int RenderFrameHostImpl::GetFrameTreeNodeId() const {
 
 const base::UnguessableToken& RenderFrameHostImpl::GetDevToolsFrameToken() {
   return devtools_frame_token();
+}
+
+const base::UnguessableToken& RenderFrameHostImpl::GetCitizenNotesFrameToken() {
+  return citizennotes_frame_token();
 }
 
 absl::optional<base::UnguessableToken>
@@ -3299,6 +3305,7 @@ bool RenderFrameHostImpl::CreateRenderFrame(
       browsing_context_state_->current_replication_state().Clone();
   params->frame_token = frame_token_;
   params->devtools_frame_token = devtools_frame_token();
+  params->citizennotes_frame_token = citizennotes_frame_token();
   BindAssociatedInterfaceProviderReceiver(
       params->associated_interface_provider_remote
           .InitWithNewEndpointAndPassReceiver());
@@ -3807,6 +3814,7 @@ void RenderFrameHostImpl::OnCreateChildFrame(
     bool is_created_by_script,
     const blink::LocalFrameToken& frame_token,
     const base::UnguessableToken& devtools_frame_token,
+    const base::UnguessableToken& citizennotes_frame_token,
     const blink::DocumentToken& document_token,
     const blink::FramePolicy& frame_policy,
     const blink::mojom::FrameOwnerProperties& frame_owner_properties,
@@ -3818,6 +3826,7 @@ void RenderFrameHostImpl::OnCreateChildFrame(
   DCHECK(policy_container_bind_params->receiver.is_valid());
   DCHECK(associated_interface_provider_receiver.is_valid());
   DCHECK(devtools_frame_token);
+  DCHECK(citizennotes_frame_token);
 
   // The RenderFrame corresponding to this host sent an IPC message to create a
   // child, but by the time we get here, it's possible for its process to have
@@ -3845,7 +3854,7 @@ void RenderFrameHostImpl::OnCreateChildFrame(
       std::move(policy_container_bind_params),
       std::move(associated_interface_provider_receiver), scope, frame_name,
       frame_unique_name, is_created_by_script, frame_token,
-      devtools_frame_token, document_token, frame_policy,
+      devtools_frame_token, citizennotes_frame_token, document_token, frame_policy,
       frame_owner_properties, was_discarded_, owner_type,
       /*is_dummy_frame_for_inner_tree=*/false);
 
@@ -3886,10 +3895,12 @@ void RenderFrameHostImpl::CreateChildFrame(
     ukm::SourceId document_ukm_source_id) {
   blink::LocalFrameToken frame_token;
   base::UnguessableToken devtools_frame_token;
+  base::UnguessableToken citizennotes_frame_token;
   blink::DocumentToken document_token;
   if (!static_cast<RenderProcessHostImpl*>(GetProcess())
            ->TakeFrameTokensForFrameRoutingID(new_routing_id, frame_token,
                                               devtools_frame_token,
+                                              citizennotes_frame_token,
                                               document_token)) {
     bad_message::ReceivedBadMessage(
         GetProcess(), bad_message::RFH_CREATE_CHILD_FRAME_TOKENS_NOT_FOUND);
@@ -3913,7 +3924,7 @@ void RenderFrameHostImpl::CreateChildFrame(
                      std::move(policy_container_bind_params),
                      std::move(associated_interface_provider_receiver), scope,
                      frame_name, frame_unique_name, is_created_by_script,
-                     frame_token, devtools_frame_token, document_token,
+                     frame_token, devtools_frame_token, citizennotes_frame_token, document_token,
                      frame_policy, *frame_owner_properties, owner_type,
                      document_ukm_source_id);
 }
@@ -4401,6 +4412,7 @@ FrameTreeNode* RenderFrameHostImpl::AddChild(
     const blink::LocalFrameToken& frame_token,
     const blink::DocumentToken& document_token,
     base::UnguessableToken devtools_frame_token,
+    base::UnguessableToken citizennotes_frame_token,
     const blink::FramePolicy& frame_policy,
     std::string frame_name,
     std::string frame_unique_name) {
@@ -4412,7 +4424,7 @@ FrameTreeNode* RenderFrameHostImpl::AddChild(
   // a different one if they navigate away.
   child->render_manager()->InitChild(
       GetSiteInstance(), frame_routing_id, std::move(frame_remote), frame_token,
-      document_token, devtools_frame_token, frame_policy, frame_name,
+      document_token, devtools_frame_token, citizennotes_frame_token, frame_policy, frame_name,
       frame_unique_name);
 
   // Other renderer processes in this BrowsingInstance may need to find out
@@ -8355,7 +8367,7 @@ void RenderFrameHostImpl::CreateNewWindow(
       std::move(pending_frame_receiver), std::move(widget_params),
       std::move(page_broadcast_receiver), std::move(browser_interface_broker),
       std::move(pending_associated_interface_provider), cloned_namespace->id(),
-      new_main_rfh->GetDevToolsFrameToken(), wait_for_debugger,
+      new_main_rfh->GetDevToolsFrameToken(), new_main_rfh->GetCitizenNotesFrameToken(), wait_for_debugger,
       new_main_rfh->GetDocumentToken(),
       new_main_rfh->policy_container_host()->CreatePolicyContainerForBlink(),
       blink::BrowsingContextGroupInfo(
@@ -8455,7 +8467,8 @@ void RenderFrameHostImpl::CreateFencedFrame(
         pending_receiver,
     blink::mojom::RemoteFrameInterfacesFromRendererPtr remote_frame_interfaces,
     const blink::RemoteFrameToken& frame_token,
-    const base::UnguessableToken& devtools_frame_token) {
+    const base::UnguessableToken& devtools_frame_token,
+    const base::UnguessableToken& citizennotes_frame_token) {
   // We should defer fenced frame creation during prerendering, so creation at
   // this point is an error.
   if (GetLifecycleState() == RenderFrameHost::LifecycleState::kPrerendering) {
@@ -8509,7 +8522,7 @@ void RenderFrameHostImpl::CreateFencedFrame(
   RenderFrameProxyHost* proxy_host =
       fenced_frame->InitInnerFrameTreeAndReturnProxyToOuterFrameTree(
           std::move(remote_frame_interfaces), frame_token,
-          devtools_frame_token);
+          devtools_frame_token, citizennotes_frame_token);
   fenced_frame->Bind(std::move(pending_receiver));
 
   // Since the fenced frame is newly created and has yet to commit a navigation,
@@ -10003,6 +10016,15 @@ RenderFrameHostImpl::GetDevToolsNavigationToken() {
   return document_associated_data_->devtools_navigation_token();
 }
 
+const absl::optional<base::UnguessableToken>&
+RenderFrameHostImpl::GetCitizenNotesNavigationToken() {
+  // We shouldn't need to call this method while a RFH is speculative or pending
+  // commit - there is a navigation in progress and its value will change
+  // shortly.
+  CHECK_GT(lifecycle_state(), LifecycleStateImpl::kPendingCommit);
+  return document_associated_data_->citizennotes_navigation_token();
+}
+
 void RenderFrameHostImpl::CommitNavigation(
     NavigationRequest* navigation_request,
     blink::mojom::CommonNavigationParamsPtr common_params,
@@ -10015,7 +10037,8 @@ void RenderFrameHostImpl::CommitNavigation(
         subresource_overrides,
     blink::mojom::ServiceWorkerContainerInfoForClientPtr container_info,
     const absl::optional<blink::DocumentToken>& document_token,
-    const base::UnguessableToken& devtools_navigation_token) {
+    const base::UnguessableToken& devtools_navigation_token,
+    const base::UnguessableToken& citizennotes_navigation_token) {
   TRACE_EVENT2("navigation", "RenderFrameHostImpl::CommitNavigation",
                "navigation_request", navigation_request, "url",
                common_params->url);
@@ -10496,7 +10519,8 @@ void RenderFrameHostImpl::CommitNavigation(
         std::move(keep_alive_loader_factory),
         std::move(fetch_later_loader_factory), std::move(resource_cache_remote),
         manifest_policy, std::move(policy_container), *document_token,
-        devtools_navigation_token);
+        devtools_navigation_token,
+        citizennotes_navigation_token);
     navigation_request->frame_tree_node()
         ->navigator()
         .LogCommitNavigationSent();
@@ -10803,6 +10827,13 @@ void RenderFrameHostImpl::BindDevToolsAgent(
     mojo::PendingAssociatedRemote<blink::mojom::DevToolsAgentHost> host,
     mojo::PendingAssociatedReceiver<blink::mojom::DevToolsAgent> receiver) {
   GetAssociatedLocalFrame()->BindDevToolsAgent(std::move(host),
+                                               std::move(receiver));
+}
+
+void RenderFrameHostImpl::BindCitizenNotesAgent(
+    mojo::PendingAssociatedRemote<blink::mojom::CitizenNotesAgentHost> host,
+    mojo::PendingAssociatedReceiver<blink::mojom::CitizenNotesAgent> receiver) {
+  GetAssociatedLocalFrame()->BindCitizenNotesAgent(std::move(host),
                                                std::move(receiver));
 }
 
@@ -13025,6 +13056,8 @@ bool RenderFrameHostImpl::DidCommitNavigationInternal(
 
     document_associated_data_->set_devtools_navigation_token(
         navigation_request->devtools_navigation_token());
+      document_associated_data_->set_citizennotes_navigation_token(
+          navigation_request->citizennotes_navigation_token());
 
     const absl::optional<FencedFrameProperties>& fenced_frame_properties =
         navigation_request->ComputeFencedFrameProperties();
@@ -13522,7 +13555,8 @@ void RenderFrameHostImpl::SendCommitNavigation(
     const absl::optional<blink::ParsedPermissionsPolicy>& permissions_policy,
     blink::mojom::PolicyContainerPtr policy_container,
     const blink::DocumentToken& document_token,
-    const base::UnguessableToken& devtools_navigation_token) {
+    const base::UnguessableToken& devtools_navigation_token,
+    const base::UnguessableToken& citizennotes_navigation_token) {
   TRACE_EVENT0("navigation", "RenderFrameHostImpl::SendCommitNavigation");
   base::ElapsedTimer timer;
   DCHECK_EQ(net::OK, navigation_request->GetNetErrorCode());
@@ -13655,7 +13689,7 @@ void RenderFrameHostImpl::SendCommitNavigation(
       std::move(subresource_proxying_loader_factory),
       std::move(keep_alive_loader_factory),
       std::move(fetch_later_loader_factory), document_token,
-      devtools_navigation_token, permissions_policy,
+      devtools_navigation_token, citizennotes_navigation_token, permissions_policy,
       std::move(policy_container), std::move(code_cache_host),
       std::move(resource_cache_remote), std::move(cookie_manager_info),
       std::move(storage_info),

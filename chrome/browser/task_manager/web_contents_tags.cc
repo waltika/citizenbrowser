@@ -14,6 +14,7 @@
 #if !BUILDFLAG(IS_ANDROID)
 #include "chrome/browser/task_manager/providers/web_contents/background_contents_tag.h"
 #include "chrome/browser/task_manager/providers/web_contents/devtools_tag.h"
+#include "chrome/browser/task_manager/providers/web_contents/citizennotes_tag.h"
 #include "chrome/browser/task_manager/providers/web_contents/extension_tag.h"
 #include "chrome/browser/task_manager/providers/web_contents/guest_tag.h"
 #include "chrome/browser/task_manager/providers/web_contents/no_state_prefetch_tag.h"
@@ -91,6 +92,18 @@ void WebContentsTags::CreateForDevToolsContents(
   if (!WebContentsTag::FromWebContents(web_contents)) {
     TagWebContents(web_contents,
                    base::WrapUnique(new DevToolsTag(web_contents)),
+                   WebContentsTag::kTagKey);
+  }
+#endif  // !BUILDFLAG(IS_ANDROID)
+}
+
+// static
+void WebContentsTags::CreateForCitizenNotesContents(
+    content::WebContents* web_contents) {
+#if !BUILDFLAG(IS_ANDROID)
+  if (!WebContentsTag::FromWebContents(web_contents)) {
+    TagWebContents(web_contents,
+                   base::WrapUnique(new CitizenNotesTag(web_contents)),
                    WebContentsTag::kTagKey);
   }
 #endif  // !BUILDFLAG(IS_ANDROID)

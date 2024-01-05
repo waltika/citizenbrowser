@@ -189,6 +189,10 @@ class LocalFrameMojoHandler
       mojo::PendingAssociatedRemote<mojom::blink::DevToolsAgentHost> host,
       mojo::PendingAssociatedReceiver<mojom::blink::DevToolsAgent> receiver)
       final;
+  void BindCitizenNotesAgent(
+      mojo::PendingAssociatedRemote<mojom::blink::CitizenNotesAgentHost> host,
+      mojo::PendingAssociatedReceiver<mojom::blink::CitizenNotesAgent> receiver)
+      final;
 #if BUILDFLAG(IS_ANDROID)
   void ExtractSmartClipData(const gfx::Rect& rect,
                             ExtractSmartClipDataCallback callback) final;

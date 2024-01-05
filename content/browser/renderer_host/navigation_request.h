@@ -562,6 +562,10 @@ class CONTENT_EXPORT NavigationRequest
     return devtools_navigation_token_;
   }
 
+  const base::UnguessableToken& citizennotes_navigation_token() const {
+    return citizennotes_navigation_token_;
+  }
+
   // Called on same-document navigation requests that need to be restarted as
   // cross-document navigations. This happens when a same-document commit fails
   // due to another navigation committing in the meantime.
@@ -2202,6 +2206,9 @@ class CONTENT_EXPORT NavigationRequest
 
   // See comment on accessor.
   const base::UnguessableToken devtools_navigation_token_ =
+      base::UnguessableToken::Create();
+
+  const base::UnguessableToken citizennotes_navigation_token_ =
       base::UnguessableToken::Create();
 
   absl::optional<std::vector<blink::mojom::TransferrableURLLoaderPtr>>

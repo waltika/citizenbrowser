@@ -119,9 +119,21 @@ class DocumentAssociatedData : public base::SupportsUserData {
     return devtools_navigation_token_;
   }
 
+  // See comments for |RenderFrameHostImpl::GetDevToolsNavigationToken()| for
+  // more details.
+  const absl::optional<base::UnguessableToken>& citizennotes_navigation_token()
+    const {
+    return devtools_navigation_token_;
+  }
+
   void set_devtools_navigation_token(
       const base::UnguessableToken& devtools_navigation_token) {
     devtools_navigation_token_ = devtools_navigation_token;
+  }
+  
+  void set_citizennotes_navigation_token(
+    const base::UnguessableToken& citizennotes_navigation_token) {
+      citizennotes_navigation_token_ = citizennotes_navigation_token;
   }
 
   // Produces weak pointers to the hosting RenderFrameHostImpl. This is
@@ -139,6 +151,7 @@ class DocumentAssociatedData : public base::SupportsUserData {
   std::vector<internal::DocumentServiceBase*> services_;
   scoped_refptr<NavigationOrDocumentHandle> navigation_or_document_handle_;
   std::optional<base::UnguessableToken> devtools_navigation_token_;
+  std::optional<base::UnguessableToken> citizennotes_navigation_token_;
 
   base::WeakPtrFactory<RenderFrameHostImpl> weak_factory_;
 };

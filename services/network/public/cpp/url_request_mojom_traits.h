@@ -33,6 +33,7 @@
 #include "services/network/public/mojom/cookie_access_observer.mojom-forward.h"
 #include "services/network/public/mojom/data_pipe_getter.mojom.h"
 #include "services/network/public/mojom/devtools_observer.mojom-forward.h"
+#include "services/network/public/mojom/citizennotes_observer.mojom-forward.h"
 #include "services/network/public/mojom/ip_address_space.mojom-forward.h"
 #include "services/network/public/mojom/trust_token_access_observer.mojom-forward.h"
 #include "services/network/public/mojom/trust_tokens.mojom-forward.h"
@@ -113,6 +114,19 @@ struct COMPONENT_EXPORT(NETWORK_CPP_BASE)
         const_cast<network::ResourceRequest::TrustedParams&>(trusted_params)
             .devtools_observer);
   }
+
+  static mojo::PendingRemote<network::mojom::CitizenNotesObserver>
+  citizennotes_observer(
+    const network::ResourceRequest::TrustedParams& trusted_params) {
+    if (!trusted_params.citizennotes_observer) {
+      return mojo::NullRemote();
+    }
+    return std::move(
+        const_cast<network::ResourceRequest::TrustedParams&>(trusted_params)
+            .citizennotes_observer);
+  }
+
+                     
   static const network::mojom::ClientSecurityStatePtr& client_security_state(
       const network::ResourceRequest::TrustedParams& trusted_params) {
     return trusted_params.client_security_state;
@@ -327,10 +341,22 @@ struct COMPONENT_EXPORT(NETWORK_CPP_BASE)
       const network::ResourceRequest& request) {
     return request.devtools_request_id;
   }
+
+  static const absl::optional<std::string>& citizennotes_request_id(
+      const network::ResourceRequest& request) {
+    return request.citizennotes_request_id;
+  }
+
   static const absl::optional<std::string>& devtools_stack_id(
       const network::ResourceRequest& request) {
     return request.devtools_stack_id;
   }
+        
+  static const absl::optional<std::string>& citizennotes_stack_id(
+      const network::ResourceRequest& request) {
+    return request.citizennotes_stack_id;
+  }
+
   static bool is_fetch_like_api(const network::ResourceRequest& request) {
     return request.is_fetch_like_api;
   }
@@ -347,6 +373,10 @@ struct COMPONENT_EXPORT(NETWORK_CPP_BASE)
   static const absl::optional<std::vector<net::SourceStream::SourceType>>&
   devtools_accepted_stream_types(const network::ResourceRequest& request) {
     return request.devtools_accepted_stream_types;
+  }
+  static const absl::optional<std::vector<net::SourceStream::SourceType>>&
+  citizennotes_accepted_stream_types(const network::ResourceRequest& request) {
+    return request.citizennotes_accepted_stream_types;
   }
   static const absl::optional<network::ResourceRequest::TrustedParams>&
   trusted_params(const network::ResourceRequest& request) {

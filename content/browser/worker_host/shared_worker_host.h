@@ -39,6 +39,7 @@
 #include "third_party/blink/public/mojom/broadcastchannel/broadcast_channel.mojom.h"
 #include "third_party/blink/public/mojom/buckets/bucket_manager_host.mojom.h"
 #include "third_party/blink/public/mojom/devtools/devtools_agent.mojom.h"
+#include "third_party/blink/public/mojom/citizennotes/citizennotes_agent.mojom.h"
 #include "third_party/blink/public/mojom/loader/code_cache.mojom.h"
 #include "third_party/blink/public/mojom/loader/fetch_client_settings_object.mojom-forward.h"
 #include "third_party/blink/public/mojom/payments/payment_app.mojom-forward.h"
@@ -191,6 +192,7 @@ class CONTENT_EXPORT SharedWorkerHost : public blink::mojom::SharedWorkerHost,
 
   const base::UnguessableToken& GetDevToolsToken() const;
 
+  const base::UnguessableToken& GetCitizenNotesToken() const;
   // Signals the remote worker to terminate and returns the mojo::Remote
   // instance so the caller can be notified when the connection is lost. Should
   // be called right before deleting this instance.
@@ -233,6 +235,7 @@ class CONTENT_EXPORT SharedWorkerHost : public blink::mojom::SharedWorkerHost,
   friend class SharedWorkerHostTest;
 
   class ScopedDevToolsHandle;
+  class ScopedCitizenNotesHandle;
   class ScopedProcessHostRef;
 
   // Contains information about a client connecting to this shared worker.
@@ -312,6 +315,7 @@ class CONTENT_EXPORT SharedWorkerHost : public blink::mojom::SharedWorkerHost,
   int next_connection_request_id_;
 
   std::unique_ptr<ScopedDevToolsHandle> devtools_handle_;
+  std::unique_ptr<ScopedCitizenNotesHandle> citizennotes_handle_;
 
   // This is the set of features that this worker has used.
   std::set<blink::mojom::WebFeature> used_features_;

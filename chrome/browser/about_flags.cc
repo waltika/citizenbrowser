@@ -10350,6 +10350,12 @@ const FeatureEntry kFeatureEntries[] = {
      FEATURE_VALUE_TYPE(::features::kDevToolsTabTarget)},
 #endif
 
+#if !BUILDFLAG(IS_ANDROID)
+    {"devtools-tab-target", flag_descriptions::kCitizenNotesTabTargetLiteralName,
+     flag_descriptions::kCitizenNotesTabTargetLiteralDescription, kOsDesktop,
+     FEATURE_VALUE_TYPE(::features::kCitizenNotesTabTarget)},
+#endif
+
 #if BUILDFLAG(IS_CHROMEOS_ASH)
     {"cros-labs-window-cycle-shortcut",
      flag_descriptions::kSameAppWindowCycleName,

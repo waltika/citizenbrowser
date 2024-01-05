@@ -158,6 +158,7 @@ struct SESSIONS_EXPORT SessionWindow {
 #if BUILDFLAG(IS_CHROMEOS_ASH)
     TYPE_CUSTOM_TAB = 5,
 #endif
+    TYPE_CITIZENNOTES = 6,
   };
 
   // Identifier of the window.

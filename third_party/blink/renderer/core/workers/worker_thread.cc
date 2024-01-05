@@ -46,7 +46,9 @@
 #include "third_party/blink/renderer/core/inspector/inspector_issue_storage.h"
 #include "third_party/blink/renderer/core/inspector/inspector_task_runner.h"
 #include "third_party/blink/renderer/core/inspector/worker_devtools_params.h"
+#include "third_party/blink/renderer/core/inspector/worker_citizennotes_params.h"
 #include "third_party/blink/renderer/core/inspector/worker_inspector_controller.h"
+#include "third_party/blink/renderer/core/inspector/cnworker_inspector_controller.h"
 #include "third_party/blink/renderer/core/inspector/worker_thread_debugger.h"
 #include "third_party/blink/renderer/core/loader/worker_resource_timing_notifier_impl.h"
 #include "third_party/blink/renderer/core/probe/core_probes.h"
@@ -169,9 +171,11 @@ WorkerThread::~WorkerThread() {
 void WorkerThread::Start(
     std::unique_ptr<GlobalScopeCreationParams> global_scope_creation_params,
     const absl::optional<WorkerBackingThreadStartupData>& thread_startup_data,
-    std::unique_ptr<WorkerDevToolsParams> devtools_params) {
+    std::unique_ptr<WorkerDevToolsParams> devtools_params,
+    std::unique_ptr<WorkerCitizenNotesParams> citizennotes_params) {
   DCHECK_CALLED_ON_VALID_THREAD(parent_thread_checker_);
   devtools_worker_token_ = devtools_params->devtools_worker_token;
+  citizennotes_worker_token_ = citizennotes_params->citizennotes_worker_token;
 
   // Synchronously initialize the per-global-scope scheduler to prevent someone
   // from posting a task to the thread before the scheduler is ready.
@@ -194,7 +198,9 @@ void WorkerThread::Start(
       CrossThreadBindOnce(&WorkerThread::InitializeOnWorkerThread,
                           CrossThreadUnretained(this),
                           std::move(global_scope_creation_params),
-                          thread_startup_data, std::move(devtools_params)));
+                          thread_startup_data,
+                          std::move(devtools_params),
+                          std::move(citizennotes_params)));
 }
 
 void WorkerThread::EvaluateClassicScript(
@@ -381,6 +387,11 @@ WorkerOrWorkletGlobalScope* WorkerThread::GlobalScope() {
 WorkerInspectorController* WorkerThread::GetWorkerInspectorController() {
   DCHECK(IsCurrentThread());
   return worker_inspector_controller_.Get();
+}
+
+CNWorkerInspectorController* WorkerThread::GetCNWorkerInspectorController() {
+  DCHECK(IsCurrentThread());
+  return cnworker_inspector_controller_.Get();
 }
 
 unsigned WorkerThread::WorkerThreadCount() {
@@ -598,7 +609,8 @@ void WorkerThread::InitializeSchedulerOnWorkerThread(
 void WorkerThread::InitializeOnWorkerThread(
     std::unique_ptr<GlobalScopeCreationParams> global_scope_creation_params,
     const absl::optional<WorkerBackingThreadStartupData>& thread_startup_data,
-    std::unique_ptr<WorkerDevToolsParams> devtools_params) {
+    std::unique_ptr<WorkerDevToolsParams> devtools_params,
+    std::unique_ptr<WorkerCitizenNotesParams> citizennotes_params) {
   DCHECK(IsCurrentThread());
   backing_thread_weak_factory_.emplace(this);
   worker_reporting_proxy_.WillInitializeWorkerContext();
@@ -630,7 +642,11 @@ void WorkerThread::InitializeOnWorkerThread(
         this, url_for_debugger, inspector_task_runner_,
         std::move(devtools_params));
 
-    // Since context initialization below may fail, we should notify debugger
+    cnworker_inspector_controller_ = CNWorkerInspectorController::Create(
+        this, url_for_debugger, inspector_task_runner_,
+        std::move(citizennotes_params));
+
+      // Since context initialization below may fail, we should notify debugger
     // about the new worker thread separately, so that it can resolve it by id
     // at any moment.
     if (WorkerThreadDebugger* debugger =

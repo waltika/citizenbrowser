@@ -184,6 +184,7 @@
 #include "third_party/blink/renderer/core/events/touch_event.h"
 #include "third_party/blink/renderer/core/execution_context/window_agent.h"
 #include "third_party/blink/renderer/core/exported/web_dev_tools_agent_impl.h"
+#include "third_party/blink/renderer/core/exported/web_citizen_notes_agent_impl.h"
 #include "third_party/blink/renderer/core/exported/web_plugin_container_impl.h"
 #include "third_party/blink/renderer/core/exported/web_view_impl.h"
 #include "third_party/blink/renderer/core/frame/csp/content_security_policy.h"
@@ -2247,6 +2248,7 @@ void WebLocalFrameImpl::Trace(Visitor* visitor) const {
   visitor->Trace(find_in_page_);
   visitor->Trace(frame_);
   visitor->Trace(dev_tools_agent_);
+  visitor->Trace(citizen_notes_agent_);
   visitor->Trace(frame_widget_);
   visitor->Trace(print_context_);
   visitor->Trace(input_method_controller_);
@@ -2442,6 +2444,8 @@ RemoteFrame* WebLocalFrameImpl::CreateFencedFrame(
   RemoteFrameToken frame_token;
   base::UnguessableToken devtools_frame_token =
       base::UnguessableToken::Create();
+  base::UnguessableToken citizennotes_frame_token =
+      base::UnguessableToken::Create();
   auto remote_frame_interfaces =
       mojom::blink::RemoteFrameInterfacesFromRenderer::New();
   mojo::PendingAssociatedRemote<mojom::blink::RemoteFrameHost>
@@ -2453,14 +2457,14 @@ RemoteFrame* WebLocalFrameImpl::CreateFencedFrame(
 
   GetFrame()->GetLocalFrameHostRemote().CreateFencedFrame(
       std::move(receiver), std::move(remote_frame_interfaces), frame_token,
-      devtools_frame_token);
+      devtools_frame_token, citizennotes_frame_token);
 
   DCHECK(initial_replicated_state->origin->IsOpaque());
 
   WebRemoteFrameImpl* remote_frame =
       WebRemoteFrameImpl::CreateForPortalOrFencedFrame(
           mojom::blink::TreeScopeType::kDocument, frame_token,
-          devtools_frame_token, fenced_frame, std::move(remote_frame_host),
+          devtools_frame_token, citizennotes_frame_token, fenced_frame, std::move(remote_frame_host),
           std::move(remote_frame_receiver),
           std::move(initial_replicated_state));
 
@@ -3119,6 +3123,19 @@ WebDevToolsAgentImpl* WebLocalFrameImpl::DevToolsAgentImpl() {
   if (!dev_tools_agent_)
     dev_tools_agent_ = WebDevToolsAgentImpl::CreateForFrame(this);
   return dev_tools_agent_.Get();
+}
+
+void WebLocalFrameImpl::SetCitizenNotesAgentImpl(WebCitizenNotesAgentImpl* agent) {
+  DCHECK(!citizen_notes_agent_);
+  citizen_notes_agent_ = agent;
+}
+
+WebCitizenNotesAgentImpl* WebLocalFrameImpl::CitizenNotesAgentImpl() {
+  if (!frame_->IsLocalRoot())
+    return nullptr;
+  if (!citizen_notes_agent_)
+      citizen_notes_agent_ = WebCitizenNotesAgentImpl::CreateForFrame(this);
+  return citizen_notes_agent_.Get();
 }
 
 void WebLocalFrameImpl::WasHidden() {

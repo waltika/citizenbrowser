@@ -75,11 +75,12 @@ void CreateRemoteMainFrame(
     mojo::PendingAssociatedReceiver<blink::mojom::RemoteMainFrame>
         remote_main_frame_receiver,
     base::UnguessableToken& devtools_main_frame_token,
+    base::UnguessableToken& citizennotes_main_frame_token,
     blink::mojom::FrameReplicationStatePtr replication_state,
     blink::WebFrame* opener_frame,
     blink::WebView* web_view) {
   blink::WebRemoteFrame::CreateMainFrame(
-      web_view, frame_token, /*is_loading=*/false, devtools_main_frame_token,
+      web_view, frame_token, /*is_loading=*/false, devtools_main_frame_token, citizennotes_main_frame_token,
       opener_frame, std::move(remote_frame_host),
       std::move(remote_frame_receiver), std::move(replication_state));
   // Root frame proxy has no ancestors to point to their RenderWidget.
@@ -296,7 +297,7 @@ blink::WebView* AgentSchedulingGroup::CreateWebView(
         std::move(remote_params->frame_interfaces->frame_receiver),
         std::move(remote_params->main_frame_interfaces->main_frame_host),
         std::move(remote_params->main_frame_interfaces->main_frame),
-        params->devtools_main_frame_token, std::move(params->replication_state),
+        params->devtools_main_frame_token, params->citizennotes_main_frame_token, std::move(params->replication_state),
         opener_frame, web_view);
   } else {
     auto local_params = std::move(params->main_frame->get_local_params());
@@ -308,7 +309,7 @@ blink::WebView* AgentSchedulingGroup::CreateWebView(
           /*is_for_scalable_page=*/params->type !=
               mojom::ViewWidgetType::kFencedFrame,
           std::move(params->replication_state),
-          params->devtools_main_frame_token, std::move(local_params), base_url);
+          params->devtools_main_frame_token, params->citizennotes_main_frame_token, std::move(local_params), base_url);
     } else {
       // Create a local provisional main frame and a placeholder RemoteFrame as
       // a placeholder main frame for the new WebView. This can only happen for
@@ -361,7 +362,7 @@ blink::WebView* AgentSchedulingGroup::CreateWebView(
       CreateRemoteMainFrame(
           blink::RemoteFrameToken(), mojo::NullAssociatedRemote(),
           mojo::NullAssociatedReceiver(), mojo::NullAssociatedRemote(),
-          mojo::NullAssociatedReceiver(), params->devtools_main_frame_token,
+          mojo::NullAssociatedReceiver(), params->devtools_main_frame_token, params->citizennotes_main_frame_token,
           params->replication_state.Clone(), opener_frame, web_view);
 
       // Create the provisional main LocalFrame.
@@ -375,6 +376,7 @@ blink::WebView* AgentSchedulingGroup::CreateWebView(
           /*parent_frame_token=*/absl::nullopt,
           /*previous_sibling_frame_token=*/absl::nullopt,
           params->devtools_main_frame_token,
+          params->citizennotes_main_frame_token,
           blink::mojom::TreeScopeType::kDocument,
           std::move(params->replication_state),
           std::move(local_params->widget_params),
@@ -402,7 +404,7 @@ void AgentSchedulingGroup::CreateFrame(mojom::CreateFrameParamsPtr params) {
       std::move(params->associated_interface_provider_remote),
       /*web_view=*/nullptr, params->previous_frame_token,
       params->opener_frame_token, params->parent_frame_token,
-      params->previous_sibling_frame_token, params->devtools_frame_token,
+      params->previous_sibling_frame_token, params->devtools_frame_token, params->citizennotes_frame_token,
       params->tree_scope_type, std::move(params->replication_state),
       std::move(params->widget_params),
       std::move(params->frame_owner_properties),

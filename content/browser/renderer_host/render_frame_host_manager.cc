@@ -531,7 +531,8 @@ void RenderFrameHostManager::InitRoot(
     bool renderer_initiated_creation,
     blink::FramePolicy initial_main_frame_policy,
     const std::string& name,
-    const base::UnguessableToken& devtools_frame_token) {
+    const base::UnguessableToken& devtools_frame_token,
+    const base::UnguessableToken& citizennotes_frame_token) {
   bool is_legacy_browsing_context_state_mode =
       features::GetBrowsingContextMode() ==
       features::BrowsingContextStateImplementationType::
@@ -565,7 +566,7 @@ void RenderFrameHostManager::InitRoot(
       CreateFrameCase::kInitRoot, site_instance,
       /*frame_routing_id=*/MSG_ROUTING_NONE,
       mojo::PendingAssociatedRemote<mojom::Frame>(), blink::LocalFrameToken(),
-      blink::DocumentToken(), devtools_frame_token, renderer_initiated_creation,
+      blink::DocumentToken(), devtools_frame_token, citizennotes_frame_token, renderer_initiated_creation,
       browsing_context_state));
 
   // Creating a main RenderFrameHost also creates a new Page, so notify the
@@ -580,6 +581,7 @@ void RenderFrameHostManager::InitChild(
     const blink::LocalFrameToken& frame_token,
     const blink::DocumentToken& document_token,
     const base::UnguessableToken& devtools_frame_token,
+    const base::UnguessableToken& citizennotes_frame_token,
     blink::FramePolicy frame_policy,
     std::string frame_name,
     std::string frame_unique_name) {
@@ -614,6 +616,7 @@ void RenderFrameHostManager::InitChild(
       CreateFrameCase::kInitChild, site_instance, frame_routing_id,
       std::move(frame_remote), frame_token, document_token,
       devtools_frame_token,
+      citizennotes_frame_token,
       /*renderer_initiated_creation=*/false, browsing_context_state));
 }
 
@@ -3569,6 +3572,7 @@ RenderFrameHostManager::CreateRenderFrameHost(
     const blink::LocalFrameToken& frame_token,
     const blink::DocumentToken& document_token,
     base::UnguessableToken devtools_frame_token,
+    base::UnguessableToken citizennotes_frame_token,
     bool renderer_initiated_creation,
     scoped_refptr<BrowsingContextState> browsing_context_state) {
   FrameTree& frame_tree = frame_tree_node_->frame_tree();
@@ -3669,7 +3673,7 @@ RenderFrameHostManager::CreateRenderFrameHost(
       site_instance, std::move(render_view_host),
       frame_tree.render_frame_delegate(), &frame_tree, frame_tree_node_,
       frame_routing_id, std::move(frame_remote), frame_token, document_token,
-      devtools_frame_token, renderer_initiated_creation, lifecycle_state,
+      devtools_frame_token, citizennotes_frame_token, renderer_initiated_creation, lifecycle_state,
       std::move(browsing_context_state));
 }
 
@@ -3810,6 +3814,7 @@ RenderFrameHostManager::CreateSpeculativeRenderFrame(
                             mojo::PendingAssociatedRemote<mojom::Frame>(),
                             blink::LocalFrameToken(), blink::DocumentToken(),
                             render_frame_host_->devtools_frame_token(),
+                            render_frame_host_->citizennotes_frame_token(),
                             /*renderer_initiated_creation=*/false,
                             browsing_context_state);
   DCHECK_EQ(new_render_frame_host->GetSiteInstance(), instance);

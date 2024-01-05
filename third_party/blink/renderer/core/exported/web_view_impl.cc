@@ -52,6 +52,7 @@
 #include "third_party/blink/public/common/page/color_provider_color_maps.h"
 #include "third_party/blink/public/common/page/page_zoom.h"
 #include "third_party/blink/public/common/renderer_preferences/renderer_preferences.h"
+#include "third_party/blink/renderer/core/exported/web_citizen_notes_agent_impl.h"
 #include "third_party/blink/public/common/switches.h"
 #include "third_party/blink/public/common/web_preferences/web_preferences.h"
 #include "third_party/blink/public/mojom/frame/frame_replication_state.mojom-blink.h"
@@ -649,6 +650,11 @@ WebViewImpl::~WebViewImpl() {
 WebDevToolsAgentImpl* WebViewImpl::MainFrameDevToolsAgentImpl() {
   WebLocalFrameImpl* main_frame = MainFrameImpl();
   return main_frame ? main_frame->DevToolsAgentImpl() : nullptr;
+}
+
+WebCitizenNotesAgentImpl* WebViewImpl::MainFrameCitizenNotesAgentImpl() {
+  WebLocalFrameImpl* main_frame = MainFrameImpl();
+  return main_frame ? main_frame->CitizenNotesAgentImpl() : nullptr;
 }
 
 void WebViewImpl::SetTabKeyCyclesThroughElements(bool value) {
@@ -3047,6 +3053,7 @@ void WebViewImpl::Show(const LocalFrameToken& opener_frame_token,
       WTF::BindOnce(&WebViewImpl::DidShowCreatedWindow, WTF::Unretained(this)));
 
   MainFrameDevToolsAgentImpl()->DidShowNewWindow();
+  MainFrameCitizenNotesAgentImpl()->DidShowNewWindow();
 }
 
 void WebViewImpl::DidShowCreatedWindow() {
@@ -4016,6 +4023,7 @@ void WebViewImpl::CreateRemoteMainFrame(
     mojom::blink::FrameReplicationStatePtr replicated_state,
     bool is_loading,
     const base::UnguessableToken& devtools_frame_token,
+    const base::UnguessableToken& citizennotes_frame_token,
     mojom::blink::RemoteFrameInterfacesFromBrowserPtr remote_frame_interfaces,
     mojom::blink::RemoteMainFrameInterfacesPtr remote_main_frame_interfaces) {
   blink::WebFrame* opener = nullptr;
@@ -4023,7 +4031,7 @@ void WebViewImpl::CreateRemoteMainFrame(
     opener = WebFrame::FromFrameToken(*opener_frame_token);
   // Create a top level WebRemoteFrame.
   WebRemoteFrameImpl::CreateMainFrame(
-      this, frame_token, is_loading, devtools_frame_token, opener,
+      this, frame_token, is_loading, devtools_frame_token, citizennotes_frame_token, opener,
       std::move(remote_frame_interfaces->frame_host),
       std::move(remote_frame_interfaces->frame_receiver),
       std::move(replicated_state));

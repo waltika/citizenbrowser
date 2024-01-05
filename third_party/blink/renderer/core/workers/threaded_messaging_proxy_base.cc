@@ -12,6 +12,7 @@
 #include "third_party/blink/renderer/core/dom/document.h"
 #include "third_party/blink/renderer/core/inspector/console_message.h"
 #include "third_party/blink/renderer/core/inspector/devtools_agent.h"
+#include "third_party/blink/renderer/core/inspector/citizennotes_agent.h"
 #include "third_party/blink/renderer/core/loader/document_loader.h"
 #include "third_party/blink/renderer/core/workers/global_scope_creation_params.h"
 #include "third_party/blink/renderer/core/workers/worker_global_scope.h"
@@ -70,7 +71,8 @@ void ThreadedMessagingProxyBase::InitializeWorkerThread(
     std::unique_ptr<GlobalScopeCreationParams> global_scope_creation_params,
     const absl::optional<WorkerBackingThreadStartupData>& thread_startup_data,
     const absl::optional<const blink::DedicatedWorkerToken>& token,
-    std::unique_ptr<WorkerDevToolsParams> client_provided_devtools_params) {
+    std::unique_ptr<WorkerDevToolsParams> client_provided_devtools_params,
+    std::unique_ptr<WorkerCitizenNotesParams> client_provided_citizennotes_params) {
   DCHECK(IsParentContextThread());
 
   KURL script_url = global_scope_creation_params->script_url;
@@ -89,8 +91,17 @@ void ThreadedMessagingProxyBase::InitializeWorkerThread(
                 execution_context_.Get(), worker_thread_.get(), script_url,
                 global_scope_creation_params->global_scope_name, token);
 
+  auto citizennotes_params =
+      client_provided_citizennotes_params
+          ? std::move(client_provided_citizennotes_params)
+          : CitizenNotesAgent::WorkerThreadCreated(
+                execution_context_.Get(), worker_thread_.get(), script_url,
+                global_scope_creation_params->global_scope_name, token);
+
   worker_thread_->Start(std::move(global_scope_creation_params),
-                        thread_startup_data, std::move(devtools_params));
+                        thread_startup_data,
+                        std::move(devtools_params),
+                        std::move(citizennotes_params));
 
   if (execution_context_) {
     if (auto* scope = DynamicTo<WorkerGlobalScope>(*execution_context_)) {

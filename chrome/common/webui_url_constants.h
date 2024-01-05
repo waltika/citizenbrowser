@@ -71,6 +71,7 @@ extern const char kChromeUIDevToolsCustomPath[];
 extern const char kChromeUIDevToolsHost[];
 extern const char kChromeUIDevToolsRemotePath[];
 extern const char kChromeUIDevToolsURL[];
+extern const char kChromeUICitizenNotesURL[];
 extern const char kChromeUIDeviceLogHost[];
 extern const char kChromeUIDeviceLogUrl[];
 extern const char kChromeUIDevUiLoaderURL[];

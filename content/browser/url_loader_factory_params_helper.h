@@ -14,6 +14,12 @@
 #include "services/network/public/mojom/url_loader.mojom-shared.h"
 #include "url/origin.h"
 
+namespace network {
+namespace mojom {
+class CitizenNotesObserver;
+}
+}
+
 namespace net {
 class IsolationInfo;
 }  // namespace net
@@ -95,6 +101,7 @@ class URLLoaderFactoryParamsHelper {
       mojo::PendingRemote<network::mojom::URLLoaderNetworkServiceObserver>
           url_loader_network_observer,
       mojo::PendingRemote<network::mojom::DevToolsObserver> devtools_observer,
+      mojo::PendingRemote<network::mojom::CitizenNotesObserver> citizennotes_observer,
       network::mojom::ClientSecurityStatePtr client_security_state,
       base::StringPiece debug_tag);
 

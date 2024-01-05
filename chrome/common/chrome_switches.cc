@@ -115,6 +115,9 @@ const char kCheckForUpdateIntervalSec[] = "check-for-update-interval";
 // Comma-separated list of SSL cipher suites to disable.
 const char kCipherSuiteBlacklist[] = "cipher-suite-blacklist";
 
+// Passes command line parameters to the CitizenNotes front-end.
+const char kCitizenNotesFlags[] = "citizennotes-flags";
+
 // Comma-separated list of BrowserThreads that cause browser process to crash if
 // the given browser thread is not responsive. UI/IO are the BrowserThreads that
 // are supported.
@@ -138,6 +141,12 @@ const char kCreateBrowserOnStartupForTests[] =
 const char kCredits[] = "credits";
 
 // Specifies the http:// endpoint which will be used to serve
+// citizennotes://citizennotes/custom/<path>
+// Or a file:// URL to specify a custom file path to load from for
+// citizennotes://citizennotes/bundled/<path>
+const char kCustomCitizenNotesFrontend[] = "custom-citizennotes-frontend";
+
+// Specifies the http:// endpoint which will be used to serve
 // devtools://devtools/custom/<path>
 // Or a file:// URL to specify a custom file path to load from for
 // devtools://devtools/bundled/<path>
@@ -149,6 +158,7 @@ const char kDebugPackedApps[] = "debug-packed-apps";
 
 // Passes command line parameters to the DevTools front-end.
 const char kDevToolsFlags[] = "devtools-flags";
+
 
 // Triggers a plethora of diagnostic modes.
 const char kDiagnostics[] = "diagnostics";

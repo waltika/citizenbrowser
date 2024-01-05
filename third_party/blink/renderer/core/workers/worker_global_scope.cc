@@ -195,6 +195,10 @@ const base::UnguessableToken& WorkerGlobalScope::GetDevToolsToken() const {
   return GetThread()->GetDevToolsWorkerToken();
 }
 
+const base::UnguessableToken& WorkerGlobalScope::GetCitizenNotesToken() const {
+  return GetThread()->GetCitizenNotesWorkerToken();
+}
+
 void WorkerGlobalScope::ExceptionUnhandled(int exception_id) {
   ErrorEvent* event = pending_error_events_.Take(exception_id);
   DCHECK(event);
@@ -606,6 +610,7 @@ WorkerGlobalScope::WorkerGlobalScope(
                   : nullptr),
           creation_params->global_scope_name,
           creation_params->parent_devtools_token,
+          creation_params->parent_citizennotes_token,
           creation_params->v8_cache_options,
           creation_params->worker_clients,
           std::move(creation_params->content_settings_client),

@@ -164,6 +164,10 @@ class CONTENT_EXPORT FrameTreeNode : public RenderFrameHostOwner {
     return opener_devtools_frame_token_;
   }
 
+  const absl::optional<base::UnguessableToken>& opener_citizennotes_frame_token() {
+    return opener_citizennotes_frame_token_;
+  }
+
   // Returns the type of the frame. Refer to frame_type.h for the details.
   FrameType GetFrameType() const;
 
@@ -184,6 +188,9 @@ class CONTENT_EXPORT FrameTreeNode : public RenderFrameHostOwner {
   // is used for attribution in the DevTools frontend.
   void SetOpenerDevtoolsFrameToken(
       base::UnguessableToken opener_devtools_frame_token);
+
+  void SetOpenerCitizennotesFrameToken(
+      base::UnguessableToken opener_citizennotes_frame_token);
 
   FrameTreeNode* child_at(size_t index) const {
     return current_frame_host()->child_at(index);
@@ -835,6 +842,7 @@ class CONTENT_EXPORT FrameTreeNode : public RenderFrameHostOwner {
   // The devtools frame token of the frame which opened this frame. This is
   // not cleared even if the opener is destroyed or disowns the frame.
   absl::optional<base::UnguessableToken> opener_devtools_frame_token_;
+  absl::optional<base::UnguessableToken> opener_citizennotes_frame_token_;
 
   // An observer that updates this node's
   // |first_live_main_frame_in_original_opener_chain_| to the next original

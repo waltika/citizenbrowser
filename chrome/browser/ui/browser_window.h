@@ -247,6 +247,8 @@ class BrowserWindow : public ui::BaseWindow {
   // changed.
   virtual void UpdateDevTools() = 0;
 
+  virtual void UpdateCitizenNotes() = 0;
+
   // Update any loading animations running in the window. |is_visible| is true
   // if the window is visible.
   virtual void UpdateLoadingAnimations(bool is_visible) = 0;

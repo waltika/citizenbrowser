@@ -23,6 +23,7 @@
 #include "services/network/public/mojom/cookie_access_observer.mojom.h"
 #include "services/network/public/mojom/data_pipe_getter.mojom.h"
 #include "services/network/public/mojom/devtools_observer.mojom.h"
+#include "services/network/public/mojom/citizennotes_observer.mojom.h"
 #include "services/network/public/mojom/ip_address_space.mojom.h"
 #include "services/network/public/mojom/trust_token_access_observer.mojom.h"
 #include "services/network/public/mojom/trust_tokens.mojom.h"
@@ -101,6 +102,8 @@ bool StructTraits<network::mojom::TrustedUrlRequestParamsDataView,
       mojo::PendingRemote<network::mojom::URLLoaderNetworkServiceObserver>>();
   out->devtools_observer = data.TakeDevtoolsObserver<
       mojo::PendingRemote<network::mojom::DevToolsObserver>>();
+  out->citizennotes_observer = data.TakeCitizennotesObserver<
+      mojo::PendingRemote<network::mojom::CitizenNotesObserver>>();
   if (!data.ReadClientSecurityState(&out->client_security_state)) {
     return false;
   }
@@ -167,11 +170,15 @@ bool StructTraits<
       !data.ReadThrottlingProfileId(&out->throttling_profile_id) ||
       !data.ReadFetchWindowId(&out->fetch_window_id) ||
       !data.ReadDevtoolsRequestId(&out->devtools_request_id) ||
+      !data.ReadCitizennotesRequestId(&out->citizennotes_request_id) ||
       !data.ReadDevtoolsStackId(&out->devtools_stack_id) ||
+      !data.ReadCitizennotesStackId(&out->citizennotes_stack_id) ||
       !data.ReadRecursivePrefetchToken(&out->recursive_prefetch_token) ||
       !data.ReadWebBundleTokenParams(&out->web_bundle_token_params) ||
       !data.ReadDevtoolsAcceptedStreamTypes(
           &out->devtools_accepted_stream_types) ||
+      !data.ReadCitizennotesAcceptedStreamTypes(
+          &out->citizennotes_accepted_stream_types) ||
       !data.ReadNetLogCreateInfo(&out->net_log_create_info) ||
       !data.ReadNetLogReferenceInfo(&out->net_log_reference_info) ||
       !data.ReadNavigationRedirectChain(&out->navigation_redirect_chain) ||

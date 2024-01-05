@@ -63,6 +63,7 @@ class CORE_EXPORT RemoteFrame final : public Frame,
       WindowAgentFactory* inheriting_agent_factory,
       WebFrameWidget* ancestor_widget,
       const base::UnguessableToken& devtools_frame_token,
+      const base::UnguessableToken& citizennotes_frame_token,
       mojo::PendingAssociatedRemote<mojom::blink::RemoteFrameHost>
           remote_frame_host,
       mojo::PendingAssociatedReceiver<mojom::blink::RemoteFrame> receiver);
@@ -218,6 +219,7 @@ class CORE_EXPORT RemoteFrame final : public Frame,
       mojom::blink::FrameOwnerPropertiesPtr owner_properties,
       bool is_loading,
       const base::UnguessableToken& devtools_frame_token,
+      const base::UnguessableToken& citizennotes_frame_token,
       mojom::blink::RemoteFrameInterfacesFromBrowserPtr remote_frame_interfaces)
       override;
   void CreateRemoteChildren(

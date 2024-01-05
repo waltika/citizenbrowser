@@ -1,4 +1,5 @@
 // Copyright 2012 The Chromium Authors
+// Copyright 2012 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -63,6 +64,8 @@
 #include "content/browser/closewatcher/close_listener_manager.h"
 #include "content/browser/devtools/protocol/page_handler.h"
 #include "content/browser/devtools/render_frame_devtools_agent_host.h"
+#include "content/browser/citizen_x/protocol/cnpage_handler.h"
+#include "content/browser/citizen_x/render_frame_citizennotes_agent_host.h"
 #include "content/browser/display_cutout/display_cutout_host_impl.h"
 #include "content/browser/dom_storage/dom_storage_context_wrapper.h"
 #include "content/browser/dom_storage/session_storage_namespace_impl.h"
@@ -1492,6 +1495,7 @@ void WebContentsImpl::SetDelegate(WebContentsDelegate* delegate) {
     // until there is a `delegate_`.
     if (!had_delegate) {
       RenderFrameDevToolsAgentHost::AttachToWebContents(this);
+      RenderFrameCitizenNotesAgentHost::AttachToWebContents(this);
     }
   }
 
@@ -3448,6 +3452,7 @@ void WebContentsImpl::Init(const WebContents::CreateParams& params,
   primary_frame_tree_.Init(
       site_instance.get(), params.renderer_initiated_creation,
       params.main_frame_name, GetOpener(), primary_main_frame_policy,
+      base::UnguessableToken::Create(),
       base::UnguessableToken::Create());
 
   std::unique_ptr<WebContentsViewDelegate> delegate =
@@ -7574,6 +7579,9 @@ void WebContentsImpl::RunJavaScriptDialog(
   std::vector<protocol::PageHandler*> page_handlers =
       protocol::PageHandler::EnabledForWebContents(this);
 
+  std::vector<protocol::CNPageHandler*> cnpage_handlers =
+      protocol::CNPageHandler::EnabledForWebContents(this);
+
   if (delegate_) {
     dialog_manager_ = delegate_->GetJavaScriptDialogManager(this);
   }
@@ -7585,7 +7593,7 @@ void WebContentsImpl::RunJavaScriptDialog(
   // Suppress JavaScript dialogs when requested.
   bool should_suppress = delegate_ && delegate_->ShouldSuppressDialogs(this);
   bool has_non_devtools_handlers = delegate_ && dialog_manager_;
-  bool has_handlers = page_handlers.size() || has_non_devtools_handlers;
+  bool has_handlers = page_handlers.size() || cnpage_handlers.size() || has_non_devtools_handlers;
   bool suppress_this_message = should_suppress || !has_handlers;
 
   if (!disable_third_party_subframe_suppresion &&
@@ -7628,6 +7636,13 @@ void WebContentsImpl::RunJavaScriptDialog(
 
   for (auto* handler : page_handlers) {
     handler->DidRunJavaScriptDialog(
+        render_frame_host->GetLastCommittedURL(), normalized_message,
+        default_prompt, dialog_type, has_non_devtools_handlers,
+        base::BindOnce(&CloseDialogCallbackWrapper::Run, wrapper, false));
+  }
+
+  for (auto* handler : cnpage_handlers) {
+      handler->DidRunJavaScriptDialog(
         render_frame_host->GetLastCommittedURL(), normalized_message,
         default_prompt, dialog_type, has_non_devtools_handlers,
         base::BindOnce(&CloseDialogCallbackWrapper::Run, wrapper, false));
@@ -7685,6 +7700,9 @@ void WebContentsImpl::RunBeforeUnloadConfirm(
   std::vector<protocol::PageHandler*> page_handlers =
       protocol::PageHandler::EnabledForWebContents(this);
 
+  std::vector<protocol::CNPageHandler*> cnpage_handlers =
+      protocol::CNPageHandler::EnabledForWebContents(this);
+
   if (delegate_) {
     dialog_manager_ = delegate_->GetJavaScriptDialogManager(this);
   }
@@ -7696,7 +7714,7 @@ void WebContentsImpl::RunBeforeUnloadConfirm(
 
   bool should_suppress = delegate_ && delegate_->ShouldSuppressDialogs(this);
   bool has_non_devtools_handlers = delegate_ && dialog_manager_;
-  bool has_handlers = page_handlers.size() || has_non_devtools_handlers;
+  bool has_handlers = page_handlers.size() || cnpage_handlers.size() || has_non_devtools_handlers;
   if (should_suppress || !has_handlers) {
     std::move(callback).Run(false, true, std::u16string());
     return;
@@ -7709,6 +7727,12 @@ void WebContentsImpl::RunBeforeUnloadConfirm(
 
   GURL frame_url = render_frame_host->GetLastCommittedURL();
   for (auto* handler : page_handlers) {
+    handler->DidRunBeforeUnloadConfirm(
+        frame_url, has_non_devtools_handlers,
+        base::BindOnce(&CloseDialogCallbackWrapper::Run, wrapper, false));
+  }
+
+  for (auto* handler : cnpage_handlers) {
     handler->DidRunBeforeUnloadConfirm(
         frame_url, has_non_devtools_handlers,
         base::BindOnce(&CloseDialogCallbackWrapper::Run, wrapper, false));
@@ -9109,6 +9133,12 @@ void WebContentsImpl::OnDialogClosed(int render_process_id,
     handler->DidCloseJavaScriptDialog(success, user_input);
   }
 
+  std::vector<protocol::CNPageHandler*> cnpage_handlers =
+      protocol::CNPageHandler::EnabledForWebContents(this);
+  for (auto* handler : cnpage_handlers) {
+    handler->DidCloseJavaScriptDialog(success, user_input);
+  }
+
   is_showing_javascript_dialog_ = false;
   is_showing_before_unload_dialog_ = false;
 }
@@ -9986,6 +10016,8 @@ void WebContentsImpl::SetOpenerForNewContents(FrameTreeNode* opener,
     new_root->SetOriginalOpener(opener->frame_tree().root());
     new_root->SetOpenerDevtoolsFrameToken(
         opener->current_frame_host()->devtools_frame_token());
+    new_root->SetOpenerCitizennotesFrameToken(
+        opener->current_frame_host()->citizennotes_frame_token());
     opened_by_another_window_ = true;
 
     if (!opener_suppressed) {

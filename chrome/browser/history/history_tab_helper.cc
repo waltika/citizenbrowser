@@ -136,6 +136,7 @@ history::VisitContextAnnotations::BrowserType GetBrowserType(
     case Browser::TYPE_PICTURE_IN_PICTURE:
       return history::VisitContextAnnotations::BrowserType::kPopup;
     case Browser::TYPE_DEVTOOLS:
+    case Browser::TYPE_CITIZENNOTES:
       return history::VisitContextAnnotations::BrowserType::kUnknown;
 #if BUILDFLAG(IS_CHROMEOS_ASH)
     case Browser::TYPE_CUSTOM_TAB:

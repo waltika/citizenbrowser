@@ -58,6 +58,7 @@ interface SharedWorkerFactory {
       UserAgentMetadata ua_metadata,
       bool pause_on_start,
       mojo_base.mojom.UnguessableToken devtools_worker_token,
+      mojo_base.mojom.UnguessableToken citizennotes_worker_token,
       RendererPreferences renderer_preferences,
       pending_receiver<RendererPreferenceWatcher> preference_watcher_receiver,
       pending_remote<WorkerContentSettingsProxy> content_settings,

@@ -31,6 +31,7 @@
 #include "services/network/public/mojom/cookie_access_observer.mojom-forward.h"
 #include "services/network/public/mojom/cors.mojom-shared.h"
 #include "services/network/public/mojom/devtools_observer.mojom-forward.h"
+#include "services/network/public/mojom/citizennotes_observer.mojom-forward.h"
 #include "services/network/public/mojom/fetch_api.mojom-shared.h"
 #include "services/network/public/mojom/ip_address_space.mojom-shared.h"
 #include "services/network/public/mojom/referrer_policy.mojom-shared.h"
@@ -74,6 +75,7 @@ struct COMPONENT_EXPORT(NETWORK_CPP_BASE) ResourceRequest {
     mojo::PendingRemote<mojom::URLLoaderNetworkServiceObserver>
         url_loader_network_observer;
     mojo::PendingRemote<mojom::DevToolsObserver> devtools_observer;
+    mojo::PendingRemote<mojom::CitizenNotesObserver> citizennotes_observer;
     mojom::ClientSecurityStatePtr client_security_state;
     mojo::PendingRemote<mojom::AcceptCHFrameObserver> accept_ch_frame_observer;
     mojo::PendingRemote<mojom::SharedDictionaryAccessObserver>
@@ -191,7 +193,9 @@ struct COMPONENT_EXPORT(NETWORK_CPP_BASE) ResourceRequest {
   net::HttpRequestHeaders custom_proxy_post_cache_headers;
   absl::optional<base::UnguessableToken> fetch_window_id;
   absl::optional<std::string> devtools_request_id;
+  absl::optional<std::string> citizennotes_request_id;
   absl::optional<std::string> devtools_stack_id;
+  absl::optional<std::string> citizennotes_stack_id;
   bool is_fetch_like_api = false;
   bool is_fetch_later_api = false;
   bool is_favicon = false;
@@ -207,6 +211,8 @@ struct COMPONENT_EXPORT(NETWORK_CPP_BASE) ResourceRequest {
   // decoding any non-listed stream types.
   absl::optional<std::vector<net::SourceStream::SourceType>>
       devtools_accepted_stream_types;
+  absl::optional<std::vector<net::SourceStream::SourceType>>
+        citizennotes_accepted_stream_types;
   absl::optional<net::NetLogSource> net_log_create_info;
   absl::optional<net::NetLogSource> net_log_reference_info;
   mojom::IPAddressSpace target_ip_address_space =

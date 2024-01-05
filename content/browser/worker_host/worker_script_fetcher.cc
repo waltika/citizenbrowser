@@ -11,6 +11,7 @@
 #include "content/browser/devtools/devtools_agent_host_impl.h"
 #include "content/browser/devtools/devtools_instrumentation.h"
 #include "content/browser/devtools/network_service_devtools_observer.h"
+#include "content/browser/citizen_x/network_service_citizennotes_observer.h"
 #include "content/browser/file_system/file_system_url_loader_factory.h"
 #include "content/browser/loader/browser_initiated_resource_request.h"
 #include "content/browser/loader/file_url_loader_factory.h"
@@ -226,6 +227,8 @@ void WorkerScriptFetcher::CreateAndStart(
     ukm::SourceId worker_source_id,
     DevToolsAgentHostImpl* devtools_agent_host,
     const base::UnguessableToken& devtools_worker_token,
+    CitizenNotesAgentHostImpl* citizennotes_agent_host,
+    const base::UnguessableToken& citizennotes_worker_token,
     CompletionCallback callback) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
   DCHECK(client_security_state);
@@ -342,7 +345,8 @@ void WorkerScriptFetcher::CreateAndStart(
       std::move(service_worker_context), service_worker_handle,
       std::move(blob_url_loader_factory),
       std::move(url_loader_factory_override), worker_source_id,
-      devtools_agent_host, devtools_worker_token, std::move(callback));
+      devtools_agent_host, devtools_worker_token,
+      citizennotes_agent_host, citizennotes_worker_token, std::move(callback));
 }
 
 void WorkerScriptFetcher::CreateScriptLoader(
@@ -365,6 +369,8 @@ void WorkerScriptFetcher::CreateScriptLoader(
     ukm::SourceId worker_source_id,
     DevToolsAgentHostImpl* devtools_agent_host,
     const base::UnguessableToken& devtools_worker_token,
+    CitizenNotesAgentHostImpl* citizennotes_agent_host,
+    const base::UnguessableToken& citizennotes_worker_token,
     WorkerScriptFetcher::CompletionCallback callback) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
   DCHECK(devtools_agent_host);
@@ -397,6 +403,7 @@ void WorkerScriptFetcher::CreateScriptLoader(
     mojo::PendingRemote<network::mojom::URLLoaderNetworkServiceObserver>
         url_loader_network_observer;
     mojo::PendingRemote<network::mojom::DevToolsObserver> devtools_observer;
+    mojo::PendingRemote<network::mojom::CitizenNotesObserver> citizennotes_observer;
     // If we have a |creator_render_frame_host| associate the load with that
     // RenderFrameHostImpl. Note that |factory_process| may be different than
     // the |creator_render_frame_host|'s RenderProcessHost.
@@ -408,6 +415,8 @@ void WorkerScriptFetcher::CreateScriptLoader(
                   creator_render_frame_host->GetRoutingID());
       devtools_observer = NetworkServiceDevToolsObserver::MakeSelfOwned(
           creator_render_frame_host->GetDevToolsFrameToken().ToString());
+      citizennotes_observer = NetworkServiceCitizenNotesObserver::MakeSelfOwned(
+          creator_render_frame_host->GetDevToolsFrameToken().ToString());
     }
 
     const url::Origin& request_initiator = *resource_request->request_initiator;
@@ -418,7 +427,9 @@ void WorkerScriptFetcher::CreateScriptLoader(
             factory_process, request_initiator, trusted_isolation_info,
             /*coep_reporter=*/mojo::NullRemote(),
             std::move(url_loader_network_observer),
-            std::move(devtools_observer), client_security_state.Clone(),
+            std::move(devtools_observer),
+            std::move(citizennotes_observer),
+            client_security_state.Clone(),
             /*debug_tag=*/"CreateScriptLoader");
     // We are sure the URLLoaderFactory made with the param is only used within
     // `WorkerScriptFetcher` in the browser process. We can mark this trusted

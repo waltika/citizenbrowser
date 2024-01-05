@@ -96,6 +96,7 @@ void ThreadedWorkletMessagingProxy::Initialize(
         /*content_settings_client=*/nullptr, &inherited_trial_features,
         /*parent_devtools_token=*/
         client_provided_global_scope_creation_params->devtools_token,
+        client_provided_global_scope_creation_params->citizennotes_token,
         /*worker_settings=*/nullptr,
         /*v8_cache_options=*/mojom::blink::V8CacheOptions::kDefault,
         /*module_responses_map=*/nullptr);
@@ -112,14 +113,35 @@ void ThreadedWorkletMessagingProxy::Initialize(
         devtools_agent_host_receiver =
             devtools_params->agent_host_remote.InitWithNewPipeAndPassReceiver();
 
-    InitializeWorkerThread(std::move(creation_params), thread_startup_data,
-                           /*token=*/absl::nullopt, std::move(devtools_params));
+      
+    auto citizennotes_params = std::make_unique<WorkerCitizenNotesParams>();
+    citizennotes_params->citizennotes_worker_token =
+        client_provided_global_scope_creation_params->citizennotes_token;
+    citizennotes_params->wait_for_debugger =
+        client_provided_global_scope_creation_params->wait_for_debugger;
+    mojo::PendingRemote<mojom::blink::CitizenNotesAgent> citizennotes_agent_remote;
+    citizennotes_params->agent_receiver =
+        citizennotes_agent_remote.InitWithNewPipeAndPassReceiver();
+    mojo::PendingReceiver<mojom::blink::CitizenNotesAgentHost>
+        citizennotes_agent_host_receiver =
+            citizennotes_params->agent_host_remote.InitWithNewPipeAndPassReceiver();
 
-    mojo::Remote<mojom::blink::WorkletDevToolsHost> devtools_host(
-        std::move(client_provided_global_scope_creation_params->devtools_host));
-    devtools_host->OnReadyForInspection(
-        std::move(devtools_agent_remote),
-        std::move(devtools_agent_host_receiver));
+  InitializeWorkerThread(std::move(creation_params), thread_startup_data,
+                         /*token=*/absl::nullopt, std::move(devtools_params), std::move(citizennotes_params));
+
+  mojo::Remote<mojom::blink::WorkletDevToolsHost> devtools_host(
+      std::move(client_provided_global_scope_creation_params->devtools_host));
+  devtools_host->OnReadyForInspection(
+      std::move(devtools_agent_remote),
+      std::move(devtools_agent_host_receiver));
+
+  mojo::Remote<mojom::blink::WorkletCitizenNotesHost> citizennotes_host(
+      std::move(client_provided_global_scope_creation_params->citizennotes_host));
+  citizennotes_host->OnReadyForInspection(
+      std::move(citizennotes_agent_remote),
+      std::move(citizennotes_agent_host_receiver));
+
+      
     return;
   }
 
@@ -141,6 +163,7 @@ void ThreadedWorkletMessagingProxy::Initialize(
           window->IsSecureContext(), window->GetHttpsState(), worker_clients,
           frame_client->CreateWorkerContentSettingsClient(),
           OriginTrialContext::GetInheritedTrialFeatures(window).get(),
+          base::UnguessableToken::Create(),
           base::UnguessableToken::Create(),
           std::make_unique<WorkerSettings>(window->GetFrame()->GetSettings()),
           mojom::blink::V8CacheOptions::kDefault, module_responses_map,

@@ -184,6 +184,7 @@ PrerenderHost::PrerenderHost(
                     /*renderer_initiated_creation=*/false,
                     /*main_frame_name=*/"", /*opener_for_origin=*/nullptr,
                     /*frame_policy=*/blink::FramePolicy(),
+                    base::UnguessableToken::Create(),
                     base::UnguessableToken::Create());
 
   // Use the same SessionStorageNamespace as the primary page for the

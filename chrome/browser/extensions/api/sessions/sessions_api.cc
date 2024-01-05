@@ -318,6 +318,9 @@ SessionsGetDevicesFunction::CreateWindowModel(
     case sessions::SessionWindow::TYPE_DEVTOOLS:
       type = api::windows::WindowType::kDevtools;
       break;
+    case sessions::SessionWindow::TYPE_CITIZENNOTES:
+      type = api::windows::WindowType::kCitizennotes;
+      break;
     case sessions::SessionWindow::TYPE_APP_POPUP:
 #if BUILDFLAG(IS_CHROMEOS_ASH)
     case sessions::SessionWindow::TYPE_CUSTOM_TAB:

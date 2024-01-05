@@ -19,6 +19,8 @@
 #include "content/browser/devtools/devtools_instrumentation.h"
 #include "content/browser/devtools/worker_devtools_agent_host.h"
 #include "content/browser/devtools/worker_devtools_manager.h"
+#include "content/browser/citizen_x/worker_citizennotes_agent_host.h"
+#include "content/browser/citizen_x/worker_citizennotes_manager.h"
 #include "content/browser/file_system_access/file_system_access_manager_impl.h"
 #include "content/browser/loader/content_security_notifier.h"
 #include "content/browser/renderer_host/code_cache_host_impl.h"
@@ -153,6 +155,7 @@ DedicatedWorkerHost::~DedicatedWorkerHost() {
 
   if (base::FeatureList::IsEnabled(blink::features::kPlzDedicatedWorker)) {
     WorkerDevToolsManager::GetInstance().WorkerDestroyed(this);
+    WorkerCitizenNotesManager::GetInstance().WorkerDestroyed(this);
   }
 }
 
@@ -330,7 +333,8 @@ void DedicatedWorkerHost::StartScriptLoad(
       storage_partition_impl, partition_domain,
       // TODO(crbug.com/1138622): Propagate dedicated worker ukm::SourceId here.
       ukm::kInvalidSourceId, WorkerDevToolsAgentHost::GetFor(this),
-      token_.value(),
+      token_.value(), WorkerCitizenNotesAgentHost::GetFor(this),
+      token_.value(), //TODO: Check if this is correct
       base::BindOnce(&DedicatedWorkerHost::DidStartScriptLoad,
                      weak_factory_.GetWeakPtr()));
 }

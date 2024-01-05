@@ -24,6 +24,7 @@ def main(argv):
   version = None
   for protocol in argv[:-1]:
     file_name = os.path.normpath(protocol)
+    print(file_name)
     if not os.path.isfile(file_name):
       sys.stderr.write("Cannot find %s\n" % file_name)
       return 1

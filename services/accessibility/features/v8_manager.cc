@@ -21,6 +21,7 @@
 #include "services/accessibility/features/autoclick_client_interface_binder.h"
 #include "services/accessibility/features/automation_internal_bindings.h"
 #include "services/accessibility/features/devtools/os_devtools_agent.h"
+#include "services/accessibility/features/citizennotes/os_citizennotes_agent.h"
 #include "services/accessibility/features/interface_binder.h"
 #include "services/accessibility/features/mojo/mojo.h"
 #include "services/accessibility/features/speech_recognition_interface_binder.h"
@@ -53,6 +54,15 @@ void V8Environment::ConnectDevToolsAgent(
         std::make_unique<OSDevToolsAgent>(*this, std::move(main_runner_));
   }
   devtools_agent_->Connect(std::move(agent));
+}
+
+void V8Environment::ConnectCitizenNotesAgent(
+    mojo::PendingAssociatedReceiver<blink::mojom::CitizenNotesAgent> agent) {
+  if (!citizennotes_agent_) {
+      citizennotes_agent_ =
+        std::make_unique<OSCitizenNotesAgent>(*this, std::move(main_runner_));
+  }
+  citizennotes_agent_->Connect(std::move(agent));
 }
 
 // static
@@ -98,6 +108,7 @@ V8Environment::~V8Environment() {
 
   // Devtools agent must be destroyed before context and isolate.
   devtools_agent_.reset();
+  citizennotes_agent_.reset();
 
   context_holder_.reset();
   isolate_holder_.reset();
@@ -324,6 +335,14 @@ void V8Manager::ConnectDevToolsAgent(
     mojo::PendingAssociatedReceiver<blink::mojom::DevToolsAgent> agent) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   v8_env_.AsyncCall(&V8Environment::ConnectDevToolsAgent)
+      .WithArgs(std::move(agent));
+}
+
+// Instructs V8Environment to create a devtools agent.
+void V8Manager::ConnectCitizenNotesAgent(
+    mojo::PendingAssociatedReceiver<blink::mojom::CitizenNotesAgent> agent) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  v8_env_.AsyncCall(&V8Environment::ConnectCitizenNotesAgent)
       .WithArgs(std::move(agent));
 }
 

@@ -454,6 +454,7 @@ DedicatedWorker::CreateGlobalScopeCreationParams(
     Vector<network::mojom::blink::ContentSecurityPolicyPtr>
         response_content_security_policies) {
   base::UnguessableToken parent_devtools_token;
+  base::UnguessableToken parent_citizennotes_token;
   std::unique_ptr<WorkerSettings> settings;
   ExecutionContext* execution_context = GetExecutionContext();
   scoped_refptr<base::SingleThreadTaskRunner>
@@ -464,6 +465,7 @@ DedicatedWorker::CreateGlobalScopeCreationParams(
     // When the main thread creates a new DedicatedWorker.
     auto* frame = window->GetFrame();
     parent_devtools_token = frame->GetDevToolsFrameToken();
+    parent_citizennotes_token = frame->GetCitizenNotesFrameToken();
     settings = std::make_unique<WorkerSettings>(frame->GetSettings());
     agent_group_scheduler_compositor_task_runner =
         execution_context->GetScheduler()
@@ -478,6 +480,8 @@ DedicatedWorker::CreateGlobalScopeCreationParams(
         To<WorkerGlobalScope>(execution_context);
     parent_devtools_token =
         worker_global_scope->GetThread()->GetDevToolsWorkerToken();
+    parent_citizennotes_token =
+      worker_global_scope->GetThread()->GetCitizenNotesWorkerToken();
     settings = WorkerSettings::Copy(worker_global_scope->GetWorkerSettings());
     agent_group_scheduler_compositor_task_runner =
         worker_global_scope->GetAgentGroupSchedulerCompositorTaskRunner();
@@ -502,7 +506,7 @@ DedicatedWorker::CreateGlobalScopeCreationParams(
       execution_context->IsSecureContext(), execution_context->GetHttpsState(),
       MakeGarbageCollected<WorkerClients>(), CreateWebContentSettingsClient(),
       OriginTrialContext::GetInheritedTrialFeatures(execution_context).get(),
-      parent_devtools_token, std::move(settings),
+      parent_devtools_token, parent_citizennotes_token, std::move(settings),
       mojom::blink::V8CacheOptions::kDefault,
       nullptr /* worklet_module_responses_map */,
       std::move(browser_interface_broker_),

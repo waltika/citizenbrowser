@@ -42,6 +42,7 @@ class URLLoaderThrottle;
 namespace content {
 
 class DevToolsAgentHostImpl;
+class CitizenNotesAgentHostImpl;
 class RenderFrameHostImpl;
 class ServiceWorkerContextWrapper;
 class ServiceWorkerMainResourceHandle;
@@ -131,6 +132,8 @@ class WorkerScriptFetcher : public network::mojom::URLLoaderClient {
       ukm::SourceId worker_source_id,
       DevToolsAgentHostImpl* devtools_agent_host,
       const base::UnguessableToken& devtools_worker_token,
+      CitizenNotesAgentHostImpl* citizennotes_agent_host,
+      const base::UnguessableToken& citizennotes_worker_token,
       CompletionCallback callback);
 
   // Creates a loader factory bundle. Must be called on the UI thread. For
@@ -202,6 +205,8 @@ class WorkerScriptFetcher : public network::mojom::URLLoaderClient {
       ukm::SourceId worker_source_id,
       DevToolsAgentHostImpl* devtools_agent_host,
       const base::UnguessableToken& devtools_worker_token,
+      CitizenNotesAgentHostImpl* citizennotes_agent_host,
+      const base::UnguessableToken& citizennotes_worker_token,
       WorkerScriptFetcher::CompletionCallback callback);
 
   void Start(std::vector<std::unique_ptr<blink::URLLoaderThrottle>> throttles);

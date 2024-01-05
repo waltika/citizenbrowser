@@ -45,6 +45,7 @@ inline constexpr char kCurrentLocale[] = "current_locale";
 inline constexpr char kDefaultLocale[] = "default_locale";
 inline constexpr char kDescription[] = "description";
 inline constexpr char kDevToolsPage[] = "devtools_page";
+inline constexpr char kCitizenNotesPage[] = "citizennotes_page";
 inline constexpr char kDifferentialFingerprint[] = "differential_fingerprint";
 inline constexpr char kDisplayInLauncher[] = "display_in_launcher";
 inline constexpr char kDisplayInNewTabPage[] = "display_in_new_tab_page";

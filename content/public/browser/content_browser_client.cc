@@ -822,6 +822,12 @@ ContentBrowserClient::CreateDevToolsManagerDelegate() {
   return nullptr;
 }
 
+std::unique_ptr<content::CitizenNotesManagerDelegate>
+ContentBrowserClient::CreateCitizenNotesManagerDelegate() {
+  return nullptr;
+}
+
+
 void ContentBrowserClient::UpdateDevToolsBackgroundServiceExpiration(
     BrowserContext* browser_context,
     int service,

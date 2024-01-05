@@ -11,6 +11,7 @@
 #include "net/log/net_log_source.h"
 #include "services/network/public/mojom/cookie_access_observer.mojom.h"
 #include "services/network/public/mojom/devtools_observer.mojom.h"
+#include "services/network/public/mojom/citizennotes_observer.mojom.h"
 #include "services/network/public/mojom/trust_token_access_observer.mojom.h"
 #include "services/network/public/mojom/url_request.mojom.h"
 #include "services/network/public/mojom/web_bundle_handle.mojom.h"
@@ -63,6 +64,18 @@ mojo::PendingRemote<mojom::DevToolsObserver> Clone(
   }
   mojo::Remote<mojom::DevToolsObserver> remote(std::move(*observer));
   mojo::PendingRemote<mojom::DevToolsObserver> new_remote;
+  remote->Clone(new_remote.InitWithNewPipeAndPassReceiver());
+  *observer = remote.Unbind();
+  return new_remote;
+}
+
+mojo::PendingRemote<mojom::CitizenNotesObserver> Clone(
+    mojo::PendingRemote<mojom::CitizenNotesObserver>* observer) {
+  if (!*observer) {
+    return mojo::NullRemote();
+  }
+  mojo::Remote<mojom::CitizenNotesObserver> remote(std::move(*observer));
+  mojo::PendingRemote<mojom::CitizenNotesObserver> new_remote;
   remote->Clone(new_remote.InitWithNewPipeAndPassReceiver());
   *observer = remote.Unbind();
   return new_remote;
@@ -163,6 +176,9 @@ ResourceRequest::TrustedParams& ResourceRequest::TrustedParams::operator=(
   devtools_observer =
       Clone(&const_cast<mojo::PendingRemote<mojom::DevToolsObserver>&>(
           other.devtools_observer));
+  citizennotes_observer =
+      Clone(&const_cast<mojo::PendingRemote<mojom::CitizenNotesObserver>&>(
+          other.citizennotes_observer));
   client_security_state = other.client_security_state.Clone();
   accept_ch_frame_observer =
       Clone(const_cast<mojo::PendingRemote<mojom::AcceptCHFrameObserver>&>(
@@ -261,6 +277,7 @@ bool ResourceRequest::EqualsForTesting(const ResourceRequest& request) const {
          priority == request.priority &&
          priority_incremental == request.priority_incremental &&
          devtools_stack_id == request.devtools_stack_id &&
+         citizennotes_stack_id == request.citizennotes_stack_id &&
          cors_preflight_policy == request.cors_preflight_policy &&
          originated_from_service_worker ==
              request.originated_from_service_worker &&
@@ -291,6 +308,7 @@ bool ResourceRequest::EqualsForTesting(const ResourceRequest& request) const {
              request.custom_proxy_post_cache_headers.ToString() &&
          fetch_window_id == request.fetch_window_id &&
          devtools_request_id == request.devtools_request_id &&
+         citizennotes_request_id == request.citizennotes_request_id &&
          is_fetch_like_api == request.is_fetch_like_api &&
          is_fetch_later_api == request.is_fetch_later_api &&
          is_favicon == request.is_favicon &&
@@ -299,6 +317,8 @@ bool ResourceRequest::EqualsForTesting(const ResourceRequest& request) const {
                                                request.trusted_params) &&
          devtools_accepted_stream_types ==
              request.devtools_accepted_stream_types &&
+         citizennotes_accepted_stream_types ==
+             request.citizennotes_accepted_stream_types &&
          trust_token_params == request.trust_token_params &&
          OptionalWebBundleTokenParamsEqualsForTesting(  // IN-TEST
              web_bundle_token_params, request.web_bundle_token_params) &&

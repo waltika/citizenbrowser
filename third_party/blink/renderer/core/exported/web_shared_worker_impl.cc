@@ -56,6 +56,7 @@
 #include "third_party/blink/renderer/core/frame/csp/conversion_util.h"
 #include "third_party/blink/renderer/core/inspector/console_message.h"
 #include "third_party/blink/renderer/core/inspector/worker_devtools_params.h"
+#include "third_party/blink/renderer/core/inspector/worker_citizennotes_params.h"
 #include "third_party/blink/renderer/core/script/script.h"
 #include "third_party/blink/renderer/core/workers/global_scope_creation_params.h"
 #include "third_party/blink/renderer/core/workers/parent_execution_context_task_runners.h"
@@ -198,6 +199,7 @@ void WebSharedWorkerImpl::StartWorkerContext(
     const WebVector<WebContentSecurityPolicy>& content_security_policies,
     const WebFetchClientSettingsObject& outside_fetch_client_settings_object,
     const base::UnguessableToken& devtools_worker_token,
+    const base::UnguessableToken& citizennotes_worker_token,
     CrossVariantMojoRemote<
         mojom::blink::WorkerContentSettingsProxyInterfaceBase> content_settings,
     CrossVariantMojoRemote<mojom::blink::BrowserInterfaceBrokerInterfaceBase>
@@ -251,7 +253,8 @@ void WebSharedWorkerImpl::StartWorkerContext(
       MakeGarbageCollected<WorkerClients>(),
       std::make_unique<SharedWorkerContentSettingsProxy>(
           std::move(content_settings)),
-      nullptr /* inherited_trial_features */, devtools_worker_token,
+      nullptr /* inherited_trial_features */,
+      devtools_worker_token, citizennotes_worker_token,
       std::move(worker_settings), mojom::blink::V8CacheOptions::kDefault,
       nullptr /* worklet_module_response_map */,
       std::move(browser_interface_broker),
@@ -274,8 +277,18 @@ void WebSharedWorkerImpl::StartWorkerContext(
       devtools_agent_host_receiver =
           devtools_params->agent_host_remote.InitWithNewPipeAndPassReceiver();
 
+    auto citizennotes_params = std::make_unique<WorkerCitizenNotesParams>();
+    citizennotes_params->citizennotes_worker_token = citizennotes_worker_token;
+    citizennotes_params->wait_for_debugger = pause_worker_context_on_start;
+    mojo::PendingRemote<mojom::blink::CitizenNotesAgent> citizennotes_agent_remote;
+    citizennotes_params->agent_receiver =
+    citizennotes_agent_remote.InitWithNewPipeAndPassReceiver();
+    mojo::PendingReceiver<mojom::blink::CitizenNotesAgentHost>
+        citizennotes_agent_host_receiver =
+            citizennotes_params->agent_host_remote.InitWithNewPipeAndPassReceiver();
+
   GetWorkerThread()->Start(std::move(creation_params), thread_startup_data,
-                           std::move(devtools_params));
+                           std::move(devtools_params), std::move(citizennotes_params));
 
   // Capture the task runner for dispatching connect events. This is necessary
   // for avoiding race condition with WorkerScheduler termination induced by
@@ -327,6 +340,7 @@ std::unique_ptr<WebSharedWorker> WebSharedWorker::CreateAndStart(
     const WebVector<WebContentSecurityPolicy>& content_security_policies,
     const WebFetchClientSettingsObject& outside_fetch_client_settings_object,
     const base::UnguessableToken& devtools_worker_token,
+    const base::UnguessableToken& citizennotes_worker_token,
     CrossVariantMojoRemote<
         mojom::blink::WorkerContentSettingsProxyInterfaceBase> content_settings,
     CrossVariantMojoRemote<mojom::blink::BrowserInterfaceBrokerInterfaceBase>
@@ -345,7 +359,7 @@ std::unique_ptr<WebSharedWorker> WebSharedWorker::CreateAndStart(
       script_request_url, script_type, credentials_mode, name,
       constructor_origin, is_constructor_secure_context, user_agent,
       ua_metadata, content_security_policies,
-      outside_fetch_client_settings_object, devtools_worker_token,
+      outside_fetch_client_settings_object, devtools_worker_token, citizennotes_worker_token,
       std::move(content_settings), std::move(browser_interface_broker),
       pause_worker_context_on_start, std::move(worker_main_script_load_params),
       std::move(policy_container), std::move(web_worker_fetch_context),

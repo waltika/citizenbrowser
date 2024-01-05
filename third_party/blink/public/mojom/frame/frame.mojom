@@ -32,6 +32,7 @@ import "third_party/blink/public/mojom/css/preferred_color_scheme.mojom";
 import "third_party/blink/public/mojom/devtools/console_message.mojom";
 import "third_party/blink/public/mojom/devtools/devtools_agent.mojom";
 import "third_party/blink/public/mojom/devtools/inspector_issue.mojom";
+import "third_party/blink/public/mojom/citizennotes/citizennotes_agent.mojom";
 import "third_party/blink/public/mojom/drag/drag.mojom";
 import "third_party/blink/public/mojom/favicon/favicon_url.mojom";
 import "third_party/blink/public/mojom/fenced_frame/fenced_frame.mojom";
@@ -731,7 +732,9 @@ interface LocalFrameHost {
         fenced_frame,
       RemoteFrameInterfacesFromRenderer remote_frame_interfaces,
       blink.mojom.RemoteFrameToken frame_token,
-      mojo_base.mojom.UnguessableToken devtools_frame_token);
+      mojo_base.mojom.UnguessableToken devtools_frame_token,
+      mojo_base.mojom.UnguessableToken citizennotes_frame_token
+      );
 
   // Notifies when the ViewTransition opt-in state for the current Document
   // changes.
@@ -1028,6 +1031,15 @@ interface LocalFrame {
   BindDevToolsAgent(
       pending_associated_remote<blink.mojom.DevToolsAgentHost> agent_host,
       pending_associated_receiver<blink.mojom.DevToolsAgent> agent);
+
+  // Returns a DevToolsAgent interface for this frame, used for
+  // remote debugging. See DevToolsAgent for details.
+  // Returned DevToolsAgent must be associated with navigation control,
+  // due to various ordering dependencies between DevTools protocol and
+  // navigation.
+  BindCitizenNotesAgent(
+      pending_associated_remote<blink.mojom.CitizenNotesAgentHost> agent_host,
+      pending_associated_receiver<blink.mojom.CitizenNotesAgent> agent);
 
   // Samsung Galaxy Note-specific "smart clip" stylus text getter.
   // Extracts the data at the given rect.

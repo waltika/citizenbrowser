@@ -101,6 +101,7 @@ class CORE_EXPORT WorkerGlobalScope
   void Dispose() override;
   WorkerThread* GetThread() const final { return thread_; }
   const base::UnguessableToken& GetDevToolsToken() const override;
+  const base::UnguessableToken& GetCitizenNotesToken() const override;
   bool IsInitialized() const final { return !url_.IsNull(); }
   CodeCacheHost* GetCodeCacheHost() override;
   absl::optional<mojo::PendingRemote<network::mojom::blink::URLLoaderFactory>>

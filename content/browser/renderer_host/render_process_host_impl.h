@@ -366,6 +366,7 @@ class CONTENT_EXPORT RenderProcessHostImpl
       int32_t new_routing_id,
       blink::LocalFrameToken& frame_token,
       base::UnguessableToken& devtools_frame_token,
+      base::UnguessableToken& citizennotes_frame_token,
       blink::DocumentToken& document_token);
 
   void AddInternalObserver(RenderProcessHostInternalObserver* observer);

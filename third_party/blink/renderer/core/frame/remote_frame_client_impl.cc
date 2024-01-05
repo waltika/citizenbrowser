@@ -74,10 +74,11 @@ void RemoteFrameClientImpl::CreateRemoteChild(
     mojom::blink::FrameOwnerPropertiesPtr owner_properties,
     bool is_loading,
     const base::UnguessableToken& devtools_frame_token,
+    const base::UnguessableToken& citizennotes_frame_token,
     mojom::blink::RemoteFrameInterfacesFromBrowserPtr remote_frame_interfaces) {
   CreateRemoteChildImpl(
       token, opener_frame_token, tree_scope_type, std::move(replication_state),
-      std::move(owner_properties), is_loading, devtools_frame_token,
+      std::move(owner_properties), is_loading, devtools_frame_token, citizennotes_frame_token,
       std::move(remote_frame_interfaces));
 }
 
@@ -93,6 +94,7 @@ void RemoteFrameClientImpl::CreateRemoteChildren(
         child_param->tree_scope_type, std::move(child_param->replication_state),
         std::move(child_param->owner_properties), child_param->is_loading,
         child_param->devtools_frame_token,
+        child_param->citizennotes_frame_token,
         std::move(child_param->frame_interfaces));
     new_child->frame_client_->CreateRemoteChildren(child_param->child_params);
   }
@@ -106,12 +108,13 @@ WebRemoteFrameImpl* RemoteFrameClientImpl::CreateRemoteChildImpl(
     mojom::blink::FrameOwnerPropertiesPtr owner_properties,
     bool is_loading,
     const base::UnguessableToken& devtools_frame_token,
+    const base::UnguessableToken& citizennotes_frame_token,
     mojom::blink::RemoteFrameInterfacesFromBrowserPtr remote_frame_interfaces) {
   WebFrame* opener = nullptr;
   if (opener_frame_token)
     opener = WebFrame::FromFrameToken(opener_frame_token.value());
   return web_frame_->CreateRemoteChild(
-      tree_scope_type, token, is_loading, devtools_frame_token, opener,
+      tree_scope_type, token, is_loading, devtools_frame_token, citizennotes_frame_token, opener,
       std::move(remote_frame_interfaces->frame_host),
       std::move(remote_frame_interfaces->frame_receiver),
       std::move(replication_state), std::move(owner_properties));

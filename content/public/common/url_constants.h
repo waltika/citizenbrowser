@@ -19,6 +19,7 @@ namespace content {
 // TODO(jam): some of these don't below in the content layer, but are accessed
 // from there.
 CONTENT_EXPORT extern const char kChromeDevToolsScheme[];
+CONTENT_EXPORT extern const char kChromeCitizenNotesScheme[];
 CONTENT_EXPORT extern const char kChromeErrorScheme[];
 CONTENT_EXPORT extern const char kChromeUIScheme[];  // Used for WebUIs.
 CONTENT_EXPORT extern const char kChromeUIUntrustedScheme[];

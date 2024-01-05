@@ -70,6 +70,7 @@
 #include "third_party/blink/renderer/core/events/message_event.h"
 #include "third_party/blink/renderer/core/events/mouse_event.h"
 #include "third_party/blink/renderer/core/exported/web_dev_tools_agent_impl.h"
+#include "third_party/blink/renderer/core/exported/web_citizen_notes_agent_impl.h"
 #include "third_party/blink/renderer/core/exported/web_plugin_container_impl.h"
 #include "third_party/blink/renderer/core/exported/web_view_impl.h"
 #include "third_party/blink/renderer/core/fileapi/public_url_manager.h"
@@ -957,6 +958,11 @@ WebDevToolsAgentImpl* LocalFrameClientImpl::DevToolsAgent() {
       ->DevToolsAgentImpl();
 }
 
+WebCitizenNotesAgentImpl* LocalFrameClientImpl::CitizenNotesAgent() {
+  return WebLocalFrameImpl::FromFrame(web_frame_->GetFrame()->LocalFrameRoot())
+      ->CitizenNotesAgentImpl();
+}
+
 KURL LocalFrameClientImpl::OverrideFlashEmbedWithHTML(const KURL& url) {
   return web_frame_->Client()->OverrideFlashEmbedWithHTML(WebURL(url));
 }
@@ -1015,6 +1021,10 @@ void LocalFrameClientImpl::AnnotatedRegionsChanged() {
 
 base::UnguessableToken LocalFrameClientImpl::GetDevToolsFrameToken() const {
   return web_frame_->Client()->GetDevToolsFrameToken();
+}
+
+base::UnguessableToken LocalFrameClientImpl::GetCitizenNotesFrameToken() const {
+  return web_frame_->Client()->GetCitizenNotesFrameToken();
 }
 
 String LocalFrameClientImpl::evaluateInInspectorOverlayForTesting(
@@ -1137,6 +1147,13 @@ void LocalFrameClientImpl::BindDevToolsAgent(
     mojo::PendingAssociatedReceiver<mojom::blink::DevToolsAgent> receiver) {
   if (WebDevToolsAgentImpl* devtools = DevToolsAgent())
     devtools->BindReceiver(std::move(host), std::move(receiver));
+}
+
+void LocalFrameClientImpl::BindCitizenNotesAgent(
+    mojo::PendingAssociatedRemote<mojom::blink::CitizenNotesAgentHost> host,
+    mojo::PendingAssociatedReceiver<mojom::blink::CitizenNotesAgent> receiver) {
+  if (WebCitizenNotesAgentImpl* citizennotes = CitizenNotesAgent())
+      citizennotes->BindReceiver(std::move(host), std::move(receiver));
 }
 
 }  // namespace blink

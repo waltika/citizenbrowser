@@ -17,6 +17,8 @@
 #include "content/browser/attribution_reporting/attribution_manager.h"
 #include "content/browser/devtools/devtools_instrumentation.h"
 #include "content/browser/devtools/shared_storage_worklet_devtools_manager.h"
+#include "content/browser/citizen_x/citizennotes_instrumentation.h"
+#include "content/browser/citizen_x/shared_storage_worklet_citizennotes_manager.h"
 #include "content/browser/fenced_frame/fenced_frame_reporter.h"
 #include "content/browser/private_aggregation/private_aggregation_budget_key.h"
 #include "content/browser/private_aggregation/private_aggregation_host.h"
@@ -160,6 +162,54 @@ class SharedStorageWorkletHost::ScopedDevToolsHandle
   const base::UnguessableToken devtools_token_;
 };
 
+class SharedStorageWorkletHost::ScopedCitizenNotesHandle
+    : blink::mojom::WorkletCitizenNotesHost {
+ public:
+  explicit ScopedCitizenNotesHandle(SharedStorageWorkletHost& owner)
+      : owner_(owner), citizennotes_token_(base::UnguessableToken::Create()) {
+    SharedStorageWorkletCitizenNotesManager::GetInstance()->WorkletCreated(
+        owner, citizennotes_token_, wait_for_debugger_);
+  }
+
+  ScopedCitizenNotesHandle(const ScopedDevToolsHandle&) = delete;
+  ScopedCitizenNotesHandle& operator=(const ScopedDevToolsHandle&) = delete;
+
+  ~ScopedCitizenNotesHandle() override {
+    SharedStorageWorkletCitizenNotesManager::GetInstance()->WorkletDestroyed(
+        *owner_);
+  }
+
+  // blink::mojom::WorkletDevToolsHost:
+  void OnReadyForInspection(
+      mojo::PendingRemote<blink::mojom::CitizenNotesAgent> agent_remote,
+      mojo::PendingReceiver<blink::mojom::CitizenNotesAgentHost>
+          agent_host_receiver) override {
+    SharedStorageWorkletCitizenNotesManager::GetInstance()
+        ->WorkletReadyForInspection(*owner_, std::move(agent_remote),
+                                    std::move(agent_host_receiver));
+  }
+
+  const base::UnguessableToken& citizennotes_token() const {
+    return citizennotes_token_;
+  }
+
+  bool wait_for_debugger() const { return wait_for_debugger_; }
+
+  mojo::PendingRemote<blink::mojom::WorkletCitizenNotesHost>
+  BindNewPipeAndPassRemote() {
+    return host_.BindNewPipeAndPassRemote();
+  }
+
+ private:
+  raw_ref<SharedStorageWorkletHost> owner_;
+
+  mojo::Receiver<blink::mojom::WorkletCitizenNotesHost> host_{this};
+
+  bool wait_for_debugger_ = false;
+
+  const base::UnguessableToken citizennotes_token_;
+};
+
 SharedStorageWorkletHost::SharedStorageWorkletHost(
     SharedStorageDocumentServiceImpl& document_service,
     const url::Origin& frame_origin,
@@ -203,6 +253,7 @@ SharedStorageWorkletHost::SharedStorageWorkletHost(
   origin_trial_features_ = origin_trial_features;
 
   devtools_handle_ = std::make_unique<ScopedDevToolsHandle>(*this);
+  citizennotes_handle_ = std::make_unique<ScopedCitizenNotesHandle>(*this);
 
   // Initialize the `URLLoaderFactory` now, as later on the worklet may enter
   // keep-alive phase and won't have access to the `RenderFrameHost`.
@@ -875,14 +926,15 @@ void SharedStorageWorkletHost::SharedStorageRemainingBudget(
 }
 
 void SharedStorageWorkletHost::ConsoleLog(const std::string& message) {
-  if (!document_service_) {
-    DCHECK(IsInKeepAlivePhase());
-    return;
-  }
-
-  devtools_instrumentation::LogWorkletMessage(
-      static_cast<RenderFrameHostImpl&>(document_service_->render_frame_host()),
-      blink::mojom::ConsoleMessageLevel::kInfo, message);
+    if (!document_service_) {
+        DCHECK(IsInKeepAlivePhase());
+        return;
+    }
+    
+    devtools_instrumentation::LogWorkletMessage(
+                                                static_cast<RenderFrameHostImpl&>(document_service_->render_frame_host()),
+                                                blink::mojom::ConsoleMessageLevel::kInfo, message);
+    // CitizenNotes?
 }
 
 void SharedStorageWorkletHost::RecordUseCounters(
@@ -1117,6 +1169,8 @@ SharedStorageWorkletHost::GetAndConnectToSharedStorageWorkletService() {
             script_source_url_, shared_storage_origin_, origin_trial_features_,
             devtools_handle_->devtools_token(),
             devtools_handle_->BindNewPipeAndPassRemote(),
+            citizennotes_handle_->citizennotes_token(),
+            citizennotes_handle_->BindNewPipeAndPassRemote(),
             devtools_handle_->wait_for_debugger());
 
     driver_->StartWorkletService(

@@ -88,6 +88,7 @@ class WebAssociatedURLLoader;
 class WebAutofillClient;
 class WebContentSettingsClient;
 class WebDevToolsAgentImpl;
+class WebCitizenNotesAgentImpl;
 class WebFrameWidgetImpl;
 class WebLocalFrameClient;
 class WebNode;
@@ -497,6 +498,10 @@ class CORE_EXPORT WebLocalFrameImpl final
   void SetDevToolsAgentImpl(WebDevToolsAgentImpl*);
   WebDevToolsAgentImpl* DevToolsAgentImpl();
 
+  void SetCitizenNotesAgentImpl(WebCitizenNotesAgentImpl*);
+  WebCitizenNotesAgentImpl* CitizenNotesAgentImpl();
+
+          
   // Instructs devtools to pause loading of the frame as soon as it's shown
   // until explicit command from the devtools client. May only be called on a
   // local root.
@@ -656,6 +661,8 @@ class CORE_EXPORT WebLocalFrameImpl final
   Member<WebFrameWidgetImpl> frame_widget_;
 
   Member<WebDevToolsAgentImpl> dev_tools_agent_;
+
+  Member<WebCitizenNotesAgentImpl> citizen_notes_agent_;
 
   WebAutofillClient* autofill_client_;
 

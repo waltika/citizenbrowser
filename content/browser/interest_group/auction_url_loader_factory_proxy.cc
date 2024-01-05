@@ -182,6 +182,7 @@ void AuctionURLLoaderFactoryProxy::CreateLoaderAndStart(
   new_request.web_bundle_token_params =
       std::move(maybe_web_bundle_token_params);
   new_request.devtools_request_id = url_request.devtools_request_id;
+  new_request.citizennotes_request_id = url_request.citizennotes_request_id;
   new_request.headers.SetHeader(net::HttpRequestHeaders::kAccept,
                                 accept_header);
   new_request.redirect_mode = network::mojom::RedirectMode::kError;

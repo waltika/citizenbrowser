@@ -456,6 +456,11 @@ class CORE_EXPORT EmptyLocalFrameClient : public LocalFrameClient {
   base::UnguessableToken GetDevToolsFrameToken() const override {
     return base::UnguessableToken::Create();
   }
+    
+  base::UnguessableToken GetCitizenNotesFrameToken() const override {
+    return base::UnguessableToken::Create();
+  }
+    
   String evaluateInInspectorOverlayForTesting(const String& script) override {
     return g_empty_string;
   }

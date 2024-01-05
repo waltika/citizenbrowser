@@ -447,6 +447,14 @@ class PLATFORM_EXPORT ResourceRequestHead {
     devtools_token_ = devtools_token;
   }
 
+  const absl::optional<base::UnguessableToken>& GetCitizenNotesToken() const {
+    return citizennotes_token_;
+  }
+  void SetCitizenNotesToken(
+      const absl::optional<base::UnguessableToken>& citizennotes_token) {
+      citizennotes_token_ = citizennotes_token;
+  }
+
   const scoped_refptr<
       base::RefCountedData<base::flat_set<net::SourceStream::SourceType>>>&
   GetDevToolsAcceptedStreamTypes() const {
@@ -458,10 +466,28 @@ class PLATFORM_EXPORT ResourceRequestHead {
           types) {
     devtools_accepted_stream_types_ = types;
   }
+    
+  const scoped_refptr<
+      base::RefCountedData<base::flat_set<net::SourceStream::SourceType>>>&
+  GetCitizenNotesAcceptedStreamTypes() const {
+    return citizennotes_accepted_stream_types_;
+  }
+  void SetCitizenNotesAcceptedStreamTypes(
+      const scoped_refptr<
+          base::RefCountedData<base::flat_set<net::SourceStream::SourceType>>>&
+          types) {
+    citizennotes_accepted_stream_types_ = types;
+  }
 
+    
+    
   const String& GetDevToolsId() const { return devtools_id_; }
   void SetDevToolsId(const String devtools_id) { devtools_id_ = devtools_id; }
 
+  const String& GetCitizenNotesId() const { return citizennotes_id_; }
+  void SetCitizenNotesId(const String citizennotes_id) { citizennotes_id_ = citizennotes_id; }
+
+    
   void SetRequestedWithHeader(const String& value) {
     requested_with_header_ = value;
   }
@@ -486,6 +512,14 @@ class PLATFORM_EXPORT ResourceRequestHead {
     devtools_stack_id_ = devtools_stack_id;
   }
 
+    const absl::optional<String>& GetCitizenNotesStackId() const {
+      return citizennotes_stack_id_;
+    }
+    void SetCitizenNotesStackId(const absl::optional<String>& citizennotes_stack_id) {
+        citizennotes_stack_id_ = citizennotes_stack_id;
+    }
+
+    
   void SetUkmSourceId(ukm::SourceId ukm_source_id) {
     ukm_source_id_ = ukm_source_id;
   }
@@ -708,6 +742,8 @@ class PLATFORM_EXPORT ResourceRequestHead {
 
   bool is_automatic_upgrade_ = false;
 
+  absl::optional<base::UnguessableToken> citizennotes_token_;
+  String citizennotes_id_;
   absl::optional<base::UnguessableToken> devtools_token_;
   String devtools_id_;
   String requested_with_header_;
@@ -715,6 +751,7 @@ class PLATFORM_EXPORT ResourceRequestHead {
   String purpose_header_;
 
   absl::optional<String> devtools_stack_id_;
+  absl::optional<String> citizennotes_stack_id_;
 
   ukm::SourceId ukm_source_id_ = ukm::kInvalidSourceId;
 
@@ -767,6 +804,11 @@ class PLATFORM_EXPORT ResourceRequestHead {
       base::RefCountedData<base::flat_set<net::SourceStream::SourceType>>>
       devtools_accepted_stream_types_;
 
+  scoped_refptr<
+      base::RefCountedData<base::flat_set<net::SourceStream::SourceType>>>
+      citizennotes_accepted_stream_types_;
+
+    
   bool has_storage_access_ = false;
 
   network::mojom::AttributionSupport attribution_reporting_support_ =

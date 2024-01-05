@@ -3007,6 +3007,9 @@ extern const char kWebAuthenticationPermitEnterpriseAttestationDescription[];
 extern const char kDevToolsTabTargetLiteralName[];
 extern const char kDevToolsTabTargetLiteralDescription[];
 
+extern const char kCitizenNotesTabTargetLiteralName[];
+extern const char kCitizenNotesTabTargetLiteralDescription[];
+
 extern const char kNewConfirmationBubbleForGeneratedPasswordsName[];
 extern const char kNewConfirmationBubbleForGeneratedPasswordsDescription[];
 

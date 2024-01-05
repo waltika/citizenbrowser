@@ -51,6 +51,7 @@
 #include "third_party/blink/renderer/core/execution_context/security_context.h"
 #include "third_party/blink/renderer/core/frame/csp/content_security_policy.h"
 #include "third_party/blink/renderer/core/inspector/worker_devtools_params.h"
+#include "third_party/blink/renderer/core/inspector/worker_citizennotes_params.h"
 #include "third_party/blink/renderer/core/loader/frame_load_request.h"
 #include "third_party/blink/renderer/core/loader/worker_fetch_context.h"
 #include "third_party/blink/renderer/core/probe/core_probes.h"
@@ -206,7 +207,8 @@ void WebEmbeddedWorkerImpl::StartWorkerThread(
       network::mojom::ReferrerPolicy::kDefault, starter_origin.get(),
       starter_secure_context, starter_https_state, nullptr /* worker_clients */,
       std::move(content_settings_proxy), nullptr /* inherited_trial_features */,
-      worker_start_data->devtools_worker_token, std::move(worker_settings),
+      worker_start_data->devtools_worker_token, worker_start_data->citizennotes_worker_token,
+      std::move(worker_settings),
       // Generate the full code cache in the first execution of the script.
       mojom::blink::V8CacheOptions::kFullCodeWithoutHeatCheck,
       nullptr /* worklet_module_respones_map */,
@@ -240,9 +242,23 @@ void WebEmbeddedWorkerImpl::StartWorkerThread(
       devtools_agent_host_receiver =
           devtools_params->agent_host_remote.InitWithNewPipeAndPassReceiver();
 
+  auto citizennotes_params = std::make_unique<WorkerCitizenNotesParams>();
+  citizennotes_params->citizennotes_worker_token =
+      worker_start_data->citizennotes_worker_token;
+  citizennotes_params->wait_for_debugger =
+      worker_start_data->wait_for_debugger_mode ==
+      WebEmbeddedWorkerStartData::kWaitForDebugger;
+  mojo::PendingRemote<mojom::blink::CitizenNotesAgent> citizennotes_agent_remote;
+  citizennotes_params->agent_receiver =
+      citizennotes_agent_remote.InitWithNewPipeAndPassReceiver();
+  mojo::PendingReceiver<mojom::blink::CitizenNotesAgentHost>
+      citizennotes_agent_host_receiver =
+          citizennotes_params->agent_host_remote.InitWithNewPipeAndPassReceiver();
+
   worker_thread_->Start(std::move(global_scope_creation_params),
                         WorkerBackingThreadStartupData::CreateDefault(),
-                        std::move(devtools_params));
+                        std::move(devtools_params),
+                        std::move(citizennotes_params));
 
   std::unique_ptr<CrossThreadFetchClientSettingsObjectData>
       fetch_client_setting_object_data = CreateFetchClientSettingsObjectData(

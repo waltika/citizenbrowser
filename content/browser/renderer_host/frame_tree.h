@@ -250,7 +250,8 @@ class CONTENT_EXPORT FrameTree {
             const std::string& main_frame_name,
             RenderFrameHostImpl* opener_for_origin,
             const blink::FramePolicy& frame_policy,
-            const base::UnguessableToken& devtools_frame_token);
+            const base::UnguessableToken& devtools_frame_token,
+            const base::UnguessableToken& citizennotes_frame_token);
 
   Type type() const { return type_; }
 
@@ -367,6 +368,7 @@ class CONTENT_EXPORT FrameTree {
       bool is_created_by_script,
       const blink::LocalFrameToken& frame_token,
       const base::UnguessableToken& devtools_frame_token,
+      const base::UnguessableToken& citizennotes_frame_token,
       const blink::DocumentToken& document_token,
       const blink::FramePolicy& frame_policy,
       const blink::mojom::FrameOwnerProperties& frame_owner_properties,

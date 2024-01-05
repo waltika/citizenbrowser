@@ -20,6 +20,7 @@
 #include "base/strings/string_util.h"
 #include "base/timer/elapsed_timer.h"
 #include "content/browser/devtools/devtools_instrumentation.h"
+#include "content/browser/citizen_x/citizennotes_instrumentation.h"
 #include "content/browser/fenced_frame/fenced_frame.h"
 #include "content/browser/network/cross_origin_embedder_policy_reporter.h"
 #include "content/browser/renderer_host/frame_tree.h"
@@ -245,6 +246,7 @@ FrameTreeNode::~FrameTreeNode() {
   DestroyInnerFrameTreeIfExists();
 
   devtools_instrumentation::OnFrameTreeNodeDestroyed(*this);
+  citizennotes_instrumentation::OnFrameTreeNodeDestroyed(*this);
   // Do not dispatch notification for the root frame as ~WebContentsImpl already
   // dispatches it for now.
   // TODO(https://crbug.com/1170277): This is only needed because the FrameTree
@@ -422,6 +424,13 @@ void FrameTreeNode::SetOpenerDevtoolsFrameToken(
   opener_devtools_frame_token_ = std::move(opener_devtools_frame_token);
 }
 
+void FrameTreeNode::SetOpenerCitizennotesFrameToken(
+    base::UnguessableToken opener_citizennotes_frame_token) {
+  DCHECK(!opener_citizennotes_frame_token_ ||
+         opener_citizennotes_frame_token_->is_empty());
+    opener_citizennotes_frame_token_ = std::move(opener_citizennotes_frame_token);
+}
+
 void FrameTreeNode::SetOriginalOpener(FrameTreeNode* opener) {
   // The original opener tracks main frames only.
   DCHECK(opener == nullptr || !opener->parent());
@@ -563,6 +572,7 @@ bool FrameTreeNode::HasPendingCrossDocumentNavigation() const {
 void FrameTreeNode::TransferNavigationRequestOwnership(
     RenderFrameHostImpl* render_frame_host) {
   devtools_instrumentation::OnResetNavigationRequest(navigation_request_.get());
+  citizennotes_instrumentation::OnResetNavigationRequest(navigation_request_.get());
   render_frame_host->SetNavigationRequest(std::move(navigation_request_));
 }
 
@@ -634,6 +644,7 @@ void FrameTreeNode::ResetNavigationRequestButKeepState() {
   // accidentally complete a navigation that should be reset.
   CancelRestartingBackForwardCacheNavigation();
   devtools_instrumentation::OnResetNavigationRequest(navigation_request_.get());
+  citizennotes_instrumentation::OnResetNavigationRequest(navigation_request_.get());
   navigation_request_.reset();
 }
 
@@ -659,6 +670,7 @@ void FrameTreeNode::DidStartLoading(
   // Notify the proxies of the event.
   current_frame_host()->browsing_context_state()->OnDidStartLoading();
   devtools_instrumentation::DidChangeFrameLoadingState(*this);
+  citizennotes_instrumentation::DidChangeFrameLoadingState(*this);
   base::UmaHistogramTimes(
       base::StrCat({"Navigation.DidStartLoading.",
                     IsOutermostMainFrame() ? "MainFrame" : "Subframe"}),
@@ -697,6 +709,7 @@ void FrameTreeNode::DidStopLoading() {
                                           LoadingState::LOADING_UI_REQUESTED);
   }
   devtools_instrumentation::DidChangeFrameLoadingState(*this);
+  citizennotes_instrumentation::DidChangeFrameLoadingState(*this);
 }
 
 void FrameTreeNode::DidChangeLoadProgress(double load_progress) {

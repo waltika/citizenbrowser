@@ -57,6 +57,7 @@ struct WebEmbeddedWorkerStartData {
   // Unique worker token used by DevTools to attribute different instrumentation
   // to the same worker.
   base::UnguessableToken devtools_worker_token;
+  base::UnguessableToken citizennotes_worker_token;
   ukm::SourceId ukm_source_id = ukm::kInvalidSourceId;
 
   WebFetchClientSettingsObject outside_fetch_client_settings_object;

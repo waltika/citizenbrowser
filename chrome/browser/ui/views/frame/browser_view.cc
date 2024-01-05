@@ -37,6 +37,7 @@
 #include "chrome/browser/app_mode/app_mode_utils.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/devtools/devtools_window.h"
+#include "chrome/browser/citizen_x/citizennotes_window.h"
 #include "chrome/browser/download/bubble/download_bubble_prefs.h"
 #include "chrome/browser/extensions/browser_extension_window_controller.h"
 #include "chrome/browser/extensions/extension_util.h"
@@ -440,6 +441,35 @@ bool WidgetHasChildModalDialog(views::Widget* parent_widget) {
 // the bounds of contents_webview relative to the local bounds of the container
 // that holds both contents_webview and devtools_webview.
 BrowserView::DevToolsDockedPlacement GetDevToolsDockedPlacement(
+    const gfx::Rect& contents_webview_bounds,
+    const gfx::Rect& local_webview_container_bounds) {
+  // If contents_webview has the same bounds as webview_container, it either
+  // means that devtools are not open or devtools are open in a separate
+  // window (not docked).
+  if (contents_webview_bounds == local_webview_container_bounds) {
+    return BrowserView::DevToolsDockedPlacement::kNone;
+  }
+
+  if (contents_webview_bounds.x() > 0 && contents_webview_bounds.y() == 0 &&
+      contents_webview_bounds.x() + contents_webview_bounds.width() ==
+          local_webview_container_bounds.width()) {
+    return BrowserView::DevToolsDockedPlacement::kLeft;
+  } else if (contents_webview_bounds.origin().IsOrigin() &&
+             contents_webview_bounds.height() ==
+                 local_webview_container_bounds.height()) {
+    return BrowserView::DevToolsDockedPlacement::kRight;
+  } else if (contents_webview_bounds.width() ==
+             local_webview_container_bounds.width()) {
+    return BrowserView::DevToolsDockedPlacement::kBottom;
+  }
+
+  return BrowserView::DevToolsDockedPlacement::kUnknown;
+}
+
+// Return the DevTools docked placement. It infers the docked placement from
+// the bounds of contents_webview relative to the local bounds of the container
+// that holds both contents_webview and devtools_webview.
+BrowserView::DevToolsDockedPlacement GetCitizenNotesDockedPlacement(
     const gfx::Rect& contents_webview_bounds,
     const gfx::Rect& local_webview_container_bounds) {
   // If contents_webview has the same bounds as webview_container, it either
@@ -954,6 +984,11 @@ BrowserView::BrowserView(std::unique_ptr<Browser> browser)
   devtools_web_view->SetID(VIEW_ID_DEV_TOOLS_DOCKED);
   devtools_web_view->SetVisible(false);
 
+  auto citizennotes_web_view =
+      std::make_unique<views::WebView>(browser_->profile());
+  citizennotes_web_view->SetID(VIEW_ID_CITIZEN_NOTES_DOCKED);
+  citizennotes_web_view->SetVisible(false);
+
   auto contents_web_view =
       std::make_unique<ContentsWebView>(browser_->profile());
   contents_web_view->SetID(VIEW_ID_TAB_CONTAINER);
@@ -961,6 +996,8 @@ BrowserView::BrowserView(std::unique_ptr<Browser> browser)
   auto contents_container = std::make_unique<views::View>();
   devtools_web_view_ =
       contents_container->AddChildView(std::move(devtools_web_view));
+  citizennotes_web_view_ =
+      contents_container->AddChildView(std::move(citizennotes_web_view));
   contents_web_view_ =
       contents_container->AddChildView(std::move(contents_web_view));
   contents_web_view_->set_is_primary_web_contents_for_window(true);
@@ -1546,6 +1583,11 @@ void BrowserView::UpdateDevTools() {
   Layout();
 }
 
+void BrowserView::UpdateCitizenNotes() {
+  UpdateCitizenNotesForContents(GetActiveWebContents(), true);
+  Layout();
+}
+
 void BrowserView::UpdateLoadingAnimations(bool is_visible) {
   bool should_animate = browser_->tab_strip_model()->TabsAreLoading();
 
@@ -1697,6 +1739,7 @@ void BrowserView::OnActiveTabChanged(content::WebContents* old_contents,
   // Layout for DevTools _before_ setting the both main and devtools WebContents
   // to avoid toggling the size of any of them.
   UpdateDevToolsForContents(new_contents, !change_tab_contents);
+  UpdateCitizenNotesForContents(new_contents, !change_tab_contents);
 
   if (change_tab_contents) {
     // When the location bar or other UI focus will be restored, first focus the
@@ -1724,6 +1767,8 @@ void BrowserView::OnActiveTabChanged(content::WebContents* old_contents,
     // The second layout update should be no-op. It will just set the
     // DevTools WebContents.
     UpdateDevToolsForContents(new_contents, true);
+    UpdateCitizenNotesForContents(new_contents, true);
+
   }
 
   if (will_restore_focus) {
@@ -1776,6 +1821,7 @@ void BrowserView::OnTabDetached(content::WebContents* contents,
   infobar_container_->ChangeInfoBarManager(nullptr);
   app_banner_manager_observation_.Reset();
   UpdateDevToolsForContents(nullptr, true);
+  UpdateCitizenNotesForContents(nullptr, true);
 }
 
 void BrowserView::ZoomChangedForActiveTab(bool can_show_bubble) {
@@ -3281,6 +3327,12 @@ void BrowserView::CutCopyPaste(int command_id) {
         DevToolsWindow::GetInTabWebContents(contents, nullptr);
     if (devtools && DoCutCopyPasteForWebContents(devtools, method))
       return;
+      
+    WebContents* citizennotes =
+        CitizenNotesWindow::GetInTabWebContents(contents, nullptr);
+    if (citizennotes && DoCutCopyPasteForWebContents(citizennotes, method))
+      return;
+
   }
 
   // Any Views which want to handle the clipboard commands in the Chrome menu
@@ -4639,6 +4691,69 @@ void BrowserView::UpdateDevToolsForContents(WebContents* web_contents,
   // the devtools dock placement.
   if (new_placement != DevToolsDockedPlacement::kUnknown) {
     current_devtools_docked_placement_ = new_placement;
+  }
+}
+
+void BrowserView::UpdateCitizenNotesForContents(WebContents* web_contents,
+                                                bool update_citizennotes_web_contents) {
+  CitizenNotesContentsResizingStrategy strategy;
+  WebContents* citizennotes =
+      CitizenNotesWindow::GetInTabWebContents(web_contents, &strategy);
+
+  if (!citizennotes_web_view_->web_contents() && citizennotes &&
+      !citizennotes_focus_tracker_.get()) {
+    // Install devtools focus tracker when dev tools window is shown for the
+    // first time.
+    citizennotes_focus_tracker_ = std::make_unique<views::ExternalFocusTracker>(
+        citizennotes_web_view_, GetFocusManager());
+  }
+
+  // Restore focus to the last focused view when hiding devtools window.
+  if (citizennotes_web_view_->web_contents() && !citizennotes &&
+      citizennotes_focus_tracker_.get()) {
+      citizennotes_focus_tracker_->FocusLastFocusedExternalView();
+      citizennotes_focus_tracker_.reset();
+  }
+
+  // Replace devtools WebContents.
+  if (citizennotes_web_view_->web_contents() != citizennotes &&
+      update_citizennotes_web_contents) {
+    citizennotes_web_view_->SetWebContents(citizennotes);
+  }
+
+  if (citizennotes) {
+    citizennotes_web_view_->SetVisible(true);
+    // GetContentsLayoutManager()->SetContentsResizingStrategy(strategy); TODO: refactor
+  } else {
+    citizennotes_web_view_->SetVisible(false);
+    // GetContentsLayoutManager()->SetContentsResizingStrategy(
+    //    CitizeNotesContentsResizingStrategy()); TODO: refactor
+  }
+  contents_container_->Layout();
+
+  if (citizennotes) {
+    // When strategy.hide_inspected_contents() returns true, we are hiding
+    // contents_web_view_ behind the devtools_web_view_. Otherwise,
+    // contents_web_view_ should be right above the devtools_web_view_.
+    size_t citizennotes_index =
+        contents_container_->GetIndexOf(citizennotes_web_view_).value();
+    size_t contents_index =
+        contents_container_->GetIndexOf(contents_web_view_).value();
+    bool citizennotes_is_on_top = citizennotes_index > contents_index;
+    if (strategy.hide_inspected_contents() != citizennotes_is_on_top)
+      contents_container_->ReorderChildView(contents_web_view_, citizennotes_index);
+  }
+
+  DevToolsDockedPlacement new_placement = GetCitizenNotesDockedPlacement(
+      contents_web_view_->bounds(), contents_container_->GetLocalBounds());
+
+  // When browser window is resizing, the contents_container and web_contents
+  // bounds can be out of sync, resulting in a state, where it is impossible to
+  // infer docked placement based on contents webview bounds. In this case, use
+  // the last known docked placement, since resizing a window does not change
+  // the devtools dock placement.
+  if (new_placement != DevToolsDockedPlacement::kUnknown) {
+    current_citizennotes_docked_placement_ = new_placement;
   }
 }
 

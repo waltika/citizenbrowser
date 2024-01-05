@@ -35,6 +35,10 @@ source_set("lib") {
       "features/devtools/os_devtools_agent.h",
       "features/devtools/os_devtools_session.cc",
       "features/devtools/os_devtools_session.h",
+      "features/citizennotes/os_citizennotes_agent.cc",
+      "features/citizennotes/os_citizennotes_agent.h",
+      "features/citizennotes/os_citizennotes_session.cc",
+      "features/citizennotes/os_citizennotes_session.h",
       "features/interface_binder.h",
       "features/mojo/mojo.cc",
       "features/mojo/mojo.h",
@@ -139,6 +143,7 @@ source_set("tests") {
       sources += [
         "features/atp_js_api_test.cc",
         "features/devtools/os_devtools_unittest.cc",
+        "features/citizennotes/os_citizennotes_unittest.cc",
       ]
       deps += [
         "//services/accessibility/features/javascript:js_api_copied_files",

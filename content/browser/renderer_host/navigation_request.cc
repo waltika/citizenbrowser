@@ -1162,6 +1162,7 @@ std::unique_ptr<NavigationRequest> NavigationRequest::Create(
       std::string() /* searchable_form_encoding */,
       GURL() /* client_side_redirect_url */,
       absl::nullopt /* devtools_initiator_info */,
+      absl::nullopt /* citizennotes_initiator_info */,
       nullptr /* trust_token_params */, impression,
       base::TimeTicks() /* renderer_before_unload_start */,
       base::TimeTicks() /* renderer_before_unload_end */,
@@ -5050,7 +5051,9 @@ void NavigationRequest::OnStartChecksComplete(
           blob_url_loader_factory_ ? blob_url_loader_factory_->Clone()
                                    : nullptr,
           devtools_navigation_token(),
+          citizennotes_navigation_token(),
           frame_tree_node_->current_frame_host()->devtools_frame_token(),
+          frame_tree_node_->current_frame_host()->citizennotes_frame_token(),
           std::move(cors_exempt_headers),
           BuildClientSecurityStateForNavigationFetch(),
           devtools_accepted_stream_types, is_pdf_, GetInitiatorProcessId(),
@@ -5905,7 +5908,8 @@ void NavigationRequest::CommitNavigation() {
       std::move(url_loader_client_endpoints_),
       std::move(subresource_loader_params_), std::move(subresource_overrides_),
       std::move(service_worker_container_info), document_token_,
-      devtools_navigation_token_);
+      devtools_navigation_token_,
+      citizennotes_navigation_token_);
   UpdateNavigationHandleTimingsOnCommitSent();
 
   // Give SpareRenderProcessHostManager a heads-up about the most recently used

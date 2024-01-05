@@ -31,6 +31,7 @@ void BatchedProxyIPCSender::AddNewChildProxyCreationTask(
     ::blink::mojom::FrameOwnerPropertiesPtr owner_properties,
     bool is_loading,
     const ::base::UnguessableToken& devtools_frame_token,
+    const ::base::UnguessableToken& citizennotes_frame_token,
     ::blink::mojom::RemoteFrameInterfacesFromBrowserPtr remote_frame_interfaces,
     GlobalRoutingID parent_global_id) {
   blink::mojom::CreateRemoteChildParamsPtr new_proxy_params =
@@ -42,6 +43,7 @@ void BatchedProxyIPCSender::AddNewChildProxyCreationTask(
   new_proxy_params->owner_properties = std::move(owner_properties);
   new_proxy_params->is_loading = is_loading;
   new_proxy_params->devtools_frame_token = devtools_frame_token;
+  new_proxy_params->citizennotes_frame_token = citizennotes_frame_token;
   new_proxy_params->frame_interfaces = std::move(remote_frame_interfaces);
 
   std::vector<blink::mojom::CreateRemoteChildParamsPtr>& child_params =

@@ -1093,6 +1093,13 @@ void LocalFrameMojoHandler::BindDevToolsAgent(
   frame_->Client()->BindDevToolsAgent(std::move(host), std::move(receiver));
 }
 
+void LocalFrameMojoHandler::BindCitizenNotesAgent(
+    mojo::PendingAssociatedRemote<mojom::blink::CitizenNotesAgentHost> host,
+    mojo::PendingAssociatedReceiver<mojom::blink::CitizenNotesAgent> receiver) {
+  DCHECK(frame_->Client());
+  frame_->Client()->BindCitizenNotesAgent(std::move(host), std::move(receiver));
+}
+
 #if BUILDFLAG(IS_ANDROID)
 void LocalFrameMojoHandler::ExtractSmartClipData(
     const gfx::Rect& rect,

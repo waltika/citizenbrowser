@@ -492,6 +492,13 @@ class BLINK_EXPORT WebLocalFrameClient {
     return base::UnguessableToken::Create();
   }
 
+  // Returns token to be used as a frame id in the devtools protocol.
+  // It is derived from the content's devtools_frame_token, is
+  // defined by the browser and passed into Blink upon frame creation.
+  virtual base::UnguessableToken GetCitizenNotesFrameToken() {
+    return base::UnguessableToken::Create();
+  }
+
   // PlzNavigate
   // Called to abort a navigation that is being handled by the browser process.
   virtual void AbortClientNavigation() {}

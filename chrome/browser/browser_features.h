@@ -31,6 +31,14 @@ extern const base::FeatureParam<std::string>
     kDevToolsConsoleInsightsAidaEndpoint;
 extern const base::FeatureParam<std::string> kDevToolsConsoleInsightsApiKey;
 
+BASE_DECLARE_FEATURE(kCitizenNotesTabTarget);
+BASE_DECLARE_FEATURE(kCitizenNotesVeLogging);
+BASE_DECLARE_FEATURE(kCitizenNotesConsoleInsights);
+extern const base::FeatureParam<std::string> kCitizenNotesConsoleInsightsAidaScope;
+extern const base::FeatureParam<std::string>
+    kCitizenNotesConsoleInsightsAidaEndpoint;
+extern const base::FeatureParam<std::string> kCitizenNotesConsoleInsightsApiKey;
+
 BASE_DECLARE_FEATURE(kNukeProfileBeforeCreateMultiAsync);
 
 #if BUILDFLAG(IS_CHROMEOS)

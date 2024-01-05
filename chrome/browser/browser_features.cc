@@ -46,6 +46,12 @@ BASE_FEATURE(kDevToolsTabTarget,
              "DevToolsTabTarget",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
+// Let DevTools front-end talk to the target of type "tab" rather than
+// "frame" when inspecting a WebContents.
+BASE_FEATURE(kCitizenNotesTabTarget,
+             "CitizenNotesTabTarget",
+             base::FEATURE_ENABLED_BY_DEFAULT);
+
 // Let DevTools front-end log extensive VisualElements-style UMA metrics for
 // impressions and interactions.
 BASE_FEATURE(kDevToolsVeLogging,
