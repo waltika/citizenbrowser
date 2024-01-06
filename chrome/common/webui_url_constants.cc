@@ -73,11 +73,11 @@ const char kChromeUIDevToolsHost[] = "devtools";
 const char kChromeUIDevToolsRemotePath[] = "remote";
 const char kChromeUIDevToolsURL[] =
     "devtools://devtools/bundled/inspector.html";
-//const char kChromeUICitizenNotesBlankPath[] = "blank"; TODO: Check why not used
-//const char kChromeUICitizenNotesBundledPath[] = "bundled";
-//const char kChromeUICitizenNotesCustomPath[] = "custom";
-//const char kChromeUICitizenNotesHost[] = "citizennotes";
-//const char kChromeUICitizenNotesRemotePath[] = "remote";
+const char kChromeUICitizenNotesBlankPath[] = "blank";
+const char kChromeUICitizenNotesBundledPath[] = "bundled";
+const char kChromeUICitizenNotesCustomPath[] = "custom";
+const char kChromeUICitizenNotesHost[] = "citizennotes";
+const char kChromeUICitizenNotesRemotePath[] = "remote";
 const char kChromeUICitizenNotesURL[] =
     "citizennotes://citizennotes/bundled/inspector.html";
 const char kChromeUIDeviceLogHost[] = "device-log";

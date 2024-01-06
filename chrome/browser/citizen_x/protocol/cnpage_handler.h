@@ -8,7 +8,7 @@
 #include <memory>
 
 #include "base/memory/weak_ptr.h"
-#include "chrome/browser/devtools/protocol/page.h"
+#include "chrome/browser/citizen_x/protocol/page.h"
 #include "components/webapps/browser/installable/installable_manager.h"
 #include "content/public/browser/citizennotes_agent_host.h"
 #include "content/public/browser/web_contents_observer.h"

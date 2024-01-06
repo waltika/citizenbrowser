@@ -2,10 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "chrome/browser/devtools/device/cast_device_provider.h"
+#include "chrome/browser/citizen_x/device/cncast_device_provider.h"
 
 #include "base/functional/bind.h"
-#include "chrome/browser/devtools/device/android_device_manager.h"
+#include "chrome/browser/citizen_x/device/cnandroid_device_manager.h"
 #include "net/base/host_port_pair.h"
 #include "testing/gtest/include/gtest/gtest.h"
 

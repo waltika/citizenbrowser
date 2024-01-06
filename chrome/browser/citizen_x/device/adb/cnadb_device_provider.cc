@@ -8,7 +8,7 @@
 #include "base/strings/string_piece.h"
 #include "base/strings/string_split.h"
 #include "base/strings/stringprintf.h"
-#include "chrome/browser/devtools/device/adb/adb_client_socket.h"
+#include "chrome/browser/citizen_x/device/adb/cnadb_client_socket.h"
 
 namespace {
 
@@ -23,7 +23,7 @@ static void RunCommand(const std::string& serial,
                        CNAdbDeviceProvider::CommandCallback callback) {
   std::string query = base::StringPrintf(
       kHostTransportCommand, serial.c_str(), command.c_str());
-  AdbClientSocket::AdbQuery(kAdbPort, query, std::move(callback));
+  CNAdbClientSocket::AdbQuery(kAdbPort, query, std::move(callback));
 }
 
 static void ReceivedAdbDevices(CNAdbDeviceProvider::SerialsCallback callback,
@@ -48,7 +48,7 @@ static void ReceivedAdbDevices(CNAdbDeviceProvider::SerialsCallback callback,
 } // namespace
 
 void CNAdbDeviceProvider::QueryDevices(SerialsCallback callback) {
-  AdbClientSocket::AdbQuery(
+  CNAdbClientSocket::AdbQuery(
       kAdbPort, kHostDevicesCommand,
       base::BindOnce(&ReceivedAdbDevices, std::move(callback)));
 }
@@ -64,7 +64,7 @@ void CNAdbDeviceProvider::OpenSocket(const std::string& serial,
                                    SocketCallback callback) {
   std::string request =
       base::StringPrintf(kLocalAbstractCommand, socket_name.c_str());
-  AdbClientSocket::TransportQuery(kAdbPort, serial, request,
+  CNAdbClientSocket::TransportQuery(kAdbPort, serial, request,
                                   std::move(callback));
 }
 

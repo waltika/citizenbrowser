@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "chrome/browser/devtools/device/adb/mock_adb_server.h"
+#include "chrome/browser/citizen_x/device/adb/cnmock_adb_server.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -67,15 +67,15 @@ const char kSampleOpenedUnixSockets[] =
     "00000000: 00000002 00000000"
     " 00010000 0001 01  5394 /dev/socket/vold\n"
     "00000000: 00000002 00000000"
-    " 00010000 0001 01 11810 @webview_devtools_remote_2425\n"
+    " 00010000 0001 01 11810 @webview_citizennotes_remote_2425\n"
     "00000000: 00000002 00000000"
-    " 00010000 0001 01 20893 @chrome_devtools_remote\n"
+    " 00010000 0001 01 20893 @chrome_citizennotes_remote\n"
     "00000000: 00000002 00000000"
-    " 00010000 0001 01 20894 @chrome_devtools_remote_1002\n"
+    " 00010000 0001 01 20894 @chrome_citizennotes_remote_1002\n"
     "00000000: 00000002 00000000"
-    " 00010000 0001 01 20895 @noprocess_devtools_remote\n"
+    " 00010000 0001 01 20895 @noprocess_citizennotes_remote\n"
     "00000000: 00000002 00000000"
-    " 00010000 0001 01 20895 @node_devtools_remote\n";
+    " 00010000 0001 01 20895 @node_citizennotes_remote\n";
 
 const char kSampleListProcesses[] =
     "USER    PID  PPID VSIZE  RSS    WCHAN    PC         NAME\n"
@@ -132,60 +132,60 @@ char kSampleNodeVersion[] = "{\n"
 
 char kSampleChromePages[] = "[ {\n"
     "   \"description\": \"\",\n"
-    "   \"devtoolsFrontendUrl\": \"/devtools/devtools.html?"
-    "ws=/devtools/page/0\",\n"
+    "   \"citizennotesFrontendUrl\": \"/citizennotes/citizennotes.html?"
+    "ws=/citizennotes/page/0\",\n"
     "   \"id\": \"0\",\n"
     "   \"title\": \"The Chromium Projects\",\n"
     "   \"type\": \"page\",\n"
     "   \"url\": \"http://www.chromium.org/\",\n"
     "   \"webSocketDebuggerUrl\": \""
-    "ws:///devtools/page/0\"\n"
+    "ws:///citizennotes/page/0\"\n"
     "} ]";
 
 char kSampleChromeBetaPages[] = "[ {\n"
     "   \"description\": \"\",\n"
-    "   \"devtoolsFrontendUrl\": \"/devtools/devtools.html?"
-    "ws=/devtools/page/0\",\n"
+    "   \"citizennotesFrontendUrl\": \"/citizennotes/citizennotes.html?"
+    "ws=/citizennotes/page/0\",\n"
     "   \"id\": \"0\",\n"
     "   \"title\": \"The Chromium Projects\",\n"
     "   \"type\": \"page\",\n"
     "   \"url\": \"http://www.chromium.org/\",\n"
     "   \"webSocketDebuggerUrl\": \""
-    "ws:///devtools/page/0\"\n"
+    "ws:///citizennotes/page/0\"\n"
     "} ]";
 
 char kSampleWebViewPages[] = "[ {\n"
     "   \"description\": \"{\\\"attached\\\":false,\\\"empty\\\":false,"
     "\\\"height\\\":1173,\\\"screenX\\\":0,\\\"screenY\\\":0,"
     "\\\"visible\\\":true,\\\"width\\\":800}\",\n"
-    "   \"devtoolsFrontendUrl\": \"http://chrome-devtools-frontend.appspot.com/"
-    "serve_rev/@157588/devtools.html?ws="
-    "/devtools/page/3E962D4D-B676-182D-3BE8-FAE7CE224DE7\",\n"
+    "   \"citizennotesFrontendUrl\": \"http://chrome-citizennotes-frontend.appspot.com/"
+    "serve_rev/@157588/citizennotes.html?ws="
+    "/citizennotes/page/3E962D4D-B676-182D-3BE8-FAE7CE224DE7\",\n"
     "   \"faviconUrl\": \"http://chromium.org/favicon.ico\",\n"
     "   \"id\": \"3E962D4D-B676-182D-3BE8-FAE7CE224DE7\",\n"
     "   \"title\": \"Blink - The Chromium Projects\",\n"
     "   \"type\": \"page\",\n"
     "   \"url\": \"http://www.chromium.org/blink\",\n"
-    "   \"webSocketDebuggerUrl\": \"ws:///devtools/"
+    "   \"webSocketDebuggerUrl\": \"ws:///citizennotes/"
     "page/3E962D4D-B676-182D-3BE8-FAE7CE224DE7\"\n"
     "}, {\n"
     "   \"description\": \"{\\\"attached\\\":true,\\\"empty\\\":true,"
     "\\\"screenX\\\":0,\\\"screenY\\\":33,\\\"visible\\\":false}\",\n"
-    "   \"devtoolsFrontendUrl\": \"http://chrome-devtools-frontend.appspot.com/"
-    "serve_rev/@157588/devtools.html?ws="
-    "/devtools/page/44681551-ADFD-2411-076B-3AB14C1C60E2\",\n"
+    "   \"citizennotesFrontendUrl\": \"http://chrome-citizennotes-frontend.appspot.com/"
+    "serve_rev/@157588/citizennotes.html?ws="
+    "/citizennotes/page/44681551-ADFD-2411-076B-3AB14C1C60E2\",\n"
     "   \"faviconUrl\": \"\",\n"
     "   \"id\": \"44681551-ADFD-2411-076B-3AB14C1C60E2\",\n"
     "   \"title\": \"More Activity\",\n"
     "   \"type\": \"page\",\n"
     "   \"url\": \"about:blank\",\n"
-    "   \"webSocketDebuggerUrl\": \"ws:///devtools/page/"
+    "   \"webSocketDebuggerUrl\": \"ws:///citizennotes/page/"
     "44681551-ADFD-2411-076B-3AB14C1C60E2\"\n"
     "}]";
 
 char kSampleNodePage[] = "[ {\n"
     "   \"description\": \"\","
-    "   \"devtoolsFrontendUrl\": \"chrome-devtools://devtools/bundled/"
+    "   \"citizennotesFrontendUrl\": \"chrome-citizennotes://citizennotes/bundled/"
     "js_app.html?experiments=true&v8only=true&ws=192.168.86.1:33279/"
     "148b8b92-8ca0-43fd-b8c8-a351864644f8\","
     "   \"faviconUrl\": \"https://nodejs.org/static/favicon.ico\","
@@ -562,21 +562,21 @@ void MockAndroidConnection::Receive(const std::string& data) {
   if (path == kJsonPath)
     path = kJsonListPath;
 
-  if (socket_name_ == "chrome_devtools_remote") {
+  if (socket_name_ == "chrome_citizennotes_remote") {
     if (path == kJsonVersionPath)
       SendHTTPResponse(kSampleChromeVersion);
     else if (base::StartsWith(path, kJsonListPath))
       SendHTTPResponse(kSampleChromePages);
     else
       NOTREACHED() << "Unknown command " << request;
-  } else if (socket_name_ == "chrome_devtools_remote_1002") {
+  } else if (socket_name_ == "chrome_citizennotes_remote_1002") {
     if (path == kJsonVersionPath)
       SendHTTPResponse(kSampleChromeBetaVersion);
     else if (base::StartsWith(path, kJsonListPath))
       SendHTTPResponse(kSampleChromeBetaPages);
     else
       NOTREACHED() << "Unknown command " << request;
-  } else if (base::StartsWith(socket_name_, "noprocess_devtools_remote",
+  } else if (base::StartsWith(socket_name_, "noprocess_citizennotes_remote",
                               base::CompareCase::SENSITIVE)) {
     if (path == kJsonVersionPath)
       SendHTTPResponse("{}");
@@ -584,14 +584,14 @@ void MockAndroidConnection::Receive(const std::string& data) {
       SendHTTPResponse("[]");
     else
       NOTREACHED() << "Unknown command " << request;
-  } else if (socket_name_ == "webview_devtools_remote_2425") {
+  } else if (socket_name_ == "webview_citizennotes_remote_2425") {
     if (path == kJsonVersionPath)
       SendHTTPResponse(kSampleWebViewVersion);
     else if (base::StartsWith(path, kJsonListPath))
       SendHTTPResponse(kSampleWebViewPages);
     else
       NOTREACHED() << "Unknown command " << request;
-  } else if (socket_name_ == "node_devtools_remote") {
+  } else if (socket_name_ == "node_citizennotes_remote") {
     if (path == kJsonVersionPath)
       SendHTTPResponse(kSampleNodeVersion);
     else if (base::StartsWith(path, kJsonListPath))

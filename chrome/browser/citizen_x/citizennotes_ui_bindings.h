@@ -14,15 +14,15 @@
 #include "base/containers/unique_ptr_adapters.h"
 #include "base/memory/weak_ptr.h"
 #include "base/values.h"
-#include "chrome/browser/devtools/aida_client.h"
+#include "chrome/browser/citizen_x/cnaida_client.h"
 #include "chrome/browser/citizen_x/device/citizennotes_android_bridge.h"
 #include "chrome/browser/citizen_x/citizennotes_embedder_message_dispatcher.h"
-#include "chrome/browser/devtools/devtools_file_helper.h"
-#include "chrome/browser/devtools/devtools_file_system_indexer.h"
+#include "chrome/browser/citizen_x/citizennotes_file_helper.h"
+#include "chrome/browser/citizen_x/citizennotes_file_system_indexer.h"
 #include "chrome/browser/citizen_x/citizennotes_infobar_delegate.h"
 #include "chrome/browser/citizen_x/citizennotes_settings.h"
 #include "chrome/browser/citizen_x/citizennotes_targets_ui.h"
-#include "chrome/browser/devtools/visual_logging.h"
+#include "chrome/browser/citizen_x/cnvisual_logging.h"
 #include "components/prefs/pref_change_registrar.h"
 #include "content/public/browser/citizennotes_agent_host.h"
 #include "content/public/browser/citizennotes_frontend_host.h"
@@ -42,11 +42,11 @@ namespace infobars {
 class ContentInfoBarManager;
 }
 
-// Base implementation of DevTools bindings around front-end.
+// Base implementation of CitizenNotes bindings around front-end.
 class CitizenNotesUIBindings : public CitizenNotesEmbedderMessageDispatcher::Delegate,
                            public CitizenNotesAndroidBridge::DeviceCountListener,
                            public content::CitizenNotesAgentHostClient,
-                           public DevToolsFileHelper::Delegate {
+                           public CitizenNotesFileHelper::Delegate {
  public:
   class Delegate {
    public:
@@ -182,12 +182,12 @@ class CitizenNotesUIBindings : public CitizenNotesEmbedderMessageDispatcher::Del
   void RecordPerformanceHistogram(const std::string& name,
                                   double duration) override;
   void RecordUserMetricsAction(const std::string& name) override;
-  void RecordImpression(const ImpressionEvent& event) override;
-  void RecordClick(const ClickEvent& event) override;
-  void RecordHover(const HoverEvent& event) override;
-  void RecordDrag(const DragEvent& event) override;
-  void RecordChange(const ChangeEvent& event) override;
-  void RecordKeyDown(const KeyDownEvent& event) override;
+  void RecordImpression(const CNImpressionEvent& event) override;
+  void RecordClick(const CNClickEvent& event) override;
+  void RecordHover(const CNHoverEvent& event) override;
+  void RecordDrag(const CNDragEvent& event) override;
+  void RecordChange(const CNChangeEvent& event) override;
+  void RecordKeyDown(const CNKeyDownEvent& event) override;
   void SendJsonRequest(DispatchCallback callback,
                        const std::string& browser_id,
                        const std::string& url) override;
@@ -238,16 +238,16 @@ class CitizenNotesUIBindings : public CitizenNotesEmbedderMessageDispatcher::Del
   void DevicesDiscoveryConfigUpdated();
   void SendPortForwardingStatus(base::Value status);
 
-  // DevToolsFileHelper::Delegate overrides.
+  // CitizenNotesFileHelper::Delegate overrides.
   void FileSystemAdded(
       const std::string& error,
-      const DevToolsFileHelper::FileSystem* file_system) override;
+      const CitizenNotesFileHelper::FileSystem* file_system) override;
   void FileSystemRemoved(const std::string& file_system_path) override;
   void FilePathsChanged(const std::vector<std::string>& changed_paths,
                         const std::vector<std::string>& added_paths,
                         const std::vector<std::string>& removed_paths) override;
 
-  // DevToolsFileHelper callbacks.
+  // CitizenNotesFileHelper callbacks.
   void FileSavedAs(const std::string& url, const std::string& file_system_path);
   void CanceledFileSaveAs(const std::string& url);
   void AppendedTo(const std::string& url);
@@ -281,11 +281,11 @@ class CitizenNotesUIBindings : public CitizenNotesEmbedderMessageDispatcher::Del
   std::unique_ptr<Delegate> delegate_;
   scoped_refptr<content::CitizenNotesAgentHost> agent_host_;
   std::unique_ptr<content::CitizenNotesFrontendHost> frontend_host_;
-  std::unique_ptr<DevToolsFileHelper> file_helper_;
-  scoped_refptr<DevToolsFileSystemIndexer> file_system_indexer_;
+  std::unique_ptr<CitizenNotesFileHelper> file_helper_;
+  scoped_refptr<CitizenNotesFileSystemIndexer> file_system_indexer_;
   typedef std::map<
       int,
-      scoped_refptr<DevToolsFileSystemIndexer::FileSystemIndexingJob> >
+      scoped_refptr<CitizenNotesFileSystemIndexer::FileSystemIndexingJob> >
       IndexingJobsMap;
   IndexingJobsMap indexing_jobs_;
 
@@ -309,7 +309,7 @@ class CitizenNotesUIBindings : public CitizenNotesEmbedderMessageDispatcher::Del
   CitizenNotesSettings settings_;
   base::TimeTicks last_action_time_;
 
-  std::unique_ptr<AidaClient> aida_client_;
+  std::unique_ptr<CNAidaClient> aida_client_;
   base::WeakPtrFactory<CitizenNotesUIBindings> weak_factory_{this};
 };
 

@@ -20,6 +20,10 @@ struct Activity {
     // empty string.
     DEV_TOOLS,
 
+    // The activity is for the Developer Tools client. The extra data is an
+    // empty string.
+    CITIZEN_NOTES,
+
     // The activity is an event. The extra data is the event name.
     EVENT,
 

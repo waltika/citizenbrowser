@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHROME_BROWSER_DEVTOOLS_DEVICE_USB_ANDROID_USB_DEVICE_H_
-#define CHROME_BROWSER_DEVTOOLS_DEVICE_USB_ANDROID_USB_DEVICE_H_
+#ifndef CHROME_BROWSER_CITIZENNOTES_DEVICE_USB_ANDROID_USB_DEVICE_H_
+#define CHROME_BROWSER_CITIZENNOTES_DEVICE_USB_ANDROID_USB_DEVICE_H_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -17,7 +17,7 @@
 #include "base/containers/span.h"
 #include "base/memory/ref_counted.h"
 #include "base/memory/weak_ptr.h"
-#include "chrome/browser/devtools/device/usb/usb_device_manager_helper.h"
+#include "chrome/browser/citizen_x/device/usb/cnusb_device_manager_helper.h"
 #include "mojo/public/cpp/bindings/remote.h"
 #include "services/device/public/mojom/usb_device.mojom-forward.h"
 
@@ -34,9 +34,9 @@ namespace net {
 class StreamSocket;
 }
 
-class AndroidUsbSocket;
+class CNAndroidUsbSocket;
 
-class AdbMessage {
+class CNAdbMessage {
  public:
   enum Command {
     kCommandSYNC = 0x434e5953,
@@ -54,15 +54,15 @@ class AdbMessage {
     kAuthRSAPublicKey = 3
   };
 
-  AdbMessage(uint32_t command,
+  CNAdbMessage(uint32_t command,
              uint32_t arg0,
              uint32_t arg1,
              const std::string& body);
 
-  AdbMessage(const AdbMessage&) = delete;
-  AdbMessage& operator=(const AdbMessage&) = delete;
+  CNAdbMessage(const CNAdbMessage&) = delete;
+  CNAdbMessage& operator=(const CNAdbMessage&) = delete;
 
-  ~AdbMessage();
+  ~CNAdbMessage();
 
   uint32_t command;
   uint32_t arg0;
@@ -70,22 +70,22 @@ class AdbMessage {
   std::string body;
 };
 
-class AndroidUsbDevice;
-typedef std::vector<scoped_refptr<AndroidUsbDevice> > AndroidUsbDevices;
-typedef base::OnceCallback<void(const AndroidUsbDevices&)>
-    AndroidUsbDevicesCallback;
+class CNAndroidUsbDevice;
+typedef std::vector<scoped_refptr<CNAndroidUsbDevice> > CNAndroidUsbDevices;
+typedef base::OnceCallback<void(const CNAndroidUsbDevices&)>
+    CNAndroidUsbDevicesCallback;
 
-class AndroidUsbDevice : public base::RefCountedThreadSafe<AndroidUsbDevice> {
+class CNAndroidUsbDevice : public base::RefCountedThreadSafe<CNAndroidUsbDevice> {
  public:
   static void Enumerate(crypto::RSAPrivateKey* rsa_key,
-                        AndroidUsbDevicesCallback callback);
+                        CNAndroidUsbDevicesCallback callback);
 
-  AndroidUsbDevice(crypto::RSAPrivateKey* rsa_key,
-                   const AndroidDeviceInfo& android_device_info,
+  CNAndroidUsbDevice(crypto::RSAPrivateKey* rsa_key,
+                   const CNAndroidDeviceInfo& android_device_info,
                    mojo::Remote<device::mojom::UsbDevice> device);
 
-  AndroidUsbDevice(const AndroidUsbDevice&) = delete;
-  AndroidUsbDevice& operator=(const AndroidUsbDevice&) = delete;
+  CNAndroidUsbDevice(const CNAndroidUsbDevice&) = delete;
+  CNAndroidUsbDevice& operator=(const CNAndroidUsbDevice&) = delete;
 
   void InitOnCallerThread();
 
@@ -101,14 +101,14 @@ class AndroidUsbDevice : public base::RefCountedThreadSafe<AndroidUsbDevice> {
   bool is_connected() const { return is_connected_; }
 
  private:
-  friend class base::RefCountedThreadSafe<AndroidUsbDevice>;
+  friend class base::RefCountedThreadSafe<CNAndroidUsbDevice>;
 
   static void EnsureUsbDeviceManagerConnection();
   static void OnDeviceManagerConnectionError();
 
-  virtual ~AndroidUsbDevice();
+  virtual ~CNAndroidUsbDevice();
 
-  void Queue(std::unique_ptr<AdbMessage> message);
+  void Queue(std::unique_ptr<CNAdbMessage> message);
   void ProcessOutgoing();
   void OutgoingMessageSent(device::mojom::UsbTransferStatus status);
 
@@ -116,16 +116,16 @@ class AndroidUsbDevice : public base::RefCountedThreadSafe<AndroidUsbDevice> {
   void ParseHeader(device::mojom::UsbTransferStatus status,
                    base::span<const uint8_t> buffer);
 
-  void ReadBody(std::unique_ptr<AdbMessage> message,
+  void ReadBody(std::unique_ptr<CNAdbMessage> message,
                 uint32_t data_length,
                 uint32_t data_check);
-  void ParseBody(std::unique_ptr<AdbMessage> message,
+  void ParseBody(std::unique_ptr<CNAdbMessage> message,
                  uint32_t data_length,
                  uint32_t data_check,
                  device::mojom::UsbTransferStatus status,
                  base::span<const uint8_t> buffer);
 
-  void HandleIncoming(std::unique_ptr<AdbMessage> message);
+  void HandleIncoming(std::unique_ptr<CNAdbMessage> message);
 
   void TransferError(device::mojom::UsbTransferStatus status);
 
@@ -139,25 +139,25 @@ class AndroidUsbDevice : public base::RefCountedThreadSafe<AndroidUsbDevice> {
 
   // Device info
   mojo::Remote<device::mojom::UsbDevice> device_;
-  AndroidDeviceInfo android_device_info_;
+  CNAndroidDeviceInfo android_device_info_;
 
   bool is_connected_;
   bool signature_sent_;
 
   // Created sockets info
   uint32_t last_socket_id_;
-  using AndroidUsbSockets = std::map<uint32_t, AndroidUsbSocket*>;
-  AndroidUsbSockets sockets_;
+  using CNAndroidUsbSockets = std::map<uint32_t, CNAndroidUsbSocket*>;
+  CNAndroidUsbSockets sockets_;
 
   // Outgoing bulk queue
   using BulkMessage = scoped_refptr<base::RefCountedBytes>;
   base::queue<BulkMessage> outgoing_queue_;
 
   // Outgoing messages pending connect
-  using PendingMessages = std::vector<std::unique_ptr<AdbMessage>>;
+  using PendingMessages = std::vector<std::unique_ptr<CNAdbMessage>>;
   PendingMessages pending_messages_;
 
-  base::WeakPtrFactory<AndroidUsbDevice> weak_factory_{this};
+  base::WeakPtrFactory<CNAndroidUsbDevice> weak_factory_{this};
 };
 
-#endif  // CHROME_BROWSER_DEVTOOLS_DEVICE_USB_ANDROID_USB_DEVICE_H_
+#endif  // CHROME_BROWSER_CITIZENNOTES_DEVICE_USB_ANDROID_USB_DEVICE_H_

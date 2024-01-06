@@ -216,7 +216,7 @@ static void ResolveHost(Profile* profile,
                                  std::move(resolve_host_callback));
 }
 
-// This class is created and runs on the devtools ADB thread (except for the
+// This class is created and runs on the citizennotes ADB thread (except for the
 // OnCNResolveHostComplete(), which runs on the BrowserThread::UI thread since it
 // is called as a callback from CNPortForwardingHostResolver).
 class CNSocketTunnel {
@@ -611,8 +611,8 @@ CNPortForwardingController::CNPortForwardingController(Profile* profile)
   pref_change_registrar_.Init(pref_service_);
   base::RepeatingClosure callback = base::BindRepeating(
       &CNPortForwardingController::OnPrefsChange, base::Unretained(this));
-  pref_change_registrar_.Add(prefs::kDevToolsPortForwardingEnabled, callback);
-  pref_change_registrar_.Add(prefs::kDevToolsPortForwardingConfig, callback);
+  pref_change_registrar_.Add(prefs::kCitizenNotesPortForwardingEnabled, callback);
+  pref_change_registrar_.Add(prefs::kCitizenNotesPortForwardingConfig, callback);
   OnPrefsChange();
 }
 
@@ -654,9 +654,9 @@ void CNPortForwardingController::CloseAllConnections() {
 void CNPortForwardingController::OnPrefsChange() {
   forwarding_map_.clear();
 
-  if (pref_service_->GetBoolean(prefs::kDevToolsPortForwardingEnabled)) {
+  if (pref_service_->GetBoolean(prefs::kCitizenNotesPortForwardingEnabled)) {
     const base::Value::Dict& value =
-        pref_service_->GetDict(prefs::kDevToolsPortForwardingConfig);
+        pref_service_->GetDict(prefs::kCitizenNotesPortForwardingConfig);
     for (auto dict_element : value) {
       int port_num;
       if (base::StringToInt(dict_element.first, &port_num) &&

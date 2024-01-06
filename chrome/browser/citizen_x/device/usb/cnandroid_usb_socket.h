@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHROME_BROWSER_DEVTOOLS_DEVICE_USB_ANDROID_USB_SOCKET_H_
-#define CHROME_BROWSER_DEVTOOLS_DEVICE_USB_ANDROID_USB_SOCKET_H_
+#ifndef CHROME_BROWSER_CITIZENNOTES_DEVICE_USB_ANDROID_USB_SOCKET_H_
+#define CHROME_BROWSER_CITIZENNOTES_DEVICE_USB_ANDROID_USB_SOCKET_H_
 
 #include <stdint.h>
 
@@ -12,25 +12,25 @@
 #include "base/memory/ref_counted.h"
 #include "base/memory/weak_ptr.h"
 #include "base/sequence_checker.h"
-#include "chrome/browser/devtools/device/usb/android_usb_device.h"
+#include "chrome/browser/citizen_x/device/usb/cnandroid_usb_device.h"
 #include "net/base/ip_endpoint.h"
 #include "net/log/net_log_with_source.h"
 #include "net/socket/stream_socket.h"
 #include "net/traffic_annotation/network_traffic_annotation.h"
 
-class AndroidUsbSocket : public net::StreamSocket {
+class CNAndroidUsbSocket : public net::StreamSocket {
  public:
-  AndroidUsbSocket(scoped_refptr<AndroidUsbDevice> device,
+  CNAndroidUsbSocket(scoped_refptr<CNAndroidUsbDevice> device,
                    uint32_t socket_id,
                    const std::string& command,
                    base::OnceClosure delete_callback);
 
-  AndroidUsbSocket(const AndroidUsbSocket&) = delete;
-  AndroidUsbSocket& operator=(const AndroidUsbSocket&) = delete;
+  CNAndroidUsbSocket(const CNAndroidUsbSocket&) = delete;
+  CNAndroidUsbSocket& operator=(const CNAndroidUsbSocket&) = delete;
 
-  ~AndroidUsbSocket() override;
+  ~CNAndroidUsbSocket() override;
 
-  void HandleIncoming(std::unique_ptr<AdbMessage> message);
+  void HandleIncoming(std::unique_ptr<CNAdbMessage> message);
 
   void Terminated(bool closed_by_device);
 
@@ -62,7 +62,7 @@ class AndroidUsbSocket : public net::StreamSocket {
   void RespondToReader(bool disconnect);
   void RespondToWriter(int result);
 
-  scoped_refptr<AndroidUsbDevice> device_;
+  scoped_refptr<CNAndroidUsbDevice> device_;
   std::string command_;
   uint32_t local_id_;
   uint32_t remote_id_;
@@ -79,7 +79,7 @@ class AndroidUsbSocket : public net::StreamSocket {
 
   SEQUENCE_CHECKER(sequence_checker_);
 
-  base::WeakPtrFactory<AndroidUsbSocket> weak_factory_{this};
+  base::WeakPtrFactory<CNAndroidUsbSocket> weak_factory_{this};
 };
 
-#endif  // CHROME_BROWSER_DEVTOOLS_DEVICE_USB_ANDROID_USB_SOCKET_H_
+#endif  // CHROME_BROWSER_CITIZENNOTES_DEVICE_USB_ANDROID_USB_SOCKET_H_

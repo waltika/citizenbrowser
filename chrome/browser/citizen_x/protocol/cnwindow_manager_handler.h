@@ -5,7 +5,7 @@
 #ifndef CHROME_BROWSER_CITIZENNOTES_PROTOCOL_WINDOW_MANAGER_HANDLER_H_
 #define CHROME_BROWSER_CITIZENNOTES_PROTOCOL_WINDOW_MANAGER_HANDLER_H_
 
-#include "chrome/browser/devtools/protocol/window_manager.h"
+#include "chrome/browser/citizen_x/protocol/window_manager.h"
 
 class CNWindowManagerHandler : public protocol::WindowManager::Backend {
  public:

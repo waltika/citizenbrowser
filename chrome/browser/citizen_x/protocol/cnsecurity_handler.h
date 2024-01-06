@@ -5,7 +5,7 @@
 #ifndef CHROME_BROWSER_CITIZENNOTES_PROTOCOL_SECURITY_HANDLER_H_
 #define CHROME_BROWSER_CITIZENNOTES_PROTOCOL_SECURITY_HANDLER_H_
 
-#include "chrome/browser/devtools/protocol/security.h"
+#include "chrome/browser/citizen_x/protocol/security.h"
 #include "content/public/browser/web_contents_observer.h"
 
 namespace content {

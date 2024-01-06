@@ -536,6 +536,7 @@
 #define IDC_DEVICE_SYSTEM_TRAY_ICON_LAST 53299
 
 #define IDC_CITIZEN_X 54000
+#define IDC_CITIZEN_NOTES 54001
 
 
 // NOTE: The last valid command value is 57343 (0xDFFF)

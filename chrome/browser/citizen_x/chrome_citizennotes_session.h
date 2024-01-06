@@ -10,8 +10,8 @@
 #include "base/containers/flat_map.h"
 #include "base/containers/span.h"
 #include "build/chromeos_buildflags.h"
-#include "chrome/browser/devtools/protocol/protocol.h"
-#include "chrome/browser/devtools/protocol/storage_handler.h"
+#include "chrome/browser/citizen_x/protocol/protocol.h"
+#include "chrome/browser/citizen_x/protocol/cnstorage_handler.h"
 #include "content/public/browser/citizennotes_manager_delegate.h"
 
 namespace content {

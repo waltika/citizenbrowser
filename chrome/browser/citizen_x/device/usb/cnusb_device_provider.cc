@@ -72,7 +72,7 @@ void OpenedForCommand(CNUsbDeviceProvider::CommandCallback callback,
   }
 }
 
-void RunCommand(scoped_refptr<AndroidUsbDevice> device,
+void RunCommand(scoped_refptr<CNAndroidUsbDevice> device,
                 const std::string& command,
                 CNUsbDeviceProvider::CommandCallback callback) {
   net::StreamSocket* socket = device->CreateSocket(command);
@@ -91,11 +91,11 @@ void RunCommand(scoped_refptr<AndroidUsbDevice> device,
 }  // namespace
 
 CNUsbDeviceProvider::CNUsbDeviceProvider(Profile* profile) {
-  rsa_key_ = AndroidRSAPrivateKey(profile);
+  rsa_key_ = CNAndroidRSAPrivateKey(profile);
 }
 
 void CNUsbDeviceProvider::QueryDevices(SerialsCallback callback) {
-  AndroidUsbDevice::Enumerate(
+  CNAndroidUsbDevice::Enumerate(
       rsa_key_.get(), base::BindOnce(&CNUsbDeviceProvider::EnumeratedDevices,
                                      this, std::move(callback)));
 }
@@ -144,7 +144,7 @@ CNUsbDeviceProvider::~CNUsbDeviceProvider() {
 }
 
 void CNUsbDeviceProvider::EnumeratedDevices(SerialsCallback callback,
-                                          const AndroidUsbDevices& devices) {
+                                          const CNAndroidUsbDevices& devices) {
   std::vector<std::string> result;
   device_map_.clear();
   for (auto it = devices.begin(); it != devices.end(); ++it) {

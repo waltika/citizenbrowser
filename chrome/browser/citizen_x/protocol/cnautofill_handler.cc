@@ -7,7 +7,7 @@
 #include "base/check_deref.h"
 #include "base/memory/scoped_refptr.h"
 #include "base/strings/utf_string_conversions.h"
-#include "chrome/browser/devtools/protocol/autofill.h"
+#include "chrome/browser/citizen_x/protocol/autofill.h"
 #include "chrome/browser/ui/autofill/autofill_popup_controller_impl.h"
 #include "chrome/browser/ui/autofill/chrome_autofill_client.h"
 #include "components/autofill/content/browser/content_autofill_driver.h"
@@ -24,7 +24,7 @@
 #include "components/autofill/core/common/form_field_data.h"
 #include "components/autofill/core/common/mojom/autofill_types.mojom-shared.h"
 #include "components/autofill/core/common/unique_ids.h"
-#include "content/public/browser/devtools_agent_host.h"
+#include "content/public/browser/citizennotes_agent_host.h"
 #include "content/public/browser/render_frame_host.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 
@@ -66,7 +66,7 @@ CNAutofillHandler::CNAutofillHandler(protocol::UberDispatcher* dispatcher,
   protocol::Autofill::Dispatcher::wire(dispatcher, this);
 
   if (base::FeatureList::IsEnabled(
-          autofill::features::kAutofillTestFormWithDevtools)) {
+          autofill::features::kAutofillTestFormWithCitizennotes)) {
     frontend_ =
         std::make_unique<protocol::Autofill::Frontend>(dispatcher->channel());
   }
@@ -79,7 +79,7 @@ void CNAutofillHandler::Trigger(
     Maybe<String> frame_id,
     std::unique_ptr<protocol::Autofill::CreditCard> card,
     std::unique_ptr<TriggerCallback> callback) {
-  auto host = content::DevToolsAgentHost::GetForId(target_id_);
+  auto host = content::CitizenNotesAgentHost::GetForId(target_id_);
   if (!host) {
     std::move(callback)->sendFailure(Response::ServerError("Target not found"));
     return;
@@ -96,7 +96,7 @@ void CNAutofillHandler::FinishTrigger(
     std::unique_ptr<protocol::Autofill::CreditCard> card,
     std::unique_ptr<TriggerCallback> callback,
     uint64_t field_id) {
-  auto host = content::DevToolsAgentHost::GetForId(target_id_);
+  auto host = content::CitizenNotesAgentHost::GetForId(target_id_);
   if (!host) {
     std::move(callback)->sendFailure(Response::ServerError("Target not found"));
     return;
@@ -109,7 +109,7 @@ void CNAutofillHandler::FinishTrigger(
   if (frame_id.has_value()) {
     outermost_primary_rfh->ForEachRenderFrameHost(
         [&frame_id, &frame_rfh](content::RenderFrameHost* rfh) {
-          if (rfh->GetDevToolsFrameToken().ToString() == frame_id.value()) {
+          if (rfh->GetCitizenNotesFrameToken().ToString() == frame_id.value()) {
             frame_rfh = rfh;
           }
         });
@@ -180,7 +180,7 @@ void CNAutofillHandler::FinishTrigger(
 void CNAutofillHandler::SetAddresses(
     std::unique_ptr<protocol::Array<protocol::Autofill::Address>> addresses,
     std::unique_ptr<SetAddressesCallback> callback) {
-  if (!content::DevToolsAgentHost::GetForId(target_id_)) {
+  if (!content::CitizenNotesAgentHost::GetForId(target_id_)) {
     std::move(callback)->sendFailure(Response::ServerError("Target not found"));
     return;
   }
@@ -227,7 +227,7 @@ void CNAutofillHandler::OnFillOrPreviewDataModelForm(
     absl::variant<const autofill::AutofillProfile*, const autofill::CreditCard*>
         profile_or_credit_card) {
   if (!base::FeatureList::IsEnabled(
-          autofill::features::kAutofillTestFormWithDevtools)) {
+          autofill::features::kAutofillTestFormWithCitizennotes)) {
     return;
   }
 
@@ -243,9 +243,9 @@ void CNAutofillHandler::OnFillOrPreviewDataModelForm(
   const autofill::AutofillProfile* profile_used_to_fill_form =
       absl::get<const autofill::AutofillProfile*>(profile_or_credit_card);
 
-  auto filled_fields_to_be_sent_to_devtools =
+  auto filled_fields_to_be_sent_to_citizennotes =
       std::make_unique<protocol::Array<protocol::Autofill::FilledField>>();
-  filled_fields_to_be_sent_to_devtools->reserve(filled_fields.size());
+  filled_fields_to_be_sent_to_citizennotes->reserve(filled_fields.size());
   for (const FormFieldData* field : filled_fields) {
     AutofillField* autofill_field =
         form_structure.GetFieldById(field->global_id());
@@ -262,7 +262,7 @@ void CNAutofillHandler::OnFillOrPreviewDataModelForm(
         HtmlFieldTypeToBestCorrespondingServerFieldType(
             autofill_field->html_type()) !=
             autofill_field->Type().GetStorableType();
-    filled_fields_to_be_sent_to_devtools->push_back(
+    filled_fields_to_be_sent_to_citizennotes->push_back(
         protocol::Autofill::FilledField::Create()
             .SetId(base::UTF16ToASCII(autofill_field->id_attribute))
             .SetName(base::UTF16ToASCII(autofill_field->name_attribute))
@@ -280,10 +280,10 @@ void CNAutofillHandler::OnFillOrPreviewDataModelForm(
             .Build());
   }
 
-  // Send profile information to devtools so that it can build the UI.
+  // Send profile information to citizennotes so that it can build the UI.
   // We use the same format we see in the settings page.
   std::vector<std::vector<autofill::AutofillAddressUIComponent>> components;
-  // Devtools is already in english, so we can default the local to en-US.
+  // Citizennotes is already in english, so we can default the local to en-US.
   const std::string locale = "en-US";
   autofill::GetAddressComponents(
       base::UTF16ToASCII(profile_used_to_fill_form->GetInfo(
@@ -321,14 +321,14 @@ void CNAutofillHandler::OnFillOrPreviewDataModelForm(
             .Build());
   }
   frontend_->AddressFormFilled(
-      std::move(filled_fields_to_be_sent_to_devtools),
+      std::move(filled_fields_to_be_sent_to_citizennotes),
       protocol::Autofill::AddressUI::Create()
           .SetAddressFields(std::move(profile_address_fields))
           .Build());
 }
 
 autofill::ContentAutofillDriver* CNAutofillHandler::GetAutofillDriver() {
-  auto host = content::DevToolsAgentHost::GetForId(target_id_);
+  auto host = content::CitizenNotesAgentHost::GetForId(target_id_);
   CHECK(host);
 
   content::RenderFrameHost* outermost_primary_rfh =
@@ -345,8 +345,8 @@ Response CNAutofillHandler::Enable() {
 
   enabled_ = true;
   if (base::FeatureList::IsEnabled(
-          autofill::features::kAutofillTestFormWithDevtools)) {
-    auto host = content::DevToolsAgentHost::GetForId(target_id_);
+          autofill::features::kAutofillTestFormWithCitizennotes)) {
+    auto host = content::CitizenNotesAgentHost::GetForId(target_id_);
     CHECK(host);
     autofill_managers_observation_.Observe(
         host->GetWebContents(),

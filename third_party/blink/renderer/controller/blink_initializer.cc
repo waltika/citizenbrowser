@@ -49,6 +49,7 @@
 #include "third_party/blink/renderer/bindings/core/v8/v8_initializer.h"
 #include "third_party/blink/renderer/controller/blink_leak_detector.h"
 #include "third_party/blink/renderer/controller/dev_tools_frontend_impl.h"
+#include "third_party/blink/renderer/controller/citizen_notes_frontend_impl.h"
 #include "third_party/blink/renderer/controller/performance_manager/renderer_resource_coordinator_impl.h"
 #include "third_party/blink/renderer/controller/performance_manager/v8_detailed_memory_reporter_impl.h"
 #include "third_party/blink/renderer/core/animation/animation_clock.h"
@@ -313,6 +314,9 @@ void BlinkInitializer::InitLocalFrame(LocalFrame& frame) const {
   frame.GetInterfaceRegistry()->AddAssociatedInterface(WTF::BindRepeating(
       &DevToolsFrontendImpl::BindMojoRequest, WrapWeakPersistent(&frame)));
 
+  frame.GetInterfaceRegistry()->AddAssociatedInterface(WTF::BindRepeating(
+      &CitizenNotesFrontendImpl::BindMojoRequest, WrapWeakPersistent(&frame)));
+
   frame.GetInterfaceRegistry()->AddInterface(WTF::BindRepeating(
       &LocalFrame::PauseSubresourceLoading, WrapWeakPersistent(&frame)));
 
@@ -340,6 +344,10 @@ void BlinkInitializer::OnClearWindowObjectInMainWorld(
   if (DevToolsFrontendImpl* devtools_frontend =
           DevToolsFrontendImpl::From(document.GetFrame())) {
     devtools_frontend->DidClearWindowObject();
+  }
+  if (CitizenNotesFrontendImpl* citizennotes_frontend =
+          CitizenNotesFrontendImpl::From(document.GetFrame())) {
+      citizennotes_frontend->DidClearWindowObject();
   }
   ModulesInitializer::OnClearWindowObjectInMainWorld(document, settings);
 }

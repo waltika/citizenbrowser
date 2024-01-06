@@ -20,6 +20,8 @@ static_library("browser") {
     "content_subresource_filter_web_contents_helper.h",
     "devtools_interaction_tracker.cc",
     "devtools_interaction_tracker.h",
+    "citizennotes_interaction_tracker.cc",
+    "citizennotes_interaction_tracker.h",
     "navigation_console_logger.cc",
     "navigation_console_logger.h",
     "page_load_statistics.cc",

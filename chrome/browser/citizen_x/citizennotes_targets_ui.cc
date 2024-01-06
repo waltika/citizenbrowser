@@ -17,7 +17,7 @@
 #include "base/version.h"
 #include "chrome/browser/citizen_x/device/citizennotes_android_bridge.h"
 #include "chrome/browser/citizen_x/citizennotes_window.h"
-#include "chrome/browser/devtools/serialize_host_descriptions.h"
+#include "chrome/browser/citizen_x/cnserialize_host_descriptions.h"
 #include "chrome/browser/profiles/profile.h"
 #include "components/media_router/browser/presentation/local_presentation_manager.h"
 #include "components/media_router/browser/presentation/local_presentation_manager_factory.h"
@@ -133,7 +133,7 @@ void LocalTargetsUIHandler::UpdateTargets() {
   content::CitizenNotesAgentHost::List targets =
       CitizenNotesAgentHost::GetOrCreateAll();
 
-  std::vector<HostDescriptionNode> hosts;
+  std::vector<CNHostDescriptionNode> hosts;
   hosts.reserve(targets.size());
   targets_.clear();
   for (const scoped_refptr<CitizenNotesAgentHost>& host : targets) {
@@ -146,7 +146,7 @@ void LocalTargetsUIHandler::UpdateTargets() {
   }
 
   SendSerializedTargets(
-      base::Value(SerializeHostDescriptions(std::move(hosts), kGuestList)));
+      base::Value(CNSerializeHostDescriptions(std::move(hosts), kGuestList)));
 }
 
 bool LocalTargetsUIHandler::AllowCitizenNotesFor(CitizenNotesAgentHost* host) {

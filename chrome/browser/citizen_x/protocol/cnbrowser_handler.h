@@ -6,7 +6,7 @@
 #define CHROME_BROWSER_CITIZENNOTES_PROTOCOL_BROWSER_HANDLER_H_
 
 #include "base/containers/flat_set.h"
-#include "chrome/browser/devtools/protocol/browser.h"
+#include "chrome/browser/citizen_x/protocol/browser.h"
 
 class CNBrowserHandler : public protocol::Browser::Backend {
  public:

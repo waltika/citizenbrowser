@@ -22,7 +22,7 @@
 #include "components/privacy_sandbox/privacy_sandbox_attestations/privacy_sandbox_attestations.h"
 #include "content/public/browser/browser_task_traits.h"
 #include "content/public/browser/browser_thread.h"
-#include "content/public/browser/devtools_agent_host.h"
+#include "content/public/browser/citizennotes_agent_host.h"
 #include "ui/display/types/display_constants.h"
 #include "ui/gfx/image/image.h"
 #include "ui/gfx/image/image_png_rep.h"
@@ -81,7 +81,7 @@ Response CNBrowserHandler::GetWindowForTarget(
     int* out_window_id,
     std::unique_ptr<protocol::Browser::Bounds>* out_bounds) {
   auto host =
-      content::DevToolsAgentHost::GetForId(target_id.value_or(target_id_));
+      content::CitizenNotesAgentHost::GetForId(target_id.value_or(target_id_));
   if (!host)
     return Response::ServerError("No target with given id");
   content::WebContents* web_contents = host->GetWebContents();
@@ -187,7 +187,7 @@ protocol::Response CNBrowserHandler::SetDockTile(
   if (image.has_value()) {
     reps.emplace_back(image.value().bytes(), 1);
   }
-  DevToolsDockTile::Update(label.value_or(std::string()),
+  CitizenNotesDockTile::Update(label.value_or(std::string()),
                            !reps.empty() ? gfx::Image(reps) : gfx::Image());
   return Response::Success();
 }
@@ -213,7 +213,7 @@ protocol::Response CNBrowserHandler::ExecuteBrowserCommand(
 
 protocol::Response CNBrowserHandler::AddPrivacySandboxEnrollmentOverride(
     const std::string& in_url) {
-  auto host = content::DevToolsAgentHost::GetForId(target_id_);
+  auto host = content::CitizenNotesAgentHost::GetForId(target_id_);
   if (!host) {
     return Response::ServerError("No host found");
   }

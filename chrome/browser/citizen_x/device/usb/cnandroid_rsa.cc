@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "chrome/browser/devtools/device/usb/android_rsa.h"
+#include "chrome/browser/citizen_x/device/usb/cnandroid_rsa.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -192,7 +192,7 @@ void BnDiv(uint32_t* a, uint32_t* b, uint32_t** pq, uint32_t** pr) {
 
 std::unique_ptr<crypto::RSAPrivateKey> AndroidRSAPrivateKey(Profile* profile) {
   std::string encoded_key =
-      profile->GetPrefs()->GetString(prefs::kDevToolsAdbKey);
+      profile->GetPrefs()->GetString(prefs::kCitizenNotesAdbKey);
   std::string decoded_key;
   std::unique_ptr<crypto::RSAPrivateKey> key;
   if (!encoded_key.empty() && base::Base64Decode(encoded_key, &decoded_key)) {
@@ -207,7 +207,7 @@ std::unique_ptr<crypto::RSAPrivateKey> AndroidRSAPrivateKey(Profile* profile) {
 
     std::string key_string(key_info.begin(), key_info.end());
     base::Base64Encode(key_string, &encoded_key);
-    profile->GetPrefs()->SetString(prefs::kDevToolsAdbKey,
+    profile->GetPrefs()->SetString(prefs::kCitizenNotesAdbKey,
                                    encoded_key);
   }
   return key;

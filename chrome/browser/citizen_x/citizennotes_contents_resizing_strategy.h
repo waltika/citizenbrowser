@@ -9,7 +9,7 @@
 #include "ui/gfx/geometry/rect.h"
 #include "ui/gfx/geometry/size.h"
 
-// This class knows how to resize both DevTools and inspected WebContents
+// This class knows how to resize both CitizenNotes and inspected WebContents
 // inside a browser window hierarchy.
 class CitizenNotesContentsResizingStrategy {
  public:

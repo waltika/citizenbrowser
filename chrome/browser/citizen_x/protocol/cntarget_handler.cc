@@ -11,7 +11,7 @@
 #include "chrome/browser/ui/browser_list.h"
 #include "chrome/browser/ui/browser_navigator.h"
 #include "chrome/common/webui_url_constants.h"
-#include "content/public/browser/devtools_agent_host.h"
+#include "content/public/browser/citizennotes_agent_host.h"
 #include "content/public/common/url_constants.h"
 #include "content/public/common/url_utils.h"
 
@@ -137,11 +137,11 @@ protocol::Response CNTargetHandler::CreateTarget(
     return protocol::Response::ServerError("Failed to open a new tab");
 
   if (for_tab.value_or(false)) {
-    *out_target_id = content::DevToolsAgentHost::GetOrCreateForTab(
+    *out_target_id = content::CitizenNotesAgentHost::GetOrCreateForTab(
                          params.navigated_or_inserted_contents)
                          ->GetId();
   } else {
-    *out_target_id = content::DevToolsAgentHost::GetOrCreateFor(
+    *out_target_id = content::CitizenNotesAgentHost::GetOrCreateFor(
                          params.navigated_or_inserted_contents)
                          ->GetId();
   }

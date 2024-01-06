@@ -10,7 +10,7 @@
 #include "base/values.h"
 #include "chrome/browser/browser_features.h"
 #include "chrome/browser/citizen_x/citizennotes_settings.h"
-#include "chrome/browser/devtools/visual_logging.h"
+#include "chrome/browser/citizen_x/cnvisual_logging.h"
 
 namespace {
 
@@ -75,7 +75,7 @@ bool GetValue(const base::Value& value, CNRegisterOptions* options) {
   return true;
 }
 
-bool GetValue(const base::Value& value, ImpressionEvent* event) {
+bool GetValue(const base::Value& value, CNImpressionEvent* event) {
   if (!value.is_dict()) {
     return false;
   }
@@ -94,7 +94,7 @@ bool GetValue(const base::Value& value, ImpressionEvent* event) {
     if (!id || !type) {
       return false;
     }
-    event->impressions.emplace_back(VisualElementImpression{*id, *type});
+    event->impressions.emplace_back(CNVisualElementImpression{*id, *type});
 
     absl::optional<int> parent = impression.GetDict().FindInt("parent");
     if (parent) {
@@ -108,7 +108,7 @@ bool GetValue(const base::Value& value, ImpressionEvent* event) {
   return true;
 }
 
-bool GetValue(const base::Value& value, ClickEvent* event) {
+bool GetValue(const base::Value& value, CNClickEvent* event) {
   if (!value.is_dict()) {
     return false;
   }
@@ -130,7 +130,7 @@ bool GetValue(const base::Value& value, ClickEvent* event) {
   return true;
 }
 
-bool GetValue(const base::Value& value, HoverEvent* event) {
+bool GetValue(const base::Value& value, CNHoverEvent* event) {
   if (!value.is_dict()) {
     return false;
   }
@@ -152,7 +152,7 @@ bool GetValue(const base::Value& value, HoverEvent* event) {
   return true;
 }
 
-bool GetValue(const base::Value& value, DragEvent* event) {
+bool GetValue(const base::Value& value, CNDragEvent* event) {
   if (!value.is_dict()) {
     return false;
   }
@@ -174,7 +174,7 @@ bool GetValue(const base::Value& value, DragEvent* event) {
   return true;
 }
 
-bool GetValue(const base::Value& value, ChangeEvent* event) {
+bool GetValue(const base::Value& value, CNChangeEvent* event) {
   if (!value.is_dict()) {
     return false;
   }
@@ -192,7 +192,7 @@ bool GetValue(const base::Value& value, ChangeEvent* event) {
   return true;
 }
 
-bool GetValue(const base::Value& value, KeyDownEvent* event) {
+bool GetValue(const base::Value& value, CNKeyDownEvent* event) {
   if (!value.is_dict()) {
     return false;
   }

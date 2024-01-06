@@ -16,12 +16,12 @@
 #include "ui/gfx/geometry/size.h"
 
 struct CNRegisterOptions;
-struct ImpressionEvent;
-struct ClickEvent;
-struct HoverEvent;
-struct DragEvent;
-struct ChangeEvent;
-struct KeyDownEvent;
+struct CNImpressionEvent;
+struct CNClickEvent;
+struct CNHoverEvent;
+struct CNDragEvent;
+struct CNChangeEvent;
+struct CNKeyDownEvent;
 
 /**
  * Dispatcher for messages sent from the CitizenNotes frontend running in an
@@ -108,12 +108,12 @@ class CitizenNotesEmbedderMessageDispatcher {
     virtual void RecordPerformanceHistogram(const std::string& name,
                                             double duration) = 0;
     virtual void RecordUserMetricsAction(const std::string& name) = 0;
-    virtual void RecordImpression(const ImpressionEvent& event) = 0;
-    virtual void RecordClick(const ClickEvent& event) = 0;
-    virtual void RecordHover(const HoverEvent& event) = 0;
-    virtual void RecordDrag(const DragEvent& event) = 0;
-    virtual void RecordChange(const ChangeEvent& event) = 0;
-    virtual void RecordKeyDown(const KeyDownEvent& event) = 0;
+    virtual void RecordImpression(const CNImpressionEvent& event) = 0;
+    virtual void RecordClick(const CNClickEvent& event) = 0;
+    virtual void RecordHover(const CNHoverEvent& event) = 0;
+    virtual void RecordDrag(const CNDragEvent& event) = 0;
+    virtual void RecordChange(const CNChangeEvent& event) = 0;
+    virtual void RecordKeyDown(const CNKeyDownEvent& event) = 0;
     virtual void SendJsonRequest(DispatchCallback callback,
                                  const std::string& browser_id,
                                  const std::string& url) = 0;

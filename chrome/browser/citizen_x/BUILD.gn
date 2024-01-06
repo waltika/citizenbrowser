@@ -50,10 +50,10 @@ if (!is_android) {
   action("concatenate_protocols") {
     script = _inspector_protocol + "/concatenate_protocols.py"
 
-    deps = [ "//third_party/blink/public/devtools_protocol:protocol_version" ]
+    deps = [ "//third_party/blink/public/citizennotes_protocol:protocol_version" ]
 
     _blink_protocol_path =
-        "$root_gen_dir/third_party/blink/public/devtools_protocol/protocol.json"
+        "$root_gen_dir/third_party/blink/public/citizennotes_protocol/protocol.json"
     inputs = [ _blink_protocol_path ]
     output_file = _concatenated_protocol_path
     outputs = [ output_file ]
@@ -104,7 +104,7 @@ static_library("citizen_x") {
     # it.  However, depending on the order in which this target and
     # //chrome/browser:browser are built it's possible that the connectors
     # proto header (which //chrome/browser:browser depends on) is not generated
-    # yet causing devtools not to compile.  Adding this indirect dependency to
+    # yet causing citizennotes not to compile.  Adding this indirect dependency to
     # the proto to fix that.
     "//components/enterprise/common/proto:connectors_proto",
 
@@ -164,10 +164,20 @@ static_library("citizen_x") {
       deps += [ "//ash/constants" ]
     }
     sources += [
+      "citizennotes_file_system_indexer.cc",
+      "citizennotes_file_system_indexer.h",
+      "cnaida_client.cc",
+      "cnaida_client.h",
+      "cnremote_debugging_server.cc",
+      "cnremote_debugging_server.h",
       "chrome_citizennotes_manager_delegate.cc",
       "chrome_citizennotes_manager_delegate.h",
       "chrome_citizennotes_session.cc",
       "chrome_citizennotes_session.h",
+      "cnglobal_confirm_info_bar.cc",
+      "cnglobal_confirm_info_bar.h",
+      "cnserialize_host_descriptions.cc",
+      "cnserialize_host_descriptions.h",
       "device/cnandroid_device_info_query.cc",
       "device/cnandroid_device_manager.cc",
       "device/cnandroid_device_manager.h",
@@ -198,8 +208,16 @@ static_library("citizen_x") {
       "device/adb/cnadb_client_socket.h",
       "citizennotes_auto_opener.cc",
       "citizennotes_auto_opener.h",
+      "cnurl_constants.cc",
+      "cnurl_constants.h",
+      "cnvisual_logging.cc",
+      "cnvisual_logging.h",
       "citizennotes_browser_context_manager.cc",
       "citizennotes_browser_context_manager.h",
+      "citizennotes_file_helper.cc",
+      "citizennotes_file_helper.h",
+      "citizennotes_file_watcher.cc",
+      "citizennotes_file_watcher.h",
       "citizennotes_dock_tile.h",
       "citizennotes_eye_dropper.cc",
       "citizennotes_eye_dropper.h",
@@ -305,8 +323,8 @@ static_library("test_support") {
     sources += [
       "device/adb/mock_adb_server.cc",
       "device/adb/mock_adb_server.h",
-      "devtools_window_testing.cc",
-      "devtools_window_testing.h",
+      "citizennotes_window_testing.cc",
+      "citizennotes_window_testing.h",
     ]
 
     defines = [ "HAS_OUT_OF_PROC_TEST_RUNNER" ]

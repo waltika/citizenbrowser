@@ -32,9 +32,9 @@
 #include "build/build_config.h"
 #include "chrome/browser/browser_features.h"
 #include "chrome/browser/browser_process.h"
-#include "chrome/browser/devtools/devtools_file_watcher.h"
+#include "chrome/browser/citizen_x/citizennotes_file_watcher.h"
 #include "chrome/browser/citizen_x/citizennotes_window.h"
-#include "chrome/browser/devtools/url_constants.h"
+#include "chrome/browser/citizen_x/cnurl_constants.h"
 #include "chrome/browser/extensions/extension_management.h"
 #include "chrome/browser/extensions/extension_service.h"
 #include "chrome/browser/profiles/profile.h"
@@ -128,14 +128,14 @@ const char kConfigNetworkDiscoveryConfig[] = "networkDiscoveryConfig";
 
 // This constant should be in sync with
 // the constant
-// kShellMaxMessageChunkSize in content/shell/browser/shell_devtools_bindings.cc
+// kShellMaxMessageChunkSize in content/shell/browser/shell_citizennotes_bindings.cc
 // and
 // kLayoutTestMaxMessageChunkSize in
-// content/shell/browser/layout_test/devtools_protocol_test_bindings.cc.
+// content/shell/browser/layout_test/citizennotes_protocol_test_bindings.cc.
 const size_t kMaxMessageChunkSize = IPC::Channel::kMaximumMessageSize / 4;
 
 base::Value::Dict CreateFileSystemValue(
-    DevToolsFileHelper::FileSystem file_system) {
+    CitizenNotesFileHelper::FileSystem file_system) {
   base::Value::Dict file_system_value;
   file_system_value.Set("type", file_system.type);
   file_system_value.Set("fileSystemName", file_system.file_system_name);
@@ -144,18 +144,18 @@ base::Value::Dict CreateFileSystemValue(
   return file_system_value;
 }
 
-// DevToolsUIDefaultDelegate --------------------------------------------------
+// CitizenNotesUIDefaultDelegate --------------------------------------------------
 
-class DefaultBindingsDelegate : public CitizenNotesUIBindings::Delegate {
+class CNDefaultBindingsDelegate : public CitizenNotesUIBindings::Delegate {
  public:
-  explicit DefaultBindingsDelegate(content::WebContents* web_contents)
+  explicit CNDefaultBindingsDelegate(content::WebContents* web_contents)
       : web_contents_(web_contents) {}
 
-  DefaultBindingsDelegate(const DefaultBindingsDelegate&) = delete;
-  DefaultBindingsDelegate& operator=(const DefaultBindingsDelegate&) = delete;
+  CNDefaultBindingsDelegate(const CNDefaultBindingsDelegate&) = delete;
+  CNDefaultBindingsDelegate& operator=(const CNDefaultBindingsDelegate&) = delete;
 
  private:
-  ~DefaultBindingsDelegate() override {}
+  ~CNDefaultBindingsDelegate() override {}
 
   void ActivateWindow() override;
   void CloseWindow() override {}
@@ -181,12 +181,12 @@ class DefaultBindingsDelegate : public CitizenNotesUIBindings::Delegate {
   RAW_PTR_EXCLUSION content::WebContents* web_contents_;
 };
 
-void DefaultBindingsDelegate::ActivateWindow() {
+void CNDefaultBindingsDelegate::ActivateWindow() {
   web_contents_->GetDelegate()->ActivateContents(web_contents_);
   web_contents_->Focus();
 }
 
-void DefaultBindingsDelegate::OpenInNewTab(const std::string& url) {
+void CNDefaultBindingsDelegate::OpenInNewTab(const std::string& url) {
   content::OpenURLParams params(GURL(url), content::Referrer(),
                                 WindowOpenDisposition::NEW_FOREGROUND_TAB,
                                 ui::PAGE_TRANSITION_LINK, false);
@@ -194,11 +194,11 @@ void DefaultBindingsDelegate::OpenInNewTab(const std::string& url) {
   browser->OpenURL(params);
 }
 
-void DefaultBindingsDelegate::InspectedContentsClosing() {
+void CNDefaultBindingsDelegate::InspectedContentsClosing() {
   web_contents_->ClosePage();
 }
 
-infobars::ContentInfoBarManager* DefaultBindingsDelegate::GetInfoBarManager() {
+infobars::ContentInfoBarManager* CNDefaultBindingsDelegate::GetInfoBarManager() {
   return infobars::ContentInfoBarManager::FromWebContents(web_contents_);
 }
 
@@ -284,9 +284,9 @@ std::string SanitizeRemoteBase(const std::string& value) {
       path, "/", base::KEEP_WHITESPACE, base::SPLIT_WANT_ALL);
   std::string revision = parts.size() > 2 ? parts[2] : "";
   revision = SanitizeRevision(revision);
-  path = base::StringPrintf("/%s/%s/", kRemoteFrontendPath, revision.c_str());
+  path = base::StringPrintf("/%s/%s/", kCNRemoteFrontendPath, revision.c_str());
   return SanitizeFrontendURL(url, url::kHttpsScheme,
-                             kRemoteFrontendDomain, path, false).spec();
+                             kCNRemoteFrontendDomain, path, false).spec();
 }
 
 std::string SanitizeRemoteFrontendURL(const std::string& value) {
@@ -303,7 +303,7 @@ std::string SanitizeRemoteFrontendURL(const std::string& value) {
   path = base::StringPrintf("/serve_rev/%s/%s",
                             revision.c_str(), filename.c_str());
   std::string sanitized = SanitizeFrontendURL(url, url::kHttpsScheme,
-      kRemoteFrontendDomain, path, true).spec();
+      kCNRemoteFrontendDomain, path, true).spec();
   return base::EscapeQueryParamValue(sanitized, false);
 }
 
@@ -361,7 +361,7 @@ std::string SanitizeFrontendQueryParam(
     return value;
   }
 
-  if (base::FeatureList::IsEnabled(::features::kDevToolsConsoleInsights)) {
+  if (base::FeatureList::IsEnabled(::features::kCitizenNotesConsoleInsights)) {
     if (key == "enableAida" && value == "true") {
       return value;
     }
@@ -579,8 +579,8 @@ CitizenNotesUIBindings::FrontendWebContentsObserver::
 
 // static
 GURL CitizenNotesUIBindings::SanitizeFrontendURL(const GURL& url) {
-  return ::SanitizeFrontendURL(url, content::kChromeDevToolsScheme,
-      chrome::kChromeUIDevToolsHost, SanitizeFrontendPath(url.path()), true);
+  return ::SanitizeFrontendURL(url, content::kChromeCitizenNotesScheme,
+      chrome::kChromeUICitizenNotesHost, SanitizeFrontendPath(url.path()), true);
 }
 
 // static
@@ -595,7 +595,7 @@ bool CitizenNotesUIBindings::IsValidFrontendURL(const GURL& url) {
 }
 
 bool CitizenNotesUIBindings::IsValidRemoteFrontendURL(const GURL& url) {
-  return ::SanitizeFrontendURL(url, url::kHttpsScheme, kRemoteFrontendDomain,
+  return ::SanitizeFrontendURL(url, url::kHttpsScheme, kCNRemoteFrontendDomain,
                                url.path(), true)
              .spec() == url.spec();
 }
@@ -666,7 +666,7 @@ CitizenNotesUIBindings::CitizenNotesUIBindings(content::WebContents* web_content
     : profile_(Profile::FromBrowserContext(web_contents->GetBrowserContext())),
       android_bridge_(CitizenNotesAndroidBridge::Factory::GetForProfile(profile_)),
       web_contents_(web_contents),
-      delegate_(new DefaultBindingsDelegate(web_contents_)),
+      delegate_(new CNDefaultBindingsDelegate(web_contents_)),
       devices_updates_enabled_(false),
       frontend_loaded_(false),
       settings_(profile_),
@@ -676,8 +676,8 @@ CitizenNotesUIBindings::CitizenNotesUIBindings(content::WebContents* web_content
       std::make_unique<FrontendWebContentsObserver>(this);
 
   file_helper_ =
-      std::make_unique<DevToolsFileHelper>(web_contents_, profile_, this);
-  file_system_indexer_ = new DevToolsFileSystemIndexer();
+      std::make_unique<CitizenNotesFileHelper>(web_contents_, profile_, this);
+  file_system_indexer_ = new CitizenNotesFileSystemIndexer();
 
   // Register on-load actions.
   embedder_message_dispatcher_ =
@@ -726,10 +726,10 @@ void CitizenNotesUIBindings::HandleMessageFromCitizenNotesFrontend(
 
 // content::CitizenNotesAgentHostClient implementation --------------------------
 // There is a sibling implementation of CitizenNotesAgentHostClient in
-//   content/shell/browser/shell_devtools_bindings.cc
+//   content/shell/browser/shell_citizennotes_bindings.cc
 // that is used in layout tests, which only use content_shell.
 // The two implementations needs to be kept in sync wrt. the interface they
-// provide to the DevTools front-end.
+// provide to the CitizenNotes front-end.
 
 void CitizenNotesUIBindings::DispatchProtocolMessage(
     content::CitizenNotesAgentHost* agent_host,
@@ -841,7 +841,7 @@ void CitizenNotesUIBindings::InspectedURLChanged(const std::string& url) {
           : base::StartsWith(url, kHttpPrefix, base::CompareCase::SENSITIVE)
                 ? url.substr(kHttpPrefix.length())
                 : url;
-  // DevTools UI is not localized.
+  // CitizenNotes UI is not localized.
   web_contents()->UpdateTitleForEntry(
       entry, base::UTF8ToUTF16(
                  base::StringPrintf(kTitleFormat, simplified_url.c_str())));
@@ -907,14 +907,14 @@ void CitizenNotesUIBindings::LoadNetworkResource(DispatchCallback callback,
         CitizenNotesWindow::AsCitizenNotesWindow(web_contents_)
             ->GetInspectedWebContents();
 #if defined(NDEBUG)
-    // In release builds, allow files from the chrome://, devtools:// and
-    // chrome-untrusted:// schemes if a custom devtools front-end was specified.
+    // In release builds, allow files from the chrome://, citizennotes:// and
+    // chrome-untrusted:// schemes if a custom citizennotes front-end was specified.
     const base::CommandLine* cmd_line = base::CommandLine::ForCurrentProcess();
     const bool allow_web_ui_scheme =
-        cmd_line->HasSwitch(switches::kCustomDevtoolsFrontend);
+        cmd_line->HasSwitch(switches::kCustomCitizenNotesFrontend);
 #else
     // In debug builds, always allow retrieving files from the chrome://,
-    // devtools:// and chrome-untrusted:// schemes.
+    // citizennotes:// and chrome-untrusted:// schemes.
     const bool allow_web_ui_scheme = true;
 #endif
     // Only allow retrieval if the scheme of the file is the same as the
@@ -1050,7 +1050,7 @@ void CitizenNotesUIBindings::IndexPath(
   }
 
   indexing_jobs_[index_request_id] =
-      scoped_refptr<DevToolsFileSystemIndexer::FileSystemIndexingJob>(
+      scoped_refptr<CitizenNotesFileSystemIndexer::FileSystemIndexingJob>(
           file_system_indexer_->IndexPath(
               file_system_path, excluded_folders,
               BindOnce(&CitizenNotesUIBindings::IndexingTotalWorkCalculated,
@@ -1132,14 +1132,14 @@ void CitizenNotesUIBindings::SetDevicesDiscoveryConfig(
   if (!parsed_network || !parsed_network->is_list())
     return;
   profile_->GetPrefs()->SetBoolean(
-      prefs::kDevToolsDiscoverUsbDevicesEnabled, discover_usb_devices);
+      prefs::kCitizenNotesDiscoverUsbDevicesEnabled, discover_usb_devices);
   profile_->GetPrefs()->SetBoolean(
-      prefs::kDevToolsPortForwardingEnabled, port_forwarding_enabled);
-  profile_->GetPrefs()->Set(prefs::kDevToolsPortForwardingConfig,
+      prefs::kCitizenNotesPortForwardingEnabled, port_forwarding_enabled);
+  profile_->GetPrefs()->Set(prefs::kCitizenNotesPortForwardingConfig,
                             *parsed_port_forwarding);
-  profile_->GetPrefs()->SetBoolean(prefs::kDevToolsDiscoverTCPTargetsEnabled,
+  profile_->GetPrefs()->SetBoolean(prefs::kCitizenNotesDiscoverTCPTargetsEnabled,
                                    network_discovery_enabled);
-  profile_->GetPrefs()->Set(prefs::kDevToolsTCPDiscoveryConfig,
+  profile_->GetPrefs()->Set(prefs::kCitizenNotesTCPDiscoveryConfig,
                             *parsed_network);
 }
 
@@ -1147,27 +1147,27 @@ void CitizenNotesUIBindings::DevicesDiscoveryConfigUpdated() {
   base::Value::Dict config;
   config.Set(kConfigDiscoverUsbDevices,
              profile_->GetPrefs()
-                 ->FindPreference(prefs::kDevToolsDiscoverUsbDevicesEnabled)
+                 ->FindPreference(prefs::kCitizenNotesDiscoverUsbDevicesEnabled)
                  ->GetValue()
                  ->Clone());
   config.Set(kConfigPortForwardingEnabled,
              profile_->GetPrefs()
-                 ->FindPreference(prefs::kDevToolsPortForwardingEnabled)
+                 ->FindPreference(prefs::kCitizenNotesPortForwardingEnabled)
                  ->GetValue()
                  ->Clone());
   config.Set(kConfigPortForwardingConfig,
              profile_->GetPrefs()
-                 ->FindPreference(prefs::kDevToolsPortForwardingConfig)
+                 ->FindPreference(prefs::kCitizenNotesPortForwardingConfig)
                  ->GetValue()
                  ->Clone());
   config.Set(kConfigNetworkDiscoveryEnabled,
              profile_->GetPrefs()
-                 ->FindPreference(prefs::kDevToolsDiscoverTCPTargetsEnabled)
+                 ->FindPreference(prefs::kCitizenNotesDiscoverTCPTargetsEnabled)
                  ->GetValue()
                  ->Clone());
   config.Set(kConfigNetworkDiscoveryConfig,
              profile_->GetPrefs()
-                 ->FindPreference(prefs::kDevToolsTCPDiscoveryConfig)
+                 ->FindPreference(prefs::kCitizenNotesTCPDiscoveryConfig)
                  ->GetValue()
                  ->Clone());
   CallClientMethod("CitizenNotesAPI", "devicesDiscoveryConfigChanged",
@@ -1190,23 +1190,23 @@ void CitizenNotesUIBindings::SetDevicesUpdatesEnabled(bool enabled) {
         profile_);
     pref_change_registrar_.Init(profile_->GetPrefs());
     pref_change_registrar_.Add(
-        prefs::kDevToolsDiscoverUsbDevicesEnabled,
+        prefs::kCitizenNotesDiscoverUsbDevicesEnabled,
         base::BindRepeating(&CitizenNotesUIBindings::DevicesDiscoveryConfigUpdated,
                             base::Unretained(this)));
     pref_change_registrar_.Add(
-        prefs::kDevToolsPortForwardingEnabled,
+        prefs::kCitizenNotesPortForwardingEnabled,
         base::BindRepeating(&CitizenNotesUIBindings::DevicesDiscoveryConfigUpdated,
                             base::Unretained(this)));
     pref_change_registrar_.Add(
-        prefs::kDevToolsPortForwardingConfig,
+        prefs::kCitizenNotesPortForwardingConfig,
         base::BindRepeating(&CitizenNotesUIBindings::DevicesDiscoveryConfigUpdated,
                             base::Unretained(this)));
     pref_change_registrar_.Add(
-        prefs::kDevToolsDiscoverTCPTargetsEnabled,
+        prefs::kCitizenNotesDiscoverTCPTargetsEnabled,
         base::BindRepeating(&CitizenNotesUIBindings::DevicesDiscoveryConfigUpdated,
                             base::Unretained(this)));
     pref_change_registrar_.Add(
-        prefs::kDevToolsTCPDiscoveryConfig,
+        prefs::kCitizenNotesTCPDiscoveryConfig,
         base::BindRepeating(&CitizenNotesUIBindings::DevicesDiscoveryConfigUpdated,
                             base::Unretained(this)));
     port_status_serializer_ = std::make_unique<CNPortForwardingStatusSerializer>(
@@ -1362,7 +1362,7 @@ void CitizenNotesUIBindings::RecordCountHistogram(const std::string& name,
     return;
   }
 
-  // DevTools previously would crash if histogram counts didn't make sense.
+  // CitizenNotes previously would crash if histogram counts didn't make sense.
   // We've changed this to a DCHECK and instead clamp the value for counts,
   // because it doesn't really make sense to crash if the histogram is out
   // of range.
@@ -1395,9 +1395,9 @@ void CitizenNotesUIBindings::RecordEnumeratedHistogram(const std::string& name,
     return;
   }
 
-  const std::string kDevToolsHistogramPrefix = "DevTools.";
-  DCHECK_EQ(name.compare(0, kDevToolsHistogramPrefix.size(),
-                         kDevToolsHistogramPrefix),
+  const std::string kCitizenNotesHistogramPrefix = "CitizenNotes.";
+  DCHECK_EQ(name.compare(0, kCitizenNotesHistogramPrefix.size(),
+                         kCitizenNotesHistogramPrefix),
             0);
   base::UmaHistogramExactLinear(name, sample, boundary_value);
 }
@@ -1410,7 +1410,7 @@ void CitizenNotesUIBindings::RecordPerformanceHistogram(const std::string& name,
     return;
   }
   // Use histogram_functions.h instead of macros as the name comes from the
-  // DevTools frontend javascript and so will always have the same call site.
+  // CitizenNotes frontend javascript and so will always have the same call site.
   base::TimeDelta delta = base::Milliseconds(duration);
   base::UmaHistogramTimes(name, delta);
 }
@@ -1419,7 +1419,7 @@ void CitizenNotesUIBindings::RecordUserMetricsAction(const std::string& name) {
   if (!frontend_host_)
     return;
   // Use RecordComputedAction instead of RecordAction as the name comes from
-  // DevTools frontend javascript and so will always have the same call site.
+  // CitizenNotes frontend javascript and so will always have the same call site.
   base::RecordComputedAction(name);
 }
 
@@ -1430,13 +1430,13 @@ base::TimeDelta CitizenNotesUIBindings::GetTimeSinceLastAction() {
   return time_since_last_action;
 }
 
-void CitizenNotesUIBindings::RecordImpression(const ImpressionEvent& event) {
-  if (!base::FeatureList::IsEnabled(::features::kDevToolsVeLogging)) {
+void CitizenNotesUIBindings::RecordImpression(const CNImpressionEvent& event) {
+  if (!base::FeatureList::IsEnabled(::features::kCitizenNotesVeLogging)) {
     return;
   }
 #if BUILDFLAG(IS_CHROMEOS_ASH) || BUILDFLAG(IS_CHROMEOS_LACROS)
   for (const auto& ve : event.impressions) {
-    metrics::structured::events::v2::dev_tools::Impression()
+    metrics::structured::events::v2::citizen_notes::Impression()
         .SetVeId(ve.id)
         .SetVeType(ve.type)
         .SetVeParent(ve.parent)
@@ -1447,12 +1447,12 @@ void CitizenNotesUIBindings::RecordImpression(const ImpressionEvent& event) {
 #endif
 }
 
-void CitizenNotesUIBindings::RecordClick(const ClickEvent& event) {
-  if (!base::FeatureList::IsEnabled(::features::kDevToolsVeLogging)) {
+void CitizenNotesUIBindings::RecordClick(const CNClickEvent& event) {
+  if (!base::FeatureList::IsEnabled(::features::kCitizenNotesVeLogging)) {
     return;
   }
 #if BUILDFLAG(IS_CHROMEOS_ASH) || BUILDFLAG(IS_CHROMEOS_LACROS)
-  metrics::structured::events::v2::dev_tools::Click()
+  metrics::structured::events::v2::citizen_notes::Click()
       .SetVeId(event.veid)
       .SetMouseButton(event.mouse_button)
       .SetContext(event.context)
@@ -1461,12 +1461,12 @@ void CitizenNotesUIBindings::RecordClick(const ClickEvent& event) {
 #endif
 }
 
-void CitizenNotesUIBindings::RecordHover(const HoverEvent& event) {
-  if (!base::FeatureList::IsEnabled(::features::kDevToolsVeLogging)) {
+void CitizenNotesUIBindings::RecordHover(const CNHoverEvent& event) {
+  if (!base::FeatureList::IsEnabled(::features::kCitizenNotesVeLogging)) {
     return;
   }
 #if BUILDFLAG(IS_CHROMEOS_ASH) || BUILDFLAG(IS_CHROMEOS_LACROS)
-  metrics::structured::events::v2::dev_tools::Hover()
+  metrics::structured::events::v2::citizen_notes::Hover()
       .SetVeId(event.veid)
       .SetTime(event.time)
       .SetContext(event.context)
@@ -1475,12 +1475,12 @@ void CitizenNotesUIBindings::RecordHover(const HoverEvent& event) {
 #endif
 }
 
-void CitizenNotesUIBindings::RecordDrag(const DragEvent& event) {
-  if (!base::FeatureList::IsEnabled(::features::kDevToolsVeLogging)) {
+void CitizenNotesUIBindings::RecordDrag(const CNDragEvent& event) {
+  if (!base::FeatureList::IsEnabled(::features::kCitizenNotesVeLogging)) {
     return;
   }
 #if BUILDFLAG(IS_CHROMEOS_ASH) || BUILDFLAG(IS_CHROMEOS_LACROS)
-  metrics::structured::events::v2::dev_tools::Drag()
+  metrics::structured::events::v2::citizen_notes::Drag()
       .SetVeId(event.veid)
       .SetDistance(event.distance)
       .SetContext(event.context)
@@ -1489,12 +1489,12 @@ void CitizenNotesUIBindings::RecordDrag(const DragEvent& event) {
 #endif
 }
 
-void CitizenNotesUIBindings::RecordChange(const ChangeEvent& event) {
-  if (!base::FeatureList::IsEnabled(::features::kDevToolsVeLogging)) {
+void CitizenNotesUIBindings::RecordChange(const CNChangeEvent& event) {
+  if (!base::FeatureList::IsEnabled(::features::kCitizenNotesVeLogging)) {
     return;
   }
 #if BUILDFLAG(IS_CHROMEOS_ASH) || BUILDFLAG(IS_CHROMEOS_LACROS)
-  metrics::structured::events::v2::dev_tools::Change()
+  metrics::structured::events::v2::citizen_notes::Change()
       .SetVeId(event.veid)
       .SetContext(event.context)
       .SetTimeSinceLastAction(GetTimeSinceLastAction().InMilliseconds())
@@ -1502,12 +1502,12 @@ void CitizenNotesUIBindings::RecordChange(const ChangeEvent& event) {
 #endif
 }
 
-void CitizenNotesUIBindings::RecordKeyDown(const KeyDownEvent& event) {
-  if (!base::FeatureList::IsEnabled(::features::kDevToolsVeLogging)) {
+void CitizenNotesUIBindings::RecordKeyDown(const CNKeyDownEvent& event) {
+  if (!base::FeatureList::IsEnabled(::features::kCitizenNotesVeLogging)) {
     return;
   }
 #if BUILDFLAG(IS_CHROMEOS_ASH) || BUILDFLAG(IS_CHROMEOS_LACROS)
-  metrics::structured::events::v2::dev_tools::KeyDown()
+  metrics::structured::events::v2::citizen_notes::KeyDown()
       .SetVeId(event.veid)
       .SetContext(event.context)
       .SetTimeSinceLastAction(GetTimeSinceLastAction().InMilliseconds())
@@ -1564,7 +1564,7 @@ void CitizenNotesUIBindings::AppendedTo(const std::string& url) {
 
 void CitizenNotesUIBindings::FileSystemAdded(
     const std::string& error,
-    const DevToolsFileHelper::FileSystem* file_system) {
+    const CitizenNotesFileHelper::FileSystem* file_system) {
   if (file_system) {
     CallClientMethod("CitizenNotesAPI", "fileSystemAdded", base::Value(error),
                      base::Value(CreateFileSystemValue(*file_system)));
@@ -1691,8 +1691,8 @@ void CitizenNotesUIBindings::AddCitizenNotesExtensionsToClient() {
                                   url.host_piece() == extension->id();
     CHECK(is_extension_url || url.SchemeIsHTTPOrHTTPS());
 
-    // Each devtools extension will need to be able to run in the devtools
-    // process. Grant the devtools process the ability to request URLs from the
+    // Each citizennotes extension will need to be able to run in the citizennotes
+    // process. Grant the citizennotes process the ability to request URLs from the
     // extension.
     content::ChildProcessSecurityPolicy::GetInstance()->GrantRequestOrigin(
         web_contents_->GetPrimaryMainFrame()->GetProcess()->GetID(),
@@ -1791,11 +1791,11 @@ void CitizenNotesUIBindings::CanShowSurvey(DispatchCallback callback,
 
 void CitizenNotesUIBindings::DoAidaConversation(DispatchCallback callback,
                                             const std::string& request) {
-  if (!base::FeatureList::IsEnabled(::features::kDevToolsConsoleInsights)) {
+  if (!base::FeatureList::IsEnabled(::features::kCitizenNotesConsoleInsights)) {
     return;
   }
   if (!aida_client_) {
-    aida_client_ = std::make_unique<AidaClient>(
+    aida_client_ = std::make_unique<CNAidaClient>(
         profile_, CitizenNotesWindow::AsCitizenNotesWindow(web_contents_)
                       ->GetInspectedWebContents()
                       ->GetPrimaryMainFrame()

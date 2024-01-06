@@ -34,7 +34,7 @@
 #include "chrome/browser/citizen_x/device/cntcp_device_provider.h"
 #include "chrome/browser/citizen_x/device/usb/cnusb_device_provider.h"
 #include "chrome/browser/citizen_x/citizennotes_window.h"
-#include "chrome/browser/devtools/remote_debugging_server.h"
+#include "chrome/browser/citizen_x/cnremote_debugging_server.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/common/buildflags.h"
 #include "chrome/common/chrome_switches.h"

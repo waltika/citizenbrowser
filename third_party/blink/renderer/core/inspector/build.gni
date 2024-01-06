@@ -16,6 +16,8 @@ blink_core_sources_inspector = [
   "devtools_agent.h",
   "devtools_session.cc",
   "devtools_session.h",
+  "citizen_notes_host.cc",
+  "citizen_notes_host.h",
   "citizennotes_agent.cc",
   "citizennotes_agent.h",
   "citizennotes_session.cc",

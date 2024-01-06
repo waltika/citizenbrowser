@@ -17,7 +17,7 @@ namespace crypto {
 class RSAPrivateKey;
 }
 
-class AndroidUsbDevice;
+class CNAndroidUsbDevice;
 class Profile;
 
 class CNUsbDeviceProvider : public CNAndroidDeviceManager::DeviceProvider {
@@ -40,9 +40,9 @@ class CNUsbDeviceProvider : public CNAndroidDeviceManager::DeviceProvider {
 
   void EnumeratedDevices(
       SerialsCallback callback,
-      const std::vector<scoped_refptr<AndroidUsbDevice>>& devices);
+      const std::vector<scoped_refptr<CNAndroidUsbDevice>>& devices);
 
-  typedef std::map<std::string, scoped_refptr<AndroidUsbDevice> > UsbDeviceMap;
+  typedef std::map<std::string, scoped_refptr<CNAndroidUsbDevice> > UsbDeviceMap;
 
   std::unique_ptr<crypto::RSAPrivateKey> rsa_key_;
   UsbDeviceMap device_map_;

@@ -108,14 +108,14 @@ base::LazyInstance<
 static const char kKeyUpEventName[] = "keyup";
 static const char kKeyDownEventName[] = "keydown";
 static const char kDefaultFrontendURL[] =
-    "citizen_x://citizen_x/bundled/citizennotes_app.html";
+    "citizennotes://citizennotes/bundled/citizennotes_app.html";
 static const char kNodeFrontendURL[] =
-    "citizen_x://citizen_x/bundled/node_app.html";
+    "citizennotes://citizennotes/bundled/node_app.html";
 static const char kWorkerFrontendURL[] =
-    "citizen_x://citizen_x/bundled/worker_app.html";
-static const char kJSFrontendURL[] = "citizen_x://citizen_x/bundled/js_app.html";
+    "citizennotes://citizennotes/bundled/worker_app.html";
+static const char kJSFrontendURL[] = "citizennotes://citizennotes/bundled/js_app.html";
 static const char kFallbackFrontendURL[] =
-    "citizen_x://citizen_x/bundled/inspector.html";
+    "citizennotes://citizennotes/bundled/inspector.html";
 
 bool FindInspectedBrowserAndTabIndex(
     WebContents* inspected_web_contents, Browser** browser, int* tab) {
@@ -1747,14 +1747,14 @@ void CitizenNotesWindow::CreateCitizenNotesBrowser() {
     // BrowserFrame::InitBrowserFrame can retrieve it later.
     ScopedDictPrefUpdate update(prefs, prefs::kAppWindowPlacement);
     base::Value::Dict& wp_prefs = update.Get();
-    base::Value::Dict dev_tools_defaults;
-    dev_tools_defaults.Set("left", 100);
-    dev_tools_defaults.Set("top", 100);
-    dev_tools_defaults.Set("right", 740);
-    dev_tools_defaults.Set("bottom", 740);
-    dev_tools_defaults.Set("maximized", false);
-    dev_tools_defaults.Set("always_on_top", false);
-    wp_prefs.Set(kCitizenNotesApp, std::move(dev_tools_defaults));
+    base::Value::Dict citizen_notes_defaults;
+    citizen_notes_defaults.Set("left", 100);
+    citizen_notes_defaults.Set("top", 100);
+    citizen_notes_defaults.Set("right", 740);
+    citizen_notes_defaults.Set("bottom", 740);
+    citizen_notes_defaults.Set("maximized", false);
+    citizen_notes_defaults.Set("always_on_top", false);
+    wp_prefs.Set(kCitizenNotesApp, std::move(citizen_notes_defaults));
   }
 
   if (Browser::GetCreationStatusForProfile(profile_) !=

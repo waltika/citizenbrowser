@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "chrome/browser/devtools/device/usb/android_usb_socket.h"
+#include "chrome/browser/citizen_x/device/usb/cnandroid_usb_socket.h"
 
 #include <stddef.h>
 
@@ -20,7 +20,7 @@ const int kMaxPayload = 4096;
 
 }  // namespace
 
-AndroidUsbSocket::AndroidUsbSocket(scoped_refptr<AndroidUsbDevice> device,
+CNAndroidUsbSocket::CNAndroidUsbSocket(scoped_refptr<CNAndroidUsbDevice> device,
                                    uint32_t socket_id,
                                    const std::string& command,
                                    base::OnceClosure delete_callback)
@@ -31,7 +31,7 @@ AndroidUsbSocket::AndroidUsbSocket(scoped_refptr<AndroidUsbDevice> device,
       is_connected_(false),
       delete_callback_(std::move(delete_callback)) {}
 
-AndroidUsbSocket::~AndroidUsbSocket() {
+CNAndroidUsbSocket::~CNAndroidUsbSocket() {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   if (is_connected_)
     Disconnect();
@@ -39,13 +39,13 @@ AndroidUsbSocket::~AndroidUsbSocket() {
     std::move(delete_callback_).Run();
 }
 
-void AndroidUsbSocket::HandleIncoming(std::unique_ptr<AdbMessage> message) {
+void CNAndroidUsbSocket::HandleIncoming(std::unique_ptr<CNAdbMessage> message) {
   if (!device_.get())
     return;
 
   CHECK_EQ(message->arg1, local_id_);
   switch (message->command) {
-    case AdbMessage::kCommandOKAY:
+    case CNAdbMessage::kCommandOKAY:
       if (!is_connected_) {
         remote_id_ = message->arg0;
         is_connected_ = true;
@@ -57,8 +57,8 @@ void AndroidUsbSocket::HandleIncoming(std::unique_ptr<AdbMessage> message) {
         // "this" can be deleted.
       }
       break;
-    case AdbMessage::kCommandWRTE:
-      device_->Send(AdbMessage::kCommandOKAY, local_id_, message->arg0, "");
+    case CNAdbMessage::kCommandWRTE:
+      device_->Send(CNAdbMessage::kCommandOKAY, local_id_, message->arg0, "");
       read_buffer_ += message->body;
       // Allow WRTE over new connection even though OKAY ack was not received.
       if (!is_connected_) {
@@ -72,9 +72,9 @@ void AndroidUsbSocket::HandleIncoming(std::unique_ptr<AdbMessage> message) {
         // "this" can be deleted.
       }
       break;
-    case AdbMessage::kCommandCLSE:
+    case CNAdbMessage::kCommandCLSE:
       if (is_connected_)
-        device_->Send(AdbMessage::kCommandCLSE, local_id_, 0, "");
+        device_->Send(CNAdbMessage::kCommandCLSE, local_id_, 0, "");
       Terminated(true);
       // "this" can be deleted.
       break;
@@ -83,7 +83,7 @@ void AndroidUsbSocket::HandleIncoming(std::unique_ptr<AdbMessage> message) {
   }
 }
 
-void AndroidUsbSocket::Terminated(bool closed_by_device) {
+void CNAndroidUsbSocket::Terminated(bool closed_by_device) {
   is_connected_ = false;
 
   // Break the socket -> device connection, release the device.
@@ -99,7 +99,7 @@ void AndroidUsbSocket::Terminated(bool closed_by_device) {
     // "this" can be deleted.
     return;
   }
-  base::WeakPtr<AndroidUsbSocket> weak_this = weak_factory_.GetWeakPtr();
+  base::WeakPtr<CNAndroidUsbSocket> weak_this = weak_factory_.GetWeakPtr();
   RespondToReader(true);
   // "this" can be deleted.
   if (weak_this) {
@@ -108,7 +108,7 @@ void AndroidUsbSocket::Terminated(bool closed_by_device) {
   }
 }
 
-int AndroidUsbSocket::Read(net::IOBuffer* buffer,
+int CNAndroidUsbSocket::Read(net::IOBuffer* buffer,
                            int length,
                            net::CompletionOnceCallback callback) {
   DCHECK(!callback.is_null());
@@ -133,7 +133,7 @@ int AndroidUsbSocket::Read(net::IOBuffer* buffer,
   return bytes_to_copy;
 }
 
-int AndroidUsbSocket::Write(
+int CNAndroidUsbSocket::Write(
     net::IOBuffer* buffer,
     int length,
     net::CompletionOnceCallback callback,
@@ -148,22 +148,22 @@ int AndroidUsbSocket::Write(
   DCHECK(write_callback_.is_null());
   write_callback_ = std::move(callback);
   write_length_ = length;
-  device_->Send(AdbMessage::kCommandWRTE, local_id_, remote_id_,
+  device_->Send(CNAdbMessage::kCommandWRTE, local_id_, remote_id_,
                 std::string(buffer->data(), length));
   return net::ERR_IO_PENDING;
 }
 
-int AndroidUsbSocket::SetReceiveBufferSize(int32_t size) {
+int CNAndroidUsbSocket::SetReceiveBufferSize(int32_t size) {
   NOTIMPLEMENTED();
   return net::ERR_NOT_IMPLEMENTED;
 }
 
-int AndroidUsbSocket::SetSendBufferSize(int32_t size) {
+int CNAndroidUsbSocket::SetSendBufferSize(int32_t size) {
   NOTIMPLEMENTED();
   return net::ERR_NOT_IMPLEMENTED;
 }
 
-int AndroidUsbSocket::Connect(net::CompletionOnceCallback callback) {
+int CNAndroidUsbSocket::Connect(net::CompletionOnceCallback callback) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   DCHECK(!callback.is_null());
   if (!device_.get())
@@ -172,65 +172,65 @@ int AndroidUsbSocket::Connect(net::CompletionOnceCallback callback) {
   DCHECK(!is_connected_);
   DCHECK(connect_callback_.is_null());
   connect_callback_ = std::move(callback);
-  device_->Send(AdbMessage::kCommandOPEN, local_id_, 0, command_);
+  device_->Send(CNAdbMessage::kCommandOPEN, local_id_, 0, command_);
   return net::ERR_IO_PENDING;
 }
 
-void AndroidUsbSocket::Disconnect() {
+void CNAndroidUsbSocket::Disconnect() {
   if (!device_.get())
     return;
-  device_->Send(AdbMessage::kCommandCLSE, local_id_, remote_id_, "");
+  device_->Send(CNAdbMessage::kCommandCLSE, local_id_, remote_id_, "");
   Terminated(false);
 }
 
-bool AndroidUsbSocket::IsConnected() const {
+bool CNAndroidUsbSocket::IsConnected() const {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   return is_connected_;
 }
 
-bool AndroidUsbSocket::IsConnectedAndIdle() const {
+bool CNAndroidUsbSocket::IsConnectedAndIdle() const {
   NOTIMPLEMENTED();
   return false;
 }
 
-int AndroidUsbSocket::GetPeerAddress(net::IPEndPoint* address) const {
+int CNAndroidUsbSocket::GetPeerAddress(net::IPEndPoint* address) const {
   *address = net::IPEndPoint(net::IPAddress(0, 0, 0, 0), 0);
   return net::OK;
 }
 
-int AndroidUsbSocket::GetLocalAddress(net::IPEndPoint* address) const {
+int CNAndroidUsbSocket::GetLocalAddress(net::IPEndPoint* address) const {
   NOTIMPLEMENTED();
   return net::ERR_NOT_IMPLEMENTED;
 }
 
-const net::NetLogWithSource& AndroidUsbSocket::NetLog() const {
+const net::NetLogWithSource& CNAndroidUsbSocket::NetLog() const {
   return net_log_;
 }
 
-bool AndroidUsbSocket::WasEverUsed() const {
+bool CNAndroidUsbSocket::WasEverUsed() const {
   NOTIMPLEMENTED();
   return true;
 }
 
-net::NextProto AndroidUsbSocket::GetNegotiatedProtocol() const {
+net::NextProto CNAndroidUsbSocket::GetNegotiatedProtocol() const {
   NOTIMPLEMENTED();
   return net::kProtoUnknown;
 }
 
-bool AndroidUsbSocket::GetSSLInfo(net::SSLInfo* ssl_info) {
+bool CNAndroidUsbSocket::GetSSLInfo(net::SSLInfo* ssl_info) {
   return false;
 }
 
-int64_t AndroidUsbSocket::GetTotalReceivedBytes() const {
+int64_t CNAndroidUsbSocket::GetTotalReceivedBytes() const {
   NOTIMPLEMENTED();
   return 0;
 }
 
-void AndroidUsbSocket::ApplySocketTag(const net::SocketTag& tag) {
+void CNAndroidUsbSocket::ApplySocketTag(const net::SocketTag& tag) {
   NOTIMPLEMENTED();
 }
 
-void AndroidUsbSocket::RespondToReader(bool disconnect) {
+void CNAndroidUsbSocket::RespondToReader(bool disconnect) {
   if (read_callback_.is_null() || (read_buffer_.empty() && !disconnect))
     return;
   size_t bytes_to_copy =
@@ -244,7 +244,7 @@ void AndroidUsbSocket::RespondToReader(bool disconnect) {
   std::move(read_callback_).Run(bytes_to_copy);
 }
 
-void AndroidUsbSocket::RespondToWriter(int result) {
+void CNAndroidUsbSocket::RespondToWriter(int result) {
   if (!write_callback_.is_null())
     std::move(write_callback_).Run(result);
 }

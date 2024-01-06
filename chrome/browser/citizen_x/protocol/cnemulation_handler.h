@@ -5,7 +5,7 @@
 #ifndef CHROME_BROWSER_CITIZENNOTES_PROTOCOL_EMULATION_HANDLER_H_
 #define CHROME_BROWSER_CITIZENNOTES_PROTOCOL_EMULATION_HANDLER_H_
 
-#include "chrome/browser/devtools/protocol/emulation.h"
+#include "chrome/browser/citizen_x/protocol/emulation.h"
 #include "components/infobars/content/content_infobar_manager.h"
 #include "components/infobars/core/infobar.h"
 #include "content/public/browser/citizennotes_agent_host.h"

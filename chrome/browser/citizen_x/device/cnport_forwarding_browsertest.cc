@@ -9,9 +9,9 @@
 #include "base/run_loop.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/task/single_thread_task_runner.h"
-#include "chrome/browser/devtools/device/devtools_android_bridge.h"
-#include "chrome/browser/devtools/device/tcp_device_provider.h"
-#include "chrome/browser/devtools/remote_debugging_server.h"
+#include "chrome/browser/citizen_x/device/citizennotes_android_bridge.h"
+#include "chrome/browser/citizen_x/device/cntcp_device_provider.h"
+#include "chrome/browser/citizen_x/cnremote_debugging_server.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
@@ -28,7 +28,7 @@
 #include "net/test/embedded_test_server/embedded_test_server.h"
 
 namespace {
-const char kPortForwardingTestPage[] = "/devtools/port_forwarding/main.html";
+const char kPortForwardingTestPage[] = "/citizennotes/port_forwarding/main.html";
 
 const int kDefaultDebuggingPort = 9223;
 const int kAlternativeDebuggingPort = 9224;
@@ -47,16 +47,16 @@ class PortForwardingTest: public InProcessBrowserTest {
   }
 
  protected:
-  class Listener : public DevToolsAndroidBridge::PortForwardingListener {
+  class Listener : public CitizenNotesAndroidBridge::PortForwardingListener {
    public:
     explicit Listener(Profile* profile)
         : profile_(profile), skip_empty_devices_(true) {
-      DevToolsAndroidBridge::Factory::GetForProfile(profile_)
+      CitizenNotesAndroidBridge::Factory::GetForProfile(profile_)
           ->AddPortForwardingListener(this);
     }
 
     ~Listener() override {
-      DevToolsAndroidBridge::Factory::GetForProfile(profile_)->
+      CitizenNotesAndroidBridge::Factory::GetForProfile(profile_)->
           RemovePortForwardingListener(this);
     }
 
@@ -86,7 +86,7 @@ IN_PROC_BROWSER_TEST_F(PortForwardingTest, LoadPageWithStyleAnsScript) {
 
   device_providers.push_back(
       TCPDeviceProvider::CreateForLocalhost(kDefaultDebuggingPort));
-  DevToolsAndroidBridge::Factory::GetForProfile(profile)->
+  CitizenNotesAndroidBridge::Factory::GetForProfile(profile)->
       set_device_providers_for_test(device_providers);
 
   ASSERT_TRUE(embedded_test_server()->Start());
@@ -97,11 +97,11 @@ IN_PROC_BROWSER_TEST_F(PortForwardingTest, LoadPageWithStyleAnsScript) {
       original_url.host() + ":" + forwarding_port + original_url.path());
 
   PrefService* prefs = profile->GetPrefs();
-  prefs->SetBoolean(prefs::kDevToolsPortForwardingEnabled, true);
+  prefs->SetBoolean(prefs::kCitizenNotesPortForwardingEnabled, true);
 
   base::Value::Dict config;
   config.Set(forwarding_port, original_url.host() + ":" + original_url.port());
-  prefs->SetDict(prefs::kDevToolsPortForwardingConfig, std::move(config));
+  prefs->SetDict(prefs::kCitizenNotesPortForwardingConfig, std::move(config));
   base::RunLoop loop1;
   Listener wait_for_port_forwarding(profile);
   wait_for_port_forwarding.set_run_loop(&loop1);
@@ -126,7 +126,7 @@ IN_PROC_BROWSER_TEST_F(PortForwardingTest, LoadPageWithStyleAnsScript) {
   base::RunLoop loop2;
   wait_for_port_forwarding.set_skip_empty_devices(false);
   wait_for_port_forwarding.set_run_loop(&loop2);
-  prefs->SetBoolean(prefs::kDevToolsPortForwardingEnabled, false);
+  prefs->SetBoolean(prefs::kCitizenNotesPortForwardingEnabled, false);
 
   loop2.Run();
 }
@@ -146,7 +146,7 @@ IN_PROC_BROWSER_TEST_F(PortForwardingDisconnectTest, DisconnectOnRelease) {
       TCPDeviceProvider::CreateForLocalhost(kAlternativeDebuggingPort));
   device_providers.push_back(self_provider);
 
-  DevToolsAndroidBridge::Factory::GetForProfile(profile)->
+  CitizenNotesAndroidBridge::Factory::GetForProfile(profile)->
       set_device_providers_for_test(device_providers);
 
   ASSERT_TRUE(embedded_test_server()->Start());
@@ -157,11 +157,11 @@ IN_PROC_BROWSER_TEST_F(PortForwardingDisconnectTest, DisconnectOnRelease) {
       original_url.host() + ":" + forwarding_port + original_url.path());
 
   PrefService* prefs = profile->GetPrefs();
-  prefs->SetBoolean(prefs::kDevToolsPortForwardingEnabled, true);
+  prefs->SetBoolean(prefs::kCitizenNotesPortForwardingEnabled, true);
 
   base::Value::Dict config;
   config.Set(forwarding_port, original_url.host() + ":" + original_url.port());
-  prefs->SetDict(prefs::kDevToolsPortForwardingConfig, std::move(config));
+  prefs->SetDict(prefs::kCitizenNotesPortForwardingConfig, std::move(config));
 
   base::RunLoop run_loop;
 

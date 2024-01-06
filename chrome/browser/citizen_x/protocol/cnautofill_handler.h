@@ -52,8 +52,8 @@ class CNAutofillHandler : public protocol::Autofill::Backend,
 
   // Autofill::AutofillManagerObserver
   // Observes form filled events. In the case of an address form, we emit to
-  // devtools the filled fields details and information about the profile used.
-  // These information is then used to build a UI inside devtools, which will
+  // citizennotes the filled fields details and information about the profile used.
+  // These information is then used to build a UI inside citizennotes, which will
   // provide developers more visibility on how autofill works on their form.
   void OnFillOrPreviewDataModelForm(
       autofill::AutofillManager& manager,
@@ -65,13 +65,13 @@ class CNAutofillHandler : public protocol::Autofill::Backend,
       override;
 
   // Returns the driver for the outermost frame, not the one that created the
-  // `DevToolsAgentHost` and iniated the session.
+  // `CitizenNotesAgentHost` and iniated the session.
   autofill::ContentAutofillDriver* GetAutofillDriver();
 
   const std::string target_id_;
   bool enabled_ = false;
   std::unique_ptr<protocol::Autofill::Frontend> frontend_;
-  // Observes `AutofillManager`s of the `WebContents` that hosts the devtools
+  // Observes `AutofillManager`s of the `WebContents` that hosts the citizennotes
   // instance.
   autofill::ScopedAutofillManagersObservation autofill_managers_observation_{
       this};

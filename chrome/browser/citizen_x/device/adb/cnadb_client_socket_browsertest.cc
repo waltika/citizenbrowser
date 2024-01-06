@@ -4,9 +4,9 @@
 
 #include "base/run_loop.h"
 #include "build/build_config.h"
-#include "chrome/browser/devtools/device/adb/adb_device_provider.h"
-#include "chrome/browser/devtools/device/adb/mock_adb_server.h"
-#include "chrome/browser/devtools/device/devtools_android_bridge.h"
+#include "chrome/browser/citizen_x/device/adb/adb_device_provider.h"
+#include "chrome/browser/citizen_x/device/adb/mock_adb_server.h"
+#include "chrome/browser/citizen_x/device/citizennotes_android_bridge.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/test/base/in_process_browser_test.h"
 #include "content/public/browser/browser_thread.h"
@@ -15,8 +15,8 @@
 
 using content::BrowserThread;
 
-static scoped_refptr<DevToolsAndroidBridge::RemoteBrowser>
-FindBrowserByDisplayName(DevToolsAndroidBridge::RemoteBrowsers browsers,
+static scoped_refptr<CitizenNotesAndroidBridge::RemoteBrowser>
+FindBrowserByDisplayName(CitizenNotesAndroidBridge::RemoteBrowsers browsers,
                          const std::string& name) {
   for (auto it = browsers.begin(); it != browsers.end(); ++it)
     if ((*it)->display_name() == name)
@@ -25,12 +25,12 @@ FindBrowserByDisplayName(DevToolsAndroidBridge::RemoteBrowsers browsers,
 }
 
 class AdbClientSocketTest : public InProcessBrowserTest,
-                            public DevToolsAndroidBridge::DeviceListListener {
+                            public CitizenNotesAndroidBridge::DeviceListListener {
 
  public:
   void StartTest() {
     Profile* profile = browser()->profile();
-    android_bridge_ = DevToolsAndroidBridge::Factory::GetForProfile(profile);
+    android_bridge_ = CitizenNotesAndroidBridge::Factory::GetForProfile(profile);
     AndroidDeviceManager::DeviceProviders device_providers;
     device_providers.push_back(new AdbDeviceProvider());
     android_bridge_->set_device_providers_for_test(device_providers);
@@ -39,7 +39,7 @@ class AdbClientSocketTest : public InProcessBrowserTest,
   }
 
   void DeviceListChanged(
-      const DevToolsAndroidBridge::RemoteDevices& devices) override {
+      const CitizenNotesAndroidBridge::RemoteDevices& devices) override {
     devices_ = devices;
     android_bridge_->RemoveDeviceListListener(this);
     base::RunLoop::QuitCurrentWhenIdleDeprecated();
@@ -48,10 +48,10 @@ class AdbClientSocketTest : public InProcessBrowserTest,
   void CheckDevices() {
     ASSERT_EQ(2U, devices_.size());
 
-    scoped_refptr<DevToolsAndroidBridge::RemoteDevice> connected =
+    scoped_refptr<CitizenNotesAndroidBridge::RemoteDevice> connected =
         devices_[0]->is_connected() ? devices_[0] : devices_[1];
 
-    scoped_refptr<DevToolsAndroidBridge::RemoteDevice> not_connected =
+    scoped_refptr<CitizenNotesAndroidBridge::RemoteDevice> not_connected =
         devices_[0]->is_connected() ? devices_[1] : devices_[0];
 
     ASSERT_TRUE(connected->is_connected());
@@ -66,31 +66,31 @@ class AdbClientSocketTest : public InProcessBrowserTest,
     ASSERT_EQ("01498B2B0D01300E", not_connected->serial());
     ASSERT_EQ("Offline", not_connected->model());
 
-    const DevToolsAndroidBridge::RemoteBrowsers& browsers =
+    const CitizenNotesAndroidBridge::RemoteBrowsers& browsers =
         connected->browsers();
     ASSERT_EQ(5U, browsers.size());
 
-    scoped_refptr<DevToolsAndroidBridge::RemoteBrowser> chrome =
+    scoped_refptr<CitizenNotesAndroidBridge::RemoteBrowser> chrome =
         FindBrowserByDisplayName(browsers, "Chrome");
     ASSERT_TRUE(chrome.get());
 
-    scoped_refptr<DevToolsAndroidBridge::RemoteBrowser> chrome_beta =
+    scoped_refptr<CitizenNotesAndroidBridge::RemoteBrowser> chrome_beta =
         FindBrowserByDisplayName(browsers, "Chrome Beta");
     ASSERT_TRUE(chrome_beta.get());
 
-    scoped_refptr<DevToolsAndroidBridge::RemoteBrowser> chromium =
+    scoped_refptr<CitizenNotesAndroidBridge::RemoteBrowser> chromium =
         FindBrowserByDisplayName(browsers, "Chromium");
     ASSERT_FALSE(chromium.get());
 
-    scoped_refptr<DevToolsAndroidBridge::RemoteBrowser> webview =
+    scoped_refptr<CitizenNotesAndroidBridge::RemoteBrowser> webview =
         FindBrowserByDisplayName(browsers, "WebView in com.sample.feed");
     ASSERT_TRUE(webview.get());
 
-    scoped_refptr<DevToolsAndroidBridge::RemoteBrowser> noprocess =
+    scoped_refptr<CitizenNotesAndroidBridge::RemoteBrowser> noprocess =
         FindBrowserByDisplayName(browsers, "Noprocess");
     ASSERT_TRUE(noprocess.get());
 
-    scoped_refptr<DevToolsAndroidBridge::RemoteBrowser> node =
+    scoped_refptr<CitizenNotesAndroidBridge::RemoteBrowser> node =
         FindBrowserByDisplayName(browsers, "Node");
     ASSERT_TRUE(node.get());
 
@@ -103,28 +103,28 @@ class AdbClientSocketTest : public InProcessBrowserTest,
     ASSERT_EQ("Test User : 2", chrome_beta->user());
     ASSERT_EQ("Test User", webview->user());
 
-    DevToolsAndroidBridge::RemotePages chrome_pages =
+    CitizenNotesAndroidBridge::RemotePages chrome_pages =
         chrome->pages();
-    DevToolsAndroidBridge::RemotePages chrome_beta_pages =
+    CitizenNotesAndroidBridge::RemotePages chrome_beta_pages =
         chrome_beta->pages();
-    DevToolsAndroidBridge::RemotePages webview_pages =
+    CitizenNotesAndroidBridge::RemotePages webview_pages =
         webview->pages();
-    DevToolsAndroidBridge::RemotePages node_pages = node->pages();
+    CitizenNotesAndroidBridge::RemotePages node_pages = node->pages();
 
     ASSERT_EQ(1U, chrome_pages.size());
     ASSERT_EQ(1U, chrome_beta_pages.size());
     ASSERT_EQ(2U, webview_pages.size());
     ASSERT_EQ(1U, node_pages.size());
 
-    scoped_refptr<content::DevToolsAgentHost> chrome_target(
+    scoped_refptr<content::CitizenNotesAgentHost> chrome_target(
         chrome_pages[0]->CreateTarget());
-    scoped_refptr<content::DevToolsAgentHost> chrome_beta_target(
+    scoped_refptr<content::CitizenNotesAgentHost> chrome_beta_target(
         chrome_beta_pages[0]->CreateTarget());
-    scoped_refptr<content::DevToolsAgentHost> webview_target_0(
+    scoped_refptr<content::CitizenNotesAgentHost> webview_target_0(
         webview_pages[0]->CreateTarget());
-    scoped_refptr<content::DevToolsAgentHost> webview_target_1(
+    scoped_refptr<content::CitizenNotesAgentHost> webview_target_1(
         webview_pages[1]->CreateTarget());
-    scoped_refptr<content::DevToolsAgentHost> node_target(
+    scoped_refptr<content::CitizenNotesAgentHost> node_target(
         node_pages[0]->CreateTarget());
 
     // Check that we have non-empty description for webview pages.
@@ -141,8 +141,8 @@ class AdbClientSocketTest : public InProcessBrowserTest,
   }
 
  private:
-  DevToolsAndroidBridge* android_bridge_;
-  DevToolsAndroidBridge::RemoteDevices devices_;
+  CitizenNotesAndroidBridge* android_bridge_;
+  CitizenNotesAndroidBridge::RemoteDevices devices_;
 };
 
 // Combine all tests into one. Splitting up into multiple tests can be flaky

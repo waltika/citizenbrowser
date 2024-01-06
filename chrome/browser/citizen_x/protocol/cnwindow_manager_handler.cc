@@ -18,7 +18,7 @@ CNWindowManagerHandler::~CNWindowManagerHandler() = default;
 protocol::Response CNWindowManagerHandler::EnterOverviewMode() {
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
   bool success = ash::Shell::Get()->overview_controller()->StartOverview(
-      ash::OverviewStartAction::kDevTools);
+      ash::OverviewStartAction::kCitizenNotes);
   return success ? protocol::Response::Success()
                  : protocol::Response::ServerError("Overview failed");
 }
@@ -26,7 +26,7 @@ protocol::Response CNWindowManagerHandler::EnterOverviewMode() {
 protocol::Response CNWindowManagerHandler::ExitOverviewMode() {
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
   bool success = ash::Shell::Get()->overview_controller()->EndOverview(
-      ash::OverviewEndAction::kDevTools);
+      ash::OverviewEndAction::kCitizenNotes);
   return success ? protocol::Response::Success()
                  : protocol::Response::ServerError("Overview failed");
 }

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "chrome/browser/devtools/devtools_dock_tile.h"
+#include "chrome/browser/citizen_x/citizennotes_dock_tile.h"
 
 // static
-void DevToolsDockTile::Update(const std::string& label, gfx::Image image) {}
+void CitizenNotesDockTile::Update(const std::string& label, gfx::Image image) {}

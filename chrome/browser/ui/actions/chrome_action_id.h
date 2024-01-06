@@ -152,6 +152,7 @@
   E(kActionCreateShortcut, IDC_CREATE_SHORTCUT) \
   E(kActionDeveloperMenu, IDC_DEVELOPER_MENU) \
   E(kActionDevTools, IDC_DEV_TOOLS) \
+  E(kActionCitizenNotes, IDC_CITIZEN_NOTES) \
   E(kActionDevToolsConsole, IDC_DEV_TOOLS_CONSOLE) \
   E(kActionTaskManager, IDC_TASK_MANAGER) \
   E(kActionDevToolsDevices, IDC_DEV_TOOLS_DEVICES) \
@@ -182,6 +183,7 @@
   E(kActionExtensionInstallErrorLast, IDC_EXTENSION_INSTALL_ERROR_LAST) \
   E(kActionToggleRequestTabletSite, IDC_TOGGLE_REQUEST_TABLET_SITE) \
   E(kActionDevToolsToggle, IDC_DEV_TOOLS_TOGGLE) \
+  E(kActionCitizenNotesToggle, IDC_CITIZEN_NOTES_TOGGLE) \
   E(kActionRecentTabsMenu, IDC_RECENT_TABS_MENU) \
   E(kActionRecentTabsNoDeviceTabs, IDC_RECENT_TABS_NO_DEVICE_TABS) \
   E(kActionShowSettingsResetBubble, IDC_SHOW_SETTINGS_RESET_BUBBLE) \

@@ -33,7 +33,7 @@ namespace user_prefs {
 class PrefRegistrySyncable;
 }
 
-// Values that represent different actions to open DevTools window.
+// Values that represent different actions to open CitizenNotes window.
 // These values are written to logs. New enum values can be added, but existing
 // enums must never be renumbered or deleted and reused.
 enum class CitizenNotesOpenedByAction {
@@ -51,11 +51,11 @@ enum class CitizenNotesOpenedByAction {
   kToggleShortcut = 5,
   // Link on chrome://inspect
   kInspectLink = 6,
-  // Via --auto-open-devtools-for-tabs or "Auto-open DevTools for popups"
+  // Via --auto-open-citizennotes-for-tabs or "Auto-open CitizenNotes for popups"
   kAutomaticForNewTarget = 7,
   // Re-open when some targets (like apps) reload
   kTargetReload = 8,
-  // Open Node DevTools button in a regular app
+  // Open Node CitizenNotes button in a regular app
   kOpenForNodeFromAnotherTarget = 9,
   // Add values above this line with a corresponding label in
   // tools/metrics/histograms/enums.xml

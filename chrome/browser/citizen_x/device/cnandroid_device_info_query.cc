@@ -34,12 +34,12 @@ const char kSeparator[] = SEPARATOR;
 const char kScreenSizePrefix[] = "mStable=";
 const char kUserInfoPrefix[] = "UserInfo{";
 
-const char kDevToolsSocketSuffix[] = "_devtools_remote";
+const char kCitizenNotesSocketSuffix[] = "_citizennotes_remote";
 
 const char kChromeDefaultName[] = "Chrome";
-const char kChromeDefaultSocket[] = "chrome_devtools_remote";
+const char kChromeDefaultSocket[] = "chrome_citizennotes_remote";
 
-const char kWebViewSocketPrefix[] = "webview_devtools_remote";
+const char kWebViewSocketPrefix[] = "webview_citizennotes_remote";
 const char kWebViewNameTemplate[] = "WebView in %s";
 
 struct BrowserDescriptor {
@@ -76,12 +76,12 @@ const BrowserDescriptor kBrowserDescriptors[] = {
   },
   {
     "org.chromium.android_webview.shell",
-    "webview_devtools_remote",
+    "webview_citizennotes_remote",
     "WebView Test Shell"
   },
   {
     "org.chromium.content_shell_apk",
-    "content_shell_devtools_remote",
+    "content_shell_citizennotes_remote",
     "Content Shell"
   },
   {
@@ -142,11 +142,11 @@ StringMap MapSocketsToProcesses(const std::string& response) {
   //
   // Num       RefCount Protocol Flags    Type St Inode Path
   // 00000000: 00000002 00000000 00010000 0001 01 331813 /dev/socket/zygote
-  // 00000000: 00000002 00000000 00010000 0001 01 358606 @xxx_devtools_remote
-  // 00000000: 00000002 00000000 00010000 0001 01 347300 @yyy_devtools_remote
+  // 00000000: 00000002 00000000 00010000 0001 01 358606 @xxx_citizennotes_remote
+  // 00000000: 00000002 00000000 00010000 0001 01 347300 @yyy_citizennotes_remote
   //
   // We need to find records with paths starting from '@' (abstract socket)
-  // and containing the channel pattern ("_devtools_remote").
+  // and containing the channel pattern ("_citizennotes_remote").
   StringMap socket_to_pid;
   for (const base::StringPiece& line :
        base::SplitStringPiece(response, "\n", base::KEEP_WHITESPACE,
@@ -161,14 +161,14 @@ StringMap MapSocketsToProcesses(const std::string& response) {
     std::string path_field = fields[7];
     if (path_field.empty() || path_field[0] != '@')
       continue;
-    size_t socket_name_pos = path_field.find(kDevToolsSocketSuffix);
+    size_t socket_name_pos = path_field.find(kCitizenNotesSocketSuffix);
     if (socket_name_pos == std::string::npos)
       continue;
 
     std::string socket = path_field.substr(1);
 
     std::string pid;
-    size_t socket_name_end = socket_name_pos + strlen(kDevToolsSocketSuffix);
+    size_t socket_name_end = socket_name_pos + strlen(kCitizenNotesSocketSuffix);
     if (socket_name_end < path_field.size() &&
         path_field[socket_name_end] == '_') {
       pid = path_field.substr(socket_name_end + 1);
@@ -339,7 +339,7 @@ std::string CNAndroidDeviceManager::GetBrowserName(const std::string& socket,
                                                  const std::string& package) {
   if (package.empty()) {
     // Derive a fallback display name from the socket name.
-    std::string name = socket.substr(0, socket.find(kDevToolsSocketSuffix));
+    std::string name = socket.substr(0, socket.find(kCitizenNotesSocketSuffix));
     name[0] = base::ToUpperASCII(name[0]);
     return name;
   }

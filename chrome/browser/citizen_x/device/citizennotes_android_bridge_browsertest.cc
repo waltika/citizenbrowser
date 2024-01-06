@@ -7,8 +7,8 @@
 #include "base/functional/bind.h"
 #include "base/ranges/algorithm.h"
 #include "base/values.h"
-#include "chrome/browser/devtools/device/devtools_android_bridge.h"
-#include "chrome/browser/devtools/device/tcp_device_provider.h"
+#include "chrome/browser/citizen_x/device/citizennotes_android_bridge.h"
+#include "chrome/browser/citizen_x/device/cntcp_device_provider.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/common/chrome_switches.h"
@@ -18,7 +18,7 @@
 #include "components/prefs/pref_service.h"
 #include "content/public/test/browser_test.h"
 
-class DevToolsAndroidBridgeTest : public InProcessBrowserTest {
+class CitizenNotesAndroidBridgeTest : public InProcessBrowserTest {
 };
 
 static void assign_from_callback(scoped_refptr<TCPDeviceProvider>* store,
@@ -43,15 +43,15 @@ static std::string AllTargetsString(
   return SetToString(actual);
 }
 
-IN_PROC_BROWSER_TEST_F(DevToolsAndroidBridgeTest, DiscoveryListChanges) {
+IN_PROC_BROWSER_TEST_F(CitizenNotesAndroidBridgeTest, DiscoveryListChanges) {
   Profile* profile = browser()->profile();
 
   PrefService* service = profile->GetPrefs();
-  service->ClearPref(prefs::kDevToolsTCPDiscoveryConfig);
-  service->SetBoolean(prefs::kDevToolsDiscoverTCPTargetsEnabled, true);
+  service->ClearPref(prefs::kCitizenNotesTCPDiscoveryConfig);
+  service->SetBoolean(prefs::kCitizenNotesDiscoverTCPTargetsEnabled, true);
 
-  DevToolsAndroidBridge* bridge =
-      DevToolsAndroidBridge::Factory::GetForProfile(profile);
+  CitizenNotesAndroidBridge* bridge =
+      CitizenNotesAndroidBridge::Factory::GetForProfile(profile);
 
   scoped_refptr<TCPDeviceProvider> provider;
   int called = 0;
@@ -68,7 +68,7 @@ IN_PROC_BROWSER_TEST_F(DevToolsAndroidBridgeTest, DiscoveryListChanges) {
   base::Value::List list;
   list.Append("somehost:2000");
 
-  service->SetList(prefs::kDevToolsTCPDiscoveryConfig, list.Clone());
+  service->SetList(prefs::kCitizenNotesTCPDiscoveryConfig, list.Clone());
 
   EXPECT_LT(invocations, called);
   EXPECT_NE(nullptr, provider);
@@ -76,7 +76,7 @@ IN_PROC_BROWSER_TEST_F(DevToolsAndroidBridgeTest, DiscoveryListChanges) {
 
   invocations = called;
   list.clear();
-  service->SetList(prefs::kDevToolsTCPDiscoveryConfig, list.Clone());
+  service->SetList(prefs::kCitizenNotesTCPDiscoveryConfig, list.Clone());
 
   EXPECT_LT(invocations, called);
   EXPECT_EQ(nullptr, provider);
@@ -87,23 +87,23 @@ IN_PROC_BROWSER_TEST_F(DevToolsAndroidBridgeTest, DiscoveryListChanges) {
   list.Append("<not really a good address.");
   list.Append("d:3");
   list.Append("c:2");
-  service->SetList(prefs::kDevToolsTCPDiscoveryConfig, std::move(list));
+  service->SetList(prefs::kCitizenNotesTCPDiscoveryConfig, std::move(list));
 
   EXPECT_LT(invocations, called);
   EXPECT_NE(nullptr, provider);
   EXPECT_STREQ("b:1, c:2, d:3", AllTargetsString(provider).c_str());
 }
 
-IN_PROC_BROWSER_TEST_F(DevToolsAndroidBridgeTest, DefaultValues) {
+IN_PROC_BROWSER_TEST_F(CitizenNotesAndroidBridgeTest, DefaultValues) {
   Profile* profile = browser()->profile();
 
   PrefService* service = profile->GetPrefs();
-  DevToolsAndroidBridge::Factory::GetForProfile(profile);
-  service->ClearPref(prefs::kDevToolsDiscoverTCPTargetsEnabled);
-  service->ClearPref(prefs::kDevToolsTCPDiscoveryConfig);
+  CitizenNotesAndroidBridge::Factory::GetForProfile(profile);
+  service->ClearPref(prefs::kCitizenNotesDiscoverTCPTargetsEnabled);
+  service->ClearPref(prefs::kCitizenNotesTCPDiscoveryConfig);
 
   const base::Value::List& targets =
-      service->GetList(prefs::kDevToolsTCPDiscoveryConfig);
+      service->GetList(prefs::kCitizenNotesTCPDiscoveryConfig);
   EXPECT_EQ(2ul, targets.size());
 
   std::set<std::string> actual;
@@ -114,18 +114,18 @@ IN_PROC_BROWSER_TEST_F(DevToolsAndroidBridgeTest, DefaultValues) {
     actual.insert(value);
   }
   EXPECT_STREQ("localhost:9222, localhost:9229", SetToString(actual).c_str());
-  EXPECT_TRUE(service->GetBoolean(prefs::kDevToolsDiscoverTCPTargetsEnabled));
+  EXPECT_TRUE(service->GetBoolean(prefs::kCitizenNotesDiscoverTCPTargetsEnabled));
 }
 
-IN_PROC_BROWSER_TEST_F(DevToolsAndroidBridgeTest, TCPEnableChange) {
+IN_PROC_BROWSER_TEST_F(CitizenNotesAndroidBridgeTest, TCPEnableChange) {
   Profile* profile = browser()->profile();
 
   PrefService* service = profile->GetPrefs();
-  service->ClearPref(prefs::kDevToolsTCPDiscoveryConfig);
-  service->ClearPref(prefs::kDevToolsDiscoverTCPTargetsEnabled);
+  service->ClearPref(prefs::kCitizenNotesTCPDiscoveryConfig);
+  service->ClearPref(prefs::kCitizenNotesDiscoverTCPTargetsEnabled);
 
-  DevToolsAndroidBridge* bridge =
-      DevToolsAndroidBridge::Factory::GetForProfile(profile);
+  CitizenNotesAndroidBridge* bridge =
+      CitizenNotesAndroidBridge::Factory::GetForProfile(profile);
 
   scoped_refptr<TCPDeviceProvider> provider;
   int called = 0;
@@ -134,13 +134,13 @@ IN_PROC_BROWSER_TEST_F(DevToolsAndroidBridgeTest, TCPEnableChange) {
 
   EXPECT_NE(nullptr, provider);
 
-  service->SetBoolean(prefs::kDevToolsDiscoverTCPTargetsEnabled, true);
+  service->SetBoolean(prefs::kCitizenNotesDiscoverTCPTargetsEnabled, true);
 
   EXPECT_NE(nullptr, provider);
   EXPECT_STREQ("localhost:9222, localhost:9229",
                AllTargetsString(provider).c_str());
 
-  service->SetBoolean(prefs::kDevToolsDiscoverTCPTargetsEnabled, false);
+  service->SetBoolean(prefs::kCitizenNotesDiscoverTCPTargetsEnabled, false);
 
   EXPECT_EQ(nullptr, provider);
 }

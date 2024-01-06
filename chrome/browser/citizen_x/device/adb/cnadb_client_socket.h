@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef CHROME_BROWSER_DEVTOOLS_DEVICE_ADB_ADB_CLIENT_SOCKET_H_
-#define CHROME_BROWSER_DEVTOOLS_DEVICE_ADB_ADB_CLIENT_SOCKET_H_
+#ifndef CHROME_BROWSER_CITIZENNOTES_DEVICE_ADB_ADB_CLIENT_SOCKET_H_
+#define CHROME_BROWSER_CITIZENNOTES_DEVICE_ADB_ADB_CLIENT_SOCKET_H_
 
 #include <string>
 
@@ -11,7 +11,7 @@
 #include "net/base/io_buffer.h"
 #include "net/socket/stream_socket.h"
 
-class AdbClientSocket {
+class CNAdbClientSocket {
  public:
   using CommandCallback = base::OnceCallback<void(int, const std::string&)>;
   using SocketCallback =
@@ -26,12 +26,12 @@ class AdbClientSocket {
                              const std::string& socket_name,
                              SocketCallback callback);
 
-  AdbClientSocket(const AdbClientSocket&) = delete;
-  AdbClientSocket& operator=(const AdbClientSocket&) = delete;
+  CNAdbClientSocket(const CNAdbClientSocket&) = delete;
+  CNAdbClientSocket& operator=(const CNAdbClientSocket&) = delete;
 
  protected:
-  explicit AdbClientSocket(int port);
-  ~AdbClientSocket();
+  explicit CNAdbClientSocket(int port);
+  ~CNAdbClientSocket();
 
   void Connect(net::CompletionOnceCallback callback);
 
@@ -63,4 +63,4 @@ class AdbClientSocket {
   int port_;
 };
 
-#endif  // CHROME_BROWSER_DEVTOOLS_DEVICE_ADB_ADB_CLIENT_SOCKET_H_
+#endif  // CHROME_BROWSER_CITIZENNOTES_DEVICE_ADB_ADB_CLIENT_SOCKET_H_

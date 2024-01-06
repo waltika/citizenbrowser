@@ -1123,6 +1123,9 @@ _CONFIG = [
             'third_party/blink/renderer/controller/dev_tools_frontend_impl.h',
             'third_party/blink/renderer/controller/dev_tools_frontend_impl.cc',
             'third_party/blink/renderer/modules/filesystem/dev_tools_host_file_system.cc'
+            'third_party/blink/renderer/controller/citizen_notes_frontend_impl.h',
+            'third_party/blink/renderer/controller/citizen_notes_frontend_impl.cc',
+            'third_party/blink/renderer/modules/filesystem/citizen_notes_host_file_system.cc'
         ],
         'allowed': [
             # Commands from the DevTools window are parsed from a JSON string in
@@ -1133,6 +1136,15 @@ _CONFIG = [
     {
         'paths':
         ['third_party/blink/renderer/core/inspector/dev_tools_host.cc'],
+        'allowed': [
+            # Commands from the DevTools window are parsed from a JSON string in
+            # the devtools renderer and sent on as base::Value.
+            'base::JSONReader',
+        ],
+    },
+    {
+        'paths':
+        ['third_party/blink/renderer/core/inspector/citizen_notes_host.cc'],
         'allowed': [
             # Commands from the DevTools window are parsed from a JSON string in
             # the devtools renderer and sent on as base::Value.

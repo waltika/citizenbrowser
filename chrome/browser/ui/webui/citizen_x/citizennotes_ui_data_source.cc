@@ -14,13 +14,13 @@
 #include "base/path_service.h"
 #include "base/strings/strcat.h"
 #include "base/task/thread_pool.h"
-#include "chrome/browser/devtools/devtools_ui_bindings.h"
-#include "chrome/browser/devtools/url_constants.h"
+#include "chrome/browser/citizen_x/citizennotes_ui_bindings.h"
+#include "chrome/browser/citizen_x/cnurl_constants.h"
 #include "chrome/common/chrome_paths.h"
 #include "chrome/common/chrome_switches.h"
 #include "chrome/common/url_constants.h"
 #include "chrome/common/webui_url_constants.h"
-#include "content/public/browser/devtools_frontend_host.h"
+#include "content/public/browser/citizennotes_frontend_host.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/common/url_constants.h"
 #include "net/base/filename_util.h"
@@ -32,9 +32,9 @@
 namespace {
 
 std::string PathWithoutParams(const std::string& path) {
-  return GURL(base::StrCat({content::kChromeDevToolsScheme,
+  return GURL(base::StrCat({content::kChromeCitizenNotesScheme,
                             url::kStandardSchemeSeparator,
-                            chrome::kChromeUIDevToolsHost}))
+                            chrome::kChromeUICitizenNotesHost}))
       .Resolve(path)
       .path()
       .substr(1);
@@ -86,7 +86,7 @@ std::string GetMimeTypeForUrl(const GURL& url) {
 // the prefix and the revision is removed from the path. For example,
 // "$prefix@76e4c1bb2ab4671b8beba3444e61c0f17584b2fc/inspector.html" becomes
 // "inspector.html".
-std::string StripDevToolsRevisionWithPrefix(const std::string& path,
+std::string StripCitizenNotesRevisionWithPrefix(const std::string& path,
                                             const std::string& prefix) {
   if (base::StartsWith(path, prefix, base::CompareCase::INSENSITIVE_ASCII)) {
     std::size_t found = path.find("/", prefix.length() + 1);
@@ -106,35 +106,35 @@ CitizenNotesDataSource::CitizenNotesDataSource(
 CitizenNotesDataSource::~CitizenNotesDataSource() {}
 
 std::string CitizenNotesDataSource::GetSource() {
-  return chrome::kChromeUIDevToolsHost;
+  return chrome::kChromeUICitizenNotesHost;
 }
 
 // static
-GURL GetCustomDevToolsFrontendURL() {
+GURL GetCustomCitizenNotesFrontendURL() {
   base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
-  if (command_line->HasSwitch(switches::kCustomDevtoolsFrontend)) {
+  if (command_line->HasSwitch(switches::kCustomCitizenNotesFrontend)) {
     return GURL(base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII(
-        switches::kCustomDevtoolsFrontend));
+        switches::kCustomCitizenNotesFrontend));
   }
   return GURL();
 }
 
 bool CitizenNotesDataSource::MaybeHandleCustomRequest(const std::string& path,
                                                   GotDataCallback* callback) {
-  GURL custom_devtools_frontend = GetCustomDevToolsFrontendURL();
-  if (!custom_devtools_frontend.is_valid())
+  GURL custom_citizennotes_frontend = GetCustomCitizenNotesFrontendURL();
+  if (!custom_citizennotes_frontend.is_valid())
     return false;
   std::string stripped_path =
-      StripDevToolsRevisionWithPrefix(path, "serve_rev/");
-  stripped_path = StripDevToolsRevisionWithPrefix(stripped_path, "serve_file/");
+      StripCitizenNotesRevisionWithPrefix(path, "serve_rev/");
+  stripped_path = StripCitizenNotesRevisionWithPrefix(stripped_path, "serve_file/");
   stripped_path =
-      StripDevToolsRevisionWithPrefix(stripped_path, "serve_internal_file/");
-  if (custom_devtools_frontend.SchemeIsFile()) {
+      StripCitizenNotesRevisionWithPrefix(stripped_path, "serve_internal_file/");
+  if (custom_citizennotes_frontend.SchemeIsFile()) {
     // Fetch from file system but strip all the params.
     StartFileRequest(PathWithoutParams(stripped_path), std::move(*callback));
     return true;
   }
-  GURL remote_url(custom_devtools_frontend.spec() + stripped_path);
+  GURL remote_url(custom_citizennotes_frontend.spec() + stripped_path);
   // Fetch from remote URL.
   StartCustomDataRequest(remote_url, std::move(*callback));
   return true;
@@ -144,10 +144,10 @@ void CitizenNotesDataSource::StartDataRequest(
     const GURL& url,
     const content::WebContents::Getter& wc_getter,
     GotDataCallback callback) {
-  // Serve request to devtools://bundled/ from local bundle.
+  // Serve request to citizennotes://bundled/ from local bundle.
   // TODO(crbug/1009127): Simplify usages of |path| since |url| is available.
   const std::string path = content::URLDataSource::URLToRequestPath(url);
-  std::string bundled_path_prefix(chrome::kChromeUIDevToolsBundledPath);
+  std::string bundled_path_prefix(chrome::kChromeUICitizenNotesBundledPath);
   bundled_path_prefix += "/";
   if (base::StartsWith(path, bundled_path_prefix,
                        base::CompareCase::INSENSITIVE_ASCII)) {
@@ -164,16 +164,16 @@ void CitizenNotesDataSource::StartDataRequest(
     return;
   }
 
-  // Serve request to devtools://blank as empty page.
-  std::string empty_path_prefix(chrome::kChromeUIDevToolsBlankPath);
+  // Serve request to citizennotes://blank as empty page.
+  std::string empty_path_prefix(chrome::kChromeUICitizenNotesBlankPath);
   if (base::StartsWith(path, empty_path_prefix,
                        base::CompareCase::INSENSITIVE_ASCII)) {
     std::move(callback).Run(new base::RefCountedStaticMemory());
     return;
   }
 
-  // Serve request to devtools://remote from remote location.
-  std::string remote_path_prefix(chrome::kChromeUIDevToolsRemotePath);
+  // Serve request to citizennotes://remote from remote location.
+  std::string remote_path_prefix(chrome::kChromeUICitizenNotesRemotePath);
   remote_path_prefix += "/";
   if (base::StartsWith(path, remote_path_prefix,
                        base::CompareCase::INSENSITIVE_ASCII)) {
@@ -181,12 +181,12 @@ void CitizenNotesDataSource::StartDataRequest(
                                  &callback)) {
       return;
     }
-    GURL remote_url(kRemoteFrontendBase +
+    GURL remote_url(kCNRemoteFrontendBase +
                     path.substr(remote_path_prefix.length()));
 
-    CHECK_EQ(remote_url.host(), kRemoteFrontendDomain);
+    CHECK_EQ(remote_url.host(), kCNRemoteFrontendDomain);
     if (remote_url.is_valid() &&
-        DevToolsUIBindings::IsValidRemoteFrontendURL(remote_url)) {
+        CitizenNotesUIBindings::IsValidRemoteFrontendURL(remote_url)) {
       StartRemoteDataRequest(remote_url, std::move(callback));
     } else {
       DLOG(ERROR) << "Refusing to load invalid remote front-end URL";
@@ -195,17 +195,17 @@ void CitizenNotesDataSource::StartDataRequest(
     return;
   }
 
-  // Serve request to devtools://custom from custom URL.
-  std::string custom_path_prefix(chrome::kChromeUIDevToolsCustomPath);
+  // Serve request to citizennotes://custom from custom URL.
+  std::string custom_path_prefix(chrome::kChromeUICitizenNotesCustomPath);
   custom_path_prefix += "/";
   if (base::StartsWith(path, custom_path_prefix,
                        base::CompareCase::INSENSITIVE_ASCII)) {
-    GURL custom_devtools_frontend = GetCustomDevToolsFrontendURL();
-    if (!custom_devtools_frontend.is_empty()) {
-      GURL devtools_url(custom_devtools_frontend.spec() +
+    GURL custom_citizennotes_frontend = GetCustomCitizenNotesFrontendURL();
+    if (!custom_citizennotes_frontend.is_empty()) {
+      GURL citizennotes_url(custom_citizennotes_frontend.spec() +
                         path.substr(custom_path_prefix.length()));
-      DCHECK(devtools_url.is_valid());
-      StartCustomDataRequest(devtools_url, std::move(callback));
+      DCHECK(citizennotes_url.is_valid());
+      StartCustomDataRequest(citizennotes_url, std::move(callback));
       return;
     }
   }
@@ -233,9 +233,9 @@ void CitizenNotesDataSource::StartBundledDataRequest(
     const std::string& path,
     content::URLDataSource::GotDataCallback callback) {
   scoped_refptr<base::RefCountedMemory> bytes =
-      content::DevToolsFrontendHost::GetFrontendResourceBytes(path);
+      content::CitizenNotesFrontendHost::GetFrontendResourceBytes(path);
 
-  DLOG_IF(WARNING, !bytes) << "Unable to find DevTools resource: " << path;
+  DLOG_IF(WARNING, !bytes) << "Unable to find CitizenNotes resource: " << path;
   std::move(callback).Run(bytes);
 }
 
@@ -244,12 +244,12 @@ void CitizenNotesDataSource::StartRemoteDataRequest(
     content::URLDataSource::GotDataCallback callback) {
   CHECK(url.is_valid());
   net::NetworkTrafficAnnotationTag traffic_annotation =
-      net::DefineNetworkTrafficAnnotation("devtools_hard_coded_data_source",
+      net::DefineNetworkTrafficAnnotation("citizennotes_hard_coded_data_source",
                                           R"(
         semantics {
           sender: "Developer Tools Remote Data Request From Google"
           description:
-            "This service fetches Chromium DevTools front-end files from the "
+            "This service fetches Chromium CitizenNotes front-end files from the "
             "cloud for the remote debugging scenario."
           trigger:
             "When user attaches to mobile phone for debugging."
@@ -279,19 +279,19 @@ void CitizenNotesDataSource::StartCustomDataRequest(
     return;
   }
   net::NetworkTrafficAnnotationTag traffic_annotation =
-      net::DefineNetworkTrafficAnnotation("devtools_free_data_source", R"(
+      net::DefineNetworkTrafficAnnotation("citizennotes_free_data_source", R"(
         semantics {
           sender: "Developer Tools Remote Data Request"
           description:
-            "This service fetches Chromium DevTools front-end files from the "
+            "This service fetches Chromium CitizenNotes front-end files from the "
             "cloud for the remote debugging scenario. This can only happen if "
             "a URL was passed on the commandline via flag "
-            "'--custom-devtools-frontend'. This URL overrides the default "
+            "'--custom-citizennotes-frontend'. This URL overrides the default "
             "fetching from a Google website, see "
-            "devtools_hard_coded_data_source."
+            "citizennotes_hard_coded_data_source."
           trigger:
-            "When command line flag --custom-devtools-frontend is specified "
-            "and DevTools is opened."
+            "When command line flag --custom-citizennotes-frontend is specified "
+            "and CitizenNotes is opened."
           data: "None"
           destination: WEBSITE
         }
@@ -330,7 +330,7 @@ void CitizenNotesDataSource::StartNetworkRequest(
                      base::Unretained(this), request_iter));
 }
 
-scoped_refptr<base::RefCountedMemory> ReadFileForDevTools(
+scoped_refptr<base::RefCountedMemory> ReadFileForCitizenNotes(
     const base::FilePath& path) {
   std::string buffer;
   if (!base::ReadFileToString(path, &buffer)) {
@@ -343,11 +343,11 @@ scoped_refptr<base::RefCountedMemory> ReadFileForDevTools(
 void CitizenNotesDataSource::StartFileRequest(const std::string& path,
                                           GotDataCallback callback) {
   base::FilePath base_path;
-  GURL custom_devtools_frontend = GetCustomDevToolsFrontendURL();
-  DCHECK(custom_devtools_frontend.SchemeIsFile());
-  if (!net::FileURLToFilePath(custom_devtools_frontend, &base_path)) {
+  GURL custom_citizennotes_frontend = GetCustomCitizenNotesFrontendURL();
+  DCHECK(custom_citizennotes_frontend.SchemeIsFile());
+  if (!net::FileURLToFilePath(custom_citizennotes_frontend, &base_path)) {
     std::move(callback).Run(CreateNotFoundResponse());
-    LOG(WARNING) << "Unable to find DevTools resource: " << path;
+    LOG(WARNING) << "Unable to find CitizenNotes resource: " << path;
     return;
   }
 
@@ -358,7 +358,7 @@ void CitizenNotesDataSource::StartFileRequest(const std::string& path,
       FROM_HERE,
       {base::MayBlock(), base::TaskShutdownBehavior::SKIP_ON_SHUTDOWN,
        base::TaskPriority::USER_VISIBLE},
-      base::BindOnce(ReadFileForDevTools, std::move(full_path)),
+      base::BindOnce(ReadFileForCitizenNotes, std::move(full_path)),
       std::move(callback));
 }
 

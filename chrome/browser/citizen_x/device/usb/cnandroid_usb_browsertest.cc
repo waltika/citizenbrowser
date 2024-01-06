@@ -19,10 +19,10 @@
 #include "base/run_loop.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/single_thread_task_runner.h"
-#include "chrome/browser/devtools/device/adb/mock_adb_server.h"
-#include "chrome/browser/devtools/device/devtools_android_bridge.h"
-#include "chrome/browser/devtools/device/usb/android_usb_device.h"
-#include "chrome/browser/devtools/device/usb/usb_device_provider.h"
+#include "chrome/browser/citizen_x/device/adb/cnmock_adb_server.h"
+#include "chrome/browser/citizen_x/device/citizennotes_android_bridge.h"
+#include "chrome/browser/citizen_x/device/usb/cnandroid_usb_device.h"
+#include "chrome/browser/citizen_x/device/usb/cnusb_device_provider.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/test/base/in_process_browser_test.h"
 #include "content/public/browser/browser_task_traits.h"
@@ -477,13 +477,13 @@ class FakeUsbManagerForCheckingTraits : public FakeAndroidUsbManager {
   int step_ = 0;
 };
 
-class DevToolsAndroidBridgeWarmUp
-    : public DevToolsAndroidBridge::DeviceCountListener {
+class CitizenNotesAndroidBridgeWarmUp
+    : public CitizenNoticeAndroidBridge::DeviceCountListener {
  public:
-  DevToolsAndroidBridgeWarmUp(base::OnceClosure closure,
-                              DevToolsAndroidBridge* adb_bridge)
+  CitizenNotesAndroidBridgeWarmUp(base::OnceClosure closure,
+                              CitizenNoticeAndroidBridge* adb_bridge)
       : closure_(std::move(closure)), adb_bridge_(adb_bridge) {}
-  ~DevToolsAndroidBridgeWarmUp() override = default;
+  ~CitizenNotesAndroidBridgeWarmUp() override = default;
 
   void DeviceCountChanged(int count) override {
     adb_bridge_->RemoveDeviceCountListener(this);
@@ -492,7 +492,7 @@ class DevToolsAndroidBridgeWarmUp
 
  private:
   base::OnceClosure closure_;
-  DevToolsAndroidBridge* adb_bridge_;
+  CitizenNoticeAndroidBridge* adb_bridge_;
 };
 
 class AndroidUsbDiscoveryTest : public InProcessBrowserTest {
@@ -502,7 +502,7 @@ class AndroidUsbDiscoveryTest : public InProcessBrowserTest {
 
   void SetUpOnMainThread() override {
     adb_bridge_ =
-        DevToolsAndroidBridge::Factory::GetForProfile(browser()->profile());
+        CitizenNoticeAndroidBridge::Factory::GetForProfile(browser()->profile());
     DCHECK(adb_bridge_);
     adb_bridge_->set_task_scheduler_for_test(base::BindRepeating(
         &AndroidUsbDiscoveryTest::ScheduleDeviceCountRequest,
@@ -536,7 +536,7 @@ class AndroidUsbDiscoveryTest : public InProcessBrowserTest {
 
   scoped_refptr<content::MessageLoopRunner> runner_;
   std::unique_ptr<FakeUsbDeviceManager> usb_manager_;
-  DevToolsAndroidBridge* adb_bridge_;
+  CitizenNoticeAndroidBridge* adb_bridge_;
   int scheduler_invoked_ = 0;
 };
 
@@ -547,7 +547,7 @@ class AndroidUsbCountTest : public AndroidUsbDiscoveryTest {
 
   void SetUpOnMainThread() override {
     AndroidUsbDiscoveryTest::SetUpOnMainThread();
-    DevToolsAndroidBridgeWarmUp warmup(runner_->QuitClosure(), adb_bridge_);
+    CitizenNotesAndroidBridgeWarmUp warmup(runner_->QuitClosure(), adb_bridge_);
     adb_bridge_->AddDeviceCountListener(&warmup);
     runner_->Run();
     runner_ = base::MakeRefCounted<content::MessageLoopRunner>();
@@ -589,15 +589,15 @@ class AndroidNoConfigUsbTest : public AndroidUsbDiscoveryTest {
   }
 };
 
-class MockListListener : public DevToolsAndroidBridge::DeviceListListener {
+class MockListListener : public CitizenNoticeAndroidBridge::DeviceListListener {
  public:
-  MockListListener(DevToolsAndroidBridge* adb_bridge,
+  MockListListener(CitizenNoticeAndroidBridge* adb_bridge,
                    base::OnceClosure callback)
       : adb_bridge_(adb_bridge), callback_(std::move(callback)) {}
   ~MockListListener() override = default;
 
   void DeviceListChanged(
-      const DevToolsAndroidBridge::RemoteDevices& devices) override {
+      const CitizenNoticeAndroidBridge::RemoteDevices& devices) override {
     for (const auto& device : devices) {
       if (device->is_connected()) {
         ASSERT_EQ(kDeviceModel, device->model());
@@ -609,13 +609,13 @@ class MockListListener : public DevToolsAndroidBridge::DeviceListListener {
     }
   }
 
-  DevToolsAndroidBridge* adb_bridge_;
+  CitizenNoticeAndroidBridge* adb_bridge_;
   base::OnceClosure callback_;
 };
 
-class MockCountListener : public DevToolsAndroidBridge::DeviceCountListener {
+class MockCountListener : public CitizenNoticeAndroidBridge::DeviceCountListener {
  public:
-  explicit MockCountListener(DevToolsAndroidBridge* adb_bridge)
+  explicit MockCountListener(CitizenNoticeAndroidBridge* adb_bridge)
       : adb_bridge_(adb_bridge) {}
   ~MockCountListener() override = default;
 
@@ -627,13 +627,13 @@ class MockCountListener : public DevToolsAndroidBridge::DeviceCountListener {
 
   void Shutdown() { base::RunLoop::QuitCurrentWhenIdleDeprecated(); }
 
-  DevToolsAndroidBridge* adb_bridge_;
+  CitizenNoticeAndroidBridge* adb_bridge_;
   int invoked_ = 0;
 };
 
 class MockCountListenerWithReAdd : public MockCountListener {
  public:
-  explicit MockCountListenerWithReAdd(DevToolsAndroidBridge* adb_bridge)
+  explicit MockCountListenerWithReAdd(CitizenNoticeAndroidBridge* adb_bridge)
       : MockCountListener(adb_bridge) {}
   ~MockCountListenerWithReAdd() override = default;
 
@@ -656,7 +656,7 @@ class MockCountListenerWithReAdd : public MockCountListener {
 class MockCountListenerWithReAddWhileQueued : public MockCountListener {
  public:
   explicit MockCountListenerWithReAddWhileQueued(
-      DevToolsAndroidBridge* adb_bridge)
+      CitizenNoticeAndroidBridge* adb_bridge)
       : MockCountListener(adb_bridge) {}
   ~MockCountListenerWithReAddWhileQueued() override = default;
 
@@ -684,7 +684,7 @@ class MockCountListenerWithReAddWhileQueued : public MockCountListener {
 
 class MockCountListenerForCheckingTraits : public MockCountListener {
  public:
-  explicit MockCountListenerForCheckingTraits(DevToolsAndroidBridge* adb_bridge)
+  explicit MockCountListenerForCheckingTraits(CitizenNoticeAndroidBridge* adb_bridge)
       : MockCountListener(adb_bridge) {}
   ~MockCountListenerForCheckingTraits() override = default;
 

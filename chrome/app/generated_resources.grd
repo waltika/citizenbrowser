@@ -4618,6 +4618,10 @@ are declared in tools/grit/grit_rule.gni.
         DevTools requests full access to <ph name="FOLDER_PATH">$1<ex>C:\Projects\foo\</ex></ph>. Make sure you do not expose any sensitive information.
       </message>
 
+      <message name="IDS_CITIZEN_NOTES_CONFIRM_ADD_FILE_SYSTEM_MESSAGE" desc="Message displayed in CitizenNotes infobar when user attempts to add file system to CitizenNotes.">
+        CitizenNotes requests full access to <ph name="FOLDER_PATH">$1<ex>C:\Projects\foo\</ex></ph>. Make sure you do not expose any sensitive information.
+      </message>
+
       <!-- DevTools confirm infobar button labels -->
       <message name="IDS_DEV_TOOLS_CONFIRM_ALLOW_BUTTON" desc="Used as an 'Allow' button label.">
         Allow
@@ -4626,6 +4630,15 @@ are declared in tools/grit/grit_rule.gni.
         Deny
       </message>
 
+      <!-- DevTools confirm infobar button labels -->
+      <message name="IDS_CITIZEN_NOTES_CONFIRM_ALLOW_BUTTON" desc="Used as an 'Allow' button label.">
+        Allow
+      </message>
+      <message name="IDS_CITIZEN_NOTES_CONFIRM_DENY_BUTTON" desc="Used as an 'Deny' button label.">
+        Deny
+      </message>
+
+      
       <!-- Advanced reload button menu -->
       <message name="IDS_RELOAD_MENU_NORMAL_RELOAD_ITEM" desc="Menu item displayed in the Reload dropdown menu when in dev mode">
         Normal Reload
