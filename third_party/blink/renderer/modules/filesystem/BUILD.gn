@@ -11,6 +11,8 @@ blink_modules_sources("filesystem") {
     "data_transfer_item_file_system.h",
     "dev_tools_host_file_system.cc",
     "dev_tools_host_file_system.h",
+    "citizen_notes_host_file_system.cc",
+    "citizen_notes_host_file_system.h",
     "directory_entry.cc",
     "directory_entry.h",
     "directory_entry_sync.cc",

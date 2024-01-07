@@ -190,7 +190,7 @@ void BnDiv(uint32_t* a, uint32_t* b, uint32_t** pq, uint32_t** pr) {
 
 }  // namespace
 
-std::unique_ptr<crypto::RSAPrivateKey> AndroidRSAPrivateKey(Profile* profile) {
+std::unique_ptr<crypto::RSAPrivateKey> CNAndroidRSAPrivateKey(Profile* profile) {
   std::string encoded_key =
       profile->GetPrefs()->GetString(prefs::kCitizenNotesAdbKey);
   std::string decoded_key;
@@ -213,7 +213,7 @@ std::unique_ptr<crypto::RSAPrivateKey> AndroidRSAPrivateKey(Profile* profile) {
   return key;
 }
 
-std::string AndroidRSAPublicKey(crypto::RSAPrivateKey* key) {
+std::string CNAndroidRSAPublicKey(crypto::RSAPrivateKey* key) {
   std::vector<uint8_t> public_key;
   if (!key)
     return kDummyRSAPublicKey;
@@ -268,7 +268,7 @@ std::string AndroidRSAPublicKey(crypto::RSAPrivateKey* key) {
   return output;
 }
 
-std::string AndroidRSASign(crypto::RSAPrivateKey* key,
+std::string CNAndroidRSASign(crypto::RSAPrivateKey* key,
                            const std::string& body) {
   std::vector<uint8_t> digest(body.begin(), body.end());
   std::vector<uint8_t> result;

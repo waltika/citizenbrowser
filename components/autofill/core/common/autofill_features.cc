@@ -272,6 +272,11 @@ BASE_FEATURE(kAutofillEnableDevtoolsIssues,
              "AutofillEnableDevtoolsIssues",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
+// Controls if Autofill emits form issues to citizennotes.
+BASE_FEATURE(kAutofillEnableCitizennotesIssues,
+             "AutofillEnableCitizennotesIssues",
+             base::FEATURE_ENABLED_BY_DEFAULT);
+
 // Enables a couple of improvements to credit card expiration date handling:
 // - The autocomplete attribute values are rationalized with format strings
 //   like MM/YY from placeholders and labels in mind.
@@ -603,6 +608,12 @@ BASE_FEATURE(kAutofillForUnclassifiedFieldsAvailable,
 // TODO(crbug.com/1459990): Clean up when launched.
 BASE_FEATURE(kAutofillTestFormWithDevtools,
              "AutofillTestFormWithDevtools",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+// Controls whether testing forms using citizennotes will be available.
+// TODO(crbug.com/1459990): Clean up when launched.
+BASE_FEATURE(kAutofillTestFormWithCitizennotes,
+             "AutofillTestFormWithCitizennotes",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Allows silent profile updates even when the profile import requirements are

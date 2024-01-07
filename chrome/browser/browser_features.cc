@@ -77,6 +77,18 @@ const base::FeatureParam<std::string> kDevToolsConsoleInsightsAidaEndpoint{
 const base::FeatureParam<std::string> kDevToolsConsoleInsightsApiKey{
     &kDevToolsConsoleInsights, "aida_api_key", /*default*/ ""};
 
+// Let the CitizenNotes front-end query an AIDA endpoint for explanations and
+// insights regarding console (error) messages.
+BASE_FEATURE(kCitizenNotesConsoleInsights,
+             "CitizenNotesConsoleInsights",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+const base::FeatureParam<std::string> kCitizenNotesConsoleInsightsAidaScope{
+    &kCitizenNotesConsoleInsights, "aida_scope", /*default*/ ""};
+const base::FeatureParam<std::string> kCitizenNotesConsoleInsightsAidaEndpoint{
+    &kCitizenNotesConsoleInsights, "aida_endpoint", /*default*/ ""};
+const base::FeatureParam<std::string> kCitizenNotesConsoleInsightsApiKey{
+    &kCitizenNotesConsoleInsights, "aida_api_key", /*default*/ ""};
+
 // Nukes profile directory before creating a new profile using
 // ProfileManager::CreateMultiProfileAsync().
 BASE_FEATURE(kNukeProfileBeforeCreateMultiAsync,

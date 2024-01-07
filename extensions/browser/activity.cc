@@ -23,6 +23,8 @@ const char* Activity::ToString(Type type) {
       return "API_FUNCTION";
     case DEV_TOOLS:
       return "DEV_TOOLS";
+    case CITIZEN_NOTES:
+      return "CITIZEN_NOTES";
     case EVENT:
       return "EVENT";
     case LIFECYCLE_MANAGEMENT:
