@@ -199,7 +199,7 @@ CitizenNotesAgentHost::List CitizenNotesAgentHost::GetOrCreateAll() {
 }
 
 // static
-void CitizenNotesAgentHost::StartRemoteDebuggingServer(
+void CitizenNotesAgentHost::StartCitizenNotesServer(
     std::unique_ptr<CitizenNotesSocketFactory> server_socket_factory,
     const base::FilePath& active_port_output_directory,
     const base::FilePath& debug_frontend_dir) {
@@ -212,7 +212,7 @@ void CitizenNotesAgentHost::StartRemoteDebuggingServer(
 }
 
 // static
-void CitizenNotesAgentHost::StartRemoteDebuggingPipeHandler(
+void CitizenNotesAgentHost::StartCitizenNotesPipeHandler(
     base::OnceClosure on_disconnect) {
   int read_fd = kReadFD;
   int write_fd = kWriteFD;
@@ -230,12 +230,12 @@ void CitizenNotesAgentHost::StartRemoteDebuggingPipeHandler(
 }
 
 // static
-void CitizenNotesAgentHost::StopRemoteDebuggingServer() {
+void CitizenNotesAgentHost::StopCitizenNotesServer() {
   SetCitizenNotesHttpHandler(nullptr);
 }
 
 // static
-void CitizenNotesAgentHost::StopRemoteDebuggingPipeHandler() {
+void CitizenNotesAgentHost::StopCitizenNotesPipeHandler() {
   SetCitizenNotesPipeHandler(nullptr);
 }
 

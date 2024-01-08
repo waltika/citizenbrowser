@@ -43,6 +43,7 @@
 #include "fuchsia_web/webengine/browser/context_impl.h"
 #include "fuchsia_web/webengine/browser/web_engine_browser_context.h"
 #include "fuchsia_web/webengine/browser/web_engine_devtools_controller.h"
+#include "fuchsia_web/webengine/browser/web_engine_citizennotes_controller.h"
 #include "fuchsia_web/webengine/browser/web_engine_memory_inspector.h"
 #include "fuchsia_web/webengine/switches.h"
 #include "gpu/command_buffer/service/gpu_switches.h"
@@ -208,6 +209,9 @@ int WebEngineBrowserMainParts::PreMainMessageLoopRun() {
   devtools_controller_ =
       WebEngineDevToolsController::CreateFromCommandLine(*command_line);
 
+  citizennotes_controller_ =
+      WebEngineCitizenNotesController::CreateFromCommandLine(*command_line);
+
 #if BUILDFLAG(ENABLE_CAST_RECEIVER)
   if (command_line->HasSwitch(switches::kUseLegacyMetricsService)) {
     legacy_metrics_client_ =
@@ -358,7 +362,8 @@ void WebEngineBrowserMainParts::HandleContextRequest(
   auto context_impl = std::make_unique<ContextImpl>(
       std::move(browser_context),
       component_inspector_->root().CreateChild(inspect_node_name),
-      devtools_controller_.get());
+      devtools_controller_.get(),
+      citizennotes_controller_.get());
 
 #if BUILDFLAG(ENABLE_CAST_RECEIVER)
   // If this web instance should allow CastStreaming then enable it in this
@@ -387,7 +392,7 @@ void WebEngineBrowserMainParts::HandleFrameHostRequest(
   frame_host_bindings_.AddBinding(
       std::make_unique<FrameHostImpl>(
           component_inspector_->root().CreateChild(inspect_node_name),
-          devtools_controller_.get(), network_quality_tracker_.get()),
+          devtools_controller_.get(), citizennotes_controller_.get(), network_quality_tracker_.get()),
       std::move(request));
 }
 

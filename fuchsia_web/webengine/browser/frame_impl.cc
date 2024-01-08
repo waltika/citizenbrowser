@@ -60,6 +60,7 @@
 #include "fuchsia_web/webengine/browser/trace_event.h"
 #include "fuchsia_web/webengine/browser/url_request_rewrite_type_converters.h"
 #include "fuchsia_web/webengine/browser/web_engine_devtools_controller.h"
+#include "fuchsia_web/webengine/browser/web_engine_citizennotes_controller.h"
 #include "media/mojo/mojom/audio_processing.mojom.h"
 #include "mojo/public/cpp/bindings/associated_remote.h"
 #include "mojo/public/cpp/system/platform_handle.h"
@@ -466,6 +467,7 @@ FrameImpl::~FrameImpl() {
 
   DestroyWindowTreeHost();
   context_->devtools_controller()->OnFrameDestroyed(web_contents_.get());
+  context_->citizennotes_controller()->OnFrameDestroyed(web_contents_.get());
 
   auto& map = WebContentsToFrameImplMap();
   auto it = WebContentsToFrameImplMap().find(web_contents_.get());
@@ -1582,6 +1584,7 @@ void FrameImpl::ReadyToCommitNavigation(
 void FrameImpl::DidFinishLoad(content::RenderFrameHost* render_frame_host,
                               const GURL& validated_url) {
   context_->devtools_controller()->OnFrameLoaded(web_contents_.get());
+  context_->citizennotes_controller()->OnFrameLoaded(web_contents_.get());
 }
 
 void FrameImpl::RenderFrameCreated(content::RenderFrameHost* frame_host) {

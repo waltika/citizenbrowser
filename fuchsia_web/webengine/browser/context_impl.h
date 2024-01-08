@@ -29,6 +29,7 @@ class NetworkContext;
 
 class FrameImpl;
 class WebEngineDevToolsController;
+class WebEngineCitizenNotesController;
 
 // Implementation of Context from fuchsia.web.
 // Owns a BrowserContext instance and uses it to create new WebContents/Frames.
@@ -39,7 +40,9 @@ class WEB_ENGINE_EXPORT ContextImpl final : public fuchsia::web::Context {
   // Diagnostics about the context will be placed in |inspect_node|.
   ContextImpl(std::unique_ptr<content::BrowserContext> browser_context,
               inspect::Node inspect_node,
-              WebEngineDevToolsController* devtools_controller);
+              WebEngineDevToolsController* devtools_controller,
+              WebEngineCitizenNotesController* citizennotes_controller
+              );
 
   // Tears down the Context, destroying any active Frames in the process.
   ~ContextImpl() override;
@@ -64,6 +67,10 @@ class WEB_ENGINE_EXPORT ContextImpl final : public fuchsia::web::Context {
   // Returns the DevTools controller for this Context.
   WebEngineDevToolsController* devtools_controller() const {
     return devtools_controller_;
+  }
+    
+  WebEngineCitizenNotesController* citizennotes_controller() const {
+    return citizennotes_controller_;
   }
 
 #if BUILDFLAG(ENABLE_CAST_RECEIVER)
@@ -99,6 +106,7 @@ class WEB_ENGINE_EXPORT ContextImpl final : public fuchsia::web::Context {
 
   // Reference to the class managing the DevTools remote debugging service.
   WebEngineDevToolsController* const devtools_controller_;
+  WebEngineDCitizenNotesController* const citizennotes_controller_;
 
   // Inspect node & properties for this browsing context.
   inspect::Node inspect_node_;

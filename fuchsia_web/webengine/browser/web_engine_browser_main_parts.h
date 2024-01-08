@@ -53,11 +53,13 @@ class FrameHostImpl final : public fuchsia::web::FrameHost {
   explicit FrameHostImpl(
       inspect::Node inspect_node,
       WebEngineDevToolsController* devtools_controller,
+      WebEngineCitizenNotesController* citizennotes_controller,
       network::NetworkQualityTracker* network_quality_tracker)
       : context_(
             WebEngineBrowserContext::CreateIncognito(network_quality_tracker),
             std::move(inspect_node),
-            devtools_controller) {}
+            devtools_controller,
+            citizennotes_controller) {}
   ~FrameHostImpl() override = default;
 
   FrameHostImpl(const FrameHostImpl&) = delete;
@@ -88,6 +90,10 @@ class WEB_ENGINE_EXPORT WebEngineBrowserMainParts
   std::vector<content::BrowserContext*> browser_contexts() const;
   WebEngineDevToolsController* devtools_controller() const {
     return devtools_controller_.get();
+  }
+
+  WebEngineCitizenNotesController* citizennotes_controller() const {
+    return citizennotes_controller_.get();
   }
 
   // content::BrowserMainParts overrides.
@@ -137,6 +143,7 @@ class WEB_ENGINE_EXPORT WebEngineBrowserMainParts
       frame_host_bindings_;
 
   std::unique_ptr<WebEngineDevToolsController> devtools_controller_;
+  std::unique_ptr<WebEngineCitizenNotesController> citizennotes_controller_;
 
 #if BUILDFLAG(ENABLE_CAST_RECEIVER)
   std::unique_ptr<fuchsia_legacymetrics::LegacyMetricsClient>

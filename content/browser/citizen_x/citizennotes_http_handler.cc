@@ -85,7 +85,7 @@ const char kTargetDescriptionField[] = "description";
 const char kTargetUrlField[] = "url";
 const char kTargetFaviconUrlField[] = "faviconUrl";
 const char kTargetWebSocketDebuggerUrlField[] = "webSocketDebuggerUrl";
-const char kTargetDevtoolsFrontendUrlField[] = "citizennotesFrontendUrl";
+const char kTargetCitizennotesFrontendUrlField[] = "citizennotesFrontendUrl";
 
 const int32_t kSendBufferSizeForCitizenNotes = 256 * 1024 * 1024;  // 256Mb
 const int32_t kReceiveBufferSizeForCitizenNotes = 100 * 1024 * 1024;  // 100Mb
@@ -99,10 +99,10 @@ const char kRemoteUrlPattern[] =
 #endif
 
 constexpr net::NetworkTrafficAnnotationTag
-    kDevtoolsHttpHandlerTrafficAnnotation =
+    kCitizennotesHttpHandlerTrafficAnnotation =
         net::DefineNetworkTrafficAnnotation("citizennotes_http_handler", R"(
       semantics {
-        sender: "Devtools Http Handler"
+        sender: "Citizennotes Http Handler"
         description:
           "This is a remote debugging server, only enabled by "
           "'--remote-debugging-port' switch. It exposes debugging protocol "
@@ -118,7 +118,7 @@ constexpr net::NetworkTrafficAnnotationTag
           "This request cannot be disabled in settings. However it will never "
           "be made if user does not run with '--remote-debugging-port' switch."
         policy_exception_justification:
-          "Not implemented, only used in Devtools and is behind a switch."
+          "Not implemented, only used in Citizennotes and is behind a switch."
       })");
 
 bool RequestIsSafeToServe(const net::HttpServerRequestInfo& info) {
@@ -192,35 +192,35 @@ void CNServerWrapper::AcceptWebSocket(int connection_id,
   server_->SetSendBufferSize(connection_id, kSendBufferSizeForCitizenNotes);
   server_->SetReceiveBufferSize(connection_id, kReceiveBufferSizeForCitizenNotes);
   server_->AcceptWebSocket(connection_id, request,
-                           kDevtoolsHttpHandlerTrafficAnnotation);
+                           kCitizennotesHttpHandlerTrafficAnnotation);
 }
 
 void CNServerWrapper::SendOverWebSocket(int connection_id, std::string message) {
   server_->SendOverWebSocket(connection_id, std::move(message),
-                             kDevtoolsHttpHandlerTrafficAnnotation);
+                             kCitizennotesHttpHandlerTrafficAnnotation);
 }
 
 void CNServerWrapper::SendResponse(int connection_id,
                                  const net::HttpServerResponseInfo& response) {
   server_->SendResponse(connection_id, response,
-                        kDevtoolsHttpHandlerTrafficAnnotation);
+                        kCitizennotesHttpHandlerTrafficAnnotation);
 }
 
 void CNServerWrapper::Send200(int connection_id,
                             const std::string& data,
                             const std::string& mime_type) {
   server_->Send200(connection_id, data, mime_type,
-                   kDevtoolsHttpHandlerTrafficAnnotation);
+                   kCitizennotesHttpHandlerTrafficAnnotation);
 }
 
 void CNServerWrapper::Send404(int connection_id) {
-  server_->Send404(connection_id, kDevtoolsHttpHandlerTrafficAnnotation);
+  server_->Send404(connection_id, kCitizennotesHttpHandlerTrafficAnnotation);
 }
 
 void CNServerWrapper::Send500(int connection_id,
                             const std::string& message) {
   server_->Send500(connection_id, message,
-                   kDevtoolsHttpHandlerTrafficAnnotation);
+                   kCitizennotesHttpHandlerTrafficAnnotation);
 }
 
 void CNServerWrapper::Close(int connection_id) {
@@ -468,7 +468,7 @@ void CNServerWrapper::OnHttpRequest(int connection_id,
 
   if (!base::StartsWith(info.path, "/citizennotes/",
                         base::CompareCase::SENSITIVE)) {
-    server_->Send404(connection_id, kDevtoolsHttpHandlerTrafficAnnotation);
+    server_->Send404(connection_id, kCitizennotesHttpHandlerTrafficAnnotation);
     return;
   }
 
@@ -480,7 +480,7 @@ void CNServerWrapper::OnHttpRequest(int connection_id,
     std::string data;
     base::ReadFileToString(path, &data);
     server_->Send200(connection_id, data, mime_type,
-                     kDevtoolsHttpHandlerTrafficAnnotation);
+                     kCitizennotesHttpHandlerTrafficAnnotation);
     return;
   }
 
@@ -491,7 +491,7 @@ void CNServerWrapper::OnHttpRequest(int connection_id,
                        handler_, connection_id, filename));
     return;
   }
-  server_->Send404(connection_id, kDevtoolsHttpHandlerTrafficAnnotation);
+  server_->Send404(connection_id, kCitizennotesHttpHandlerTrafficAnnotation);
 }
 
 void CNServerWrapper::OnWebSocketRequest(
@@ -969,7 +969,7 @@ base::Value::Dict CitizenNotesHttpHandler::SerializeDescriptor(
   dictionary.Set(kTargetWebSocketDebuggerUrlField,
                  base::StringPrintf("ws://%s%s%s", host.c_str(), kPageUrlPrefix,
                                     id.c_str()));
-  dictionary.Set(kTargetDevtoolsFrontendUrlField,
+  dictionary.Set(kTargetCitizennotesFrontendUrlField,
                  GetFrontendURLInternal(agent_host, id, host));
 
   return dictionary;

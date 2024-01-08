@@ -139,16 +139,16 @@ class CONTENT_EXPORT CitizenNotesAgentHost
   // socket_factory was initialized with an ephemeral port (0). The
   // port selected by the OS will be written to a well-known file in
   // the output directory.
-  static void StartRemoteDebuggingServer(
+  static void StartCitizenNotesServer(
       std::unique_ptr<CitizenNotesSocketFactory> server_socket_factory,
       const base::FilePath& active_port_output_directory,
       const base::FilePath& debug_frontend_dir);
-  static void StopRemoteDebuggingServer();
+  static void StopCitizenNotesServer();
 
   // Starts remote debugging for browser target for the given fd=3
   // for reading and fd=4 for writing remote debugging messages.
-  static void StartRemoteDebuggingPipeHandler(base::OnceClosure on_disconnect);
-  static void StopRemoteDebuggingPipeHandler();
+  static void StartCitizenNotesPipeHandler(base::OnceClosure on_disconnect);
+  static void StopCitizenNotesPipeHandler();
 
   // Observer is notified about changes in CitizenNotesAgentHosts.
   static void AddObserver(CitizenNotesAgentHostObserver*);

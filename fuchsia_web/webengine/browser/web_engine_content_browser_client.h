@@ -30,6 +30,8 @@ class WebEngineContentBrowserClient final
       bool is_integration_test) override;
   std::unique_ptr<content::DevToolsManagerDelegate>
   CreateDevToolsManagerDelegate() override;
+  std::unique_ptr<content::CitizenNotesManagerDelegate>
+  CreateCitizenNotesManagerDelegate() override;
   std::string GetProduct() override;
   std::string GetUserAgent() override;
   blink::UserAgentMetadata GetUserAgentMetadata() override;

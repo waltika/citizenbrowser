@@ -344,6 +344,8 @@ component("web_engine_core") {
     "browser/web_engine_content_browser_client.h",
     "browser/web_engine_devtools_controller.cc",
     "browser/web_engine_devtools_controller.h",
+    "browser/web_engine_citizennotes_controller.cc",
+    "browser/web_engine_citizennotes_controller.h",
     "browser/web_engine_media_resource_provider_impl.cc",
     "browser/web_engine_media_resource_provider_impl.h",
     "browser/web_engine_memory_inspector.cc",

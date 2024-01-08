@@ -90,7 +90,7 @@ CNRemoteDebuggingServer::CNRemoteDebuggingServer() {
   const base::CommandLine& command_line =
       *base::CommandLine::ForCurrentProcess();
   if (command_line.HasSwitch(switches::kRemoteDebuggingPipe)) {
-    content::CitizenNotesAgentHost::StartRemoteDebuggingPipeHandler(
+    content::CitizenNotesAgentHost::StartCitizenNotesPipeHandler(
         base::BindOnce(&ChromeCitizenNotesManagerDelegate::CloseBrowserSoon));
   }
 
@@ -117,7 +117,7 @@ CNRemoteDebuggingServer::CNRemoteDebuggingServer() {
       net::FileURLToFilePath(custom_citizennotes_frontend_url, &debug_frontend_dir);
     }
   }
-  content::CitizenNotesAgentHost::StartRemoteDebuggingServer(
+  content::CitizenNotesAgentHost::StartCitizenNotesServer(
       std::make_unique<CNTCPServerSocketFactory>(port), output_dir,
       debug_frontend_dir);
 }
@@ -126,6 +126,6 @@ CNRemoteDebuggingServer::~CNRemoteDebuggingServer() {
   // Ensure Profile is alive, because the whole CitizenNotes subsystem
   // accesses it during shutdown.
   DCHECK(g_browser_process->profile_manager());
-  content::CitizenNotesAgentHost::StopRemoteDebuggingServer();
-  content::CitizenNotesAgentHost::StopRemoteDebuggingPipeHandler();
+  content::CitizenNotesAgentHost::StopCitizenNotesServer();
+  content::CitizenNotesAgentHost::StopCitizenNotesPipeHandler();
 }

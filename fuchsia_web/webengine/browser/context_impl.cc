@@ -25,6 +25,7 @@
 #include "fuchsia_web/webengine/browser/frame_impl.h"
 #include "fuchsia_web/webengine/browser/trace_event.h"
 #include "fuchsia_web/webengine/browser/web_engine_devtools_controller.h"
+#include "fuchsia_web/webengine/browser/web_engine_citizennotes_controller.h"
 #include "third_party/blink/public/common/web_preferences/web_preferences.h"
 #include "third_party/blink/public/mojom/webpreferences/web_preferences.mojom.h"
 #include "third_party/perfetto/include/perfetto/tracing/track_event_args.h"
@@ -36,14 +37,17 @@
 ContextImpl::ContextImpl(
     std::unique_ptr<content::BrowserContext> browser_context,
     inspect::Node inspect_node,
-    WebEngineDevToolsController* devtools_controller)
+    WebEngineDevToolsController* devtools_controller,
+    WebEngineCitizenNotesController* citizennotes_controller)
     : browser_context_(std::move(browser_context)),
       devtools_controller_(devtools_controller),
+      citizennotes_controller_(citizennotes_controller),
       inspect_node_(std::move(inspect_node)),
       cookie_manager_(base::BindRepeating(&ContextImpl::GetNetworkContext,
                                           base::Unretained(this))) {
   DCHECK(browser_context_);
   DCHECK(devtools_controller_);
+  DCHECK(citizennotes_controller_);
 
   TRACE_EVENT(kWebEngineFidlCategory, "fuchsia.web/Context created",
               perfetto::Flow::FromPointer(this));
@@ -126,6 +130,12 @@ FrameImpl* ContextImpl::CreateFrameForWebContents(
     return nullptr;
   }
 
+  if (!citizennotes_controller_->OnFrameCreated(web_contents.get(),
+                                            user_debugging_requested)) {
+    frame_request.Close(ZX_ERR_INVALID_ARGS);
+    return nullptr;
+}
+
   // |params.debug_name| is handled by FrameImpl.
 
   // Verify the explicit sites filter error page content. If the parameter is
@@ -181,6 +191,16 @@ void ContextImpl::GetRemoteDebuggingPort(
         }
       },
       std::move(callback)));
+  citizennotes_controller_->GetCitizenNotesPort(base::BindOnce(
+      [](GetRemoteDebuggingPortCallback callback, uint16_t port) {
+          if (port == 0) {
+            callback(fpromise::error(
+                fuchsia::web::ContextError::REMOTE_DEBUGGING_PORT_NOT_OPENED));
+          } else {
+            callback(fpromise::ok(port));
+          }
+        },
+        std::move(callback)));
 }
 
 FrameImpl* ContextImpl::GetFrameImplForTest(

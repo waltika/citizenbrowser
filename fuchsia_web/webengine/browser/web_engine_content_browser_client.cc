@@ -33,6 +33,7 @@
 #include "fuchsia_web/webengine/browser/web_engine_browser_interface_binders.h"
 #include "fuchsia_web/webengine/browser/web_engine_browser_main_parts.h"
 #include "fuchsia_web/webengine/browser/web_engine_devtools_controller.h"
+#include "fuchsia_web/webengine/browser/web_engine_citizennotes_controller.h"
 #include "fuchsia_web/webengine/common/cors_exempt_headers.h"
 #include "fuchsia_web/webengine/common/web_engine_content_client.h"
 #include "fuchsia_web/webengine/switches.h"
@@ -114,6 +115,43 @@ std::vector<std::string> GetCorsExemptHeaders() {
       ",", base::TRIM_WHITESPACE, base::SPLIT_WANT_NONEMPTY);
 }
 
+class CitizenNotesManagerDelegate final : public content::CitizenNotesManagerDelegate {
+ public:
+  explicit CitizenNotesManagerDelegate(WebEngineBrowserMainParts* main_parts)
+      : main_parts_(main_parts) {
+    DCHECK(main_parts_);
+  }
+  ~CitizenNotesManagerDelegate() override = default;
+
+  CitizenNotesManagerDelegate(const CitizenNotesManagerDelegate&) = delete;
+  CitizenNotesManagerDelegate& operator=(const CitizenNotesManagerDelegate&) = delete;
+
+  // content::CitizenNotesManagerDelegate implementation.
+  std::vector<content::BrowserContext*> GetBrowserContexts() override {
+    return main_parts_->browser_contexts();
+  }
+  content::BrowserContext* GetDefaultBrowserContext() override {
+    std::vector<content::BrowserContext*> contexts = GetBrowserContexts();
+    return contexts.empty() ? nullptr : contexts.front();
+  }
+  content::CitizenNotesAgentHost::List RemoteDebuggingTargets(
+      CitizenNotesManagerDelegate::TargetType target_type) override {
+    LOG_IF(WARNING, target_type != CitizenNotesManagerDelegate::kFrame)
+        << "Ignoring unsupported remote target type: " << target_type;
+    return main_parts_->devtools_controller()->RemoteDebuggingTargets();
+  }
+
+ private:
+  WebEngineBrowserMainParts* const main_parts_;
+};
+
+std::vector<std::string> GetCorsExemptHeaders() {
+  return base::SplitString(
+      base::CommandLine::ForCurrentProcess()->GetSwitchValueNative(
+          switches::kCorsExemptHeaders),
+      ",", base::TRIM_WHITESPACE, base::SPLIT_WANT_NONEMPTY);
+}
+
 static constexpr char const* kRendererSwitchesToCopy[] = {
     blink::switches::kSharedArrayBufferAllowedOrigins,
     switches::kCorsExemptHeaders,
@@ -168,6 +206,12 @@ std::unique_ptr<content::DevToolsManagerDelegate>
 WebEngineContentBrowserClient::CreateDevToolsManagerDelegate() {
   DCHECK(main_parts_);
   return std::make_unique<DevToolsManagerDelegate>(main_parts_);
+}
+
+std::unique_ptr<content::CitizenNotesManagerDelegate>
+WebEngineContentBrowserClient::CreateCitizenNotesManagerDelegate() {
+  DCHECK(main_parts_);
+  return std::make_unique<CitizenNotesManagerDelegate>(main_parts_);
 }
 
 std::string WebEngineContentBrowserClient::GetProduct() {

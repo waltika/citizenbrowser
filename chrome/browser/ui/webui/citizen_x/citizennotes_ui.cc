@@ -6,8 +6,8 @@
 
 #include "base/command_line.h"
 #include "base/strings/stringprintf.h"
-#include "chrome/browser/devtools/url_constants.h"
-#include "chrome/browser/ui/webui/devtools/devtools_ui_data_source.h"
+#include "chrome/browser/citizen_x/cnurl_constants.h"
+#include "chrome/browser/ui/webui/citizen_x/citizennotes_ui_data_source.h"
 #include "chrome/common/chrome_switches.h"
 #include "chrome/common/url_constants.h"
 #include "content/public/browser/browser_context.h"
@@ -21,27 +21,27 @@
 // static
 GURL CitizenNotesUI::GetProxyURL(const std::string& frontend_url) {
   GURL url(frontend_url);
-  if (url.scheme() == content::kChromeDevToolsScheme &&
-      url.host() == chrome::kChromeUIDevToolsHost)
+  if (url.scheme() == content::kChromeCitizenNotesScheme &&
+      url.host() == chrome::kChromeUICitizenNotesHost)
     return GURL();
-  if (!url.is_valid() || url.host() != kRemoteFrontendDomain)
+  if (!url.is_valid() || url.host() != kCNRemoteFrontendDomain)
     return GURL();
   return GURL(base::StringPrintf(
-      "%s://%s/%s/%s?%s", content::kChromeDevToolsScheme,
-      chrome::kChromeUIDevToolsHost, chrome::kChromeUIDevToolsRemotePath,
+      "%s://%s/%s/%s?%s", content::kChromeCitizenNotesScheme,
+      chrome::kChromeUICitizenNotesHost, chrome::kChromeUICitizenNotesRemotePath,
       url.path().substr(1).c_str(), url.query().c_str()));
 }
 
 // static
 GURL CitizenNotesUI::GetRemoteBaseURL() {
-  return GURL(base::StringPrintf("%s%s/%s/", kRemoteFrontendBase,
-                                 kRemoteFrontendPath,
+  return GURL(base::StringPrintf("%s%s/%s/", kCNRemoteFrontendBase,
+                                 kCNRemoteFrontendPath,
                                  content::GetChromiumGitRevision().c_str()));
 }
 
 // static
 bool CitizenNotesUI::IsFrontendResourceURL(const GURL& url) {
-  if (url.host_piece() == kRemoteFrontendDomain)
+  if (url.host_piece() == kCNRemoteFrontendDomain)
     return true;
 
   const base::CommandLine* cmd_line = base::CommandLine::ForCurrentProcess();
@@ -69,7 +69,7 @@ CitizenNotesUI::CitizenNotesUI(content::WebUI* web_ui)
                      ->GetURLLoaderFactoryForBrowserProcess();
   content::URLDataSource::Add(
       web_ui->GetWebContents()->GetBrowserContext(),
-      std::make_unique<DevToolsDataSource>(std::move(factory)));
+      std::make_unique<CitizenNotesDataSource>(std::move(factory)));
 }
 
 CitizenNotesUI::~CitizenNotesUI() = default;
