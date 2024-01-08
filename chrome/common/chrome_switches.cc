@@ -90,6 +90,8 @@ const char kAuthServerAllowlist[] = "auth-server-allowlist";
 // interaction for opening DevTools.
 const char kAutoOpenDevToolsForTabs[] = "auto-open-devtools-for-tabs";
 
+const char kAutoOpenCitizenNotesForTabs[] = "auto-open-citizennotes-for-tabs";
+
 // This flag makes Chrome auto-select the provided choice when an extension asks
 // permission to start desktop capture. Should only be used for tests. For
 // instance, --auto-select-desktop-capture-source="Entire screen" will

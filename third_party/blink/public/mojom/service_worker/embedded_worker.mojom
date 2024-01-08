@@ -11,6 +11,7 @@ import "services/network/public/mojom/url_loader_factory.mojom";
 import "services/service_manager/public/mojom/interface_provider.mojom";
 import "third_party/blink/public/mojom/devtools/console_message.mojom";
 import "third_party/blink/public/mojom/devtools/devtools_agent.mojom";
+import "third_party/blink/public/mojom/citizennotes/citizennotes_agent.mojom";
 import "third_party/blink/public/mojom/frame/policy_container.mojom";
 import "third_party/blink/public/mojom/loader/fetch_client_settings_object.mojom";
 import "third_party/blink/public/mojom/loader/url_loader_factory_bundle.mojom";
@@ -223,7 +224,11 @@ interface EmbeddedWorkerInstanceHost {
   // interface for this embedded worker and requests a corresponding host.
   // See DevToolsAgent for details.
   OnReadyForInspection(pending_remote<blink.mojom.DevToolsAgent> agent,
-                       pending_receiver<blink.mojom.DevToolsAgentHost> agent_host);
+                       pending_receiver<blink.mojom.DevToolsAgentHost> agent_host,
+                       pending_remote<blink.mojom.CitizenNotesAgent> cn_agent,
+                       pending_receiver<blink.mojom.CitizenNotesAgentHost> cn_agent_host);
+
+
   // Indicates that the worker has finished loading the main script.
   //
   // This is only called for new (non-installed) workers. It's used so the

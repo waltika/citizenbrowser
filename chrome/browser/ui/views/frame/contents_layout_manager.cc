@@ -7,8 +7,10 @@
 #include "ui/views/view.h"
 
 ContentsLayoutManager::ContentsLayoutManager(views::View* devtools_view,
+                                             views::View* citizennotes_view,
                                              views::View* contents_view)
     : devtools_view_(devtools_view),
+      citizennotes_view_(citizennotes_view),
       contents_view_(contents_view),
       host_(nullptr) {}
 
@@ -33,14 +35,19 @@ void ContentsLayoutManager::Layout(views::View* contents_container) {
 
   gfx::Size container_size(width, height);
   gfx::Rect new_devtools_bounds;
+  gfx::Rect new_citizennotes_bounds;
   gfx::Rect new_contents_bounds;
 
   ApplyDevToolsContentsResizingStrategy(strategy_, container_size,
       &new_devtools_bounds, &new_contents_bounds);
 
+  ApplyDevToolsContentsResizingStrategy(strategy_, container_size,
+      &new_citizennotes_bounds, &new_contents_bounds);
+
   // DevTools cares about the specific position, so we have to compensate RTL
   // layout here.
   devtools_view_->SetBoundsRect(host_->GetMirroredRect(new_devtools_bounds));
+  citizennotes_view_->SetBoundsRect(host_->GetMirroredRect(new_citizennotes_bounds));
   contents_view_->SetBoundsRect(host_->GetMirroredRect(new_contents_bounds));
 }
 

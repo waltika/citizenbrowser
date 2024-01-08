@@ -263,6 +263,7 @@ class CONTENT_EXPORT ServiceWorkerMainResourceLoader
       network::mojom::URLResponseHead::New();
 
   bool devtools_attached_ = false;
+  bool citizennotes_attached_ = false;
   blink::mojom::ServiceWorkerFetchEventTimingPtr fetch_event_timing_;
   base::TimeTicks completion_time_;
   network::mojom::FetchResponseSource response_source_ =

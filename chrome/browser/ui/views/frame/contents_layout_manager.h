@@ -12,7 +12,7 @@
 // ContentsLayoutManager positions the WebContents and devtools WebContents.
 class ContentsLayoutManager : public views::LayoutManager {
  public:
-  ContentsLayoutManager(views::View* devtools_view, views::View* contents_view);
+  ContentsLayoutManager(views::View* devtools_view, views::View* citizennotes_view, views::View* contents_view);
 
   ContentsLayoutManager(const ContentsLayoutManager&) = delete;
   ContentsLayoutManager& operator=(const ContentsLayoutManager&) = delete;
@@ -30,6 +30,7 @@ class ContentsLayoutManager : public views::LayoutManager {
 
  private:
   raw_ptr<views::View> devtools_view_;
+  raw_ptr<views::View> citizennotes_view_;
   raw_ptr<views::View> contents_view_;
 
   raw_ptr<views::View> host_;

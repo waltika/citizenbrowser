@@ -492,6 +492,8 @@ void LocalFrameClientImpl::DispatchDidCommitLoad(
   }
   if (WebDevToolsAgentImpl* dev_tools = DevToolsAgent())
     dev_tools->DidCommitLoadForLocalFrame(web_frame_->GetFrame());
+  if (WebCitizenNotesAgentImpl* citizen_notes = CitizenNotesAgent())
+    citizen_notes->DidCommitLoadForLocalFrame(web_frame_->GetFrame());
 }
 
 void LocalFrameClientImpl::DispatchDidFailLoad(
@@ -668,6 +670,11 @@ void LocalFrameClientImpl::BeginNavigation(
   if (WebDevToolsAgentImpl* devtools = DevToolsAgent()) {
     navigation_info->devtools_initiator_info =
         devtools->NavigationInitiatorInfo(web_frame_->GetFrame());
+  }
+
+  if (WebCitizenNotesAgentImpl* citizennotes = CitizenNotesAgent()) {
+    navigation_info->citizennotes_initiator_info =
+        citizennotes->NavigationInitiatorInfo(web_frame_->GetFrame());
   }
 
   auto* owner = ToCoreFrame(web_frame_)->Owner();

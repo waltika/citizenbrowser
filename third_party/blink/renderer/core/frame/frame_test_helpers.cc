@@ -350,6 +350,7 @@ WebRemoteFrameImpl* CreateRemoteChild(
       mojom::blink::TreeScopeType::kDocument, RemoteFrameToken(),
       /*is_loading=*/false,
       /*devtools_frame_token=*/base::UnguessableToken(),
+      /*citizennotes_frame_token=*/base::UnguessableToken(),
       /*opener=*/nullptr,
       CreateStubRemoteIfNeeded<mojom::blink::RemoteFrameHost>(
           mojo::NullAssociatedRemote()),
@@ -545,7 +546,9 @@ WebViewHelper::InitializeRemoteWithOpenerAndAssociatedRemoteAndReceivers(
 
   WebRemoteFrameImpl::CreateMainFrame(
       web_view_, RemoteFrameToken(), /*is_loading=*/false,
-      /*devtools_frame_token=*/base::UnguessableToken(), opener,
+      /*devtools_frame_token=*/base::UnguessableToken(),
+      /*citizennotes_frame_token=*/base::UnguessableToken(),
+      opener,
       std::move(remote_frame_host), std::move(receiver),
       std::move(replication_state));
   return web_view_;

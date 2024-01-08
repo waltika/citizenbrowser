@@ -17,6 +17,7 @@
 #include "services/network/public/mojom/url_response_head.mojom.h"
 #include "services/network/test/test_url_loader_client.h"
 #include "third_party/blink/public/mojom/devtools/devtools_agent.mojom.h"
+#include "third_party/blink/public/mojom/citizennotes/citizennotes_agent.mojom.h"
 
 namespace content {
 
@@ -150,6 +151,15 @@ void FakeEmbeddedWorkerInstanceClient::StartWorker(
   host_->OnReadyForInspection(
       std::move(devtools_agent_remote),
       devtools_agent_host_remote.BindNewPipeAndPassReceiver());
+
+  mojo::PendingRemote<blink::mojom::CitizenNotesAgent> citizennotes_agent_remote;
+  mojo::PendingReceiver<blink::mojom::CitizenNotesAgent> citizennotes_agent_receiver =
+      citizennotes_agent_remote.InitWithNewPipeAndPassReceiver();
+
+  mojo::Remote<blink::mojom::CitizenNotesAgentHost> citizennotes_agent_host_remote;
+  host_->OnReadyForInspection(
+      std::move(citizennotes_agent_remote),
+      citizennotes_agent_host_remote.BindNewPipeAndPassReceiver());
 
   if (start_params_->is_installed) {
     installed_scripts_manager_ =

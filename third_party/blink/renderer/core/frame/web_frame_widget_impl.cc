@@ -79,6 +79,7 @@
 #include "third_party/blink/renderer/core/events/web_input_event_conversion.h"
 #include "third_party/blink/renderer/core/events/wheel_event.h"
 #include "third_party/blink/renderer/core/exported/web_dev_tools_agent_impl.h"
+#include "third_party/blink/renderer/core/exported/web_citizen_notes_agent_impl.h"
 #include "third_party/blink/renderer/core/exported/web_plugin_container_impl.h"
 #include "third_party/blink/renderer/core/exported/web_settings_impl.h"
 #include "third_party/blink/renderer/core/exported/web_view_impl.h"
@@ -1317,6 +1318,9 @@ void WebFrameWidgetImpl::UpdateCompositorScrollState(
   is_scroll_gesture_active_ = commit_data.is_scroll_active;
   if (WebDevToolsAgentImpl* devtools = LocalRootImpl()->DevToolsAgentImpl())
     devtools->SetPageIsScrolling(is_scroll_gesture_active_);
+
+  if (WebCitizenNotesAgentImpl* citizennotes = LocalRootImpl()->CitizenNotesAgentImpl())
+    citizennotes->SetPageIsScrolling(is_scroll_gesture_active_);
 
   RecordManipulationTypeCounts(commit_data.manipulation_info);
 
@@ -2777,6 +2781,9 @@ WebInputEventResult WebFrameWidgetImpl::DispatchBufferedTouchEvents() {
   if (WebDevToolsAgentImpl* devtools = LocalRootImpl()->DevToolsAgentImpl())
     devtools->DispatchBufferedTouchEvents();
 
+  if (WebCitizenNotesAgentImpl* citizennotes = LocalRootImpl()->CitizenNotesAgentImpl())
+    citizennotes->DispatchBufferedTouchEvents();
+
   return LocalRootImpl()
       ->GetFrame()
       ->GetEventHandler()
@@ -2818,6 +2825,12 @@ WebInputEventResult WebFrameWidgetImpl::HandleInputEvent(
       return result;
   }
 
+  if (WebCitizenNotesAgentImpl* citizennotes = LocalRootImpl()->CitizenNotesAgentImpl()) {
+    auto result = citizennotes->HandleInputEvent(input_event);
+    if (result != WebInputEventResult::kNotHandled)
+      return result;
+  }
+    
   // Report the event to be NOT processed by WebKit, so that the browser can
   // handle it appropriately.
   if (ShouldIgnoreInputEvents()) {

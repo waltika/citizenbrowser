@@ -35,6 +35,7 @@
 #include "services/network/public/mojom/url_loader.mojom-shared.h"
 #include "third_party/blink/public/mojom/devtools/console_message.mojom-shared.h"
 #include "third_party/blink/public/mojom/devtools/devtools_agent.mojom-shared.h"
+#include "third_party/blink/public/mojom/citizennotes/citizennotes_agent.mojom-shared.h"
 #include "third_party/blink/public/mojom/service_worker/service_worker_event_status.mojom-shared.h"
 #include "third_party/blink/public/mojom/use_counter/metrics/web_feature.mojom-shared.h"
 #include "third_party/blink/public/platform/cross_variant_mojo_util.h"
@@ -73,7 +74,11 @@ class WebServiceWorkerContextClient {
       CrossVariantMojoRemote<mojom::DevToolsAgentInterfaceBase>
           devtools_agent_remote,
       CrossVariantMojoReceiver<mojom::DevToolsAgentHostInterfaceBase>
-          devtools_agent_host_receiver) {}
+          devtools_agent_host_receiver,
+      CrossVariantMojoRemote<mojom::CitizenNotesAgentInterfaceBase>
+          citizennotes_agent_remote,
+      CrossVariantMojoReceiver<mojom::CitizenNotesAgentHostInterfaceBase>
+          citizennotes_agent_host_receiver) {}
 
   // The worker started but it could not execute because fetching the classic
   // script failed on the worker thread.

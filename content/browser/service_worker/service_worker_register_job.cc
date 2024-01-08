@@ -18,6 +18,9 @@
 #include "content/browser/devtools/devtools_instrumentation.h"
 #include "content/browser/devtools/devtools_throttle_handle.h"
 #include "content/browser/devtools/service_worker_devtools_manager.h"
+#include "content/browser/citizen_x/citizennotes_instrumentation.h"
+#include "content/browser/citizen_x/citizennotes_throttle_handle.h"
+#include "content/browser/citizen_x/service_worker_citizennotes_manager.h"
 #include "content/browser/renderer_host/private_network_access_util.h"
 #include "content/browser/renderer_host/render_frame_host_impl.h"
 #include "content/browser/service_worker/embedded_worker_instance.h"
@@ -495,6 +498,24 @@ void ServiceWorkerRegisterJob::
       std::move(devtools_throttle_handle));
 }
 
+void ServiceWorkerRegisterJob::
+    MaybeThrottleForCitizenNotesBeforeStartingScriptFetch(
+        scoped_refptr<ServiceWorkerVersion> version) {
+  int64_t version_id = version->version_id();
+  const GURL& script_url = version->script_url();
+  const GURL& scope = version->scope();
+  auto citizennotes_throttle_handle = base::MakeRefCounted<CitizenNotesThrottleHandle>(
+      base::BindOnce(&ServiceWorkerRegisterJob::StartScriptFetchForNewWorker,
+                     weak_factory_.GetWeakPtr(), std::move(version)));
+
+  // We are about to start fetching from the browser process and we want
+  // citizennotes to be able to instrument the URLLoaderFactory. This call will
+  // create a CitizennotesAgentHost.
+  ServiceWorkerCitizenNotesManager::GetInstance()->WorkerMainScriptFetchingStarting(
+      context_->wrapper(), version_id, script_url, scope, requesting_frame_id_,
+      std::move(citizennotes_throttle_handle));
+}
+
 void ServiceWorkerRegisterJob::StartScriptFetchForNewWorker(
     scoped_refptr<ServiceWorkerVersion> version) {
   DCHECK(!new_script_fetcher_);
@@ -524,6 +545,8 @@ void ServiceWorkerRegisterJob::OnScriptFetchCompleted(
   if (!main_script_load_params) {
     // Null `main_script_load_params` means the main script failed to be loaded.
     ServiceWorkerDevToolsManager::GetInstance()->WorkerMainScriptFetchingFailed(
+        context_->wrapper(), version->version_id());
+    ServiceWorkerCitizenNotesManager::GetInstance()->WorkerMainScriptFetchingFailed(
         context_->wrapper(), version->version_id());
 
     // Use DeduceStartWorkerFailureReason() because it returns an error code
@@ -628,6 +651,13 @@ void ServiceWorkerRegisterJob::UpdateAndContinue() {
     base::OnceCallback<void(scoped_refptr<ServiceWorkerVersion>)> next_task =
         base::BindOnce(&ServiceWorkerRegisterJob::
                            MaybeThrottleForDevToolsBeforeStartingScriptFetch,
+                       weak_factory_.GetWeakPtr());
+    context_->registry()->CreateNewVersion(
+        registration(), script_url_, worker_script_type_,
+        std::move(next_task));
+    next_task =
+        base::BindOnce(&ServiceWorkerRegisterJob::
+                           MaybeThrottleForCitizenNotesBeforeStartingScriptFetch,
                        weak_factory_.GetWeakPtr());
     context_->registry()->CreateNewVersion(
         registration(), script_url_, worker_script_type_,

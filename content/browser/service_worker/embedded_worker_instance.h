@@ -66,6 +66,7 @@ class CONTENT_EXPORT EmbeddedWorkerInstance
     : public blink::mojom::EmbeddedWorkerInstanceHost {
  public:
   class DevToolsProxy;
+  class CitizenNotesProxy;
   using StatusCallback =
       base::OnceCallback<void(blink::ServiceWorkerStatusCode)>;
 
@@ -96,6 +97,7 @@ class CONTENT_EXPORT EmbeddedWorkerInstance
     virtual void OnStarting() {}
     virtual void OnProcessAllocated() {}
     virtual void OnRegisteredToDevToolsManager() {}
+    virtual void OnRegisteredToCitizenNotesManager() {}
     virtual void OnStartWorkerMessageSent() {}
     virtual void OnScriptLoaded() {}
     virtual void OnScriptEvaluationStart() {}
@@ -167,6 +169,7 @@ class CONTENT_EXPORT EmbeddedWorkerInstance
   // not attached). This method is called by a stop-worker timer to kill
   // idle workers.
   void StopIfNotAttachedToDevTools();
+  void StopIfNotAttachedToCitizenNotes();
 
   int embedded_worker_id() const { return embedded_worker_id_; }
   blink::EmbeddedWorkerStatus status() const { return status_; }
@@ -183,7 +186,9 @@ class CONTENT_EXPORT EmbeddedWorkerInstance
   int process_id() const;
   int thread_id() const { return thread_id_; }
   int worker_devtools_agent_route_id() const;
+  int worker_citizennotes_agent_route_id() const;
   base::UnguessableToken WorkerDevtoolsId() const;
+  base::UnguessableToken WorkerCitizennotesId() const;
 
   // DEPRECATED, only for use by ServiceWorkerVersion.
   // TODO(crbug.com/855852): Remove the Listener interface.
@@ -192,6 +197,9 @@ class CONTENT_EXPORT EmbeddedWorkerInstance
 
   void SetDevToolsAttached(bool attached);
   bool devtools_attached() const { return devtools_attached_; }
+
+  void SetCitizenNotesAttached(bool attached);
+  bool citizennotes_attached() const { return citizennotes_attached_; }
 
   bool network_accessed_for_script() const {
     return network_accessed_for_script_;
@@ -290,6 +298,8 @@ class CONTENT_EXPORT EmbeddedWorkerInstance
                           ServiceWorkerMetrics::StartSituation start_situation);
   void OnRegisteredToDevToolsManager(
       std::unique_ptr<DevToolsProxy> devtools_proxy);
+  void OnRegisteredToCitizenNotesManager(
+      std::unique_ptr<CitizenNotesProxy> citizennotes_proxy);
   // Sends the StartWorker message to the renderer.
   void SendStartWorker(blink::mojom::EmbeddedWorkerStartParamsPtr params);
 
@@ -298,7 +308,10 @@ class CONTENT_EXPORT EmbeddedWorkerInstance
   void CountFeature(blink::mojom::WebFeature feature) override;
   void OnReadyForInspection(
       mojo::PendingRemote<blink::mojom::DevToolsAgent>,
-      mojo::PendingReceiver<blink::mojom::DevToolsAgentHost>) override;
+      mojo::PendingReceiver<blink::mojom::DevToolsAgentHost>,
+      mojo::PendingRemote<blink::mojom::CitizenNotesAgent>,
+      mojo::PendingReceiver<blink::mojom::CitizenNotesAgentHost>) override;
+        
   void OnScriptLoaded() override;
   void OnScriptEvaluationStart() override;
   // Changes the internal worker status from STARTING to RUNNING.
@@ -370,6 +383,9 @@ class CONTENT_EXPORT EmbeddedWorkerInstance
   // Whether devtools is attached or not.
   bool devtools_attached_;
 
+  // Whether citizennotes is attached or not.
+  bool citizennotes_attached_;
+
   // True if the script load request accessed the network. If the script was
   // served from HTTPCache or ServiceWorkerDatabase this value is false.
   bool network_accessed_for_script_;
@@ -380,6 +396,8 @@ class CONTENT_EXPORT EmbeddedWorkerInstance
 
   ListenerList listener_list_;
   std::unique_ptr<DevToolsProxy> devtools_proxy_;
+
+  std::unique_ptr<CitizenNotesProxy> citizennotes_proxy_;
 
   // Contains info to be recorded on completing StartWorker sequence.
   // Set on Start() and cleared on OnStarted().

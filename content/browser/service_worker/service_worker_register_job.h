@@ -163,6 +163,8 @@ class ServiceWorkerRegisterJob : public ServiceWorkerRegisterJobBase {
   //   the ServiceWorkerNewScriptFetcher.
   void MaybeThrottleForDevToolsBeforeStartingScriptFetch(
       scoped_refptr<ServiceWorkerVersion> version);
+  void MaybeThrottleForCitizenNotesBeforeStartingScriptFetch(
+      scoped_refptr<ServiceWorkerVersion> version);
   void StartScriptFetchForNewWorker(
       scoped_refptr<ServiceWorkerVersion> version);
   void OnScriptFetchCompleted(

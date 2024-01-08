@@ -466,33 +466,33 @@ BrowserView::DevToolsDockedPlacement GetDevToolsDockedPlacement(
   return BrowserView::DevToolsDockedPlacement::kUnknown;
 }
 
-// Return the DevTools docked placement. It infers the docked placement from
+// Return the CitizenNotes docked placement. It infers the docked placement from
 // the bounds of contents_webview relative to the local bounds of the container
-// that holds both contents_webview and devtools_webview.
-BrowserView::DevToolsDockedPlacement GetCitizenNotesDockedPlacement(
+// that holds both contents_webview and citizennotes_webview.
+BrowserView::CitizenNotesDockedPlacement GetCitizenNotesDockedPlacement(
     const gfx::Rect& contents_webview_bounds,
     const gfx::Rect& local_webview_container_bounds) {
   // If contents_webview has the same bounds as webview_container, it either
-  // means that devtools are not open or devtools are open in a separate
+  // means that citizennotes are not open or citizennotes are open in a separate
   // window (not docked).
   if (contents_webview_bounds == local_webview_container_bounds) {
-    return BrowserView::DevToolsDockedPlacement::kNone;
+    return BrowserView::CitizenNotesDockedPlacement::kNone;
   }
 
   if (contents_webview_bounds.x() > 0 && contents_webview_bounds.y() == 0 &&
       contents_webview_bounds.x() + contents_webview_bounds.width() ==
           local_webview_container_bounds.width()) {
-    return BrowserView::DevToolsDockedPlacement::kLeft;
+    return BrowserView::CitizenNotesDockedPlacement::kLeft;
   } else if (contents_webview_bounds.origin().IsOrigin() &&
              contents_webview_bounds.height() ==
                  local_webview_container_bounds.height()) {
-    return BrowserView::DevToolsDockedPlacement::kRight;
+    return BrowserView::CitizenNotesDockedPlacement::kRight;
   } else if (contents_webview_bounds.width() ==
              local_webview_container_bounds.width()) {
-    return BrowserView::DevToolsDockedPlacement::kBottom;
+    return BrowserView::CitizenNotesDockedPlacement::kBottom;
   }
 
-  return BrowserView::DevToolsDockedPlacement::kUnknown;
+  return BrowserView::CitizenNotesDockedPlacement::kUnknown;
 }
 
 bool IsManagedGuestSession() {
@@ -1002,7 +1002,7 @@ BrowserView::BrowserView(std::unique_ptr<Browser> browser)
       contents_container->AddChildView(std::move(contents_web_view));
   contents_web_view_->set_is_primary_web_contents_for_window(true);
   contents_container->SetLayoutManager(std::make_unique<ContentsLayoutManager>(
-      devtools_web_view_, contents_web_view_));
+      devtools_web_view_, citizennotes_web_view_, contents_web_view_));
 
   toolbar_ = top_container_->AddChildView(
       std::make_unique<ToolbarView>(browser_.get(), this));
@@ -4744,7 +4744,7 @@ void BrowserView::UpdateCitizenNotesForContents(WebContents* web_contents,
       contents_container_->ReorderChildView(contents_web_view_, citizennotes_index);
   }
 
-  DevToolsDockedPlacement new_placement = GetCitizenNotesDockedPlacement(
+  CitizenNotesDockedPlacement new_placement = GetCitizenNotesDockedPlacement(
       contents_web_view_->bounds(), contents_container_->GetLocalBounds());
 
   // When browser window is resizing, the contents_container and web_contents
@@ -4752,7 +4752,7 @@ void BrowserView::UpdateCitizenNotesForContents(WebContents* web_contents,
   // infer docked placement based on contents webview bounds. In this case, use
   // the last known docked placement, since resizing a window does not change
   // the devtools dock placement.
-  if (new_placement != DevToolsDockedPlacement::kUnknown) {
+  if (new_placement != CitizenNotesDockedPlacement::kUnknown) {
     current_citizennotes_docked_placement_ = new_placement;
   }
 }

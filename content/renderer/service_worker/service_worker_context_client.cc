@@ -227,10 +227,17 @@ void ServiceWorkerContextClient::WorkerReadyForInspectionOnInitiatorThread(
         devtools_agent_remote,
     blink::CrossVariantMojoReceiver<
         blink::mojom::DevToolsAgentHostInterfaceBase>
-        devtools_agent_host_receiver) {
+        devtools_agent_host_receiver,
+    blink::CrossVariantMojoRemote<blink::mojom::CitizenNotesAgentInterfaceBase>
+        citizennotes_agent_remote,
+    blink::CrossVariantMojoReceiver<
+        blink::mojom::CitizenNotesAgentHostInterfaceBase>
+        citizennotes_agent_host_receiver) {
   DCHECK(initiator_thread_task_runner_->RunsTasksInCurrentSequence());
   instance_host_->OnReadyForInspection(std::move(devtools_agent_remote),
-                                       std::move(devtools_agent_host_receiver));
+                                       std::move(devtools_agent_host_receiver),
+                                       std::move(citizennotes_agent_remote),
+                                       std::move(citizennotes_agent_host_receiver));
 }
 
 void ServiceWorkerContextClient::FailedToFetchClassicScript() {

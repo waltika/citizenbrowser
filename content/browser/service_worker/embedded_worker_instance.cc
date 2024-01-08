@@ -22,6 +22,10 @@
 #include "content/browser/devtools/network_service_devtools_observer.h"
 #include "content/browser/devtools/service_worker_devtools_agent_host.h"
 #include "content/browser/devtools/service_worker_devtools_manager.h"
+#include "content/browser/citizen_x/citizennotes_instrumentation.h"
+#include "content/browser/citizen_x/network_service_citizennotes_observer.h"
+#include "content/browser/citizen_x/service_worker_citizennotes_agent_host.h"
+#include "content/browser/citizen_x/service_worker_citizennotes_manager.h"
 #include "content/browser/network/cross_origin_embedder_policy_reporter.h"
 #include "content/browser/process_lock.h"
 #include "content/browser/renderer_host/render_process_host_impl.h"
@@ -171,6 +175,58 @@ class EmbeddedWorkerInstance::DevToolsProxy {
   bool worker_stop_ignored_notified_ = false;
 };
 
+class EmbeddedWorkerInstance::CitizenNotesProxy {
+ public:
+    CitizenNotesProxy(int process_id,
+                     int agent_route_id,
+                     const base::UnguessableToken& citizennotes_id)
+      : process_id_(process_id),
+        agent_route_id_(agent_route_id),
+        citizennotes_id_(citizennotes_id) {}
+
+  CitizenNotesProxy(const CitizenNotesProxy&) = delete;
+  CitizenNotesProxy& operator=(const CitizenNotesProxy&) = delete;
+
+  ~CitizenNotesProxy() {
+    DCHECK_CURRENTLY_ON(BrowserThread::UI);
+    ServiceWorkerCitizenNotesManager::GetInstance()->WorkerStopped(process_id_,
+                                                               agent_route_id_);
+  }
+
+  void NotifyWorkerReadyForInspection(
+      mojo::PendingRemote<blink::mojom::CitizenNotesAgent> agent_remote,
+      mojo::PendingReceiver<blink::mojom::CitizenNotesAgentHost> host_receiver) {
+    DCHECK_CURRENTLY_ON(BrowserThread::UI);
+    ServiceWorkerCitizenNotesManager::GetInstance()->WorkerReadyForInspection(
+        process_id_, agent_route_id_, std::move(agent_remote),
+        std::move(host_receiver));
+  }
+
+  void NotifyWorkerVersionInstalled() {
+    DCHECK_CURRENTLY_ON(BrowserThread::UI);
+    ServiceWorkerDevToolsManager::GetInstance()->WorkerVersionInstalled(
+        process_id_, agent_route_id_);
+    ServiceWorkerCitizenNotesManager::GetInstance()->WorkerVersionInstalled(
+        process_id_, agent_route_id_);
+  }
+
+  bool ShouldNotifyWorkerStopIgnored() const {
+    return !worker_stop_ignored_notified_;
+  }
+
+  void WorkerStopIgnoredNotified() { worker_stop_ignored_notified_ = true; }
+
+  int agent_route_id() const { return agent_route_id_; }
+
+  const base::UnguessableToken& citizennotes_id() const { return citizennotes_id_; }
+
+ private:
+  const int process_id_;
+  const int agent_route_id_;
+  const base::UnguessableToken citizennotes_id_;
+  bool worker_stop_ignored_notified_ = false;
+};
+
 // A handle for a renderer process managed by ServiceWorkerProcessManager.
 //
 // TODO(https://crbug.com/1138155): Remove this as a clean up of
@@ -264,6 +320,7 @@ void EmbeddedWorkerInstance::Start(
   auto process_info =
       std::make_unique<ServiceWorkerProcessManager::AllocatedProcessInfo>();
   std::unique_ptr<EmbeddedWorkerInstance::DevToolsProxy> devtools_proxy;
+  std::unique_ptr<EmbeddedWorkerInstance::CitizenNotesProxy> citizennotes_proxy;
   std::unique_ptr<blink::PendingURLLoaderFactoryBundle>
       factory_bundle_for_new_scripts;
   std::unique_ptr<blink::PendingURLLoaderFactoryBundle>
@@ -313,6 +370,8 @@ void EmbeddedWorkerInstance::Start(
     mojo::PendingRemote<network::mojom::CrossOriginEmbedderPolicyReporter>
         coep_reporter_for_devtools;
     mojo::PendingRemote<network::mojom::CrossOriginEmbedderPolicyReporter>
+        coep_reporter_for_citizennotes;
+    mojo::PendingRemote<network::mojom::CrossOriginEmbedderPolicyReporter>
         coep_reporter_for_scripts;
     mojo::PendingRemote<network::mojom::CrossOriginEmbedderPolicyReporter>
         coep_reporter_for_subresources;
@@ -343,6 +402,8 @@ void EmbeddedWorkerInstance::Start(
       coep_reporter_->Clone(
           coep_reporter_for_devtools.InitWithNewPipeAndPassReceiver());
       coep_reporter_->Clone(
+          coep_reporter_for_citizennotes.InitWithNewPipeAndPassReceiver());
+      coep_reporter_->Clone(
           coep_reporter_for_scripts.InitWithNewPipeAndPassReceiver());
       coep_reporter_->Clone(
           coep_reporter_for_subresources.InitWithNewPipeAndPassReceiver());
@@ -366,6 +427,14 @@ void EmbeddedWorkerInstance::Start(
     // balanced by DevToolsProxy's destructor calling WorkerStopped().
     devtools_proxy = std::make_unique<EmbeddedWorkerInstance::DevToolsProxy>(
         process_id, routing_id, params->devtools_worker_token);
+    ServiceWorkerCitizenNotesManager::GetInstance()->WorkerStarting(
+        process_id, routing_id, context_->wrapper(),
+        params->service_worker_version_id, params->script_url, params->scope,
+        params->is_installed, client_security_state.Clone(),
+        std::move(coep_reporter_for_devtools), &params->citizennotes_worker_token,
+        &params->wait_for_debugger);
+    citizennotes_proxy = std::make_unique<EmbeddedWorkerInstance::CitizenNotesProxy>(
+        process_id, routing_id, params->citizennotes_worker_token);
 
     // Create factory bundles for this worker to do loading. These bundles don't
     // support reconnection to the network service, see below comments.
@@ -449,6 +518,9 @@ void EmbeddedWorkerInstance::Start(
   // Notify the instance that it is registered to the DevTools manager.
   OnRegisteredToDevToolsManager(std::move(devtools_proxy));
 
+  // Notify the instance that it is registered to the DevTools manager.
+  OnRegisteredToCitizenNotesManager(std::move(citizennotes_proxy));
+
   // Send the factory bundle for subresource loading from the service worker
   // (i.e. fetch()).
   DCHECK(factory_bundle_for_renderer);
@@ -531,6 +603,23 @@ void EmbeddedWorkerInstance::StopIfNotAttachedToDevTools() {
   Stop();
 }
 
+void EmbeddedWorkerInstance::StopIfNotAttachedToCitizenNotes() {
+  if (citizennotes_attached_) {
+    if (citizennotes_proxy_) {
+      // Check ShouldNotifyWorkerStopIgnored not to show the same message
+      // multiple times in CitizenNotes.
+      if (citizennotes_proxy_->ShouldNotifyWorkerStopIgnored()) {
+        owner_version_->MaybeReportConsoleMessageToInternals(
+            blink::mojom::ConsoleMessageLevel::kVerbose,
+            kServiceWorkerTerminationCanceledMesage);
+        citizennotes_proxy_->WorkerStopIgnoredNotified();
+      }
+    }
+    return;
+  }
+  Stop();
+}
+
 EmbeddedWorkerInstance::EmbeddedWorkerInstance(
     ServiceWorkerVersion* owner_version)
     : context_(owner_version->context()),
@@ -541,6 +630,7 @@ EmbeddedWorkerInstance::EmbeddedWorkerInstance(
       restart_count_(0),
       thread_id_(ServiceWorkerConsts::kInvalidEmbeddedWorkerThreadId),
       devtools_attached_(false),
+      citizennotes_attached_(false),
       network_accessed_for_script_(false),
       foreground_notified_(false) {
   DCHECK(owner_version_);
@@ -571,6 +661,16 @@ void EmbeddedWorkerInstance::OnRegisteredToDevToolsManager(
   }
   for (auto& observer : listener_list_)
     observer.OnRegisteredToDevToolsManager();
+}
+
+void EmbeddedWorkerInstance::OnRegisteredToCitizenNotesManager(
+    std::unique_ptr<CitizenNotesProxy> citizennotes_proxy) {
+  if (citizennotes_proxy) {
+    DCHECK(!citizennotes_proxy_);
+    citizennotes_proxy_ = std::move(citizennotes_proxy);
+  }
+  for (auto& observer : listener_list_)
+    observer.OnRegisteredToCitizenNotesManager();
 }
 
 void EmbeddedWorkerInstance::SendStartWorker(
@@ -636,12 +736,16 @@ void EmbeddedWorkerInstance::CountFeature(blink::mojom::WebFeature feature) {
 }
 
 void EmbeddedWorkerInstance::OnReadyForInspection(
-    mojo::PendingRemote<blink::mojom::DevToolsAgent> agent_remote,
-    mojo::PendingReceiver<blink::mojom::DevToolsAgentHost> host_receiver) {
-  if (!devtools_proxy_)
-    return;
-  devtools_proxy_->NotifyWorkerReadyForInspection(std::move(agent_remote),
-                                                  std::move(host_receiver));
+  mojo::PendingRemote<blink::mojom::DevToolsAgent> agent_remote,
+  mojo::PendingReceiver<blink::mojom::DevToolsAgentHost> host_receiver,
+  mojo::PendingRemote<blink::mojom::CitizenNotesAgent> cn_agent_remote,
+  mojo::PendingReceiver<blink::mojom::CitizenNotesAgentHost> cn_host_receiver) {
+  if (devtools_proxy_)
+      devtools_proxy_->NotifyWorkerReadyForInspection(std::move(agent_remote),
+                                                      std::move(host_receiver));
+  if (citizennotes_proxy_)
+      citizennotes_proxy_->NotifyWorkerReadyForInspection(std::move(cn_agent_remote),
+                                                          std::move(cn_host_receiver));
 }
 
 void EmbeddedWorkerInstance::OnScriptLoaded() {
@@ -659,11 +763,16 @@ void EmbeddedWorkerInstance::OnScriptLoaded() {
 void EmbeddedWorkerInstance::OnWorkerVersionInstalled() {
   if (devtools_proxy_)
     devtools_proxy_->NotifyWorkerVersionInstalled();
+  if (citizennotes_proxy_)
+      citizennotes_proxy_->NotifyWorkerVersionInstalled();
 }
 
 void EmbeddedWorkerInstance::OnWorkerVersionDoomed() {
   ServiceWorkerDevToolsManager::GetInstance()->WorkerVersionDoomed(
       process_id(), worker_devtools_agent_route_id(),
+      base::WrapRefCounted(context_->wrapper()), owner_version_->version_id());
+  ServiceWorkerCitizenNotesManager::GetInstance()->WorkerVersionDoomed(
+      process_id(), worker_citizennotes_agent_route_id(),
       base::WrapRefCounted(context_->wrapper()), owner_version_->version_id());
 }
 
@@ -883,6 +992,8 @@ EmbeddedWorkerInstance::CreateFactoryBundle(
       /*navigation_response_task_runner=*/nullptr);
   devtools_instrumentation::WillCreateURLLoaderFactoryForServiceWorker(
       rph, routing_id, &factory_params->factory_override);
+  citizennotes_instrumentation::WillCreateURLLoaderFactoryForServiceWorker(
+      rph, routing_id, &factory_params->factory_override);
 
   rph->CreateURLLoaderFactory(std::move(default_factory_receiver),
                               std::move(factory_params));
@@ -991,9 +1102,21 @@ int EmbeddedWorkerInstance::worker_devtools_agent_route_id() const {
   return MSG_ROUTING_NONE;
 }
 
+int EmbeddedWorkerInstance::worker_citizennotes_agent_route_id() const {
+  if (citizennotes_proxy_)
+    return citizennotes_proxy_->agent_route_id();
+  return MSG_ROUTING_NONE;
+}
+
 base::UnguessableToken EmbeddedWorkerInstance::WorkerDevtoolsId() const {
   if (devtools_proxy_)
     return devtools_proxy_->devtools_id();
+  return base::UnguessableToken();
+}
+
+base::UnguessableToken EmbeddedWorkerInstance::WorkerCitizennotesId() const {
+  if (citizennotes_proxy_)
+    return citizennotes_proxy_->citizennotes_id();
   return base::UnguessableToken();
 }
 
@@ -1007,6 +1130,14 @@ void EmbeddedWorkerInstance::RemoveObserver(Listener* listener) {
 
 void EmbeddedWorkerInstance::SetDevToolsAttached(bool attached) {
   devtools_attached_ = attached;
+  if (!attached)
+    return;
+  if (inflight_start_info_)
+    inflight_start_info_->skip_recording_startup_time = true;
+}
+
+void EmbeddedWorkerInstance::SetCitizenNotesAttached(bool attached) {
+  citizennotes_attached_ = attached;
   if (!attached)
     return;
   if (inflight_start_info_)
@@ -1032,6 +1163,7 @@ void EmbeddedWorkerInstance::ReleaseProcess() {
 
   instance_host_receiver_.reset();
   devtools_proxy_.reset();
+  citizennotes_proxy_.reset();
   process_handle_.reset();
   subresource_loader_updater_.reset();
   coep_reporter_.reset();

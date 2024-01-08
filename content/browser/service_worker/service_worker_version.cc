@@ -458,7 +458,8 @@ ServiceWorkerVersionInfo ServiceWorkerVersion::GetInfo() {
       running_status(), status(), fetch_handler_type_, script_url(), scope(),
       key(), registration_id(), version_id(), embedded_worker()->process_id(),
       embedded_worker()->thread_id(),
-      embedded_worker()->worker_devtools_agent_route_id(), ukm_source_id(),
+      embedded_worker()->worker_devtools_agent_route_id(),
+      embedded_worker()->worker_citizennotes_agent_route_id(), ukm_source_id(),
       ancestor_frame_type_, router_rules);
   for (const auto& controllee : controllee_map_) {
     ServiceWorkerContainerHost* container_host = controllee.second.get();
@@ -642,7 +643,7 @@ bool ServiceWorkerVersion::OnRequestTermination() {
 
   // Determine if the worker can be terminated.
   bool will_be_terminated = HasNoWork();
-  if (embedded_worker_->devtools_attached()) {
+  if (embedded_worker_->devtools_attached() || embedded_worker_->citizennotes_attached()) {
     // Basically the service worker won't be terminated if DevTools is attached.
     // But when activation is happening and this worker needs to be terminated
     // asap, it'll be terminated.
@@ -1098,6 +1099,10 @@ void ServiceWorkerVersion::ReportForceUpdateToDevTools() {
   AddMessageToConsole(blink::mojom::ConsoleMessageLevel::kWarning,
                       kForceUpdateInfoMessage);
 }
+void ServiceWorkerVersion::ReportForceUpdateToCitizenNotes() {
+  AddMessageToConsole(blink::mojom::ConsoleMessageLevel::kWarning,
+                      kForceUpdateInfoMessage);
+}
 
 void ServiceWorkerVersion::SetStartWorkerStatusCode(
     blink::ServiceWorkerStatusCode status) {
@@ -1150,10 +1155,11 @@ void ServiceWorkerVersion::Doom() {
     // shipped.
     bool stop_immediately =
         start_worker_status_ == blink::ServiceWorkerStatusCode::kErrorExists;
-    if (stop_immediately || !embedded_worker()->devtools_attached()) {
+    if (stop_immediately || !embedded_worker()->devtools_attached() || !embedded_worker()->devtools_attached()) {
       embedded_worker_->Stop();
     } else {
       stop_when_devtools_detached_ = true;
+      stop_when_citizennotes_detached_ = true;
     }
   }
 
@@ -1302,9 +1308,47 @@ void ServiceWorkerVersion::SetDevToolsAttached(bool attached) {
   SetAllRequestExpirations(tick_clock_->NowTicks() + kRequestTimeout);
 }
 
+void ServiceWorkerVersion::SetCitizenNotesAttached(bool attached) {
+  embedded_worker()->SetCitizenNotesAttached(attached);
+
+  if (stop_when_citizennotes_detached_ && !attached) {
+    DCHECK_EQ(REDUNDANT, status());
+    if (running_status() == blink::EmbeddedWorkerStatus::kStarting ||
+        running_status() == blink::EmbeddedWorkerStatus::kRunning) {
+      embedded_worker_->Stop();
+    }
+    return;
+  }
+  if (attached) {
+    // TODO(falken): Canceling the timeouts when debugging could cause
+    // heisenbugs; we should instead run them as normal show an educational
+    // message in DevTools when they occur. crbug.com/470419
+
+    // Don't record the startup time metric once DevTools is attached.
+    ClearTick(&start_time_);
+    skip_recording_startup_time_ = true;
+
+    // Cancel request timeouts.
+    SetAllRequestExpirations(base::TimeTicks());
+    return;
+  }
+  if (!start_callbacks_.empty()) {
+    // Reactivate the timer for start timeout.
+    DCHECK(timeout_timer_.IsRunning());
+    DCHECK(running_status() == blink::EmbeddedWorkerStatus::kStarting ||
+           running_status() == blink::EmbeddedWorkerStatus::kStopping)
+        << static_cast<int>(running_status());
+    RestartTick(&start_time_);
+  }
+
+  // Reactivate request timeouts, setting them all to the same expiration time.
+  SetAllRequestExpirations(tick_clock_->NowTicks() + kRequestTimeout);
+}
+
 void ServiceWorkerVersion::SetMainScriptResponse(
     std::unique_ptr<MainScriptResponse> response) {
   script_response_time_for_devtools_ = response->response_time;
+  script_response_time_for_citizennotes_ = response->response_time;
   main_script_response_ = std::move(response);
 
   // Updates |origin_trial_tokens_| if it is not set yet. This happens when:
@@ -1518,6 +1562,11 @@ void ServiceWorkerVersion::OnDetached(blink::EmbeddedWorkerStatus old_status) {
 void ServiceWorkerVersion::OnRegisteredToDevToolsManager() {
   for (auto& observer : observers_)
     observer.OnDevToolsRoutingIdChanged(this);
+}
+
+void ServiceWorkerVersion::OnRegisteredToCitizenNotesManager() {
+  for (auto& observer : observers_)
+    observer.OnCitizenNotesRoutingIdChanged(this);
 }
 
 void ServiceWorkerVersion::OnReportException(

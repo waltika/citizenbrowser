@@ -29,6 +29,7 @@
 #include "components/services/storage/service_worker/service_worker_storage_control_impl.h"
 #include "content/browser/blob_storage/chrome_blob_storage_context.h"
 #include "content/browser/devtools/devtools_instrumentation.h"
+#include "content/browser/citizen_x/citizennotes_instrumentation.h"
 #include "content/browser/loader/navigation_url_loader_impl.h"
 #include "content/browser/service_worker/service_worker_container_host.h"
 #include "content/browser/service_worker/service_worker_host.h"
@@ -1879,6 +1880,9 @@ ServiceWorkerContextWrapper::GetLoaderFactoryForBrowserInitiatedRequest(
   // before instantiating the URLFactoryLoader.
   if (version_id.has_value()) {
     devtools_instrumentation::
+        WillCreateURLLoaderFactoryForServiceWorkerMainScript(
+            this, version_id.value(), &pending_receiver);
+    citizennotes_instrumentation::
         WillCreateURLLoaderFactoryForServiceWorkerMainScript(
             this, version_id.value(), &pending_receiver);
   }

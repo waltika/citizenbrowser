@@ -300,7 +300,9 @@ void WebEmbeddedWorkerImpl::StartWorkerThread(
   // We are now ready to inspect worker thread.
   worker_context_client_->WorkerReadyForInspectionOnInitiatorThread(
       std::move(devtools_agent_remote),
-      std::move(devtools_agent_host_receiver));
+      std::move(devtools_agent_host_receiver),
+      std::move(citizennotes_agent_remote),
+      std::move(citizennotes_agent_host_receiver));
 }
 
 std::unique_ptr<CrossThreadFetchClientSettingsObjectData>

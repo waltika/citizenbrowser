@@ -49,6 +49,10 @@ class AppWindowClient {
   virtual void OpenDevToolsWindow(content::WebContents* web_contents,
                                   base::OnceClosure callback) = 0;
 
+  // Opens DevTools window and runs the callback.
+  virtual void OpenCitizenNotesWindow(content::WebContents* web_contents,
+                                  base::OnceClosure callback) = 0;
+
   // Returns true if the current channel is older than dev.
   virtual bool IsCurrentChannelOlderThanDev() = 0;
 

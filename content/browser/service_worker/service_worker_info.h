@@ -44,6 +44,7 @@ struct CONTENT_EXPORT ServiceWorkerVersionInfo
       int process_id,
       int thread_id,
       int devtools_agent_route_id,
+      int citizennotes_agent_route_id,
       ukm::SourceId ukm_source_id,
       blink::mojom::AncestorFrameType ancestor_frame_type,
       absl::optional<std::string> router_rules);
@@ -57,6 +58,7 @@ struct CONTENT_EXPORT ServiceWorkerVersionInfo
   GURL script_url;
   int thread_id;
   int devtools_agent_route_id;
+  int citizennotes_agent_route_id;
   ukm::SourceId ukm_source_id = ukm::kInvalidSourceId;
   absl::optional<std::string> router_rules;
   base::Time script_response_time;

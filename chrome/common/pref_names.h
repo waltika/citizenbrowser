@@ -2274,10 +2274,6 @@ inline constexpr char kCitizenNotesAvailability[] = "citizennotes.availability";
 inline constexpr char kDevToolsRemoteDebuggingAllowed[] =
     "devtools.remote_debugging.allowed";
 
-// Defines administrator-set availability of developer tools remote debugging.
-inline constexpr char kCitizenNotesRemoteDebuggingAllowed[] =
-    "citizennotes.remote_debugging.allowed";
-
 // Dictionary from background service to recording expiration time.
 inline constexpr char kDevToolsBackgroundServicesExpirationDict[] =
     "devtools.backgroundserviceexpiration";

@@ -293,6 +293,26 @@ void ServiceWorkerContextWatcher::OnVersionDevToolsRoutingIdChanged(
     version_info_map_.erase(version_id);
 }
 
+void ServiceWorkerContextWatcher::OnVersionCitizenNotesRoutingIdChanged(
+    int64_t version_id,
+    int process_id,
+    int citizennotes_agent_route_id) {
+  DCHECK_CURRENTLY_ON(BrowserThread::UI);
+  auto it = version_info_map_.find(version_id);
+  if (it == version_info_map_.end())
+    return;
+  ServiceWorkerVersionInfo* version = it->second.get();
+  if (version->process_id == process_id &&
+      version->citizennotes_agent_route_id == citizennotes_agent_route_id) {
+    return;
+  }
+  version->process_id = process_id;
+  version->citizennotes_agent_route_id = citizennotes_agent_route_id;
+  SendVersionInfo(*version);
+  if (IsStoppedAndRedundant(*version))
+    version_info_map_.erase(version_id);
+}
+
 void ServiceWorkerContextWatcher::OnMainScriptResponseSet(
     int64_t version_id,
     base::Time script_response_time,

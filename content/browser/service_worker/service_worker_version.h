@@ -98,6 +98,7 @@ FORWARD_DECLARE_TEST(ServiceWorkerVersionTest, RequestTimeout);
 FORWARD_DECLARE_TEST(ServiceWorkerVersionTest, RestartWorker);
 FORWARD_DECLARE_TEST(ServiceWorkerVersionTest, RequestNowTimeoutKill);
 FORWARD_DECLARE_TEST(ServiceWorkerVersionTest, SetDevToolsAttached);
+FORWARD_DECLARE_TEST(ServiceWorkerVersionTest, SetCitizenNotesAttached);
 FORWARD_DECLARE_TEST(ServiceWorkerVersionTest, StaleUpdate_DoNotDeferTimer);
 FORWARD_DECLARE_TEST(ServiceWorkerVersionTest, StaleUpdate_FreshWorker);
 FORWARD_DECLARE_TEST(ServiceWorkerVersionTest, StaleUpdate_NonActiveWorker);
@@ -110,6 +111,7 @@ FORWARD_DECLARE_TEST(ServiceWorkerVersionTest, StartRequestWithNullContext);
 FORWARD_DECLARE_TEST(ServiceWorkerVersionTest,
                      WorkerLifetimeWithExternalRequest);
 FORWARD_DECLARE_TEST(ServiceWorkerVersionTest, DevToolsAttachThenDetach);
+FORWARD_DECLARE_TEST(ServiceWorkerVersionTest, CitizenNotesAttachThenDetach);
 FORWARD_DECLARE_TEST(ServiceWorkerVersionTest,
                      DefaultTimeoutRequestDoesNotAffectMaxTimeoutRequest);
 FORWARD_DECLARE_TEST(ServiceWorkerVersionTest, Doom);
@@ -186,6 +188,7 @@ class CONTENT_EXPORT ServiceWorkerVersion
     virtual void OnRunningStateChanged(ServiceWorkerVersion* version) {}
     virtual void OnVersionStateChanged(ServiceWorkerVersion* version) {}
     virtual void OnDevToolsRoutingIdChanged(ServiceWorkerVersion* version) {}
+    virtual void OnCitizenNotesRoutingIdChanged(ServiceWorkerVersion* version) {}
     virtual void OnErrorReported(ServiceWorkerVersion* version,
                                  const std::u16string& error_message,
                                  int line_number,
@@ -506,6 +509,7 @@ class CONTENT_EXPORT ServiceWorkerVersion
                    const std::string& status_message);
 
   void ReportForceUpdateToDevTools();
+  void ReportForceUpdateToCitizenNotes();
 
   // Sets the status code to pass to StartWorker callbacks if start fails.
   void SetStartWorkerStatusCode(blink::ServiceWorkerStatusCode status);
@@ -562,6 +566,7 @@ class CONTENT_EXPORT ServiceWorkerVersion
       const blink::TrialTokenValidator::FeatureToTokensMap& tokens);
 
   void SetDevToolsAttached(bool attached);
+  void SetCitizenNotesAttached(bool attached);
 
   // Sets the response information used to load the main script.
   void SetMainScriptResponse(std::unique_ptr<MainScriptResponse> response);
@@ -618,6 +623,10 @@ class CONTENT_EXPORT ServiceWorkerVersion
 
   void set_script_response_time_for_devtools(base::Time response_time) {
     script_response_time_for_devtools_ = std::move(response_time);
+  }
+
+  void set_script_response_time_for_citizennotes(base::Time response_time) {
+    script_response_time_for_citizennotes_ = std::move(response_time);
   }
 
   static bool IsInstalled(ServiceWorkerVersion::Status status);
@@ -773,6 +782,9 @@ class CONTENT_EXPORT ServiceWorkerVersion
       SetDevToolsAttached);
   FRIEND_TEST_ALL_PREFIXES(
       service_worker_version_unittest::ServiceWorkerVersionTest,
+      SetCitizenNotesAttached);
+  FRIEND_TEST_ALL_PREFIXES(
+      service_worker_version_unittest::ServiceWorkerVersionTest,
       StaleUpdate_FreshWorker);
   FRIEND_TEST_ALL_PREFIXES(
       service_worker_version_unittest::ServiceWorkerVersionTest,
@@ -829,6 +841,9 @@ class CONTENT_EXPORT ServiceWorkerVersion
   FRIEND_TEST_ALL_PREFIXES(
       service_worker_version_unittest::ServiceWorkerVersionTest,
       DevToolsAttachThenDetach);
+  FRIEND_TEST_ALL_PREFIXES(
+      service_worker_version_unittest::ServiceWorkerVersionTest,
+      CitizenNotesAttachThenDetach);
   FRIEND_TEST_ALL_PREFIXES(
       service_worker_version_unittest::ServiceWorkerVersionTest,
       Doom);
@@ -898,6 +913,7 @@ class CONTENT_EXPORT ServiceWorkerVersion
   void OnStopped(blink::EmbeddedWorkerStatus old_status) override;
   void OnDetached(blink::EmbeddedWorkerStatus old_status) override;
   void OnRegisteredToDevToolsManager() override;
+  void OnRegisteredToCitizenNotesManager() override;
   void OnReportException(const std::u16string& error_message,
                          int line_number,
                          int column_number,
@@ -1233,6 +1249,7 @@ class CONTENT_EXPORT ServiceWorkerVersion
   // populating |main_script_http_info_| just in order to expose that timestamp,
   // we provide that timestamp here.
   base::Time script_response_time_for_devtools_;
+  base::Time script_response_time_for_citizennotes_;
 
   std::unique_ptr<blink::TrialTokenValidator::FeatureToTokensMap>
       origin_trial_tokens_;
@@ -1251,6 +1268,7 @@ class CONTENT_EXPORT ServiceWorkerVersion
   ServiceWorkerPingController ping_controller_;
 
   bool stop_when_devtools_detached_ = false;
+  bool stop_when_citizennotes_detached_ = false;
 
   // This is the set of features that were used up until installation of this
   // version completed, or used during the lifetime of |this|.

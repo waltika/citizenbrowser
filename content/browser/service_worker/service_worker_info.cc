@@ -18,6 +18,7 @@ ServiceWorkerVersionInfo::ServiceWorkerVersionInfo()
       status(ServiceWorkerVersion::NEW),
       thread_id(ServiceWorkerConsts::kInvalidEmbeddedWorkerThreadId),
       devtools_agent_route_id(MSG_ROUTING_NONE),
+      citizennotes_agent_route_id(MSG_ROUTING_NONE),
       ukm_source_id(ukm::kInvalidSourceId) {}
 
 ServiceWorkerVersionInfo::ServiceWorkerVersionInfo(
@@ -32,6 +33,7 @@ ServiceWorkerVersionInfo::ServiceWorkerVersionInfo(
     int process_id,
     int thread_id,
     int devtools_agent_route_id,
+    int citizennotes_agent_route_id,
     ukm::SourceId ukm_source_id,
     blink::mojom::AncestorFrameType ancestor_frame_type,
     absl::optional<std::string> router_rules)
@@ -47,6 +49,7 @@ ServiceWorkerVersionInfo::ServiceWorkerVersionInfo(
       script_url(script_url),
       thread_id(thread_id),
       devtools_agent_route_id(devtools_agent_route_id),
+      citizennotes_agent_route_id(citizennotes_agent_route_id),
       ukm_source_id(ukm_source_id),
       router_rules(router_rules) {}
 

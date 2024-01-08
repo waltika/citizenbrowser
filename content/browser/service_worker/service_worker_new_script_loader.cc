@@ -14,6 +14,7 @@
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/single_thread_task_runner.h"
 #include "content/browser/devtools/devtools_instrumentation.h"
+#include "content/browser/citizen_x/citizennotes_instrumentation.h"
 #include "content/browser/renderer_host/policy_container_host.h"
 #include "content/browser/service_worker/service_worker_cache_writer.h"
 #include "content/browser/service_worker/service_worker_consts.h"
@@ -715,6 +716,10 @@ void ServiceWorkerNewScriptLoader::CommitCompleted(
     // log the failure. We call into devtools with the frame id instead.
     if (requesting_frame_id_ && version_->context()) {
       devtools_instrumentation::OnServiceWorkerMainScriptFetchingFailed(
+          requesting_frame_id_, version_->context()->wrapper(),
+          version_->version_id(), status_message, status, response_head.get(),
+          request_url_);
+      citizennotes_instrumentation::OnServiceWorkerMainScriptFetchingFailed(
           requesting_frame_id_, version_->context()->wrapper(),
           version_->version_id(), status_message, status, response_head.get(),
           request_url_);

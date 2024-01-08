@@ -689,6 +689,7 @@ void ServiceWorkerMainResourceLoader::DidPrepareFetchEvent(
       EmbeddedWorkerInstance::StatusToString(initial_worker_status));
 
   devtools_attached_ = version->embedded_worker()->devtools_attached();
+  citizennotes_attached_ = version->embedded_worker()->citizennotes_attached();
 }
 
 void ServiceWorkerMainResourceLoader::DidDispatchFetchEvent(
@@ -1121,7 +1122,7 @@ bool ServiceWorkerMainResourceLoader::IsEligibleForRecordingTimingMetrics() {
   }
 
   // Don't record metrics when DevTools is attached to reduce noise.
-  if (devtools_attached_) {
+  if (devtools_attached_ ||citizennotes_attached_) {
     return false;
   }
 

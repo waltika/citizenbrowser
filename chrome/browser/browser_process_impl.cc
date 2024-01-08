@@ -45,6 +45,7 @@
 #include "chrome/browser/component_updater/chrome_component_updater_configurator.h"
 #include "chrome/browser/defaults.h"
 #include "chrome/browser/devtools/remote_debugging_server.h"
+#include "chrome/browser/citizen_x/cnremote_debugging_server.h"
 #include "chrome/browser/download/download_request_limiter.h"
 #include "chrome/browser/download/download_status_updater.h"
 #include "chrome/browser/google/google_brand.h"
@@ -164,6 +165,7 @@
 #include "components/webauthn/android/webauthn_client_android.h"
 #else
 #include "chrome/browser/devtools/devtools_auto_opener.h"
+#include "chrome/browser/citizen_x/citizennotes_auto_opener.h"
 #include "chrome/browser/gcm/gcm_product_util.h"
 #include "chrome/browser/hid/hid_system_tray_icon.h"
 #include "chrome/browser/intranet_redirect_detector.h"
@@ -473,7 +475,9 @@ void BrowserProcessImpl::StartTearDown() {
 
   // Debugger must be cleaned up before ProfileManager.
   remote_debugging_server_.reset();
+  cn_remote_debugging_server_.reset();
   devtools_auto_opener_.reset();
+  citizennotes_auto_opener_.reset();
 
   battery_metrics_.reset();
 
@@ -870,6 +874,35 @@ void BrowserProcessImpl::CreateDevToolsAutoOpener() {
   // is started with several profiles or existing browser process is reused.
   if (!devtools_auto_opener_)
     devtools_auto_opener_ = std::make_unique<DevToolsAutoOpener>();
+#endif
+}
+
+void BrowserProcessImpl::CreateCitizenNotesProtocolHandler() {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+#if !BUILDFLAG(IS_ANDROID)
+  // StartupBrowserCreator::LaunchBrowser can be run multiple times when browser
+  // is started with several profiles or existing browser process is reused.
+  if (!cn_remote_debugging_server_) {
+    if (!local_state_->GetBoolean(prefs::kDevToolsRemoteDebuggingAllowed)) {
+      // Follow content/browser/devtools/devtools_http_handler.cc that reports
+      // its remote debugging port on stderr for symmetry.
+      fputs("\nCitizenNotes remote debugging is disallowed by the system admin.\n",
+            stderr);
+      fflush(stderr);
+      return;
+    }
+    cn_remote_debugging_server_ = std::make_unique<CNRemoteDebuggingServer>();
+  }
+#endif
+}
+
+void BrowserProcessImpl::CreateCitizenNotesAutoOpener() {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+#if !BUILDFLAG(IS_ANDROID)
+  // StartupBrowserCreator::LaunchBrowser can be run multiple times when browser
+  // is started with several profiles or existing browser process is reused.
+  if (!citizennotes_auto_opener_)
+    citizennotes_auto_opener_ = std::make_unique<CitizenNotesAutoOpener>();
 #endif
 }
 

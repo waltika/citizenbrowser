@@ -12,8 +12,10 @@
 #include "build/build_config.h"
 #include "build/chromeos_buildflags.h"
 #include "chrome/browser/devtools/devtools_window.h"
+#include "chrome/browser/citizen_x/citizennotes_window.h"
 #include "components/version_info/version_info.h"
 #include "content/public/browser/devtools_agent_host.h"
+#include "content/public/browser/citizennotes_agent_host.h"
 #include "extensions/browser/app_window/app_window.h"
 #include "extensions/browser/app_window/native_app_window.h"
 #include "extensions/common/extension.h"
@@ -94,6 +96,22 @@ void ChromeAppWindowClient::OpenDevToolsWindow(
       DevToolsWindow::FindDevToolsWindow(agent.get());
   if (devtools_window)
     devtools_window->SetLoadCompletedCallback(std::move(callback));
+  else
+    std::move(callback).Run();
+}
+
+void ChromeAppWindowClient::OpenCitizenNotesWindow(
+    content::WebContents* web_contents,
+    base::OnceClosure callback) {
+  scoped_refptr<content::CitizenNotesAgentHost> agent(
+      content::CitizenNotesAgentHost::GetOrCreateFor(web_contents));
+      CitizenNotesWindow::OpenCitizenNotesWindow(web_contents,
+      CitizenNotesOpenedByAction::kTargetReload);
+
+  CitizenNotesWindow* citizennotes_window =
+      CitizenNotesWindow::FindCitizenNotesWindow(agent.get());
+  if (citizennotes_window)
+      citizennotes_window->SetLoadCompletedCallback(std::move(callback));
   else
     std::move(callback).Run();
 }

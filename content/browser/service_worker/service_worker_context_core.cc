@@ -1225,6 +1225,18 @@ void ServiceWorkerContextCore::OnDevToolsRoutingIdChanged(
       version->embedded_worker()->worker_devtools_agent_route_id());
 }
 
+void ServiceWorkerContextCore::OnCitizenNotesRoutingIdChanged(
+    ServiceWorkerVersion* version) {
+  DCHECK_EQ(this, version->context().get());
+  if (!version->embedded_worker())
+    return;
+  observer_list_->Notify(
+      FROM_HERE,
+      &ServiceWorkerContextCoreObserver::OnVersionCitizenNotesRoutingIdChanged,
+      version->version_id(), version->embedded_worker()->process_id(),
+      version->embedded_worker()->worker_citizennotes_agent_route_id());
+}
+
 void ServiceWorkerContextCore::OnErrorReported(
     ServiceWorkerVersion* version,
     const std::u16string& error_message,

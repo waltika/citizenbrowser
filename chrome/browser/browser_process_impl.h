@@ -49,7 +49,9 @@
 class BatteryMetrics;
 class ChromeMetricsServicesManagerClient;
 class DevToolsAutoOpener;
+class CitizenNotesAutoOpener;
 class RemoteDebuggingServer;
+class CNRemoteDebuggingServer;
 class PrefRegistrySimple;
 class SearchEngineChoiceProfileTagger;
 class SecureOriginPrefsObserver;
@@ -178,7 +180,9 @@ class BrowserProcessImpl : public BrowserProcess,
   IconManager* icon_manager() override;
   GpuModeManager* gpu_mode_manager() override;
   void CreateDevToolsProtocolHandler() override;
+  void CreateCitizenNotesProtocolHandler() override;
   void CreateDevToolsAutoOpener() override;
+  void CreateCitizenNotesAutoOpener() override;
   bool IsShuttingDown() override;
   printing::PrintJobManager* print_job_manager() override;
   printing::PrintPreviewDialogController* print_preview_dialog_controller()
@@ -319,7 +323,9 @@ class BrowserProcessImpl : public BrowserProcess,
 
 #if !BUILDFLAG(IS_ANDROID)
   std::unique_ptr<RemoteDebuggingServer> remote_debugging_server_;
+  std::unique_ptr<CNRemoteDebuggingServer> cn_remote_debugging_server_;
   std::unique_ptr<DevToolsAutoOpener> devtools_auto_opener_;
+  std::unique_ptr<CitizenNotesAutoOpener> citizennotes_auto_opener_;
 #endif
 
 #if BUILDFLAG(ENABLE_PRINT_PREVIEW)

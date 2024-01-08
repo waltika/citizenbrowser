@@ -19,6 +19,9 @@
 #include "content/browser/devtools/devtools_agent_host_impl.h"
 #include "content/browser/devtools/service_worker_devtools_agent_host.h"
 #include "content/browser/devtools/service_worker_devtools_manager.h"
+#include "content/browser/citizen_x/citizennotes_agent_host_impl.h"
+#include "content/browser/citizen_x/service_worker_citizennotes_agent_host.h"
+#include "content/browser/citizen_x/service_worker_citizennotes_manager.h"
 #include "content/browser/service_worker/service_worker_context_core_observer.h"
 #include "content/browser/service_worker/service_worker_context_wrapper.h"
 #include "content/browser/service_worker/service_worker_registration.h"
@@ -151,6 +154,7 @@ base::Value::Dict UpdateVersionInfo(const ServiceWorkerVersionInfo& version) {
   info.Set("process_host_id", version.process_id);
   info.Set("thread_id", version.thread_id);
   info.Set("devtools_agent_route_id", version.devtools_agent_route_id);
+  info.Set("citizennotes_agent_route_id", version.citizennotes_agent_route_id);
 
   base::Value::List clients;
   for (auto& it : version.clients) {
@@ -490,6 +494,8 @@ void ServiceWorkerInternalsHandler::HandleGetOptions(const Value::List& args) {
   base::Value::Dict options;
   options.Set("debug_on_start", ServiceWorkerDevToolsManager::GetInstance()
                                     ->debug_service_worker_on_start());
+  options.Set("citizennotes_on_start", ServiceWorkerCitizenNotesManager::GetInstance()
+                                    ->debug_service_worker_on_start());
   ResolveJavascriptCallback(base::Value(callback_id), options);
 }
 
@@ -510,6 +516,8 @@ void ServiceWorkerInternalsHandler::HandleSetOption(
     return;
   }
   ServiceWorkerDevToolsManager::GetInstance()
+      ->set_debug_service_worker_on_start(args_list[1].GetBool());
+  ServiceWorkerCitizenNotesManager::GetInstance()
       ->set_debug_service_worker_on_start(args_list[1].GetBool());
 }
 
@@ -624,24 +632,43 @@ void ServiceWorkerInternalsHandler::HandleInspectWorker(
   const base::Value::Dict& cmd_args = args[1].GetDict();
 
   absl::optional<int> process_host_id = cmd_args.FindInt("process_host_id");
+  if (!process_host_id) {
+    return;
+  }
   absl::optional<int> devtools_agent_route_id =
       cmd_args.FindInt("devtools_agent_route_id");
-  if (!process_host_id || !devtools_agent_route_id) {
-    return;
+  if(devtools_agent_route_id) {
+     base::OnceCallback<void(blink::ServiceWorkerStatusCode)> callback =
+     base::BindOnce(OperationCompleteCallback, weak_ptr_factory_.GetWeakPtr(),
+                       callback_id);
+     scoped_refptr<ServiceWorkerDevToolsAgentHost> agent_host(ServiceWorkerDevToolsManager::GetInstance()
+                                                                 ->GetDevToolsAgentHostForWorker(*process_host_id,
+                                                                                                 *devtools_agent_route_id));
+      if (agent_host.get()) {
+         agent_host->Inspect();
+         std::move(callback).Run(blink::ServiceWorkerStatusCode::kOk);
+      }
+      else {
+         std::move(callback).Run(blink::ServiceWorkerStatusCode::kErrorNotFound);
+      }
   }
-  base::OnceCallback<void(blink::ServiceWorkerStatusCode)> callback =
+  absl::optional<int> citizennotes_agent_route_id =
+      cmd_args.FindInt("citizennotes_agent_route_id");
+  if(citizennotes_agent_route_id) {
+      base::OnceCallback<void(blink::ServiceWorkerStatusCode)> callback =
       base::BindOnce(OperationCompleteCallback, weak_ptr_factory_.GetWeakPtr(),
                      callback_id);
-  scoped_refptr<ServiceWorkerDevToolsAgentHost> agent_host(
-      ServiceWorkerDevToolsManager::GetInstance()
-          ->GetDevToolsAgentHostForWorker(*process_host_id,
-                                          *devtools_agent_route_id));
-  if (!agent_host.get()) {
-    std::move(callback).Run(blink::ServiceWorkerStatusCode::kErrorNotFound);
-    return;
+      scoped_refptr<ServiceWorkerCitizenNotesAgentHost> agent_host(ServiceWorkerCitizenNotesManager::GetInstance()
+                                                                   ->GetCitizenNotesAgentHostForWorker(*process_host_id,
+                                                                                                   *citizennotes_agent_route_id));
+      if (agent_host.get()) {
+         agent_host->Inspect();
+         std::move(callback).Run(blink::ServiceWorkerStatusCode::kOk);
+      }
+      else {
+         std::move(callback).Run(blink::ServiceWorkerStatusCode::kErrorNotFound);
+      }
   }
-  agent_host->Inspect();
-  std::move(callback).Run(blink::ServiceWorkerStatusCode::kOk);
 }
 
 void ServiceWorkerInternalsHandler::HandleUnregister(const Value::List& args) {

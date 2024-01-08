@@ -715,6 +715,7 @@ void ServiceWorkerControlleeRequestHandler::DidUpdateRegistration(
   ServiceWorkerVersion* new_version =
       original_registration->installing_version();
   new_version->ReportForceUpdateToDevTools();
+  new_version->ReportForceUpdateToCitizenNotes();
   new_version->set_skip_waiting(true);
   new_version->RegisterStatusChangeCallback(base::BindOnce(
       &ServiceWorkerControlleeRequestHandler::OnUpdatedVersionStatusChanged,

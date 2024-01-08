@@ -1617,6 +1617,11 @@ int ChromeBrowserMainParts::PreMainMessageLoopRunImpl() {
   if (base::CommandLine::ForCurrentProcess()->HasSwitch(
           ::switches::kAutoOpenDevToolsForTabs))
     g_browser_process->CreateDevToolsAutoOpener();
+    
+  g_browser_process->CreateCitizenNotesProtocolHandler();
+  if (base::CommandLine::ForCurrentProcess()->HasSwitch(
+          ::switches::kAutoOpenCitizenNotesForTabs))
+    g_browser_process->CreateCitizenNotesAutoOpener();
 
   // Needs to be done before PostProfileInit, since the SODA Installer setup is
   // called inside PostProfileInit and depends on it.

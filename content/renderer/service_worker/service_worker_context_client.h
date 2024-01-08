@@ -152,7 +152,12 @@ class ServiceWorkerContextClient
           devtools_agent_remote,
       blink::CrossVariantMojoReceiver<
           blink::mojom::DevToolsAgentHostInterfaceBase>
-          devtools_agent_host_receiver) override;
+          devtools_agent_host_receiver,
+      blink::CrossVariantMojoRemote<blink::mojom::CitizenNotesAgentInterfaceBase>
+          citizennotes_agent_remote,
+      blink::CrossVariantMojoReceiver<
+      blink::mojom::CitizenNotesAgentHostInterfaceBase>
+          citizennotes_agent_host_receiver) override;
   void FailedToFetchClassicScript() override;
   void FailedToFetchModuleScript() override;
   void WorkerScriptLoadedOnWorkerThread() override;

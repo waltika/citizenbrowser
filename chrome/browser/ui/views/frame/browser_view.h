@@ -138,6 +138,15 @@ class BrowserView : public BrowserWindow,
     kUnknown
   };
 
+  enum class CitizenNotesDockedPlacement {
+    kLeft,
+    kRight,
+    kBottom,
+    // Citizennotes are not docked.
+    kNone,
+    kUnknown
+  };
+
   explicit BrowserView(std::unique_ptr<Browser> browser);
   BrowserView(const BrowserView&) = delete;
   BrowserView& operator=(const BrowserView&) = delete;
@@ -269,9 +278,14 @@ class BrowserView : public BrowserWindow,
   // Accessor for the contents and devtools WebViews.
   ContentsWebView* contents_web_view() { return contents_web_view_; }
   views::WebView* devtools_web_view() { return devtools_web_view_; }
+  views::WebView* citizennotes_web_view() { return citizennotes_web_view_; }
 
   DevToolsDockedPlacement devtools_docked_placement() const {
     return current_devtools_docked_placement_;
+  }
+                        
+  CitizenNotesDockedPlacement citizennotes_docked_placement() const {
+    return current_citizennotes_docked_placement_;
   }
 
   base::WeakPtr<BrowserView> GetAsWeakPtr() {
@@ -899,7 +913,7 @@ class BrowserView : public BrowserWindow,
                                  bool update_devtools_web_contents);
 
   void UpdateCitizenNotesForContents(content::WebContents* web_contents,
-                                     bool update_devtools_web_contents);
+                                     bool update_citizennotes_web_contents);
 
   // Updates various optional child Views, e.g. Bookmarks Bar, Info Bar or the
   // Download Shelf in response to a change notification from the specified
@@ -1308,8 +1322,8 @@ class BrowserView : public BrowserWindow,
   DevToolsDockedPlacement current_devtools_docked_placement_ =
       DevToolsDockedPlacement::kNone;
 
-  DevToolsDockedPlacement current_citizennotes_docked_placement_ =
-      DevToolsDockedPlacement::kNone;
+  CitizenNotesDockedPlacement current_citizennotes_docked_placement_ =
+      CitizenNotesDockedPlacement::kNone;
 
                         
   PrefChangeRegistrar registrar_;

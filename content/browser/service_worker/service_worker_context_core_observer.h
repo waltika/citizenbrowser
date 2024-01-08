@@ -58,6 +58,9 @@ class ServiceWorkerContextCoreObserver {
   virtual void OnVersionDevToolsRoutingIdChanged(int64_t version_id,
                                                  int process_id,
                                                  int devtools_agent_route_id) {}
+  virtual void OnVersionCitizenNotesRoutingIdChanged(int64_t version_id,
+                                                     int process_id,
+                                                     int citizennotes_agent_route_id) {}
   virtual void OnMainScriptResponseSet(int64_t version_id,
                                        base::Time script_response_time,
                                        base::Time script_last_modified) {}

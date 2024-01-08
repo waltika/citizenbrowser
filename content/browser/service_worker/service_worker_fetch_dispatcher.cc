@@ -20,6 +20,8 @@
 #include "content/browser/child_process_security_policy_impl.h"
 #include "content/browser/devtools/service_worker_devtools_agent_host.h"
 #include "content/browser/devtools/service_worker_devtools_manager.h"
+#include "content/browser/citizen_x/service_worker_citizennotes_agent_host.h"
+#include "content/browser/citizen_x/service_worker_citizennotes_manager.h"
 #include "content/browser/loader/navigation_url_loader_impl.h"
 #include "content/browser/renderer_host/frame_tree_node.h"
 #include "content/browser/renderer_host/navigation_request.h"
@@ -68,6 +70,8 @@ void NotifyNavigationPreloadRequestSent(const network::ResourceRequest& request,
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
   ServiceWorkerDevToolsManager::GetInstance()->NavigationPreloadRequestSent(
       worker_id.first, worker_id.second, request_id, request);
+  ServiceWorkerCitizenNotesManager::GetInstance()->NavigationPreloadRequestSent(
+      worker_id.first, worker_id.second, request_id, request);
 }
 
 void NotifyNavigationPreloadResponseReceived(
@@ -79,6 +83,9 @@ void NotifyNavigationPreloadResponseReceived(
   ServiceWorkerDevToolsManager::GetInstance()
       ->NavigationPreloadResponseReceived(worker_id.first, worker_id.second,
                                           request_id, url, *response);
+  ServiceWorkerCitizenNotesManager::GetInstance()
+      ->NavigationPreloadResponseReceived(worker_id.first, worker_id.second,
+                                          request_id, url, *response);
 }
 
 void NotifyNavigationPreloadCompleted(
@@ -87,6 +94,8 @@ void NotifyNavigationPreloadCompleted(
     const std::string& request_id) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
   ServiceWorkerDevToolsManager::GetInstance()->NavigationPreloadCompleted(
+      worker_id.first, worker_id.second, request_id, status);
+  ServiceWorkerCitizenNotesManager::GetInstance()->NavigationPreloadCompleted(
       worker_id.first, worker_id.second, request_id, status);
 }
 
@@ -102,16 +111,19 @@ class DelegatingURLLoaderClient final : public network::mojom::URLLoaderClient {
       const network::ResourceRequest& request)
       : client_(std::move(client)),
         url_(request.url),
-        devtools_enabled_(request.devtools_request_id.has_value()) {
-    if (!devtools_enabled_)
-      return;
-    AddDevToolsCallback(
-        base::BindOnce(&NotifyNavigationPreloadRequestSent, request));
+        devtools_enabled_(request.devtools_request_id.has_value()),
+        citizennotes_enabled_(request.citizennotes_request_id.has_value()) {
+    if(devtools_enabled_) {
+        AddDevToolsCallback(base::BindOnce(&NotifyNavigationPreloadRequestSent, request));
+    }
+            
+    if(citizennotes_enabled_) {
+        AddCitizenNotesCallback(base::BindOnce(&NotifyNavigationPreloadRequestSent, request));
+    }
   }
 
   DelegatingURLLoaderClient(const DelegatingURLLoaderClient&) = delete;
-  DelegatingURLLoaderClient& operator=(const DelegatingURLLoaderClient&) =
-      delete;
+  DelegatingURLLoaderClient& operator=(const DelegatingURLLoaderClient&) = delete;
 
   ~DelegatingURLLoaderClient() override {
     if (!completed_) {
@@ -119,10 +131,13 @@ class DelegatingURLLoaderClient final : public network::mojom::URLLoaderClient {
       network::URLLoaderCompletionStatus status;
       status.error_code = net::ERR_ABORTED;
       client_->OnComplete(status);
-      if (!devtools_enabled_)
-        return;
-      AddDevToolsCallback(
-          base::BindOnce(&NotifyNavigationPreloadCompleted, status));
+      if (devtools_enabled_)
+          AddDevToolsCallback(
+              base::BindOnce(&NotifyNavigationPreloadCompleted, status));
+      if (citizennotes_enabled_)
+          AddCitizenNotesCallback(
+              base::BindOnce(&NotifyNavigationPreloadCompleted, status));
+
     }
   }
 
@@ -131,6 +146,12 @@ class DelegatingURLLoaderClient final : public network::mojom::URLLoaderClient {
     devtools_request_id_ = base::StringPrintf("preload-%d", fetch_event_id);
     MaybeRunDevToolsCallbacks();
   }
+
+   void MaybeReportToCitizenNotes(WorkerId worker_id, int fetch_event_id) {
+     worker_id_ = worker_id;
+     citizennotes_request_id_ = base::StringPrintf("preload-%d", fetch_event_id);
+     MaybeRunCitizenNotesCallbacks();
+   }
 
   void OnUploadProgress(int64_t current_position,
                         int64_t total_size,
@@ -162,11 +183,24 @@ class DelegatingURLLoaderClient final : public network::mojom::URLLoaderClient {
           base::BindOnce(&NotifyNavigationPreloadResponseReceived, url_,
                          std::move(deep_copied_response)));
     }
+    if (citizennotes_enabled_) {
+      // Make a deep copy of URLResponseHead before posting it to a task.
+      auto deep_copied_response = head.Clone();
+      if (head->headers) {
+        deep_copied_response->headers =
+            base::MakeRefCounted<net::HttpResponseHeaders>(
+                head->headers->raw_headers());
+      }
+      AddCitizenNotesCallback(
+          base::BindOnce(&NotifyNavigationPreloadResponseReceived, url_,
+                         std::move(deep_copied_response)));
+    }
     client_->OnReceiveResponse(std::move(head), std::move(body),
                                std::move(cached_metadata));
   }
   void OnReceiveRedirect(const net::RedirectInfo& redirect_info,
                          network::mojom::URLResponseHeadPtr head) override {
+
     if (devtools_enabled_) {
       // Make a deep copy of URLResponseHead before posting it to a task.
       auto deep_copied_response = head.Clone();
@@ -182,6 +216,21 @@ class DelegatingURLLoaderClient final : public network::mojom::URLLoaderClient {
       AddDevToolsCallback(
           base::BindOnce(&NotifyNavigationPreloadCompleted, status));
     }
+    if (citizennotes_enabled_) {
+      // Make a deep copy of URLResponseHead before posting it to a task.
+      auto deep_copied_response = head.Clone();
+      if (head->headers) {
+        deep_copied_response->headers =
+            base::MakeRefCounted<net::HttpResponseHeaders>(
+                head->headers->raw_headers());
+      }
+      AddCitizenNotesCallback(
+          base::BindOnce(&NotifyNavigationPreloadResponseReceived, url_,
+                         std::move(deep_copied_response)));
+      network::URLLoaderCompletionStatus status;
+      AddCitizenNotesCallback(
+          base::BindOnce(&NotifyNavigationPreloadCompleted, status));
+    }
     completed_ = true;
     // When the server returns a redirect response, we only send
     // OnReceiveRedirect IPC and don't send OnComplete IPC. The service worker
@@ -193,10 +242,12 @@ class DelegatingURLLoaderClient final : public network::mojom::URLLoaderClient {
       return;
     completed_ = true;
     client_->OnComplete(status);
-    if (!devtools_enabled_)
-      return;
-    AddDevToolsCallback(
-        base::BindOnce(&NotifyNavigationPreloadCompleted, status));
+    if (devtools_enabled_)
+        AddDevToolsCallback(
+            base::BindOnce(&NotifyNavigationPreloadCompleted, status));
+    if (citizennotes_enabled_)
+        AddCitizenNotesCallback(
+            base::BindOnce(&NotifyNavigationPreloadCompleted, status));
   }
 
   void Bind(mojo::PendingRemote<network::mojom::URLLoaderClient>* remote) {
@@ -217,10 +268,30 @@ class DelegatingURLLoaderClient final : public network::mojom::URLLoaderClient {
       devtools_callbacks.pop();
     }
   }
+    
   void AddDevToolsCallback(
       base::OnceCallback<void(const WorkerId&, const std::string&)> callback) {
     devtools_callbacks.push(std::move(callback));
     MaybeRunDevToolsCallbacks();
+  }
+
+  void MaybeRunCitizenNotesCallbacks() {
+    if (!worker_id_ || !citizennotes_enabled_)
+        return;
+
+    scoped_refptr<base::SequencedTaskRunner> task_runner =
+    base::SequencedTaskRunner::GetCurrentDefault();
+    while (!citizennotes_callbacks.empty()) {
+        task_runner->PostTask(
+        FROM_HERE, base::BindOnce(std::move(citizennotes_callbacks.front()),
+                                  *worker_id_, citizennotes_request_id_));
+    citizennotes_callbacks.pop();
+  }
+}
+  void AddCitizenNotesCallback(
+      base::OnceCallback<void(const WorkerId&, const std::string&)> callback) {
+    citizennotes_callbacks.push(std::move(callback));
+    MaybeRunCitizenNotesCallbacks();
   }
 
   mojo::Receiver<network::mojom::URLLoaderClient> receiver_{this};
@@ -228,11 +299,15 @@ class DelegatingURLLoaderClient final : public network::mojom::URLLoaderClient {
   bool completed_ = false;
   const GURL url_;
   const bool devtools_enabled_;
+  const bool citizennotes_enabled_;
 
   absl::optional<std::pair<int, int>> worker_id_;
   std::string devtools_request_id_;
+  std::string citizennotes_request_id_;
   base::queue<base::OnceCallback<void(const WorkerId&, const std::string&)>>
       devtools_callbacks;
+  base::queue<base::OnceCallback<void(const WorkerId&, const std::string&)>>
+      citizennotes_callbacks;
 };
 
 using EventType = ServiceWorkerMetrics::EventType;
@@ -487,6 +562,10 @@ class ServiceWorkerFetchDispatcher::URLLoaderAssets
                              int fetch_event_id) {
     url_loader_client_->MaybeReportToDevTools(worker_id, fetch_event_id);
   }
+  void MaybeReportToCitizenNotes(std::pair<int, int> worker_id,
+                             int fetch_event_id) {
+    url_loader_client_->MaybeReportToCitizenNotes(worker_id, fetch_event_id);
+  }
 
  private:
   friend class base::RefCounted<URLLoaderAssets>;
@@ -655,6 +734,11 @@ void ServiceWorkerFetchDispatcher::DispatchFetchEvent() {
         std::make_pair(
             version_->embedded_worker()->process_id(),
             version_->embedded_worker()->worker_devtools_agent_route_id()),
+        fetch_event_id);
+    url_loader_assets_->MaybeReportToCitizenNotes(
+        std::make_pair(
+            version_->embedded_worker()->process_id(),
+            version_->embedded_worker()->worker_citizennotes_agent_route_id()),
         fetch_event_id);
   }
 

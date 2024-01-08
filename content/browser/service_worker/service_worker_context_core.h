@@ -172,6 +172,7 @@ class CONTENT_EXPORT ServiceWorkerContextCore
   void OnRunningStateChanged(ServiceWorkerVersion* version) override;
   void OnVersionStateChanged(ServiceWorkerVersion* version) override;
   void OnDevToolsRoutingIdChanged(ServiceWorkerVersion* version) override;
+  void OnCitizenNotesRoutingIdChanged(ServiceWorkerVersion* version) override;
   void OnErrorReported(ServiceWorkerVersion* version,
                        const std::u16string& error_message,
                        int line_number,

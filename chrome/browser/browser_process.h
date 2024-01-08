@@ -182,8 +182,10 @@ class BrowserProcess {
   virtual GpuModeManager* gpu_mode_manager() = 0;
 
   virtual void CreateDevToolsProtocolHandler() = 0;
+  virtual void CreateCitizenNotesProtocolHandler() = 0;
 
   virtual void CreateDevToolsAutoOpener() = 0;
+  virtual void CreateCitizenNotesAutoOpener() = 0;
 
   virtual bool IsShuttingDown() = 0;
 

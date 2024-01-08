@@ -1139,6 +1139,7 @@ ServiceWorkerRegistry::GetOrCreateRegistration(
     }
   }
   version->set_script_response_time_for_devtools(data.script_response_time);
+  version->set_script_response_time_for_citizennotes(data.script_response_time);
 
   if (version->status() == ServiceWorkerVersion::ACTIVATED)
     registration->SetActiveVersion(version);
