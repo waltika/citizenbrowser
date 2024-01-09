@@ -22,6 +22,7 @@
 #include "chrome/browser/buildflags.h"
 #include "chrome/browser/commerce/shopping_service_factory.h"
 #include "chrome/browser/devtools/devtools_ui_bindings.h"
+#include "chrome/browser/citizen_x/citizennotes_ui_bindings.h"
 #include "chrome/browser/history/history_service_factory.h"
 #include "chrome/browser/history_clusters/history_clusters_service_factory.h"
 #include "chrome/browser/media/media_engagement_service.h"
@@ -140,6 +141,7 @@
 #include "chrome/browser/ui/webui/commander/commander_ui.h"
 #include "chrome/browser/ui/webui/commerce/shopping_insights_side_panel_ui.h"
 #include "chrome/browser/ui/webui/devtools/devtools_ui.h"
+#include "chrome/browser/ui/webui/citizen_x/citizennotes_ui.h"
 #include "chrome/browser/ui/webui/downloads/downloads_ui.h"
 #include "chrome/browser/ui/webui/feedback/feedback_ui.h"
 #include "chrome/browser/ui/webui/history/history_ui.h"
@@ -675,6 +677,13 @@ WebUIFactoryFunction GetWebUIFactoryFunction(WebUI* web_ui,
       return nullptr;
     return &NewWebUI<DevToolsUI>;
   }
+    
+  if (url.SchemeIs(content::kChromeCitizenNotesScheme)) {
+    if (!CitizenNotesUIBindings::IsValidFrontendURL(url))
+      return nullptr;
+    return &NewWebUI<CitizenNotesUI>;
+  }
+    
   // chrome://inspect isn't supported on Android nor iOS. Page debugging is
   // handled by a remote devtools on the host machine, and other elements, i.e.
   // extensions aren't supported.
