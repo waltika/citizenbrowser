@@ -15,6 +15,8 @@
 #include "chrome/browser/app_mode/app_mode_utils.h"
 #include "chrome/browser/devtools/devtools_toggle_action.h"
 #include "chrome/browser/devtools/devtools_window.h"
+#include "chrome/browser/citizen_x/citizennotes_toggle_action.h"
+#include "chrome/browser/citizen_x/citizennotes_window.h"
 #include "chrome/browser/extensions/chrome_app_icon.h"
 #include "chrome/browser/extensions/chrome_app_icon_service.h"
 #include "chrome/browser/profiles/profile.h"
@@ -320,6 +322,11 @@ bool ChromeNativeAppWindowViews::AcceleratorPressed(
       DevToolsWindow::OpenDevToolsWindow(
           web_view()->GetWebContents(), DevToolsToggleAction::Show(),
           DevToolsOpenedByAction::kMainMenuOrMainShortcut);
+      return true;
+    case IDC_CITIZEN_NOTES:
+      CitizenNotesWindow::OpenCitizenNotesWindow(
+          web_view()->GetWebContents(), CitizenNotesToggleAction::Show(),
+          CitizenNotesOpenedByAction::kMainMenuOrMainShortcut);
       return true;
     case IDC_DEV_TOOLS_CONSOLE:
       DevToolsWindow::OpenDevToolsWindow(

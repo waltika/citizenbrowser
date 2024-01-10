@@ -18,7 +18,8 @@ const char kWebUICreatedForUrl[] = "WebUI.CreatedForUrl";
 
 bool LogWebUIUrl(const GURL& web_ui_url) {
   bool should_log = web_ui_url.SchemeIs(content::kChromeUIScheme) ||
-                    web_ui_url.SchemeIs(content::kChromeDevToolsScheme);
+                    web_ui_url.SchemeIs(content::kChromeDevToolsScheme) ||
+                    web_ui_url.SchemeIs(content::kChromeCitizenNotesScheme);
 
   if (should_log) {
     uint32_t hash = base::Hash(web_ui_url.DeprecatedGetOriginAsURL().spec());

@@ -485,6 +485,14 @@ class ChromeContentBrowserClient : public content::ContentBrowserClient {
       base::Time expiration_time) override;
   base::flat_map<int, base::Time> GetDevToolsBackgroundServiceExpirations(
       content::BrowserContext* browser_context) override;
+  std::unique_ptr<content::CitizenNotesManagerDelegate>
+  CreateCitizenNotesManagerDelegate() override;
+  void UpdateCitizenNotesBackgroundServiceExpiration(
+      content::BrowserContext* browser_context,
+      int service,
+      base::Time expiration_time) override;
+  base::flat_map<int, base::Time> GetCitizenNotesBackgroundServiceExpirations(
+      content::BrowserContext* browser_context) override;
   content::TracingDelegate* GetTracingDelegate() override;
   bool IsPluginAllowedToCallRequestOSFileHandle(
       content::BrowserContext* browser_context,

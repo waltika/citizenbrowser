@@ -1319,10 +1319,6 @@ class CONTENT_EXPORT ContentBrowserClient {
   virtual std::unique_ptr<content::DevToolsManagerDelegate>
   CreateDevToolsManagerDelegate();
 
-  // Creates a new DevToolsManagerDelegate. It's valid to return nullptr.
-  virtual std::unique_ptr<content::CitizenNotesManagerDelegate>
-  CreateCitizenNotesManagerDelegate();
-
   // Stores the new expiration time up until which events related to |service|
   // can still be logged. |service| is the int value of the
   // DevToolsBackgroundService enum. |expiration_time| can be null, denoting
@@ -1336,6 +1332,24 @@ class CONTENT_EXPORT ContentBrowserClient {
   // recording the background service's events is still allowed.
   virtual base::flat_map<int, base::Time>
   GetDevToolsBackgroundServiceExpirations(BrowserContext* browser_context);
+
+  // Creates a new DevToolsManagerDelegate. It's valid to return nullptr.
+  virtual std::unique_ptr<content::CitizenNotesManagerDelegate>
+  CreateCitizenNotesManagerDelegate();
+
+  // Stores the new expiration time up until which events related to |service|
+  // can still be logged. |service| is the int value of the
+  // DevToolsBackgroundService enum. |expiration_time| can be null, denoting
+  // that nothing should be recorded any more.
+  virtual void UpdateCitizenNotesBackgroundServiceExpiration(
+      BrowserContext* browser_context,
+      int service,
+      base::Time expiration_time);
+
+  // Returns a mapping from a background service to the time up until which
+  // recording the background service's events is still allowed.
+  virtual base::flat_map<int, base::Time>
+  GetCitizenNotesBackgroundServiceExpirations(BrowserContext* browser_context);
 
   // Creates a new TracingDelegate. The caller owns the returned value.
   // It's valid to return nullptr.

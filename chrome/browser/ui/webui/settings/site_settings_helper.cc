@@ -317,7 +317,9 @@ bool PatternAppliesToWebUISchemes(const ContentSettingPatternSource& pattern) {
          pattern.primary_pattern.GetScheme() ==
              ContentSettingsPattern::SchemeType::SCHEME_CHROMEUNTRUSTED ||
          pattern.primary_pattern.GetScheme() ==
-             ContentSettingsPattern::SchemeType::SCHEME_DEVTOOLS;
+             ContentSettingsPattern::SchemeType::SCHEME_DEVTOOLS ||
+         pattern.primary_pattern.GetScheme() ==
+             ContentSettingsPattern::SchemeType::SCHEME_CITIZENNOTES;
 }
 
 // If the given |pattern| represents an individual origin, Isolated Web App, or

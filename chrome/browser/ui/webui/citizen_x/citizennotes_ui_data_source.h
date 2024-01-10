@@ -20,13 +20,13 @@ namespace net {
 struct NetworkTrafficAnnotationTag;
 }
 
-// An URLDataSource implementation that handles devtools://devtools/
+// An URLDataSource implementation that handles citizennotes://citizennotes/
 // requests. Three types of requests could be handled based on the URL path:
-// 1. /bundled/: bundled DevTools frontend is served. The path can be provided
-//    via --custom-devtools-frontend as file:// URL.
-// 2. /remote/: remote DevTools frontend is served from App Engine.
-// 3. /custom/: custom DevTools frontend is served from the server as specified
-//    via --custom-devtools-frontend as http:// URL.
+// 1. /bundled/: bundled CitizenNotes frontend is served. The path can be provided
+//    via --custom-citizennotes-frontend as file:// URL.
+// 2. /remote/: remote CitizenNotes frontend is served from App Engine.
+// 3. /custom/: custom CitizenNotes frontend is served from the server as specified
+//    via --custom-citizennotes-frontend as http:// URL.
 class CitizenNotesDataSource : public content::URLDataSource {
  public:
   using GotDataCallback = content::URLDataSource::GotDataCallback;

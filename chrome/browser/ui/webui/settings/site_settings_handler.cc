@@ -348,6 +348,7 @@ bool IsPatternValidForType(const std::string& pattern_string,
   if (pattern.GetScheme() == ContentSettingsPattern::SCHEME_CHROME ||
       pattern.GetScheme() == ContentSettingsPattern::SCHEME_CHROMEUNTRUSTED ||
       pattern.GetScheme() == ContentSettingsPattern::SCHEME_DEVTOOLS ||
+      pattern.GetScheme() == ContentSettingsPattern::SCHEME_CITIZENNOTES ||
       pattern.GetScheme() == ContentSettingsPattern::SCHEME_CHROMESEARCH) {
     *out_error = l10n_util::GetStringUTF8(IDS_SETTINGS_NOT_VALID_WEB_ADDRESS);
     return false;

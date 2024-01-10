@@ -175,6 +175,8 @@ void CustomHomePagesTableModel::SetToCurrentlyOpenPages(
       const GURL url = contents->GetURL();
       if (!url.is_empty() && !url.SchemeIs(content::kChromeDevToolsScheme))
         AddWithoutNotification(add_index++, url);
+      if (!url.is_empty() && !url.SchemeIs(content::kChromeCitizenNotesScheme))
+        AddWithoutNotification(add_index++, url);
     }
   }
   LoadAllTitles();

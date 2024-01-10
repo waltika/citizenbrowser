@@ -524,6 +524,8 @@
 #include "chrome/browser/apps/link_capturing/link_capturing_navigation_throttle.h"
 #include "chrome/browser/devtools/chrome_devtools_manager_delegate.h"
 #include "chrome/browser/devtools/devtools_window.h"
+#include "chrome/browser/citizen_x/chrome_citizennotes_manager_delegate.h"
+#include "chrome/browser/citizen_x/citizennotes_window.h"
 #include "chrome/browser/direct_sockets/chrome_direct_sockets_delegate.h"
 #include "chrome/browser/headless/chrome_browser_main_extra_parts_headless.h"
 #include "chrome/browser/media/unified_autoplay_config.h"
@@ -1582,6 +1584,8 @@ void ChromeContentBrowserClient::RegisterProfilePrefs(
       site_isolation::prefs::kWebTriggeredIsolatedOrigins);
   registry->RegisterDictionaryPref(
       prefs::kDevToolsBackgroundServicesExpirationDict);
+  registry->RegisterDictionaryPref(
+      prefs::kCitizenNotesBackgroundServicesExpirationDict);
   registry->RegisterBooleanPref(prefs::kSignedHTTPExchangeEnabled, true);
 #if !BUILDFLAG(IS_ANDROID)
   registry->RegisterBooleanPref(prefs::kAutoplayAllowed, false);
@@ -2150,6 +2154,7 @@ void ChromeContentBrowserClient::GetAdditionalWebUISchemes(
   additional_schemes->emplace_back(chrome::kChromeSearchScheme);
   additional_schemes->emplace_back(dom_distiller::kDomDistillerScheme);
   additional_schemes->emplace_back(content::kChromeDevToolsScheme);
+  additional_schemes->emplace_back(content::kChromeCitizenNotesScheme);
 }
 
 void ChromeContentBrowserClient::GetAdditionalViewSourceSchemes(
@@ -4568,6 +4573,7 @@ void ChromeContentBrowserClient::GetAdditionalAllowedSchemesForFileSystem(
   ContentBrowserClient::GetAdditionalAllowedSchemesForFileSystem(
       additional_allowed_schemes);
   additional_allowed_schemes->push_back(content::kChromeDevToolsScheme);
+  additional_allowed_schemes->push_back(content::kChromeCitizenNotesScheme);
   additional_allowed_schemes->push_back(content::kChromeUIScheme);
   additional_allowed_schemes->push_back(content::kChromeUIUntrustedScheme);
   for (auto& extra_part : extra_parts_) {
@@ -5210,6 +5216,9 @@ ChromeContentBrowserClient::CreateThrottlesForNavigation(
   MaybeAddThrottle(DevToolsWindow::MaybeCreateNavigationThrottle(handle),
                    &throttles);
 
+  MaybeAddThrottle(CitizenNotesWindow::MaybeCreateNavigationThrottle(handle),
+                   &throttles);
+
   MaybeAddThrottle(NewTabPageNavigationThrottle::MaybeCreateThrottleFor(handle),
                    &throttles);
 
@@ -5449,6 +5458,66 @@ ChromeContentBrowserClient::GetDevToolsBackgroundServiceExpirations(
 
   const auto& expiration_dict =
       pref_service->GetDict(prefs::kDevToolsBackgroundServicesExpirationDict);
+
+  base::flat_map<int, base::Time> expiration_times;
+  for (auto it : expiration_dict) {
+    // key.
+    int service = 0;
+    bool did_convert = base::StringToInt(it.first, &service);
+    DCHECK(did_convert);
+
+    // value.
+    DCHECK(it.second.is_int());
+    base::TimeDelta delta = base::Minutes(it.second.GetInt());
+    base::Time expiration_time = base::Time::FromDeltaSinceWindowsEpoch(delta);
+
+    expiration_times[service] = expiration_time;
+  }
+
+  return expiration_times;
+}
+
+std::unique_ptr<content::CitizenNotesManagerDelegate>
+ChromeContentBrowserClient::CreateCitizenNotesManagerDelegate() {
+#if BUILDFLAG(IS_ANDROID)
+  return std::make_unique<CitizenNotesManagerDelegateAndroid>();
+#else
+  return std::make_unique<ChromeCitizenNotesManagerDelegate>();
+#endif
+}
+
+void ChromeContentBrowserClient::UpdateCitizenNotesBackgroundServiceExpiration(
+    content::BrowserContext* browser_context,
+    int service,
+    base::Time expiration_time) {
+  Profile* profile = Profile::FromBrowserContext(browser_context);
+  DCHECK(profile);
+
+  auto* pref_service = profile->GetPrefs();
+  DCHECK(pref_service);
+
+  ScopedDictPrefUpdate pref_update(
+      pref_service, prefs::kCitizenNotesBackgroundServicesExpirationDict);
+  base::Value::Dict& exp_dict = pref_update.Get();
+
+  // Convert |expiration_time| to minutes since that is the most granular
+  // option that returns an int. base::Value does not accept int64.
+  int expiration_time_minutes =
+      expiration_time.ToDeltaSinceWindowsEpoch().InMinutes();
+  exp_dict.Set(base::NumberToString(service), expiration_time_minutes);
+}
+
+base::flat_map<int, base::Time>
+ChromeContentBrowserClient::GetCitizenNotesBackgroundServiceExpirations(
+    content::BrowserContext* browser_context) {
+  Profile* profile = Profile::FromBrowserContext(browser_context);
+  DCHECK(profile);
+
+  auto* pref_service = profile->GetPrefs();
+  DCHECK(pref_service);
+
+  const auto& expiration_dict =
+      pref_service->GetDict(prefs::kCitizenNotesBackgroundServicesExpirationDict);
 
   base::flat_map<int, base::Time> expiration_times;
   for (auto it : expiration_dict) {

@@ -822,12 +822,6 @@ ContentBrowserClient::CreateDevToolsManagerDelegate() {
   return nullptr;
 }
 
-std::unique_ptr<content::CitizenNotesManagerDelegate>
-ContentBrowserClient::CreateCitizenNotesManagerDelegate() {
-  return nullptr;
-}
-
-
 void ContentBrowserClient::UpdateDevToolsBackgroundServiceExpiration(
     BrowserContext* browser_context,
     int service,
@@ -838,6 +832,23 @@ ContentBrowserClient::GetDevToolsBackgroundServiceExpirations(
     BrowserContext* browser_context) {
   return {};
 }
+
+std::unique_ptr<content::CitizenNotesManagerDelegate>
+ContentBrowserClient::CreateCitizenNotesManagerDelegate() {
+  return nullptr;
+}
+
+void ContentBrowserClient::UpdateCitizenNotesBackgroundServiceExpiration(
+    BrowserContext* browser_context,
+    int service,
+    base::Time expiration_time) {}
+
+base::flat_map<int, base::Time>
+ContentBrowserClient::GetCitizenNotesBackgroundServiceExpirations(
+    BrowserContext* browser_context) {
+  return {};
+}
+
 
 TracingDelegate* ContentBrowserClient::GetTracingDelegate() {
   return nullptr;

@@ -153,7 +153,8 @@ bool IsAppWindow(Browser* browser) {
 
 bool IsBrowserWindow(Browser* browser) {
   return browser->is_type_normal() || browser->is_type_popup() ||
-         browser->is_type_devtools() || IsExtensionNonAppWindow(browser);
+         browser->is_type_devtools() || browser->is_type_citizennotes() ||
+         IsExtensionNonAppWindow(browser);
 }
 
 }  // namespace

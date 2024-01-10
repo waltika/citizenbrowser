@@ -39,6 +39,11 @@ ContentBrowserClient::CreateDevToolsManagerDelegate() {
   return browser_main_parts_->CreateDevToolsManagerDelegate();
 }
 
+std::unique_ptr<content::CitizenNotesManagerDelegate>
+ContentBrowserClient::CreateCitizenNotesManagerDelegate() {
+  return browser_main_parts_->CreateCitizenNotesManagerDelegate();
+}
+
 void ContentBrowserClient::RegisterBrowserInterfaceBindersForFrame(
     content::RenderFrameHost* render_frame_host,
     mojo::BinderMapWithContext<content::RenderFrameHost*>* map) {

@@ -29,6 +29,8 @@ class ContentBrowserClient : public content::ContentBrowserClient {
       content::WebContents* web_contents) override;
   std::unique_ptr<content::DevToolsManagerDelegate>
   CreateDevToolsManagerDelegate() override;
+  std::unique_ptr<content::CitizenNotesManagerDelegate>
+  CreateCitizenNotesManagerDelegate() override;
   void RegisterBrowserInterfaceBindersForFrame(
       content::RenderFrameHost* render_frame_host,
       mojo::BinderMapWithContext<content::RenderFrameHost*>* map) override;
