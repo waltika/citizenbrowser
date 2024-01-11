@@ -2,16 +2,16 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "components/ui_devtools/views/overlay_agent_aura.h"
+#include "components/ui_citizennotes/views/overlay_agent_aura.h"
 
-#include "components/ui_devtools/dom_agent.h"
-#include "components/ui_devtools/views/window_element.h"
+#include "components/ui_citizennotes/dom_agent.h"
+#include "components/ui_citizennotes/views/window_element.h"
 #include "ui/aura/env.h"
 #include "ui/views/view.h"
 #include "ui/views/widget/widget.h"
 #include "ui/wm/core/window_util.h"
 
-namespace ui_devtools {
+namespace ui_citizennotes {
 
 OverlayAgentAura* OverlayAgentAura::overlay_agent_aura_ = nullptr;
 
@@ -72,4 +72,4 @@ std::unique_ptr<OverlayAgentViews> OverlayAgentViews::Create(
   return std::make_unique<OverlayAgentAura>(dom_agent);
 }
 
-}  // namespace ui_devtools
+}  // namespace ui_citizennotes

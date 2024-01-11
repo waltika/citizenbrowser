@@ -2,18 +2,18 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef COMPONENTS_UI_DEVTOOLS_VIEWS_DOM_AGENT_MAC_H_
-#define COMPONENTS_UI_DEVTOOLS_VIEWS_DOM_AGENT_MAC_H_
+#ifndef COMPONENTS_UI_CITIZENNOTES_VIEWS_DOM_AGENT_MAC_H_
+#define COMPONENTS_UI_CITIZENNOTES_VIEWS_DOM_AGENT_MAC_H_
 
 #include "base/callback_list.h"
-#include "components/ui_devtools/views/dom_agent_views.h"
+#include "components/ui_citizennotes/views/dom_agent_views.h"
 #include "ui/views/widget/widget_observer.h"
 
 namespace views {
 class NativeWidgetMac;
 }
 
-namespace ui_devtools {
+namespace ui_citizennotes {
 
 class DOMAgentMac : public DOMAgentViews, public views::WidgetObserver {
  public:
@@ -48,6 +48,6 @@ class DOMAgentMac : public DOMAgentViews, public views::WidgetObserver {
   // Called whenever a |NativeWidgetMac| is created.
   base::CallbackListSubscription init_native_widget_subscription_;
 };
-}  // namespace ui_devtools
+}  // namespace ui_citizennotes
 
-#endif  // COMPONENTS_UI_DEVTOOLS_VIEWS_DOM_AGENT_MAC_H_
+#endif  // COMPONENTS_UI_CITIZENNOTES_VIEWS_DOM_AGENT_MAC_H_

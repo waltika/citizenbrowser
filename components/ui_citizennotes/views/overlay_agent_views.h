@@ -2,13 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef COMPONENTS_UI_DEVTOOLS_VIEWS_OVERLAY_AGENT_VIEWS_H_
-#define COMPONENTS_UI_DEVTOOLS_VIEWS_OVERLAY_AGENT_VIEWS_H_
+#ifndef COMPONENTS_UI_CITIZENNOTES_VIEWS_OVERLAY_AGENT_VIEWS_H_
+#define COMPONENTS_UI_CITIZENNOTES_VIEWS_OVERLAY_AGENT_VIEWS_H_
 
 #include "base/gtest_prod_util.h"
-#include "components/ui_devtools/overlay.h"
-#include "components/ui_devtools/overlay_agent.h"
-#include "components/ui_devtools/views/dom_agent_views.h"
+#include "components/ui_citizennotes/overlay.h"
+#include "components/ui_citizennotes/overlay_agent.h"
+#include "components/ui_citizennotes/views/dom_agent_views.h"
 #include "ui/compositor/layer.h"
 #include "ui/compositor/layer_delegate.h"
 #include "ui/events/event.h"
@@ -19,7 +19,7 @@ namespace gfx {
 class RenderText;
 }
 
-namespace ui_devtools {
+namespace ui_citizennotes {
 
 enum HighlightRectsConfiguration {
   NO_DRAW,
@@ -124,6 +124,6 @@ class OverlayAgentViews : public OverlayAgent,
   int pinned_id_ = 0;
 };
 
-}  // namespace ui_devtools
+}  // namespace ui_citizennotes
 
-#endif  // COMPONENTS_UI_DEVTOOLS_VIEWS_OVERLAY_AGENT_VIEWS_H_
+#endif  // COMPONENTS_UI_CITIZENNOTES_VIEWS_OVERLAY_AGENT_VIEWS_H_

@@ -2,21 +2,21 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "components/ui_devtools/views/dom_agent_aura.h"
+#include "components/ui_citizennotes/views/dom_agent_aura.h"
 
 #include "base/containers/cxx20_erase.h"
 #include "base/ranges/algorithm.h"
-#include "components/ui_devtools/views/widget_element.h"
-#include "components/ui_devtools/views/window_element.h"
+#include "components/ui_citizennotes/views/widget_element.h"
+#include "components/ui_citizennotes/views/window_element.h"
 #include "ui/aura/env.h"
 #include "ui/aura/window.h"
 #include "ui/aura/window_tree_host.h"
 
-namespace ui_devtools {
+namespace ui_citizennotes {
 
 namespace {
-using ui_devtools::protocol::Array;
-using ui_devtools::protocol::DOM::Node;
+using ui_citizennotes::protocol::Array;
+using ui_citizennotes::protocol::DOM::Node;
 }  // namespace
 
 DOMAgentAura* DOMAgentAura::dom_agent_aura_ = nullptr;
@@ -106,4 +106,4 @@ std::unique_ptr<DOMAgentViews> DOMAgentViews::Create() {
   return std::make_unique<DOMAgentAura>();
 }
 
-}  // namespace ui_devtools
+}  // namespace ui_citizennotes

@@ -15,6 +15,9 @@
 #include "chrome/browser/devtools/devtools_targets_ui.h"
 #include "chrome/browser/devtools/devtools_ui_bindings.h"
 #include "chrome/browser/devtools/devtools_window.h"
+#include "chrome/browser/citizen_x/citizennotes_targets_ui.h"
+#include "chrome/browser/citizen_x/citizennotes_ui_bindings.h"
+#include "chrome/browser/citizen_x/citizennotes_window.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_navigator_params.h"
 #include "chrome/browser/ui/singleton_tabs.h"
@@ -27,6 +30,9 @@
 #include "components/ui_devtools/devtools_server.h"
 #include "components/ui_devtools/switches.h"
 #include "content/public/browser/devtools_agent_host.h"
+#include "components/ui_citizennotes/citizennotes_server.h"
+#include "components/ui_citizennotes/switches.h"
+#include "content/public/browser/citizennotes_agent_host.h"
 #include "content/public/browser/navigation_entry.h"
 #include "content/public/browser/navigation_handle.h"
 #include "content/public/browser/web_contents.h"
@@ -37,6 +43,7 @@
 #include "ui/base/ui_base_features.h"
 
 using content::DevToolsAgentHost;
+using content::CitizenNotesAgentHost;
 using content::WebContents;
 using content::WebUIMessageHandler;
 
@@ -64,6 +71,7 @@ const char kInspectUiDiscoverTCPTargetsEnabledCommand[] =
 const char kInspectUiTCPDiscoveryConfigCommand[] = "set-tcp-discovery-config";
 const char kInspectUiOpenNodeFrontendCommand[] = "open-node-frontend";
 const char kInspectUiLaunchUIDevToolsCommand[] = "launch-ui-devtools";
+const char kInspectUiLaunchUICitizenNotesCommand[] = "launch-ui-citizennotes";
 
 const char kInspectUiPortForwardingDefaultPort[] = "8080";
 const char kInspectUiPortForwardingDefaultLocation[] = "localhost:8080";
@@ -76,6 +84,19 @@ base::Value::List GetUiDevToolsTargets() {
   base::Value::List targets;
   for (const auto& client_pair :
        ui_devtools::UiDevToolsServer::GetClientNamesAndUrls()) {
+    base::Value::Dict target_data;
+    target_data.Set(kInspectUiNameField, client_pair.first);
+    target_data.Set(kInspectUiUrlField, client_pair.second);
+    target_data.Set(kInspectUiIsNativeField, true);
+    targets.Append(std::move(target_data));
+  }
+  return targets;
+}
+
+base::Value::List GetUiCitizenNotesTargets() {
+  base::Value::List targets;
+  for (const auto& client_pair :
+       ui_citizennotes::UiCitizenNotesServer::GetClientNamesAndUrls()) {
     base::Value::Dict target_data;
     target_data.Set(kInspectUiNameField, client_pair.first);
     target_data.Set(kInspectUiUrlField, client_pair.second);
@@ -169,6 +190,79 @@ DevToolsUIBindings* DevToolsUIBindingsEnabler::GetBindings() {
   return &bindings_;
 }
 
+// CitizenNotesFrontEndObserver ----------------------------------------
+// Owned by the WebContents passed in.
+class CitizenNotesFrontEndObserver : public content::WebContentsObserver {
+ public:
+  CitizenNotesFrontEndObserver(WebContents* web_contents,
+                           base::OnceClosure closure);
+
+  ~CitizenNotesFrontEndObserver() override;
+
+  CitizenNotesFrontEndObserver(const CitizenNotesFrontEndObserver&) = delete;
+  CitizenNotesFrontEndObserver& operator=(const CitizenNotesFrontEndObserver&) = delete;
+
+ private:
+  // contents::WebContentsObserver
+  void PrimaryPageChanged(content::Page& page) override;
+  void WebContentsDestroyed() override;
+
+  bool front_end_page_committed_ = false;
+
+  // Callback function executed when the front end is finished.
+  base::OnceClosure on_front_end_finished_;
+};
+
+CitizenNotesFrontEndObserver::CitizenNotesFrontEndObserver(WebContents* web_contents,
+                                                   base::OnceClosure closure)
+    : WebContentsObserver(web_contents),
+      on_front_end_finished_(std::move(closure)) {
+  DCHECK(web_contents);
+}
+
+CitizenNotesFrontEndObserver::~CitizenNotesFrontEndObserver() {
+  if (!on_front_end_finished_.is_null()) {
+    std::move(on_front_end_finished_).Run();
+  }
+}
+
+void CitizenNotesFrontEndObserver::PrimaryPageChanged(content::Page& page) {
+  if (!front_end_page_committed_ && !page.GetMainDocument().IsErrorDocument()) {
+    front_end_page_committed_ = true;
+    return;
+  }
+  delete this;
+}
+
+void CitizenNotesFrontEndObserver::WebContentsDestroyed() {
+  delete this;
+}
+
+// CitizenNotesUIBindingsEnabler ----------------------------------------
+
+class CitizenNotesUIBindingsEnabler : public CitizenNotesFrontEndObserver {
+ public:
+  CitizenNotesUIBindingsEnabler(WebContents* web_contents, const GURL& url);
+  CitizenNotesUIBindingsEnabler(const CitizenNotesUIBindingsEnabler&) = delete;
+  CitizenNotesUIBindingsEnabler& operator=(const CitizenNotesUIBindingsEnabler&) =
+      delete;
+  ~CitizenNotesUIBindingsEnabler() override = default;
+
+  CitizenNotesUIBindings* GetBindings();
+
+ private:
+  CitizenNotesUIBindings bindings_;
+};
+
+CitizenNotesUIBindingsEnabler::CitizenNotesUIBindingsEnabler(WebContents* web_contents,
+                                                     const GURL& url)
+    : CitizenNotesFrontEndObserver(web_contents, base::NullCallback()),
+      bindings_(web_contents) {}
+
+CitizenNotesUIBindings* CitizenNotesUIBindingsEnabler::GetBindings() {
+  return &bindings_;
+}
+
 // InspectMessageHandler --------------------------------------------
 
 class InspectMessageHandler : public WebUIMessageHandler {
@@ -197,6 +291,7 @@ class InspectMessageHandler : public WebUIMessageHandler {
   void HandlePortForwardingConfigCommand(const base::Value::List& args);
   void HandleTCPDiscoveryConfigCommand(const base::Value::List& args);
   void HandleOpenNodeFrontendCommand(const base::Value::List& args);
+  void HandleLaunchUICitizenNotesCommand(const base::Value::List& args);
   void HandleLaunchUIDevToolsCommand(const base::Value::List& args);
 
   void CreateNativeUIInspectionSession(const std::string& url);
@@ -255,6 +350,10 @@ void InspectMessageHandler::RegisterMessages() {
   web_ui()->RegisterMessageCallback(
       kInspectUiLaunchUIDevToolsCommand,
       base::BindRepeating(&InspectMessageHandler::HandleLaunchUIDevToolsCommand,
+                          base::Unretained(this)));
+  web_ui()->RegisterMessageCallback(
+      kInspectUiLaunchUICitizenNotesCommand,
+      base::BindRepeating(&InspectMessageHandler::HandleLaunchUICitizenNotesCommand,
                           base::Unretained(this)));
   web_ui()->RegisterMessageCallback(
       kInspectUiTCPDiscoveryConfigCommand,
@@ -414,6 +513,8 @@ void InspectMessageHandler::HandleOpenNodeFrontendCommand(
     return;
   DevToolsWindow::OpenNodeFrontendWindow(profile,
                                          DevToolsOpenedByAction::kInspectLink);
+  CitizenNotesWindow::OpenNodeFrontendWindow(profile,
+                                             CitizenNotesOpenedByAction::kInspectLink);
 }
 
 void InspectMessageHandler::HandleLaunchUIDevToolsCommand(
@@ -438,6 +539,30 @@ void InspectMessageHandler::HandleLaunchUIDevToolsCommand(
   if (!pairs.empty())
     CreateNativeUIInspectionSession(pairs[0].second);
 }
+
+void InspectMessageHandler::HandleLaunchUICitizenNotesCommand(
+    const base::Value::List& args) {
+  // Start the UI CitizenNotes server if needed and launch the front-end.
+  if (!ChromeBrowserMainExtraPartsViews::Get()->GetUiCitizenNotesServerInstance()) {
+    ChromeBrowserMainExtraPartsViews::Get()->CreateUiDevTools();
+
+    // Make the server only lasts for a session.
+    const ui_citizennotes::UiCitizenNotesServer* server =
+        ChromeBrowserMainExtraPartsViews::Get()->GetUiCitizenNotesServerInstance();
+    server->SetOnSessionEnded(base::BindOnce([]() {
+      if (ChromeBrowserMainExtraPartsViews::Get()
+              ->GetUiCitizenNotesServerInstance())
+        ChromeBrowserMainExtraPartsViews::Get()->DestroyUiCitizenNotes();
+    }));
+  }
+  inspect_ui_->PopulateNativeUITargets(GetUiCitizenNotesTargets());
+
+  std::vector<ui_citizennotes::UiCitizenNotesServer::NameUrlPair> pairs =
+      ui_citizennotes::UiCitizenNotesServer::GetClientNamesAndUrls();
+  if (!pairs.empty())
+    CreateNativeUIInspectionSession(pairs[0].second);
+}
+
 
 void InspectMessageHandler::CreateNativeUIInspectionSession(
     const std::string& url) {

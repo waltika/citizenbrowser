@@ -2,13 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef COMPONENTS_UI_DEVTOOLS_VIEWS_OVERLAY_AGENT_AURA_H_
-#define COMPONENTS_UI_DEVTOOLS_VIEWS_OVERLAY_AGENT_AURA_H_
+#ifndef COMPONENTS_UI_CITIZENNOTES_VIEWS_OVERLAY_AGENT_AURA_H_
+#define COMPONENTS_UI_CITIZENNOTES_VIEWS_OVERLAY_AGENT_AURA_H_
 
 #include "base/gtest_prod_util.h"
-#include "components/ui_devtools/views/overlay_agent_views.h"
+#include "components/ui_citizennotes/views/overlay_agent_views.h"
 
-namespace ui_devtools {
+namespace ui_citizennotes {
 
 class DOMAgent;
 
@@ -34,6 +34,6 @@ class OverlayAgentAura : public OverlayAgentViews {
   static OverlayAgentAura* overlay_agent_aura_;
 };
 
-}  // namespace ui_devtools
+}  // namespace ui_citizennotes
 
-#endif  // COMPONENTS_UI_DEVTOOLS_VIEWS_OVERLAY_AGENT_AURA_H_
+#endif  // COMPONENTS_UI_CITIZENNOTES_VIEWS_OVERLAY_AGENT_AURA_H_

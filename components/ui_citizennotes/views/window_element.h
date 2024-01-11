@@ -2,16 +2,16 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef COMPONENTS_UI_DEVTOOLS_VIEWS_WINDOW_ELEMENT_H_
-#define COMPONENTS_UI_DEVTOOLS_VIEWS_WINDOW_ELEMENT_H_
+#ifndef COMPONENTS_UI_CITIZENNOTES_VIEWS_WINDOW_ELEMENT_H_
+#define COMPONENTS_UI_CITIZENNOTES_VIEWS_WINDOW_ELEMENT_H_
 
-#include "components/ui_devtools/views/ui_element_with_metadata.h"
+#include "components/ui_citizennotes/views/ui_element_with_metadata.h"
 #include "ui/aura/window.h"
 #include "ui/aura/window_observer.h"
 #include "ui/gfx/geometry/rect.h"
 #include "ui/gfx/native_widget_types.h"
 
-namespace ui_devtools {
+namespace ui_citizennotes {
 
 class WindowElement : public aura::WindowObserver,
                       public UIElementWithMetaData {
@@ -57,6 +57,6 @@ class WindowElement : public aura::WindowObserver,
   aura::Window* window_;
 };
 
-}  // namespace ui_devtools
+}  // namespace ui_citizennotes
 
-#endif  // COMPONENTS_UI_DEVTOOLS_VIEWS_WINDOW_ELEMENT_H_
+#endif  // COMPONENTS_UI_CITIZENNOTES_VIEWS_WINDOW_ELEMENT_H_

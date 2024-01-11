@@ -160,6 +160,10 @@ function showNativeUILaunchButton(enabled) {
   $('launch-ui-devtools').disabled = !enabled;
   $('ui-devtools-disabled-text').hidden = enabled;
   $('ui-devtools-enabled-text').hidden = !enabled;
+  $('launch-ui-citizennotes').hidden = false;
+  $('launch-ui-citizennotes').disabled = !enabled;
+  $('ui-citizennotes-disabled-text').hidden = enabled;
+  $('ui-citizennotes-enabled-text').hidden = !enabled;
 }
 
 function populateLocalTargets(data) {
@@ -738,6 +742,8 @@ function initSettings() {
 
   $('launch-ui-devtools')
       .addEventListener('click', sendCommand.bind(null, 'launch-ui-devtools'));
+  $('launch-ui-citizennotes')
+      .addEventListener('click', sendCommand.bind(null, 'launch-ui-citizennotes'));
   $('port-forwarding-config-open')
       .addEventListener('click', openPortForwardingConfig);
   $('tcp-discovery-config-open').addEventListener('click', openTargetsConfig);

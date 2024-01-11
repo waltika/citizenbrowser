@@ -303,6 +303,9 @@ enum {
   kHttpsFirstModeIncognito = 100245,
   kAccessibilityReadAnythingOmniboxIconLabelShownCount = 100246,
   kApplicationLocale = 100247,
+  kCitizenNotesSyncPreferences = 100248,
+  kCitizenNotesSyncedPreferencesSyncEnabled = 100249,
+
   // See components/sync_preferences/README.md about adding new entries here.
   // vvvvv IMPORTANT! vvvvv
   // Note to the reviewer: IT IS YOUR RESPONSIBILITY to ensure that new syncable
@@ -1107,6 +1110,14 @@ const auto& SyncablePreferences() {
         sync_preferences::MergeBehavior::kNone}},
       {prefs::kDevToolsSyncedPreferencesSyncEnabled,
        {syncable_prefs_ids::kDevToolsSyncedPreferencesSyncEnabled,
+        syncer::PREFERENCES, sync_preferences::PrefSensitivity::kNone,
+        sync_preferences::MergeBehavior::kNone}},
+      {prefs::kCitizenNotesSyncPreferences,
+       {syncable_prefs_ids::kCitizenNotesSyncPreferences, syncer::PREFERENCES,
+        sync_preferences::PrefSensitivity::kNone,
+        sync_preferences::MergeBehavior::kNone}},
+      {prefs::kCitizenNotesSyncedPreferencesSyncEnabled,
+       {syncable_prefs_ids::kCitizenNotesSyncedPreferencesSyncEnabled,
         syncer::PREFERENCES, sync_preferences::PrefSensitivity::kNone,
         sync_preferences::MergeBehavior::kNone}},
       {prefs::kDownloadBubbleIphSuppression,

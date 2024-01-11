@@ -69,6 +69,7 @@ const char kWindowTypeValueNormal[] = "normal";
 const char kWindowTypeValuePopup[] = "popup";
 const char kWindowTypeValueApp[] = "app";
 const char kWindowTypeValueDevTools[] = "devtools";
+const char kWindowTypeValueCitizenNotes[] = "citizennotes";
 
 const char kCannotZoomDisabledTabError[] = "Cannot zoom a tab in disabled "
     "mode.";
@@ -136,6 +137,9 @@ const char kGroupParamsError[] =
 const char kCannotNavigateToDevtools[] =
     "Cannot navigate to a devtools:// page without either the devtools or "
     "debugger permission.";
+const char kCannotNavigateToCitizennotes[] =
+    "Cannot navigate to a citizennotes:// page without either the citizennotes or "
+    "debugger permission.";
 const char kCannotNavigateToChromeUntrusted[] =
     "Cannot navigate to a chrome-untrusted:// page.";
 const char kCannotHighlightTabs[] =
@@ -143,6 +147,8 @@ const char kCannotHighlightTabs[] =
     "progress.";
 const char kNotAllowedForDevToolsError[] =
     "Operation not allowed for DevTools windows";
+const char kNotAllowedForCitizenNotesError[] =
+    "Operation not allowed for CitizenNotes windows";
 const char kFileUrlsNotAllowedInExtensionNavigations[] =
     "Cannot navigate to a file URL without local file access.";
 

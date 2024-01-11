@@ -2,15 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef COMPONENTS_UI_DEVTOOLS_VIEWS_OVERLAY_AGENT_MAC_H_
-#define COMPONENTS_UI_DEVTOOLS_VIEWS_OVERLAY_AGENT_MAC_H_
+#ifndef COMPONENTS_UI_CITIZENNOTES_VIEWS_OVERLAY_AGENT_MAC_H_
+#define COMPONENTS_UI_CITIZENNOTES_VIEWS_OVERLAY_AGENT_MAC_H_
 
-#include "components/ui_devtools/views/overlay_agent_views.h"
+#include "components/ui_citizennotes/views/overlay_agent_views.h"
 
-#include "components/ui_devtools/dom_agent.h"
+#include "components/ui_citizennotes/dom_agent.h"
 #include "ui/views/widget/widget_observer.h"
 
-namespace ui_devtools {
+namespace ui_citizennotes {
 
 class OverlayAgentMac : public OverlayAgentViews,
                         public DOMAgentObserver,
@@ -45,6 +45,6 @@ class OverlayAgentMac : public OverlayAgentViews,
   bool is_pretarget_handler_ = false;
 };
 
-}  // namespace ui_devtools
+}  // namespace ui_citizennotes
 
-#endif  // COMPONENTS_UI_DEVTOOLS_VIEWS_OVERLAY_AGENT_MAC_H_
+#endif  // COMPONENTS_UI_CITIZENNOTES_VIEWS_OVERLAY_AGENT_MAC_H_

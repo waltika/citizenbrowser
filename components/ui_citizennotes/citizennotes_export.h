@@ -8,14 +8,14 @@
 #if defined(COMPONENT_BUILD)
 #if defined(WIN32)
 
-#if defined(UI_DEVTOOLS_IMPLEMENTATION)
+#if defined(UI_CITIZENNOTES_IMPLEMENTATION)
 #define UI_CITIZENNOTES_EXPORT __declspec(dllexport)
 #else
 #define UI_CITIZENNOTES_EXPORT __declspec(dllimport)
-#endif  // defined(UI_DEVTOOLS_IMPLEMENTATION)
+#endif  // defined(UI_CITIZENNOTES_IMPLEMENTATION)
 
 #else  // defined(WIN32)
-#if defined(UI_DEVTOOLS_IMPLEMENTATION)
+#if defined(UI_CITIZENNOTES_IMPLEMENTATION)
 #define UI_CITIZENNOTES_EXPORT __attribute__((visibility("default")))
 #else
 #define UI_CITIZENNOTES_EXPORT

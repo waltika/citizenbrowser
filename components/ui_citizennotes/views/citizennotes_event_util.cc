@@ -2,10 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "components/ui_devtools/views/devtools_event_util.h"
+#include "components/ui_citizennotes/views/citizennotes_event_util.h"
 #include "ui/events/types/event_type.h"
 
-namespace ui_devtools {
+namespace ui_citizennotes {
 
 ui::KeyEvent ConvertToUIKeyEvent(protocol::DOM::KeyEvent* event) {
   ui::EventType event_type =
@@ -20,4 +20,4 @@ ui::KeyEvent ConvertToUIKeyEvent(protocol::DOM::KeyEvent* event) {
       ui::EventTimeForNow(), event->getIsChar());
 }
 
-}  // namespace ui_devtools
+}  // namespace ui_citizennotes

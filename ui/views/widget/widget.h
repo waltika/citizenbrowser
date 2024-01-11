@@ -60,6 +60,10 @@ namespace ui_devtools {
 class PageAgentViews;
 }
 
+namespace ui_citizennotes {
+class PageAgentViews;
+}
+
 namespace views {
 
 class DesktopWindowTreeHost;
@@ -1240,6 +1244,7 @@ class VIEWS_EXPORT Widget : public internal::NativeWidgetDelegate,
   friend class TextfieldTest;
   friend class ViewAuraTest;
   friend class ui_devtools::PageAgentViews;
+  friend class ui_citizennotes::PageAgentViews;
   // TODO (kylixrd): Remove this after Widget no longer can "own" the
   // WidgetDelegate.
   friend class WidgetDelegate;

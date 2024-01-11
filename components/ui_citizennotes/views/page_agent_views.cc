@@ -2,18 +2,18 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "components/ui_devtools/views/page_agent_views.h"
+#include "components/ui_citizennotes/views/page_agent_views.h"
 
 #include <unordered_set>
 
 #include "base/command_line.h"
 #include "base/strings/string_split.h"
-#include "components/ui_devtools/agent_util.h"
-#include "components/ui_devtools/ui_element.h"
+#include "components/ui_citizennotes/agent_util.h"
+#include "components/ui_citizennotes/ui_element.h"
 #include "ui/views/bubble/bubble_dialog_delegate_view.h"
 #include "ui/views/views_switches.h"
 
-namespace ui_devtools {
+namespace ui_citizennotes {
 
 namespace {
 
@@ -158,10 +158,10 @@ protocol::Response PageAgentViews::getResourceContent(
     return protocol::Response::ServerError("Could not read source file");
 }
 
-bool PageAgentViews::GetDevtoolsDismissOverrideForTesting() const {
+bool PageAgentViews::GetCitizennotesDismissOverrideForTesting() const {
   return views::Widget::GetDisableActivationChangeHandling() ==
          views::Widget::DisableActivationChangeHandlingType::
              kIgnoreDeactivationOnly;
 }
 
-}  // namespace ui_devtools
+}  // namespace ui_citizennotes

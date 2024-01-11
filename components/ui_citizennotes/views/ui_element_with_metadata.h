@@ -2,20 +2,20 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef COMPONENTS_UI_DEVTOOLS_VIEWS_UI_ELEMENT_WITH_METADATA_H_
-#define COMPONENTS_UI_DEVTOOLS_VIEWS_UI_ELEMENT_WITH_METADATA_H_
+#ifndef COMPONENTS_UI_CITIZENNOTES_VIEWS_UI_ELEMENT_WITH_METADATA_H_
+#define COMPONENTS_UI_CITIZENNOTES_VIEWS_UI_ELEMENT_WITH_METADATA_H_
 
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "components/ui_devtools/ui_element.h"
+#include "components/ui_citizennotes/ui_element.h"
 #include "ui/base/metadata/metadata_types.h"
 #include "ui/compositor/layer.h"
 #include "ui/gfx/geometry/rect.h"
 
-namespace ui_devtools {
+namespace ui_citizennotes {
 
 class UIElementWithMetaData : public UIElement {
  public:
@@ -46,6 +46,6 @@ class UIElementWithMetaData : public UIElement {
   virtual ui::Layer* GetLayer() const;
 };
 
-}  // namespace ui_devtools
+}  // namespace ui_citizennotes
 
-#endif  // COMPONENTS_UI_DEVTOOLS_VIEWS_UI_ELEMENT_WITH_METADATA_H_
+#endif  // COMPONENTS_UI_CITIZENNOTES_VIEWS_UI_ELEMENT_WITH_METADATA_H_

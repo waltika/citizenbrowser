@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "components/ui_devtools/views/ui_element_with_metadata.h"
+#include "components/ui_citizennotes/views/ui_element_with_metadata.h"
 
 #include "base/containers/contains.h"
 #include "base/logging.h"
@@ -10,10 +10,10 @@
 #include "base/strings/string_split.h"
 #include "base/strings/string_util.h"
 #include "base/strings/utf_string_conversions.h"
-#include "components/ui_devtools/views/element_utility.h"
+#include "components/ui_citizennotes/views/element_utility.h"
 #include "ui/base/metadata/metadata_types.h"
 
-namespace ui_devtools {
+namespace ui_citizennotes {
 
 namespace {
 
@@ -101,12 +101,12 @@ bool UIElementWithMetaData::SetPropertiesFromString(const std::string& text) {
     ui::metadata::MemberMetaDataBase* member =
         metadata->FindMemberData(property_name);
     if (!member) {
-      DLOG(ERROR) << "UI DevTools: Can not find property " << property_name
+      DLOG(ERROR) << "UI CitizenNotes: Can not find property " << property_name
                   << " in MetaData.";
       continue;
     }
 
-    // Since DevTools frontend doesn't check the value, we do a sanity check
+    // Since CitizenNotes frontend doesn't check the value, we do a sanity check
     // based on the allowed values specified in the metadata.
     auto valid_values = member->GetValidValues();
     if (!valid_values.empty() &&
@@ -143,4 +143,4 @@ ui::Layer* UIElementWithMetaData::GetLayer() const {
   return nullptr;
 }
 
-}  // namespace ui_devtools
+}  // namespace ui_citizennotes

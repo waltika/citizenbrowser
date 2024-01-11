@@ -2,13 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "components/ui_devtools/views/widget_element.h"
+#include "components/ui_citizennotes/views/widget_element.h"
 
-#include "components/ui_devtools/protocol.h"
-#include "components/ui_devtools/ui_element_delegate.h"
-#include "components/ui_devtools/views/devtools_event_util.h"
+#include "components/ui_citizennotes/protocol.h"
+#include "components/ui_citizennotes/ui_element_delegate.h"
+#include "components/ui_citizennotes/views/citizennotes_event_util.h"
 
-namespace ui_devtools {
+namespace ui_citizennotes {
 
 WidgetElement::WidgetElement(views::Widget* widget,
                              UIElementDelegate* ui_element_delegate,
@@ -123,4 +123,4 @@ ui::Layer* WidgetElement::GetLayer() const {
   return widget_->GetLayer();
 }
 
-}  // namespace ui_devtools
+}  // namespace ui_citizennotes

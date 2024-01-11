@@ -424,6 +424,8 @@ int ExtensionTabUtil::GetWindowIdOfTab(const WebContents* web_contents) {
 std::string ExtensionTabUtil::GetBrowserWindowTypeText(const Browser& browser) {
   if (browser.is_type_devtools())
     return tabs_constants::kWindowTypeValueDevTools;
+  if (browser.is_type_citizennotes())
+    return tabs_constants::kWindowTypeValueCitizenNotes;
   // Browser::TYPE_APP_POPUP is considered 'popup' rather than 'app' since
   // chrome.windows.create({type: 'popup'}) uses
   // Browser::CreateParams::CreateForAppPopup().
@@ -895,6 +897,15 @@ base::expected<GURL, std::string> ExtensionTabUtil::PrepareURLForNavigation(
       return base::unexpected(tabs_constants::kCannotNavigateToDevtools);
     }
   }
+
+  if (url.SchemeIs(content::kChromeCitizenNotesScheme)) {
+    bool has_permission =
+        extension && (extension->permissions_data()->HasAPIPermission(
+                        APIPermissionID::kCitizennotes));
+      if (!has_permission) {
+        return base::unexpected(tabs_constants::kCannotNavigateToCitizennotes);
+      }
+    }
 
   // Don't let the extension navigate directly to chrome-untrusted scheme pages.
   if (url.SchemeIs(content::kChromeUIUntrustedScheme)) {

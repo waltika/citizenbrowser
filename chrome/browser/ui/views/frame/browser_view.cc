@@ -3724,7 +3724,7 @@ void BrowserView::EnsureFocusOrder() {
 
 bool BrowserView::CanChangeWindowIcon() const {
   // The logic of this function needs to be same as GetWindowIcon().
-  if (browser_->is_type_devtools())
+  if (browser_->is_type_devtools() || browser_->is_type_citizennotes())
     return false;
   if (browser_->app_controller())
     return true;
@@ -3774,7 +3774,7 @@ ui::ImageModel BrowserView::GetWindowAppIcon() {
 
 ui::ImageModel BrowserView::GetWindowIcon() {
   // Use the default icon for devtools.
-  if (browser_->is_type_devtools())
+  if (browser_->is_type_devtools() || browser_->is_type_citizennotes())
     return ui::ImageModel();
 
   // Hosted apps always show their app icon.
@@ -4152,6 +4152,8 @@ void BrowserView::GetAccessiblePanes(std::vector<views::View*>* panes) {
   panes->push_back(contents_web_view_);
   if (devtools_web_view_->GetVisible())
     panes->push_back(devtools_web_view_);
+  if (citizennotes_web_view_->GetVisible())
+    panes->push_back(citizennotes_web_view_);
 }
 
 bool BrowserView::ShouldDescendIntoChildForEventHandling(

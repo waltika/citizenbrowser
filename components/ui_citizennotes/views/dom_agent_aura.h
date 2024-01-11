@@ -2,10 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef COMPONENTS_UI_DEVTOOLS_VIEWS_DOM_AGENT_AURA_H_
-#define COMPONENTS_UI_DEVTOOLS_VIEWS_DOM_AGENT_AURA_H_
+#ifndef COMPONENTS_UI_CITIZENNOTES_VIEWS_DOM_AGENT_AURA_H_
+#define COMPONENTS_UI_CITIZENNOTES_VIEWS_DOM_AGENT_AURA_H_
 
-#include "components/ui_devtools/views/dom_agent_views.h"
+#include "components/ui_citizennotes/views/dom_agent_views.h"
 
 #include "ui/aura/env_observer.h"
 #include "ui/aura/window_observer.h"
@@ -14,7 +14,7 @@ namespace aura {
 class Window;
 }  // namespace aura
 
-namespace ui_devtools {
+namespace ui_citizennotes {
 
 class DOMAgentAura : public DOMAgentViews,
                      public aura::EnvObserver,
@@ -46,6 +46,6 @@ class DOMAgentAura : public DOMAgentViews,
 
   std::vector<aura::Window*> roots_;
 };
-}  // namespace ui_devtools
+}  // namespace ui_citizennotes
 
-#endif  // COMPONENTS_UI_DEVTOOLS_VIEWS_DOM_AGENT_AURA_H_
+#endif  // COMPONENTS_UI_CITIZENNOTES_VIEWS_DOM_AGENT_AURA_H_

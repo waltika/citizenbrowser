@@ -1,3 +1,4 @@
+
 // Copyright 2012 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
@@ -1845,6 +1846,16 @@ void CitizenNotesWindow::SetLoadCompletedCallback(base::OnceClosure closure) {
 bool CitizenNotesWindow::ForwardKeyboardEvent(
     const content::NativeWebKeyboardEvent& event) {
   return event_forwarder_->ForwardEvent(event);
+}
+
+bool CitizenNotesWindow::ReloadInspectedWebContents(bool bypass_cache) {
+  // Only route reload via front-end if the agent is attached.
+  WebContents* wc = GetInspectedWebContents();
+  if (!wc || wc->GetCrashedStatus() != base::TERMINATION_STATUS_STILL_RUNNING)
+    return false;
+  bindings_->CallClientMethod("CitizenNotesAPI", "reloadInspectedPage",
+                              base::Value(bypass_cache));
+  return true;
 }
 
 void CitizenNotesWindow::RegisterModalDialogManager(Browser* browser) {

@@ -2,12 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef COMPONENTS_UI_DEVTOOLS_VIEWS_PAGE_AGENT_VIEWS_H_
-#define COMPONENTS_UI_DEVTOOLS_VIEWS_PAGE_AGENT_VIEWS_H_
+#ifndef COMPONENTS_UI_CITIZENNOTES_VIEWS_PAGE_AGENT_VIEWS_H_
+#define COMPONENTS_UI_CITIZENNOTES_VIEWS_PAGE_AGENT_VIEWS_H_
 
-#include "components/ui_devtools/page_agent.h"
+#include "components/ui_citizennotes/page_agent.h"
 
-namespace ui_devtools {
+namespace ui_citizennotes {
 
 class PageAgentViews : public PageAgent {
  public:
@@ -26,9 +26,9 @@ class PageAgentViews : public PageAgent {
                                         protocol::String* out_content,
                                         bool* out_base64Encoded) override;
 
-  bool GetDevtoolsDismissOverrideForTesting() const;
+  bool GetCitizennotesDismissOverrideForTesting() const;
 };
 
-}  // namespace ui_devtools
+}  // namespace ui_citizennotes
 
-#endif  // COMPONENTS_UI_DEVTOOLS_VIEWS_PAGE_AGENT_VIEWS_H_
+#endif  // COMPONENTS_UI_CITIZENNOTES_VIEWS_PAGE_AGENT_VIEWS_H_

@@ -37,6 +37,7 @@
 #include "build/chromeos_buildflags.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/devtools/devtools_window.h"
+#include "chrome/browser/citizen_x/citizennotes_window.h"
 #include "chrome/browser/extensions/api/tab_groups/tab_groups_constants.h"
 #include "chrome/browser/extensions/api/tab_groups/tab_groups_util.h"
 #include "chrome/browser/extensions/api/tabs/tabs_constants.h"
@@ -129,6 +130,7 @@
 #include "chrome/browser/ui/lacros/window_properties.h"
 #include "chromeos/ui/base/window_pin_type.h"
 #include "content/public/browser/devtools_agent_host.h"
+#include "content/public/browser/citizennotes_agent_host.h"
 #include "ui/base/clipboard/clipboard.h"
 #include "ui/base/clipboard/clipboard_buffer.h"
 #include "ui/platform_window/extensions/pinned_mode_extension.h"
@@ -426,6 +428,7 @@ void SetLockedFullscreenState(Browser* browser, bool pinned) {
   // Wipe the clipboard in browser and detach any dev tools.
   ui::Clipboard::GetForCurrentThread()->Clear(ui::ClipboardBuffer::kCopyPaste);
   content::DevToolsAgentHost::DetachAllClients();
+  content::CitizenNotesAgentHost::DetachAllClients();
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 }
 
@@ -667,8 +670,11 @@ ExtensionFunction::ResponseAction WindowsCreateFunction::Run() {
 
     if (DevToolsWindow::IsDevToolsWindow(web_contents))
       return RespondNow(Error(tabs_constants::kNotAllowedForDevToolsError));
+    if (CitizenNotesWindow::IsCitizenNotesWindow(web_contents))
+      return RespondNow(Error(tabs_constants::kNotAllowedForCitizenNotesError));
   }
 
+    
   if (!IsValidStateForWindowsCreateFunction(base::OptionalToPtr(create_data)))
     return RespondNow(Error(tabs_constants::kInvalidWindowStateError));
 
@@ -1525,6 +1531,8 @@ ExtensionFunction::ResponseAction TabsUpdateFunction::Run() {
 
   if (DevToolsWindow::IsDevToolsWindow(contents))
     return RespondNow(Error(tabs_constants::kNotAllowedForDevToolsError));
+  if (CitizenNotesWindow::IsCitizenNotesWindow(contents))
+    return RespondNow(Error(tabs_constants::kNotAllowedForCitizenNotesError));
 
   if (!ExtensionTabUtil::BrowserSupportsTabs(browser))
     return RespondNow(Error(tabs_constants::kNoCurrentWindowError));
@@ -1774,6 +1782,11 @@ bool TabsMoveFunction::MoveTab(int tab_id,
 
   if (DevToolsWindow::IsDevToolsWindow(contents)) {
     *error = tabs_constants::kNotAllowedForDevToolsError;
+    return false;
+  }
+
+  if (CitizenNotesWindow::IsCitizenNotesWindow(contents)) {
+    *error = tabs_constants::kNotAllowedForCitizenNotesError;
     return false;
   }
 
@@ -2062,6 +2075,8 @@ ExtensionFunction::ResponseAction TabsGroupFunction::Run() {
 
     if (DevToolsWindow::IsDevToolsWindow(web_contents))
       return RespondNow(Error(tabs_constants::kNotAllowedForDevToolsError));
+    if (CitizenNotesWindow::IsCitizenNotesWindow(web_contents))
+      return RespondNow(Error(tabs_constants::kNotAllowedForCitizenNotesError));
   }
 
   // Move all tabs to the target browser, appending to the end each time. Only
@@ -2740,6 +2755,8 @@ ExtensionFunction::ResponseAction TabsDiscardFunction::Run() {
 
     if (DevToolsWindow::IsDevToolsWindow(contents))
       return RespondNow(Error(tabs_constants::kNotAllowedForDevToolsError));
+    if (CitizenNotesWindow::IsCitizenNotesWindow(contents))
+      return RespondNow(Error(tabs_constants::kNotAllowedForCitizenNotesError));
   }
 
   // Check that the tab is not in a SavedTabGroup.

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "components/ui_devtools/views/element_utility.h"
+#include "components/ui_citizennotes/views/element_utility.h"
 
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/stringprintf.h"
@@ -11,7 +11,7 @@
 #include "ui/compositor/layer.h"
 #include "ui/compositor/layer_owner.h"
 
-namespace ui_devtools {
+namespace ui_citizennotes {
 
 void AppendLayerPropertiesMatchedStyle(
     const ui::Layer* layer,
@@ -70,4 +70,4 @@ void AppendLayerPropertiesMatchedStyle(
   }
 }
 
-}  // namespace ui_devtools
+}  // namespace ui_citizennotes

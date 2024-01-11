@@ -10,6 +10,7 @@
 #include "base/ranges/algorithm.h"
 #include "base/task/single_thread_task_runner.h"
 #include "chrome/browser/devtools/devtools_window.h"
+#include "chrome/browser/citizen_x/citizennotes_window.h"
 #include "chrome/browser/lifetime/application_lifetime_desktop.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_tabstrip.h"
@@ -67,7 +68,8 @@ bool UnloadController::ShouldRunUnloadEventsHelper(
   // If |contents| is being inspected, devtools needs to intercept beforeunload
   // events.
   return DevToolsWindow::GetInstanceForInspectedWebContents(contents) !=
-         nullptr;
+         nullptr ||
+         CitizenNotesWindow::GetInstanceForInspectedWebContents(contents) != nullptr;
 }
 
 bool UnloadController::RunUnloadEventsHelper(content::WebContents* contents) {
@@ -91,6 +93,10 @@ bool UnloadController::RunUnloadEventsHelper(content::WebContents* contents) {
       DevToolsWindow::HasFiredBeforeUnloadEventForDevToolsBrowser(browser_))
     return false;
 
+  if (browser_->is_type_citizennotes() &&
+      CitizenNotesWindow::HasFiredBeforeUnloadEventForCitizenNotesBrowser(browser_))
+    return false;
+
   // If there's a devtools window attached to |contents|,
   // we would like devtools to call its own beforeunload handlers first,
   // and then call beforeunload handlers for |contents|.
@@ -98,6 +104,11 @@ bool UnloadController::RunUnloadEventsHelper(content::WebContents* contents) {
   if (DevToolsWindow::InterceptPageBeforeUnload(contents)) {
     return true;
   }
+
+  if (CitizenNotesWindow::InterceptPageBeforeUnload(contents)) {
+    return true;
+  }
+
   // If the WebContents is not connected yet, then there's no unload
   // handler we can fire even if the WebContents has an unload listener.
   // One case where we hit this is in a tab that has an infinite loop
@@ -117,6 +128,7 @@ bool UnloadController::BeforeUnloadFired(content::WebContents* contents,
                                          bool proceed) {
   if (!proceed) {
     DevToolsWindow::OnPageCloseCanceled(contents);
+    CitizenNotesWindow::OnPageCloseCanceled(contents);
     absl::optional<tab_groups::TabGroupId> group =
         browser_->tab_strip_model()->GetTabGroupForTab(
             browser_->tab_strip_model()->GetIndexOfWebContents(contents));
@@ -167,6 +179,11 @@ bool UnloadController::ShouldCloseWindow() {
     return true;
   }
 
+  if (browser_->is_type_citizennotes() &&
+      CitizenNotesWindow::HasFiredBeforeUnloadEventForCitizenNotesBrowser(browser_)) {
+    return true;
+  }
+
   // The behavior followed here varies based on the current phase of the
   // operation and whether a batched shutdown is in progress.
   //
@@ -198,7 +215,7 @@ bool UnloadController::TryToCloseWindow(
   // The devtools browser gets its beforeunload events as the results of
   // intercepting events from the inspected tab, so don't send them here as
   // well.
-  if (browser_->is_type_devtools() || HasCompletedUnloadProcessing() ||
+  if (browser_->is_type_devtools() || browser_->is_type_citizennotes() || HasCompletedUnloadProcessing() ||
       !TabsNeedBeforeUnloadFired())
     return false;
 

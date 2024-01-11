@@ -6,4 +6,4 @@
 
 namespace ui_citizennotes {
 
-}  // namespace ui_devtools
+}  // namespace ui_citizennotes

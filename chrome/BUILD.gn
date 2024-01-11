@@ -1459,6 +1459,7 @@ group("dependencies") {
     "//chrome/utility",
     "//components/about_ui",
     "//components/devtools/devtools_pipe",
+    "//components/citizennotes/citizennotes_pipe",
     "//components/memory_system",
     "//components/startup_metric_utils",
     "//components/sync",
@@ -1468,6 +1469,8 @@ group("dependencies") {
     "//services/tracing/public/cpp",
     "//third_party/blink/public:blink_devtools_frontend_resources",
     "//third_party/blink/public:blink_devtools_inspector_resources",
+    "//third_party/blink/public:blink_citizennotes_frontend_resources",
+    "//third_party/blink/public:blink_citizennotes_inspector_resources",
     "//v8:v8_headers",
   ]
 

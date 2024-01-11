@@ -25,6 +25,7 @@
 #include "chrome/browser/chromeos/upload_office_to_cloud/upload_office_to_cloud.h"
 #include "chrome/browser/component_updater/component_updater_prefs.h"
 #include "chrome/browser/devtools/devtools_window.h"
+#include "chrome/browser/citizen_x/citizennotes_window.h"
 #include "chrome/browser/download/download_prefs.h"
 #include "chrome/browser/engagement/important_sites_util.h"
 #include "chrome/browser/enterprise/connectors/connectors_prefs.h"
@@ -1868,6 +1869,7 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
   companion::PromoHandler::RegisterProfilePrefs(registry);
   DeviceServiceImpl::RegisterProfilePrefs(registry);
   DevToolsWindow::RegisterProfilePrefs(registry);
+  CitizenNotesWindow::RegisterProfilePrefs(registry);
   DriveService::RegisterProfilePrefs(registry);
   enterprise_connectors::RegisterProfilePrefs(registry);
   extensions::CommandService::RegisterProfilePrefs(registry);

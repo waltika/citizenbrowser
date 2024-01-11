@@ -2,18 +2,18 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef COMPONENTS_UI_DEVTOOLS_VIEWS_VIEW_ELEMENT_H_
-#define COMPONENTS_UI_DEVTOOLS_VIEWS_VIEW_ELEMENT_H_
+#ifndef COMPONENTS_UI_CITIZENNOTES_VIEWS_VIEW_ELEMENT_H_
+#define COMPONENTS_UI_CITIZENNOTES_VIEWS_VIEW_ELEMENT_H_
 
 #include "base/scoped_observation.h"
-#include "components/ui_devtools/ui_element.h"
-#include "components/ui_devtools/views/ui_element_with_metadata.h"
+#include "components/ui_citizennotes/ui_element.h"
+#include "components/ui_citizennotes/views/ui_element_with_metadata.h"
 #include "ui/gfx/geometry/rect.h"
 #include "ui/gfx/native_widget_types.h"
 #include "ui/views/view.h"
 #include "ui/views/view_observer.h"
 
-namespace ui_devtools {
+namespace ui_citizennotes {
 
 class UIElementDelegate;
 
@@ -55,10 +55,10 @@ class ViewElement : public views::ViewObserver, public UIElementWithMetaData {
   // inconsistency is detected between the current tree and the tree of the
   // backing view.
   void RebuildTree();
-  views::View* view_;
+  RAW_PTR_EXCLUSION views::View* view_;
   base::ScopedObservation<views::View, views::ViewObserver> observer_{this};
 };
 
-}  // namespace ui_devtools
+}  // namespace ui_citizennotes
 
-#endif  // COMPONENTS_UI_DEVTOOLS_VIEWS_VIEW_ELEMENT_H_
+#endif  // COMPONENTS_UI_CITIZENNOTES_VIEWS_VIEW_ELEMENT_H_

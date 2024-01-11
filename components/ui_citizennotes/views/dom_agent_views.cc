@@ -2,25 +2,25 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "components/ui_devtools/views/dom_agent_views.h"
+#include "components/ui_citizennotes/views/dom_agent_views.h"
 
 #include <memory>
 #include <utility>
 #include <vector>
 
-#include "components/ui_devtools/devtools_server.h"
-#include "components/ui_devtools/root_element.h"
-#include "components/ui_devtools/ui_element.h"
-#include "components/ui_devtools/views/view_element.h"
-#include "components/ui_devtools/views/widget_element.h"
+#include "components/ui_citizennotes/citizennotes_server.h"
+#include "components/ui_citizennotes/root_element.h"
+#include "components/ui_citizennotes/ui_element.h"
+#include "components/ui_citizennotes/views/view_element.h"
+#include "components/ui_citizennotes/views/widget_element.h"
 #include "ui/views/view.h"
 #include "ui/views/widget/widget.h"
 
-namespace ui_devtools {
+namespace ui_citizennotes {
 namespace {
 
-using ui_devtools::protocol::Array;
-using ui_devtools::protocol::DOM::Node;
+using ui_citizennotes::protocol::Array;
+using ui_citizennotes::protocol::DOM::Node;
 
 }  // namespace
 
@@ -90,4 +90,4 @@ std::unique_ptr<Node> DOMAgentViews::BuildTreeForView(UIElement* view_element) {
       std::move(children), view_element->node_id());
 }
 
-}  // namespace ui_devtools
+}  // namespace ui_citizennotes

@@ -2,17 +2,17 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "components/ui_devtools/views/view_element.h"
+#include "components/ui_citizennotes/views/view_element.h"
 
 #include "base/containers/contains.h"
 #include "base/ranges/algorithm.h"
 #include "base/strings/string_split.h"
 #include "base/strings/string_util.h"
 #include "base/strings/utf_string_conversions.h"
-#include "components/ui_devtools/protocol.h"
-#include "components/ui_devtools/ui_element_delegate.h"
-#include "components/ui_devtools/views/devtools_event_util.h"
-#include "components/ui_devtools/views/element_utility.h"
+#include "components/ui_citizennotes/protocol.h"
+#include "components/ui_citizennotes/ui_element_delegate.h"
+#include "components/ui_citizennotes/views/citizennotes_event_util.h"
+#include "components/ui_citizennotes/views/element_utility.h"
 #include "ui/base/interaction/element_tracker.h"
 #include "ui/base/metadata/metadata_types.h"
 #include "ui/gfx/color_utils.h"
@@ -21,7 +21,7 @@
 #include "ui/views/view_utils.h"
 #include "ui/views/widget/widget.h"
 
-namespace ui_devtools {
+namespace ui_citizennotes {
 
 namespace {
 
@@ -244,4 +244,4 @@ void ViewElement::RebuildTree() {
   }
 }
 
-}  // namespace ui_devtools
+}  // namespace ui_citizennotes

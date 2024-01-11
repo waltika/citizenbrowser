@@ -150,7 +150,7 @@ void BrowserFrame::InitBrowserFrame() {
 #endif
 
   if (native_browser_frame_->ShouldRestorePreviousBrowserWidgetState()) {
-    if (browser->is_type_normal() || browser->is_type_devtools() ||
+    if (browser->is_type_normal() || browser->is_type_devtools() || browser->is_type_citizennotes() ||
         browser->is_type_app()) {
       // Typed panel/popup can only return a size once the widget has been
       // created.

@@ -16,6 +16,7 @@
 #include "chrome/browser/ui/views/chrome_layout_provider.h"
 #include "chrome/browser/ui/views/chrome_views_delegate.h"
 #include "chrome/browser/ui/views/devtools_process_observer.h"
+#include "chrome/browser/ui/views/citizennotes_process_observer.h"
 #include "chrome/browser/ui/views/media_router/media_router_dialog_controller_views.h"
 #include "chrome/browser/ui/views/relaunch_notification/relaunch_notification_controller.h"
 #include "chrome/common/chrome_paths.h"
@@ -24,6 +25,9 @@
 #include "components/ui_devtools/connector_delegate.h"
 #include "components/ui_devtools/switches.h"
 #include "components/ui_devtools/views/devtools_server_util.h"
+#include "components/ui_citizennotes/connector_delegate.h"
+#include "components/ui_citizennotes/switches.h"
+#include "components/ui_citizennotes/views/citizennotes_server_util.h"
 #include "content/public/browser/tracing_service.h"
 #include "sandbox/policy/switches.h"
 
@@ -64,6 +68,19 @@ class UiDevtoolsConnector : public ui_devtools::ConnectorDelegate {
  public:
   UiDevtoolsConnector() {}
   ~UiDevtoolsConnector() override = default;
+
+  void BindTracingConsumerHost(
+      mojo::PendingReceiver<tracing::mojom::ConsumerHost> receiver) override {
+    content::GetTracingService().BindConsumerHost(std::move(receiver));
+  }
+};
+
+// This connector is used in ui_devtools's TracingAgent to hook up with the
+// tracing service.
+class UiCitizennotesConnector : public ui_citizennotes::ConnectorDelegate {
+ public:
+  UiCitizennotesConnector() {}
+  ~UiCitizennotesConnector() override = default;
 
   void BindTracingConsumerHost(
       mojo::PendingReceiver<tracing::mojom::ConsumerHost> receiver) override {
@@ -117,6 +134,11 @@ void ChromeBrowserMainExtraPartsViews::PreProfileInit() {
   if (ui_devtools::UiDevToolsServer::IsUiDevToolsEnabled(
           ui_devtools::switches::kEnableUiDevTools)) {
     CreateUiDevTools();
+  }
+
+  if (ui_citizennotes::UiCitizenNotesServer::IsUiCitizenNotesEnabled(
+          ui_citizennotes::switches::kEnableUiCitizenNotes)) {
+    CreateUiCitizenNotes();
   }
 
   media_router::MediaRouterDialogController::SetGetOrCreate(
@@ -197,6 +219,22 @@ void ChromeBrowserMainExtraPartsViews::CreateUiDevTools() {
       devtools_server_->tracing_agent());
 }
 
+void ChromeBrowserMainExtraPartsViews::CreateUiCitizenNotes() {
+  DCHECK(!citizennotes_server_);
+  DCHECK(!citizennotes_process_observer_);
+
+  // Starts the UI Citizennotes server for browser UI (and Ash UI on Chrome OS).
+  auto connector = std::make_unique<UiCitizennotesConnector>();
+  base::FilePath output_dir;
+  bool result = base::PathService::Get(chrome::DIR_USER_DATA, &output_dir);
+  DCHECK(result);
+  citizennotes_server_ = ui_citizennotes::CreateUiCitizenNotesServerForViews(
+      g_browser_process->system_network_context_manager()->GetContext(),
+      std::move(connector), output_dir);
+  citizennotes_process_observer_ = std::make_unique<CitizennotesProcessObserver>(
+      citizennotes_server_->tracing_agent());
+}
+
 const ui_devtools::UiDevToolsServer*
 ChromeBrowserMainExtraPartsViews::GetUiDevToolsServerInstance() {
   return devtools_server_.get();
@@ -205,4 +243,14 @@ ChromeBrowserMainExtraPartsViews::GetUiDevToolsServerInstance() {
 void ChromeBrowserMainExtraPartsViews::DestroyUiDevTools() {
   devtools_process_observer_.reset();
   devtools_server_.reset();
+}
+
+const ui_citizennotes::UiCitizenNotesServer*
+ChromeBrowserMainExtraPartsViews::GetUiCitizenNotesServerInstance() {
+  return citizennotes_server_.get();
+}
+
+void ChromeBrowserMainExtraPartsViews::DestroyUiCitizenNotes() {
+  citizennotes_process_observer_.reset();
+  citizennotes_server_.reset();
 }

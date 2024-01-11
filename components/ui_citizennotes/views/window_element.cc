@@ -2,14 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "components/ui_devtools/views/window_element.h"
+#include "components/ui_citizennotes/views/window_element.h"
 
 #include "base/ranges/algorithm.h"
 #include "base/strings/string_number_conversions.h"
-#include "components/ui_devtools/protocol.h"
-#include "components/ui_devtools/ui_element_delegate.h"
-#include "components/ui_devtools/views/devtools_event_util.h"
-#include "components/ui_devtools/views/element_utility.h"
+#include "components/ui_citizennotes/protocol.h"
+#include "components/ui_citizennotes/ui_element_delegate.h"
+#include "components/ui_citizennotes/views/citizennotes_event_util.h"
+#include "components/ui_citizennotes/views/element_utility.h"
 #include "components/viz/common/surfaces/surface_id.h"
 #include "ui/aura/window.h"
 #include "ui/aura/window_tree_host.h"
@@ -18,7 +18,7 @@
 #include "ui/base/ime/text_input_client.h"
 #include "ui/wm/core/window_util.h"
 
-namespace ui_devtools {
+namespace ui_citizennotes {
 namespace {
 
 int GetIndexOfChildInParent(aura::Window* window) {
@@ -169,4 +169,4 @@ ui::Layer* WindowElement::GetLayer() const {
   return window_->layer();
 }
 
-}  // namespace ui_devtools
+}  // namespace ui_citizennotes

@@ -2,15 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "components/ui_devtools/views/overlay_agent_views.h"
+#include "components/ui_citizennotes/views/overlay_agent_views.h"
 
 #include <memory>
 
 #include "base/strings/utf_string_conversions.h"
 #include "build/build_config.h"
-#include "components/ui_devtools/ui_element.h"
-#include "components/ui_devtools/views/view_element.h"
-#include "components/ui_devtools/views/widget_element.h"
+#include "components/ui_citizennotes/ui_element.h"
+#include "components/ui_citizennotes/views/view_element.h"
+#include "components/ui_citizennotes/views/widget_element.h"
 #include "third_party/skia/include/core/SkColor.h"
 #include "third_party/skia/include/effects/SkDashPathEffect.h"
 #include "ui/compositor/paint_recorder.h"
@@ -26,7 +26,7 @@
 #include "ui/wm/core/window_util.h"
 #endif
 
-namespace ui_devtools {
+namespace ui_citizennotes {
 
 namespace {
 
@@ -745,4 +745,4 @@ bool OverlayAgentViews::UpdateHighlight(
   return true;
 }
 
-}  // namespace ui_devtools
+}  // namespace ui_citizennotes

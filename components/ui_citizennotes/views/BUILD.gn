@@ -6,10 +6,10 @@ import("//build/config/ui.gni")
 
 source_set("views") {
   sources = [
-    "devtools_event_util.cc",
-    "devtools_event_util.h",
-    "devtools_server_util.cc",
-    "devtools_server_util.h",
+    "citizennotes_event_util.cc",
+    "citizennotes_event_util.h",
+    "citizennotes_server_util.cc",
+    "citizennotes_server_util.h",
     "dom_agent_views.cc",
     "dom_agent_views.h",
     "element_utility.cc",
@@ -27,7 +27,7 @@ source_set("views") {
   ]
 
   deps = [
-    "//components/ui_devtools",
+    "//components/ui_citizennotes",
     "//skia",
     "//ui/views",
   ]
@@ -69,8 +69,8 @@ source_set("unit_tests") {
 
   deps = [
     ":views",
-    "//components/ui_devtools",
-    "//components/ui_devtools:test_support",
+    "//components/ui_citizennotes",
+    "//components/ui_citizennotes:test_support",
     "//skia",
     "//testing/gtest",
     "//ui/events:test_support",

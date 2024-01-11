@@ -2,16 +2,16 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "components/ui_devtools/views/dom_agent_mac.h"
+#include "components/ui_citizennotes/views/dom_agent_mac.h"
 
 #import <AppKit/AppKit.h>
 
 #include "base/functional/bind.h"
 #include "base/ranges/algorithm.h"
-#include "components/ui_devtools/views/widget_element.h"
+#include "components/ui_citizennotes/views/widget_element.h"
 #include "ui/views/widget/native_widget_mac.h"
 
-namespace ui_devtools {
+namespace ui_citizennotes {
 
 DOMAgentMac::DOMAgentMac() = default;
 
@@ -91,4 +91,4 @@ std::unique_ptr<DOMAgentViews> DOMAgentViews::Create() {
   return std::make_unique<DOMAgentMac>();
 }
 
-}  // namespace ui_devtools
+}  // namespace ui_citizennotes

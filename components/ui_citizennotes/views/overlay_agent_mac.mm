@@ -2,14 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "components/ui_devtools/views/overlay_agent_mac.h"
+#include "components/ui_citizennotes/views/overlay_agent_mac.h"
 
 #import <Cocoa/Cocoa.h>
 
-#include "components/ui_devtools/views/view_element.h"
-#include "components/ui_devtools/views/widget_element.h"
+#include "components/ui_citizennotes/views/view_element.h"
+#include "components/ui_citizennotes/views/widget_element.h"
 
-namespace ui_devtools {
+namespace ui_citizennotes {
 
 OverlayAgentMac::OverlayAgentMac(DOMAgent* dom_agent)
     : OverlayAgentViews(dom_agent) {}
@@ -97,4 +97,4 @@ std::unique_ptr<OverlayAgentViews> OverlayAgentViews::Create(
   return std::make_unique<OverlayAgentMac>(dom_agent);
 }
 
-}  // namespace ui_devtools
+}  // namespace ui_citizennotes

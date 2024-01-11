@@ -20,6 +20,10 @@ namespace ui_devtools {
 class UiDevToolsServer;
 }
 
+namespace ui_citizennotes {
+class UiCitizenNotesServer;
+}
+
 #if defined(USE_AURA)
 #if !BUILDFLAG(IS_CHROMEOS_ASH)
 namespace display {
@@ -32,6 +36,7 @@ class WMState;
 #endif
 
 class DevtoolsProcessObserver;
+class CitizennotesProcessObserver;
 class RelaunchNotificationController;
 
 class ChromeBrowserMainExtraPartsViews : public ChromeBrowserMainExtraParts {
@@ -60,6 +65,11 @@ class ChromeBrowserMainExtraPartsViews : public ChromeBrowserMainExtraParts {
   const ui_devtools::UiDevToolsServer* GetUiDevToolsServerInstance();
   void DestroyUiDevTools();
 
+    // Manipulate UiCitizenNotes.
+  void CreateUiCitizenNotes();
+  const ui_citizennotes::UiCitizenNotesServer* GetUiCitizenNotesServerInstance();
+  void DestroyUiCitizenNotes();
+
  private:
   std::unique_ptr<views::ViewsDelegate> views_delegate_;
   std::unique_ptr<views::LayoutProvider> layout_provider_;
@@ -67,6 +77,10 @@ class ChromeBrowserMainExtraPartsViews : public ChromeBrowserMainExtraParts {
   // Only used when running in --enable-ui-devtools.
   std::unique_ptr<ui_devtools::UiDevToolsServer> devtools_server_;
   std::unique_ptr<DevtoolsProcessObserver> devtools_process_observer_;
+
+  // Only used when running in --enable-ui-citizennotes.
+  std::unique_ptr<ui_citizennotes::UiCitizenNotesServer> citizennotes_server_;
+  std::unique_ptr<CitizennotesProcessObserver> citizennotes_process_observer_;
 
 #if defined(USE_AURA)
 #if !BUILDFLAG(IS_CHROMEOS_ASH)

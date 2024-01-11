@@ -154,6 +154,7 @@
 #include "components/zoom/zoom_controller.h"
 #include "content/public/browser/browsing_data_remover.h"
 #include "content/public/browser/devtools_agent_host.h"
+#include "content/public/browser/citizennotes_agent_host.h"
 #include "content/public/browser/navigation_controller.h"
 #include "content/public/browser/navigation_entry.h"
 #include "content/public/browser/page_navigator.h"
@@ -451,10 +452,13 @@ void ReloadInternal(Browser* browser,
 
     DevToolsWindow* devtools =
         DevToolsWindow::GetInstanceForInspectedWebContents(new_tab);
+    CitizenNotesWindow* citizennotes =
+        CitizenNotesWindow::GetInstanceForInspectedWebContents(new_tab);
     constexpr content::ReloadType kBypassingType =
         content::ReloadType::BYPASSING_CACHE;
     constexpr content::ReloadType kNormalType = content::ReloadType::NORMAL;
-    if (!devtools || !devtools->ReloadInspectedWebContents(bypass_cache)) {
+    if ((!devtools || !devtools->ReloadInspectedWebContents(bypass_cache)) &&
+        (!citizennotes || !citizennotes->ReloadInspectedWebContents(bypass_cache))) {
       new_tab->GetController().Reload(
           bypass_cache ? kBypassingType : kNormalType, true);
     }
@@ -757,7 +761,7 @@ void ReloadBypassingCache(Browser* browser, WindowOpenDisposition disposition) {
 }
 
 bool CanReload(const Browser* browser) {
-  return browser && !browser->is_type_devtools() &&
+  return browser && !browser->is_type_devtools() && !browser->is_type_citizennotes() &&
          !browser->is_type_picture_in_picture();
 }
 
@@ -1661,7 +1665,7 @@ bool CanSavePage(const Browser* browser) {
       DownloadPrefs::DownloadRestriction::ALL_FILES) {
     return false;
   }
-  return !browser->is_type_devtools() &&
+  return !browser->is_type_devtools() && !browser->is_type_citizennotes() &&
          !(GetContentRestrictions(browser) & CONTENT_RESTRICTION_SAVE);
 }
 
@@ -2069,7 +2073,7 @@ Browser* OpenInChrome(Browser* hosted_app_browser) {
 }
 
 bool CanViewSource(const Browser* browser) {
-  if (browser->is_type_devtools()) {
+  if (browser->is_type_devtools() || browser->is_type_citizennotes() ) {
     return false;
   }
 
@@ -2080,6 +2084,11 @@ bool CanViewSource(const Browser* browser) {
   if (!DevToolsWindow::AllowDevToolsFor(browser->profile(), web_contents)) {
     return false;
   }
+  
+  if (!CitizenNotesWindow::AllowCitizenNotesFor(browser->profile(), web_contents)) {
+    return false;
+  }
+    
   return web_contents->GetController().CanViewSource();
 }
 

@@ -389,6 +389,7 @@ test("components_unittests") {
 
   if (toolkit_views && enable_extensions) {
     deps += [ "//components/ui_devtools/views:unit_tests" ]
+    deps += [ "//components/ui_citizennotes/views:unit_tests" ]
   }
 
   if (enable_nacl) {
