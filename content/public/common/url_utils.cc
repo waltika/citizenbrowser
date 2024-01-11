@@ -28,7 +28,8 @@ bool HasWebUIScheme(const GURL& url) {
 bool HasWebUIOrigin(const url::Origin& origin) {
   return origin.scheme() == content::kChromeUIScheme ||
          origin.scheme() == content::kChromeUIUntrustedScheme ||
-         origin.scheme() == content::kChromeDevToolsScheme;
+         origin.scheme() == content::kChromeDevToolsScheme ||
+         origin.scheme() == content::kChromeCitizenNotesScheme;
 }
 
 bool IsSavableURL(const GURL& url) {
