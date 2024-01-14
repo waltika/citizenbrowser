@@ -22,6 +22,9 @@
 #include "ui/webui/examples/browser/devtools/devtools_frontend.h"
 #include "ui/webui/examples/browser/devtools/devtools_manager_delegate.h"
 #include "ui/webui/examples/browser/devtools/devtools_server.h"
+#include "ui/webui/examples/browser/citizen_x/citizennotes_frontend.h"
+#include "ui/webui/examples/browser/citizen_x/citizennotes_manager_delegate.h"
+#include "ui/webui/examples/browser/citizen_x/citizennotes_server.h"
 #include "ui/webui/examples/browser/webui_controller_factory.h"
 #include "ui/webui/examples/grit/webui_examples_resources.h"
 
@@ -87,6 +90,19 @@ BrowserMainParts::CreateDevToolsManagerDelegate() {
           base::Unretained(this)));
 }
 
+std::unique_ptr<content::CitizenNotesManagerDelegate>
+BrowserMainParts::CreateCitizenNotesManagerDelegate() {
+  return std::make_unique<CitizenNotesManagerDelegate>(
+      browser_context_.get(),
+      base::BindRepeating(
+          [](BrowserMainParts* browser_main_parts,
+             content::BrowserContext* browser_context, const GURL& url) {
+            return browser_main_parts->CreateAndShowWindow(
+                url, l10n_util::GetStringUTF16(IDS_CITIZENNOTES_WINDOW_TITLE));
+          },
+          base::Unretained(this)));
+}
+
 void BrowserMainParts::InitializeUiToolkit() {}
 
 void BrowserMainParts::ShutdownUiToolkit() {}
@@ -97,6 +113,7 @@ int BrowserMainParts::PreMainMessageLoopRun() {
   browser_context_ = std::make_unique<BrowserContext>(temp_dir_.GetPath());
 
   devtools::StartHttpHandler(browser_context_.get());
+  citizennotes::StartHttpHandler(browser_context_.get());
 
   web_ui_controller_factory_ = std::make_unique<WebUIControllerFactory>();
   content::WebUIControllerFactory::RegisterFactory(
@@ -141,6 +158,7 @@ void BrowserMainParts::WillRunMainMessageLoop(
 
 void BrowserMainParts::PostMainMessageLoopRun() {
   devtools::StopHttpHandler();
+  citizennotes::StopHttpHandler();
   browser_context_.reset();
 }
 

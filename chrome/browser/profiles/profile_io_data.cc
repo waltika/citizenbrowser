@@ -32,6 +32,7 @@ bool ProfileIOData::IsHandledProtocol(const std::string& scheme) {
 #endif  // BUILDFLAG(ENABLE_WEBSOCKETS)
     url::kFileScheme,
     content::kChromeDevToolsScheme,
+    content::kChromeCitizenNotesScheme,
     dom_distiller::kDomDistillerScheme,
 #if BUILDFLAG(ENABLE_EXTENSIONS)
     extensions::kExtensionScheme,

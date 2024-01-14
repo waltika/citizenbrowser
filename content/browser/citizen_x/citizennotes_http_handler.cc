@@ -472,7 +472,8 @@ void CNServerWrapper::OnHttpRequest(int connection_id,
     return;
   }
 
-  std::string filename = PathWithoutParams(info.path.substr(10));
+  // TODO: make this whole crap fault tolerant (hardcoded strings above an hardcoded length below
+  std::string filename = PathWithoutParams(info.path.substr(14));
   std::string mime_type = GetMimeType(filename);
 
   if (!debug_frontend_dir_.empty()) {

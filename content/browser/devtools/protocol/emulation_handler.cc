@@ -477,6 +477,7 @@ Response EmulationHandler::CanEmulate(bool* result) {
   *result = true;
   if (host_) {
     if (GetWebContents()->GetVisibleURL().SchemeIs(kChromeDevToolsScheme) ||
+        GetWebContents()->GetVisibleURL().SchemeIs(kChromeCitizenNotesScheme) ||
         host_->GetRenderWidgetHost()->auto_resize_enabled())
       *result = false;
   }

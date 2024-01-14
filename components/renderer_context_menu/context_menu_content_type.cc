@@ -19,6 +19,10 @@ bool IsDevToolsURL(const GURL& url) {
   return url.SchemeIs(content::kChromeDevToolsScheme);
 }
 
+bool IsCitizenNotesURL(const GURL& url) {
+  return url.SchemeIs(content::kChromeDevToolsScheme);
+}
+
 }  // namespace
 
 ContextMenuContentType::ContextMenuContentType(
@@ -47,7 +51,7 @@ bool ContextMenuContentType::SupportsGroup(int group) {
     // adding the normal ones after the custom ones.
   }
 
-  if (IsDevToolsURL(params_.page_url)) {
+  if (IsDevToolsURL(params_.page_url) || IsCitizenNotesURL(params_.page_url)) {
     // DevTools mostly provides custom context menu and uses
     // only the following default options.
     if (group != ITEM_GROUP_CUSTOM && group != ITEM_GROUP_EDITABLE &&

@@ -1284,7 +1284,8 @@ bool ChromePasswordManagerClient::CanShowBubbleOnURL(const GURL& url) {
 #if BUILDFLAG(ENABLE_EXTENSIONS)
           scheme != extensions::kExtensionScheme &&
 #endif
-          scheme != content::kChromeDevToolsScheme);
+          scheme != content::kChromeDevToolsScheme &&
+          scheme != content::kChromeCitizenNotesScheme);
 }
 
 #if BUILDFLAG(IS_ANDROID)

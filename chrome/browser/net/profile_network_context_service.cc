@@ -570,6 +570,8 @@ ProfileNetworkContextService::CreateCookieManagerParams(
       extensions::kExtensionScheme);
   out->third_party_cookies_allowed_schemes.push_back(
       content::kChromeDevToolsScheme);
+  out->third_party_cookies_allowed_schemes.push_back(
+      content::kChromeCitizenNotesScheme);
 #endif
 
   HostContentSettingsMap* host_content_settings_map =

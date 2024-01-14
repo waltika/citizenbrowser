@@ -19,6 +19,7 @@ const char kWebUICreatedForUrl[] = "WebUI.CreatedForUrl";
 bool LogWebUIUrl(const GURL& web_ui_url) {
   bool should_log = web_ui_url.SchemeIs(content::kChromeUIScheme) ||
                     web_ui_url.SchemeIs(content::kChromeDevToolsScheme) ||
+                    web_ui_url.SchemeIs(content::kChromeCitizenNotesScheme) ||
                     web_ui_url.SchemeIs(content::kChromeCitizenNotesScheme);
 
   if (should_log) {

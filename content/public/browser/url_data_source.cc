@@ -137,7 +137,7 @@ bool URLDataSource::ShouldDenyXFrameOptions() {
 bool URLDataSource::ShouldServiceRequest(const GURL& url,
                                          BrowserContext* browser_context,
                                          int render_process_id) {
-  return url.SchemeIs(kChromeDevToolsScheme) || url.SchemeIs(kChromeUIScheme) ||
+  return url.SchemeIs(kChromeDevToolsScheme) || url.SchemeIs(kChromeCitizenNotesScheme) || url.SchemeIs(kChromeUIScheme) ||
          url.SchemeIs(kChromeUIUntrustedScheme);
 }
 

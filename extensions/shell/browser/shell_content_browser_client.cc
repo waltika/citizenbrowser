@@ -151,6 +151,7 @@ bool ShellContentBrowserClient::IsHandledURL(const GURL& url) {
   static const char* const kProtocolList[] = {
       url::kBlobScheme,
       content::kChromeDevToolsScheme,
+      content::kChromeCitizenNotesScheme,
       content::kChromeUIScheme,
       url::kDataScheme,
       url::kFileScheme,

@@ -11342,6 +11342,7 @@ bool RenderFrameHostImpl::CanExecuteJavaScript() {
 
   return !GetLastCommittedURL().is_valid() ||
          GetLastCommittedURL().SchemeIs(kChromeDevToolsScheme) ||
+         GetLastCommittedURL().SchemeIs(kChromeCitizenNotesScheme) ||
          ChildProcessSecurityPolicyImpl::GetInstance()->HasWebUIBindings(
              GetProcess()->GetID()) ||
          // It's possible to load about:blank in a Web UI renderer.

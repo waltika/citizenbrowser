@@ -115,6 +115,7 @@ static_assert(FirstUserModifiableProviderIsHighestPrecedence(),
 
 bool SchemeCanBeAllowlisted(const std::string& scheme) {
   return scheme == content_settings::kChromeDevToolsScheme ||
+         scheme == content_settings::kChromeCitizenNotesScheme ||
          scheme == content_settings::kExtensionScheme ||
          scheme == content_settings::kChromeUIScheme;
 }

@@ -137,7 +137,8 @@ bool TranslateService::IsTranslatableURL(const GURL& url) {
   // Note: Keep in sync with condition in TranslateAgent::PageCaptured.
   return !url.is_empty() && !url.SchemeIs(content::kChromeUIScheme) &&
          !url.SchemeIs(chrome::kChromeNativeScheme) &&
-         !url.SchemeIs(content::kChromeDevToolsScheme) &&
+         !url.SchemeIs(content::kChromeDevToolsScheme)&&
+         !url.SchemeIs(content::kChromeCitizenNotesScheme) &&
 #if BUILDFLAG(IS_CHROMEOS_ASH)
          !(url.SchemeIs(extensions::kExtensionScheme) &&
            url.DomainIs(file_manager::kFileManagerAppId)) &&

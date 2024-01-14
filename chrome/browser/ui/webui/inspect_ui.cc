@@ -687,6 +687,7 @@ void InspectUI::InspectBrowserWithCustomFrontend(
     const GURL& frontend_url) {
   if (!frontend_url.SchemeIs(content::kChromeUIScheme) &&
       !frontend_url.SchemeIs(content::kChromeDevToolsScheme) &&
+      !frontend_url.SchemeIs(content::kChromeCitizenNotesScheme) &&
       frontend_url.host() != kInspectUiLocalHost) {
     return;
   }

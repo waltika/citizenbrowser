@@ -780,6 +780,10 @@ bool RenderViewContextMenu::IsDevToolsURL(const GURL& url) {
   return url.SchemeIs(content::kChromeDevToolsScheme);
 }
 
+bool RenderViewContextMenu::IsCitizenNotesURL(const GURL& url) {
+  return url.SchemeIs(content::kChromeCitizenNotesScheme);
+}
+
 // static
 void RenderViewContextMenu::AddSpellCheckServiceItem(ui::SimpleMenuModel* menu,
                                                      bool is_checked) {
@@ -1247,6 +1251,7 @@ void RenderViewContextMenu::InitMenu() {
   // this is a UX approved solution.
   bool added_accessibility_labels_items = false;
   if (!IsDevToolsURL(params_.page_url) &&
+      !IsCitizenNotesURL(params_.page_url) &&
       !IsFrameInPdfViewer(GetRenderFrameHost())) {
     added_accessibility_labels_items = AppendAccessibilityLabelsItems();
   }
@@ -1591,12 +1596,18 @@ void RenderViewContextMenu::AppendDeveloperItems() {
       IsDevToolsURL(params_.page_url) &&
       params_.page_url.query().find("debugFrontend=true") == std::string::npos;
 
+  bool hide_citizennotes_items =
+      IsCitizenNotesURL(params_.page_url) &&
+      params_.page_url.query().find("debugFrontend=true") == std::string::npos;
+
 #if BUILDFLAG(IS_CHROMEOS_ASH)
   hide_developer_items =
       hide_developer_items || !crosapi::browser_util::IsAshDevToolEnabled();
+  hide_developer_items =
+      hide_developer_items || !crosapi::browser_util::IsAshCitizenNotesEnabled();
 #endif
 
-  if (hide_developer_items)
+  if (hide_developer_items || hide_citizennotes_items)
     return;
 
   // In the DevTools popup menu, "developer items" is normally the only
@@ -2357,6 +2368,7 @@ void RenderViewContextMenu::AppendOtherEditableItems() {
   // Also want to show 'Undo' and 'Redo' if 'Emoji' is the only item in the menu
   // so far.
   if (!IsDevToolsURL(params_.page_url) &&
+      !IsCitizenNotesURL(params_.page_url) &&
       !content_type_->SupportsGroup(ContextMenuContentType::ITEM_GROUP_PRINT) &&
       (!menu_model_.GetItemCount() ||
        menu_model_.GetIndexOfCommandId(IDC_CONTENT_CONTEXT_EMOJI)

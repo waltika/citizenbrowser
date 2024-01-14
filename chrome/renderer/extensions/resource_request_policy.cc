@@ -89,6 +89,7 @@ bool ResourceRequestPolicy::CanRequestResource(
   // - similar scheme checks in ExtensionNavigationThrottle
   if (frame_origin.scheme() == content::kChromeUIScheme ||
       frame_origin.scheme() == content::kChromeDevToolsScheme ||
+      frame_origin.scheme() == content::kChromeCitizenNotesScheme ||
       frame_origin.scheme() == chrome::kChromeSearchScheme) {
     return true;
   }
@@ -148,6 +149,7 @@ bool ResourceRequestPolicy::CanRequestResource(
 #endif  // BUILDFLAG(ENABLE_PDF)
 
   bool is_dev_tools = page_origin.SchemeIs(content::kChromeDevToolsScheme);
+  bool is_citizen_notes = page_origin.SchemeIs(content::kChromeCitizenNotesScheme);
   // Note: we check |web_accessible_ids_| (rather than first looking up the
   // extension in the registry and checking that) to be more resistant against
   // timing attacks. This way, determining access for an extension that isn't
@@ -155,7 +157,7 @@ bool ResourceRequestPolicy::CanRequestResource(
   // extension with no web accessible resources. We aren't worried about any
   // extensions with web accessible resources, since those are inherently
   // identifiable.
-  if (!is_dev_tools && !IsWebAccessibleHost(extension_origin.host())) {
+  if (!is_dev_tools && !is_citizen_notes && !IsWebAccessibleHost(extension_origin.host())) {
     return false;
   }
 

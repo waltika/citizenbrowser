@@ -20,6 +20,7 @@ class GURL;
 namespace content {
 class BrowserContext;
 class DevToolsManagerDelegate;
+class CitizenNotesManagerDelegate;
 class WebContents;
 class WebContentsViewDelegate;
 }  // namespace content
@@ -41,6 +42,8 @@ class BrowserMainParts : public content::BrowserMainParts {
   CreateWebContentsViewDelegate(content::WebContents* web_contents);
   std::unique_ptr<content::DevToolsManagerDelegate>
   CreateDevToolsManagerDelegate();
+  std::unique_ptr<content::DevToolsManagerDelegate>
+  CreateCitizenNotesManagerDelegate();
 
  protected:
   BrowserMainParts();

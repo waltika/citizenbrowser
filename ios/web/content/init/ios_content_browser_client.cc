@@ -28,6 +28,7 @@ bool IOSContentBrowserClient::IsHandledURL(const GURL& url) {
       content::kChromeUIScheme,
       content::kChromeUIUntrustedScheme,
       content::kChromeDevToolsScheme,
+      content::kChromeCitizenNotesScheme,
       url::kDataScheme,
       url::kFileScheme,
   };

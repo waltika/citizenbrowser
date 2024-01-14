@@ -198,6 +198,8 @@ bool ShouldCreateWebUILoader(RenderFrameHostImpl* creator_render_frame_host) {
     return true;
   if (requesting_scheme == kChromeDevToolsScheme)
     return true;
+  if (requesting_scheme == kChromeCitizenNotesScheme)
+    return true;
   return false;
 }
 

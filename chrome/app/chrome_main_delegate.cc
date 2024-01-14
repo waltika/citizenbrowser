@@ -255,7 +255,7 @@ const char* const ChromeMainDelegate::kNonWildcardDomainNonPortSchemes[] = {
     extensions::kExtensionScheme,
 #endif
     chrome::kChromeSearchScheme,       chrome::kIsolatedAppScheme,
-    content::kChromeDevToolsScheme,    content::kChromeUIScheme,
+    content::kChromeDevToolsScheme,    content::kChromeCitizenNotesScheme, content::kChromeUIScheme,
     content::kChromeUIUntrustedScheme,
 };
 const size_t ChromeMainDelegate::kNonWildcardDomainNonPortSchemesSize =

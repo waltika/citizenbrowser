@@ -944,7 +944,7 @@ void RenderThreadImpl::RegisterSchemes() {
   WebSecurityPolicy::RegisterURLSchemeAsNotAllowingJavascriptURLs(
       devtools_scheme);
 
-  // devtools:
+  // citizennotes:
   WebString citizennotes_scheme(WebString::FromASCII(kChromeCitizenNotesScheme));
   WebSecurityPolicy::RegisterURLSchemeAsDisplayIsolated(citizennotes_scheme);
   WebSecurityPolicy::RegisterURLSchemeAsSupportingFetchAPI(citizennotes_scheme);

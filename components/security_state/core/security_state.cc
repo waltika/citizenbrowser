@@ -105,6 +105,12 @@ SecurityLevel GetSecurityLevel(
     return NONE;
   }
 
+  // Display CitizenNotes pages as neutral since we can't be confident the page
+  // is secure, but also don't want the "Not secure" badge.
+  if (visible_security_state.is_citizennotes) {
+    return NONE;
+  }
+
   // Downgrade the security level for active insecure subresources. This comes
   // before handling non-cryptographic schemes below, because secure pages with
   // non-cryptographic schemes (e.g., about:blank) can still have mixed content.
@@ -208,6 +214,7 @@ VisibleSecurityState::VisibleSecurityState()
       is_error_page(false),
       is_view_source(false),
       is_devtools(false),
+      is_citizennotes(false),
       is_reader_mode(false),
       should_treat_displayed_mixed_forms_as_secure(false),
       is_https_only_mode_upgraded(false) {}

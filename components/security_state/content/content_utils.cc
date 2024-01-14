@@ -29,6 +29,8 @@ std::unique_ptr<security_state::VisibleSecurityState> GetVisibleSecurityState(
       entry->GetVirtualURL().SchemeIs(content::kViewSourceScheme);
   state->is_devtools =
       entry->GetVirtualURL().SchemeIs(content::kChromeDevToolsScheme);
+  state->is_citizennotes =
+        entry->GetVirtualURL().SchemeIs(content::kChromeCitizenNotesScheme);
   state->is_reader_mode =
       entry->GetURL().SchemeIs(dom_distiller::kDomDistillerScheme);
   state->url = entry->GetURL();

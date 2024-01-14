@@ -408,6 +408,7 @@ bool PageInfo::IsPermissionFactoryDefault(const PermissionInfo& info,
 bool PageInfo::IsFileOrInternalPage(const GURL& url) {
   return url.SchemeIs(content::kChromeUIScheme) ||
          url.SchemeIs(content::kChromeDevToolsScheme) ||
+         url.SchemeIs(content::kChromeCitizenNotesScheme) ||
          url.SchemeIs(content::kViewSourceScheme) ||
          url.SchemeIs(url::kFileScheme);
 }
@@ -907,6 +908,7 @@ void PageInfo::ComputeUIInputs(const GURL& url) {
   // custom and simpler bubble is shown.
   DCHECK(!url.SchemeIs(content::kChromeUIScheme) &&
          !url.SchemeIs(content::kChromeDevToolsScheme) &&
+         !url.SchemeIs(content::kChromeCitizenNotesScheme) &&
          !url.SchemeIs(content::kViewSourceScheme) &&
          !url.SchemeIs(content_settings::kExtensionScheme));
 #endif

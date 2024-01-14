@@ -22,7 +22,8 @@ bool IsTranslatableURL(const GURL& url) {
   // translation launched. Note that the chromeos checks in the
   // TranslateService version will still need to be at the browser level.
   return !url.is_empty() && !url.SchemeIs(content::kChromeUIScheme) &&
-         !url.SchemeIs(content::kChromeDevToolsScheme) && !url.IsAboutBlank();
+         !url.SchemeIs(content::kChromeDevToolsScheme) &&
+    !url.SchemeIs(content::kChromeCitizenNotesScheme) && !url.IsAboutBlank();
 }
 
 }  // namespace translate

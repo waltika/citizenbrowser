@@ -166,8 +166,7 @@ CitizenNotesAgentHost::List CitizenNotesAgentHost::GetAll() {
 CitizenNotesAgentHost::List CitizenNotesAgentHost::GetOrCreateAll() {
   List result;
   SharedWorkerCitizenNotesAgentHost::List shared_list;
-  // SharedWorkerCitizenNotesManager::GetInstance()->AddAllAgentHosts(&shared_list);
-  //TODO: Adapt
+  SharedWorkerCitizenNotesManager::GetInstance()->AddAllAgentHosts(&shared_list);
   for (const auto& host : shared_list)
     result.push_back(host);
 
@@ -176,14 +175,12 @@ CitizenNotesAgentHost::List CitizenNotesAgentHost::GetOrCreateAll() {
   for (const auto& host : service_list)
     result.push_back(host);
 
-  //SharedStorageWorkletCitizenNotesManager::GetInstance()->AddAllAgentHosts(&result);
-  //TODO: Adapt
+  SharedStorageWorkletCitizenNotesManager::GetInstance()->AddAllAgentHosts(&result);
     
   // TODO(dgozman): we should add dedicated workers here, but clients are not
   // ready.
-  //RenderFrameCitizenNotesAgentHost::AddAllAgentHosts(&result);
-  //WebContentsCitizenNotesAgentHost::AddAllAgentHosts(&result);
-  // TODO: Adapt
+  RenderFrameCitizenNotesAgentHost::AddAllAgentHosts(&result);
+  WebContentsCitizenNotesAgentHost::AddAllAgentHosts(&result);
     
   AuctionWorkletCitizenNotesAgentHostManager::GetInstance().GetAll(&result);
   MojomCitizenNotesAgentHost::GetAll(&result);

@@ -123,6 +123,8 @@ bool WorkerContentSettingsClient::AllowScriptFromSource(
     // Allow DevTools to run worker scripts.
     if (top_frame_origin_url.SchemeIs(content::kChromeDevToolsScheme))
       return true;
+    if (top_frame_origin_url.SchemeIs(content::kChromeCitizenNotesScheme))
+      return true;
     for (const auto& rule : content_setting_rules_->script_rules) {
       // The primary pattern was already matched in the browser process (see
       // PageSpecificContentSettings::ReadyToCommitNavigation), so we only need

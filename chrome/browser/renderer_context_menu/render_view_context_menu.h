@@ -231,6 +231,7 @@ class RenderViewContextMenu
   friend class FormatUrlForClipboardTest;
 
   static bool IsDevToolsURL(const GURL& url);
+  static bool IsCitizenNotesURL(const GURL& url);
 #if BUILDFLAG(ENABLE_EXTENSIONS)
   static bool ExtensionContextAndPatternMatch(
       const content::ContextMenuParams& params,

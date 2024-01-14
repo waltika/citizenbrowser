@@ -292,6 +292,7 @@ ExtensionNavigationThrottle::WillStartOrRedirectRequest() {
   // - similar checks in extensions::ResourceRequestPolicy::CanRequestResource
   if (initiator_origin.scheme() == content::kChromeUIScheme ||
       initiator_origin.scheme() == content::kChromeDevToolsScheme ||
+      initiator_origin.scheme() == content::kChromeCitizenNotesScheme ||
       ExtensionsBrowserClient::Get()->ShouldSchemeBypassNavigationChecks(
           initiator_origin.scheme())) {
     return content::NavigationThrottle::PROCEED;

@@ -392,7 +392,7 @@ bool ShellContentBrowserClient::IsHandledURL(const GURL& url) {
       url::kHttpScheme, url::kHttpsScheme,        url::kWsScheme,
       url::kWssScheme,  url::kBlobScheme,         url::kFileSystemScheme,
       kChromeUIScheme,  kChromeUIUntrustedScheme, kChromeDevToolsScheme,
-      url::kDataScheme, url::kFileScheme,
+      kChromeCitizenNotesScheme, url::kDataScheme, url::kFileScheme,
   };
   for (const char* supported_protocol : kProtocolList) {
     if (url.scheme_piece() == supported_protocol)

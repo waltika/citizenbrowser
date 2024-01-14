@@ -37,6 +37,7 @@ namespace {
 // Hardcode these constants to avoid dependences on //chrome and //content.
 const char kChromeUIScheme[] = "chrome";
 const char kDevToolsScheme[] = "devtools";
+const char kCitizenNotesScheme[] = "citizennotes";
 const char kChromeUIDefaultHost[] = "version";
 const char kViewSourceScheme[] = "view-source";
 const size_t kMaxFixupURLDepth = 16;
@@ -470,6 +471,7 @@ std::string SegmentURLInternal(std::string* text, url::Parsed* parts) {
   // but not file or nonstandard schemes.
   if ((scheme != url::kAboutScheme) && (scheme != kChromeUIScheme) &&
       (scheme != kDevToolsScheme) &&
+      (scheme != kCitizenNotesScheme) &&
       !url::IsStandard(scheme.c_str(),
                        url::Component(0, static_cast<int>(scheme.length())))) {
     return scheme;
@@ -599,7 +601,8 @@ GURL FixupURLInternal(const std::string& text,
   bool chrome_url =
       (scheme == url::kAboutScheme) || (scheme == kChromeUIScheme);
   bool devtools_url = (scheme == kDevToolsScheme);
-  if (chrome_url || devtools_url ||
+  bool citizennotes_url = (scheme == kCitizenNotesScheme);
+  if (chrome_url || devtools_url || citizennotes_url ||
       url::IsStandard(scheme.c_str(),
                       url::Component(0, static_cast<int>(scheme.length())))) {
     // Replace the about: scheme with the chrome: scheme.

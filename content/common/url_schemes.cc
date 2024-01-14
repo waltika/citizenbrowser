@@ -29,6 +29,7 @@ const char* const kDefaultSavableSchemes[] = {
   url::kFileScheme,
   url::kFileSystemScheme,
   kChromeDevToolsScheme,
+  kChromeCitizenNotesScheme,
   kChromeUIScheme,
   url::kDataScheme
 };
@@ -59,6 +60,7 @@ void RegisterContentSchemes(bool should_lock_registry) {
   GetContentClient()->AddAdditionalSchemes(&schemes);
 
   url::AddStandardScheme(kChromeDevToolsScheme, url::SCHEME_WITH_HOST);
+  url::AddStandardScheme(kChromeCitizenNotesScheme, url::SCHEME_WITH_HOST);
   url::AddStandardScheme(kChromeUIScheme, url::SCHEME_WITH_HOST);
   url::AddStandardScheme(kChromeUIUntrustedScheme, url::SCHEME_WITH_HOST);
   url::AddStandardScheme(kChromeErrorScheme, url::SCHEME_WITH_HOST);
@@ -69,6 +71,7 @@ void RegisterContentSchemes(bool should_lock_registry) {
     url::AddReferrerScheme(scheme.c_str(), url::SCHEME_WITH_HOST);
 
   schemes.secure_schemes.push_back(kChromeDevToolsScheme);
+  schemes.secure_schemes.push_back(kChromeCitizenNotesScheme);
   schemes.secure_schemes.push_back(kChromeUIScheme);
   schemes.secure_schemes.push_back(kChromeUIUntrustedScheme);
   schemes.secure_schemes.push_back(kChromeErrorScheme);

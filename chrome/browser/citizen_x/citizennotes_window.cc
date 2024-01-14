@@ -91,6 +91,9 @@
 #include "base/win/windows_h_disallowed.h"
 #endif  // defined(_WINDOWS_)
 
+#include <iostream>
+
+
 using blink::WebInputEvent;
 using content::BrowserThread;
 using content::CitizenNotesAgentHost;
@@ -235,6 +238,7 @@ BrowserWindow* CitizenNotesToolboxDelegate::GetInspectedBrowserWindow() {
 
 // static
 GURL DecorateFrontendURL(const GURL& base_url) {
+  std::cout << "DecorateFrontendURL(base_url = " << base_url << ")" << std::endl;
   std::string frontend_url = base_url.spec();
   base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
 
@@ -249,6 +253,8 @@ GURL DecorateFrontendURL(const GURL& base_url) {
                    ((frontend_url.find("?") == std::string::npos) ? "?" : "&") +
                    "debugFrontend=true";
   }
+
+  std::cout << "DecorateFrontendURL return = " << frontend_url << std::endl;
 
   return GURL(frontend_url);
 }
@@ -1220,6 +1226,9 @@ GURL CitizenNotesWindow::GetCitizenNotesURL(Profile* profile,
                                     const std::string& panel,
                                     bool has_other_clients,
                                     bool browser_connection) {
+
+  std::cout << "CitizenNotesWindow::GetCitizenNotesURL(frontend_type : " << frontend_type << " frontend_url : " << frontend_url << ")" << std::endl;
+    
   std::string url;
 
   std::string remote_base =
@@ -1280,6 +1289,7 @@ GURL CitizenNotesWindow::GetCitizenNotesURL(Profile* profile,
   url += "&isChromeForTesting=true";
 #endif
 
+  std::cout << "CitizenNotesWindow::GetCitizenNotesURL end : " << url << std::endl;
   return CitizenNotesUIBindings::SanitizeFrontendURL(GURL(url));
 }
 

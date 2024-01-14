@@ -203,6 +203,7 @@ AddressSpace IPAddressSpaceForSpecialScheme(const GURL& url,
   // List here: content/public/common/url_constants.cc.
   const char* special_content_schemes[] = {
     kChromeDevToolsScheme,
+    kChromeCitizenNotesScheme, 
     kChromeUIScheme,
     kChromeUIUntrustedScheme,
 #if BUILDFLAG(IS_CHROMEOS_ASH)

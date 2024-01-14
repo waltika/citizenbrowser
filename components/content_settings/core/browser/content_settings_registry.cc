@@ -80,7 +80,7 @@ void ContentSettingsRegistry::Init() {
   Register(
       ContentSettingsType::COOKIES, "cookies", CONTENT_SETTING_ALLOW,
       WebsiteSettingsInfo::SYNCABLE,
-      /*allowlisted_primary_schemes=*/{kChromeUIScheme, kChromeDevToolsScheme},
+      /*allowlisted_primary_schemes=*/{kChromeUIScheme, kChromeDevToolsScheme, kChromeCitizenNotesScheme},
       /* additional secondary schemes are allowlisted via
          set_third_party_cookie_allowed_secondary_schemes() */
       /*valid_settings=*/
@@ -94,7 +94,7 @@ void ContentSettingsRegistry::Init() {
   Register(ContentSettingsType::IMAGES, "images", CONTENT_SETTING_ALLOW,
            WebsiteSettingsInfo::SYNCABLE,
            /*allowlisted_primary_schemes=*/
-           {kChromeUIScheme, kChromeDevToolsScheme, kExtensionScheme},
+           {kChromeUIScheme, kChromeDevToolsScheme, kChromeCitizenNotesScheme, kExtensionScheme},
            /*valid_settings=*/{CONTENT_SETTING_ALLOW, CONTENT_SETTING_BLOCK},
            WebsiteSettingsInfo::TOP_ORIGIN_WITH_RESOURCE_EXCEPTIONS_SCOPE,
            WebsiteSettingsRegistry::DESKTOP,
@@ -104,7 +104,7 @@ void ContentSettingsRegistry::Init() {
   Register(ContentSettingsType::JAVASCRIPT, "javascript", CONTENT_SETTING_ALLOW,
            WebsiteSettingsInfo::SYNCABLE,
            /*allowlisted_primary_schemes=*/
-           {kChromeUIScheme, kChromeDevToolsScheme, kExtensionScheme},
+           {kChromeUIScheme, kChromeDevToolsScheme, kChromeCitizenNotesScheme, kExtensionScheme},
            /*valid_settings=*/{CONTENT_SETTING_ALLOW, CONTENT_SETTING_BLOCK},
            WebsiteSettingsInfo::TOP_ORIGIN_WITH_RESOURCE_EXCEPTIONS_SCOPE,
            WebsiteSettingsRegistry::DESKTOP |
@@ -124,7 +124,7 @@ void ContentSettingsRegistry::Init() {
   Register(ContentSettingsType::POPUPS, "popups", CONTENT_SETTING_BLOCK,
            WebsiteSettingsInfo::SYNCABLE,
            /*allowlisted_primary_schemes=*/
-           {kChromeUIScheme, kChromeDevToolsScheme, kExtensionScheme},
+           {kChromeUIScheme, kChromeDevToolsScheme, kChromeCitizenNotesScheme, kExtensionScheme},
            /*valid_settings=*/{CONTENT_SETTING_ALLOW, CONTENT_SETTING_BLOCK},
            WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
            WebsiteSettingsRegistry::ALL_PLATFORMS,
@@ -157,7 +157,7 @@ void ContentSettingsRegistry::Init() {
   Register(
       ContentSettingsType::MEDIASTREAM_MIC, "media-stream-mic",
       CONTENT_SETTING_ASK, WebsiteSettingsInfo::UNSYNCABLE,
-      /*allowlisted_primary_schemes=*/{kChromeUIScheme, kChromeDevToolsScheme},
+      /*allowlisted_primary_schemes=*/{kChromeUIScheme, kChromeDevToolsScheme, kChromeCitizenNotesScheme},
       /*valid_settings=*/
       {CONTENT_SETTING_ALLOW, CONTENT_SETTING_BLOCK, CONTENT_SETTING_ASK},
       WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
@@ -170,7 +170,7 @@ void ContentSettingsRegistry::Init() {
   Register(
       ContentSettingsType::MEDIASTREAM_CAMERA, "media-stream-camera",
       CONTENT_SETTING_ASK, WebsiteSettingsInfo::UNSYNCABLE,
-      /*allowlisted_primary_schemes=*/{kChromeUIScheme, kChromeDevToolsScheme},
+      /*allowlisted_primary_schemes=*/{kChromeUIScheme, kChromeDevToolsScheme, kChromeCitizenNotesScheme},
       /*valid_settings=*/
       {CONTENT_SETTING_ALLOW, CONTENT_SETTING_BLOCK, CONTENT_SETTING_ASK},
       WebsiteSettingsInfo::TOP_ORIGIN_ONLY_SCOPE,
@@ -183,7 +183,7 @@ void ContentSettingsRegistry::Init() {
   Register(ContentSettingsType::AUTOMATIC_DOWNLOADS, "automatic-downloads",
            CONTENT_SETTING_ASK, WebsiteSettingsInfo::SYNCABLE,
            /*allowlisted_primary_schemes=*/
-           {kChromeUIScheme, kChromeDevToolsScheme, kExtensionScheme},
+           {kChromeUIScheme, kChromeDevToolsScheme, kChromeCitizenNotesScheme, kExtensionScheme},
            /*valid_settings=*/
            {CONTENT_SETTING_ALLOW, CONTENT_SETTING_BLOCK, CONTENT_SETTING_ASK},
            WebsiteSettingsInfo::REQUESTING_ORIGIN_ONLY_SCOPE,
@@ -689,7 +689,7 @@ void ContentSettingsRegistry::Register(
   if (type == ContentSettingsType::COOKIES) {
     content_settings_info_[type]
         ->set_third_party_cookie_allowed_secondary_schemes(
-            {kChromeDevToolsScheme, kExtensionScheme});
+            {kChromeDevToolsScheme, kChromeCitizenNotesScheme, kExtensionScheme});
   }
 }
 

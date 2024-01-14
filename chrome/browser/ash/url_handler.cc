@@ -116,7 +116,7 @@ bool TryOpenUrl(const GURL& url,
   // will have to be dealt with separately) as well as some existing links that
   // currently must remain in Ash.
   bool should_open_in_lacros =
-      !url.SchemeIs(content::kChromeDevToolsScheme) &&
+      !url.SchemeIs(content::kChromeDevToolsScheme) && !url.SchemeIs(content::kChromeCitizenNotesScheme) &&
       ((chrome_scheme_semantics == ChromeSchemeSemantics::kLacros) ||
        !url.SchemeIs(content::kChromeUIScheme)) &&
       // Terminal's tabs must remain in Ash.

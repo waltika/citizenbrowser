@@ -425,6 +425,10 @@ bool ContentSettingsAgentImpl::IsAllowlistedForContentSettings() const {
   if (protocol == content::kChromeDevToolsScheme)
     return true;  // DevTools UI elements should still work.
 
+  if (protocol == content::kChromeCitizenNotesScheme)
+    return true;  // DevTools UI elements should still work.
+
+    
   if (delegate_->IsSchemeAllowlisted(protocol.Utf8()))
     return true;
 

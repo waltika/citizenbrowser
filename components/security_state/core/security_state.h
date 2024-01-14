@@ -202,6 +202,8 @@ struct VisibleSecurityState {
   bool is_view_source;
   // True if the page is a devtools page.
   bool is_devtools;
+  // True if the page is a citizennotes page.
+  bool is_citizennotes;
   // True if the page is a reader mode page.
   bool is_reader_mode;
   // True if mixed forms should be treated as secure from the visible security

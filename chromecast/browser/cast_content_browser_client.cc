@@ -368,7 +368,9 @@ bool CastContentBrowserClient::IsHandledURL(const GURL& url) {
   }
 
   static const char* const kProtocolList[] = {
-      content::kChromeUIScheme, content::kChromeDevToolsScheme,
+      content::kChromeUIScheme,
+      content::kChromeDevToolsScheme,
+      content::kChromeCitizenNotesScheme,
       kChromeResourceScheme,    url::kBlobScheme,
       url::kDataScheme,         url::kFileSystemScheme,
   };

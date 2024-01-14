@@ -1154,6 +1154,8 @@ if (use_blink && !is_cronet_build) {
       "//testing/buildbot/filters:blink_web_tests_filter",
       "//third_party/blink/public:blink_devtools_frontend_resources_files",
       "//third_party/blink/public:blink_devtools_inspector_resources",
+      "//third_party/blink/public:blink_citizennotes_frontend_resources_files",
+      "//third_party/blink/public:blink_citizennotes_inspector_resources",
       "//third_party/blink/public/mojom:mojom_platform_js_data_deps",
       "//third_party/blink/renderer/core:gen_files_for_web_tests",
       "//third_party/catapult/third_party/typ",
@@ -1490,6 +1492,24 @@ if (use_blink && !is_cronet_build) {
 
     data_deps = [ ":blink_web_tests_support_data" ]
     data = [ "//third_party/devtools-frontend/src/test/webtests/" ]
+  }
+
+
+  script_test("citizennotes_web_tests") {
+    # This target differs from :blink_web_tests in that it uses the
+    # same test harness but runs an entirely different set of tests
+    # and doesn't have a dependency on the web_test directory at all.
+    script = _common_web_test_script
+
+    args = _common_web_test_args + [
+             "--layout-tests-directory=@WrappedPath(" + rebase_path(
+                     "//third_party/citizennotes-frontend/src/test/webtests",
+                     root_out_dir) + ")",
+             "http/tests/citizennotes",
+           ]
+
+    data_deps = [ ":blink_web_tests_support_data" ]
+    data = [ "//third_party/citizennotes-frontend/src/test/webtests/" ]
   }
 
   script_test("webgpu_blink_web_tests") {

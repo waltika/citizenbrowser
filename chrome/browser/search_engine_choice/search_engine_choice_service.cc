@@ -330,6 +330,9 @@ bool SearchEngineChoiceService::IsUrlSuitableForDialog(GURL url) {
   if (url.SchemeIs(content::kChromeDevToolsScheme)) {
     return false;
   }
+  if (url.SchemeIs(content::kChromeCitizenNotesScheme)) {
+    return false;
+  }
   // Don't show the dialog over remaining urls that start with 'chrome://'.
   return !url.SchemeIs(content::kChromeUIScheme);
 }

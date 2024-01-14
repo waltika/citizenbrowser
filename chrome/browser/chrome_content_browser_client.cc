@@ -7337,6 +7337,9 @@ bool ChromeContentBrowserClient::ShouldBlockRendererDebugURL(
   if (!DevToolsWindow::AllowDevToolsFor(profile, web_contents)) {
     return true;
   }
+  if (!CitizenNotesWindow::AllowCitizenNotesFor(profile, web_contents)) {
+    return true;
+  }
 #endif
 
   // If the debug URL being visited is listed in the URLBlocklist policy it

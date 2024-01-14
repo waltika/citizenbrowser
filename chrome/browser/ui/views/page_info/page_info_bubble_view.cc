@@ -78,6 +78,8 @@ InternalPageInfoBubbleView::InternalPageInfoBubbleView(
     text = IDS_PAGE_INFO_FILE_PAGE;
   } else if (url.SchemeIs(content::kChromeDevToolsScheme)) {
     text = IDS_PAGE_INFO_DEVTOOLS_PAGE;
+  } else if (url.SchemeIs(content::kChromeCitizenNotesScheme)) {
+    text = IDS_PAGE_INFO_CITIZENNOTES_PAGE;
   } else if (url.SchemeIs(dom_distiller::kDomDistillerScheme)) {
     if (dom_distiller::url_utils::GetOriginalUrlFromDistillerUrl(url).SchemeIs(
             url::kHttpsScheme)) {
