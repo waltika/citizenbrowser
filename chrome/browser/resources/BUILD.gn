@@ -24,6 +24,7 @@ group("resources") {
       ":app_icon_resources",
       ":component_extension_resources",
       ":dev_ui_paks",
+      ":citizen_ui_paks",
       "about_sys:resources",
       "access_code_cast:resources",
       "app_service_internals:resources",
@@ -330,4 +331,22 @@ repack("dev_ui_paks") {
   }
 
   deps = [ ":dev_ui_resources" ]
+}
+
+
+group("citizen_ui_resources") {
+  public_deps = [
+    "//chrome/browser:citizen_ui_browser_resources",
+    "//components/resources:citizen_ui_components_resources",
+  ]
+}
+
+repack("citizen_ui_paks") {
+  output = "$root_gen_dir/chrome/citizen_ui_resources.pak"
+
+  sources = [
+    "$root_gen_dir/chrome/citizen_ui_browser_resources.pak",
+    "$root_gen_dir/components/citizen_ui_components_resources.pak",
+  ]
+  deps = [ ":citizen_ui_resources" ]
 }

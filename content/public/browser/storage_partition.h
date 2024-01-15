@@ -73,6 +73,7 @@ class ContentIndexContext;
 class CookieDeprecationLabelManager;
 class DedicatedWorkerService;
 class DevToolsBackgroundServicesContext;
+class CitizenNotesBackgroundServicesContext;
 class DOMStorageContext;
 class FileSystemAccessEntryFactory;
 class GeneratedCodeCacheContext;
@@ -161,6 +162,8 @@ class CONTENT_EXPORT StoragePartition {
   virtual GeneratedCodeCacheContext* GetGeneratedCodeCacheContext() = 0;
   virtual DevToolsBackgroundServicesContext*
   GetDevToolsBackgroundServicesContext() = 0;
+  virtual CitizenNotesBackgroundServicesContext*
+  GetCitizenNotesBackgroundServicesContext() = 0;
   virtual ContentIndexContext* GetContentIndexContext() = 0;
   virtual HostZoomMap* GetHostZoomMap() = 0;
   virtual HostZoomLevelContext* GetHostZoomLevelContext() = 0;

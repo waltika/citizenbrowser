@@ -69,6 +69,9 @@
 #include "content/browser/devtools/devtools_background_services_context_impl.h"
 #include "content/browser/devtools/devtools_instrumentation.h"
 #include "content/browser/devtools/devtools_url_loader_interceptor.h"
+#include "content/browser/citizen_x/citizennotes_background_services_context_impl.h"
+#include "content/browser/citizen_x/citizennotes_instrumentation.h"
+#include "content/browser/citizen_x/citizennotes_url_loader_interceptor.h"
 #include "content/browser/file_system/browser_file_system_helper.h"
 #include "content/browser/file_system_access/file_system_access_manager_impl.h"
 #include "content/browser/font_access/font_access_manager.h"
@@ -1458,6 +1461,10 @@ void StoragePartitionImpl::Initialize(
       std::make_unique<DevToolsBackgroundServicesContextImpl>(
           browser_context_, service_worker_context_);
 
+  citizennotes_background_services_context_ =
+      std::make_unique<CitizenNotesBackgroundServicesContextImpl>(
+          browser_context_, service_worker_context_);
+
   content_index_context_ = base::MakeRefCounted<ContentIndexContextImpl>(
       browser_context_, service_worker_context_);
 
@@ -1467,7 +1474,8 @@ void StoragePartitionImpl::Initialize(
 
   background_sync_context_ = base::MakeRefCounted<BackgroundSyncContextImpl>();
   background_sync_context_->Init(service_worker_context_,
-                                 *devtools_background_services_context_.get());
+                                 *devtools_background_services_context_.get(),
+                                 *citizennotes_background_services_context_.get());
 
   payment_app_context_ = new PaymentAppContextImpl();
   payment_app_context_->Init(service_worker_context_);
@@ -1906,6 +1914,13 @@ StoragePartitionImpl::GetDevToolsBackgroundServicesContext() {
   DCHECK(initialized_);
   return devtools_background_services_context_.get();
 }
+
+CitizenNotesBackgroundServicesContext*
+StoragePartitionImpl::GetCitizenNotesBackgroundServicesContext() {
+  DCHECK(initialized_);
+  return citizennotes_background_services_context_.get();
+}
+
 
 FileSystemAccessManagerImpl*
 StoragePartitionImpl::GetFileSystemAccessManager() {

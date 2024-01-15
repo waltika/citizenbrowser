@@ -10,6 +10,7 @@
 #include "chrome/browser/ui/webui/webui_util.h"
 #include "chrome/common/url_constants.h"
 #include "chrome/grit/dev_ui_browser_resources.h"
+#include "chrome/grit/citizen_ui_browser_resources.h"
 #include "chrome/grit/internals_resources.h"
 #include "chrome/grit/internals_resources_map.h"
 #include "content/public/browser/web_ui.h"

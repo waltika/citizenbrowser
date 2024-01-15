@@ -136,6 +136,7 @@ template("chrome_extra_paks") {
       "//mojo/public/js:resources",
       "//net:net_resources",
       "//third_party/blink/public:devtools_inspector_resources",
+      "//third_party/blink/public:citizennotes_inspector_resources",
       "//third_party/blink/public:resources",
       "//ui/resources",
     ]
@@ -156,6 +157,7 @@ template("chrome_extra_paks") {
         "$root_gen_dir/chrome/commander_resources.pak",
         "$root_gen_dir/chrome/component_extension_resources.pak",
         "$root_gen_dir/chrome/dev_ui_resources.pak",
+        "$root_gen_dir/chrome/citizen_ui_resources.pak",
         "$root_gen_dir/chrome/downloads_resources.pak",
         "$root_gen_dir/chrome/feed_resources.pak",
         "$root_gen_dir/chrome/feedback_resources.pak",
@@ -191,6 +193,7 @@ template("chrome_extra_paks") {
         "$root_gen_dir/chrome/webui_gallery_resources.pak",
         "$root_gen_dir/chrome/whats_new_resources.pak",
         "$root_gen_dir/content/browser/devtools/devtools_resources.pak",
+        "$root_gen_dir/content/browser/citizen_x/citizennotes_resources.pak",
         "$root_gen_dir/content/browser/tracing/tracing_resources.pak",
         "$root_gen_dir/content/traces_internals_resources.pak",
       ]
@@ -198,6 +201,8 @@ template("chrome_extra_paks") {
         "//chrome/browser/resources:component_extension_resources",
         "//chrome/browser/resources:dev_ui_paks",
         "//content/browser/devtools:devtools_resources",
+        "//chrome/browser/resources:citizen_ui_paks",
+        "//content/browser/citizen_x:citizennotes_resources",
         "//content/browser/tracing:resources",
       ]
       if (is_chrome_branded) {

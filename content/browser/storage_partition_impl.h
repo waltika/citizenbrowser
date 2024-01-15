@@ -203,6 +203,8 @@ class CONTENT_EXPORT StoragePartitionImpl
   GeneratedCodeCacheContext* GetGeneratedCodeCacheContext() override;
   DevToolsBackgroundServicesContext* GetDevToolsBackgroundServicesContext()
       override;
+  CitizenNotesBackgroundServicesContext* GetCitizenNotesBackgroundServicesContext()
+      override;
   ContentIndexContextImpl* GetContentIndexContext() override;
   HostZoomMap* GetHostZoomMap() override;
   HostZoomLevelContext* GetHostZoomLevelContext() override;
@@ -694,6 +696,8 @@ class CONTENT_EXPORT StoragePartitionImpl
   scoped_refptr<GeneratedCodeCacheContext> generated_code_cache_context_;
   std::unique_ptr<DevToolsBackgroundServicesContextImpl>
       devtools_background_services_context_;
+  std::unique_ptr<CitizenNotesBackgroundServicesContextImpl>
+      citizennotes_background_services_context_;
   scoped_refptr<FileSystemAccessManagerImpl> file_system_access_manager_;
   std::unique_ptr<leveldb_proto::ProtoDatabaseProvider>
       proto_database_provider_;

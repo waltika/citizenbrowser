@@ -112,6 +112,9 @@ enum {
   FILE_DEV_UI_RESOURCES_PACK,  // Full path to the .pak file containing
                                // binary data for internal pages (e.g., html
                                // files and images).
+  FILE_CITIZEN_UI_RESOURCES_PACK,  // Full path to the .pak file containing
+                               // binary data for internal pages (e.g., html
+                               // files and images).
 #if BUILDFLAG(IS_CHROMEOS_ASH)
   DIR_CHROMEOS_WALLPAPERS,            // Directory where downloaded chromeos
                                       // wallpapers reside.

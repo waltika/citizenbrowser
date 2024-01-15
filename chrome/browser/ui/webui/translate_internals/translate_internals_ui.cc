@@ -16,6 +16,7 @@
 #include "chrome/common/chrome_switches.h"
 #include "chrome/common/url_constants.h"
 #include "chrome/grit/dev_ui_browser_resources.h"
+#include "chrome/grit/citizen_ui_browser_resources.h"
 #include "components/translate/core/common/translate_util.h"
 #include "components/translate/translate_internals/translate_internals_handler.h"
 #include "content/public/browser/web_contents.h"

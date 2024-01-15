@@ -701,6 +701,7 @@ base::StringPiece ResourceBundle::GetRawDataResourceForScale(
     int resource_id,
     ResourceScaleFactor scale_factor,
     ResourceScaleFactor* loaded_scale_factor) const {
+
   if (delegate_) {
     base::StringPiece data;
     if (delegate_->GetRawDataResource(resource_id, scale_factor, &data)) {

@@ -51,6 +51,7 @@ import("//ui/base/ui_features.gni")
 if (is_android) {
   import("//build/config/android/rules.gni")
   import("//chrome/android/features/dev_ui/dev_ui_module.gni")
+  import("//chrome/android/features/citizen_ui/citizen_ui_module.gni")
 }
 
 if (is_win) {
@@ -2029,6 +2030,7 @@ static_library("browser") {
     ":browser_process",
     ":buildflags",
     ":dev_ui_browser_resources_grit",
+    ":citizen_ui_browser_resources_grit",
     ":expired_flags_list",
     ":get_proxy_config_proto",
     ":k_anonymity_storage_proto",
@@ -3428,6 +3430,7 @@ static_library("browser") {
     ]
     public_deps += [
       "//chrome/android/features/dev_ui:buildflags",
+      "//chrome/android/features/citizen_ui:buildflags",
       "//components/image_fetcher/core",
     ]
     deps += [
@@ -3654,6 +3657,16 @@ static_library("browser") {
         "dev_ui/android/dev_ui_loader_throttle.h",
       ]
       deps += [ "//chrome/android/modules/dev_ui/provider:native" ]
+    }
+    if (dfmify_citizen_ui) {
+      # TODO(huangs): Extracting this to a separate target.
+      sources += [
+        "citizen_ui/android/citizen_ui_loader_error_page.cc",
+        "citizen_ui/android/citizen_ui_loader_error_page.h",
+        "citizen_ui/android/citizen_ui_loader_throttle.cc",
+        "citizen_ui/android/citizen_ui_loader_throttle.h",
+      ]
+      deps += [ "//chrome/android/modules/citizen_ui/provider:native" ]
     }
   } else {
     #!is_android
@@ -8287,6 +8300,18 @@ grit("dev_ui_browser_resources") {
   outputs = [
     "grit/dev_ui_browser_resources.h",
     "dev_ui_browser_resources.pak",
+  ]
+}
+
+grit("citizen_ui_browser_resources") {
+  source = "citizen_ui_browser_resources.grd"
+
+  defines = chrome_grit_defines
+
+  output_dir = "$root_gen_dir/chrome"
+  outputs = [
+    "grit/citizen_ui_browser_resources.h",
+    "citizen_ui_browser_resources.pak",
   ]
 }
 

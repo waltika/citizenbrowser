@@ -960,6 +960,7 @@ repack("repack_pack") {
     "//content/browser/resources/histograms:resources",
     "//net:net_resources",
     "//third_party/blink/public:devtools_inspector_resources",
+    "//third_party/blink/public:citizennotes_inspector_resources",
     "//third_party/blink/public:resources",
   ]
   output = "$target_gen_dir/resources.pak"

@@ -120,10 +120,10 @@ void CNBackgroundServiceHandler::SetRenderer(int process_host_id,
     return;
   }
 
-  //auto* storage_partition =
-  //    static_cast<StoragePartitionImpl*>(process_host->GetStoragePartition());
+  auto* storage_partition =
+      static_cast<StoragePartitionImpl*>(process_host->GetStoragePartition());
 
-  //SetCitizenNotesContext(storage_partition->GetDevToolsBackgroundServicesContext()); //TODO: Adapt
+  SetCitizenNotesContext(storage_partition->GetCitizenNotesBackgroundServicesContext());
   DCHECK(citizennotes_context_);
 }
 

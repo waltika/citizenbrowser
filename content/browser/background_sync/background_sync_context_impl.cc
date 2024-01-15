@@ -15,6 +15,7 @@
 #include "content/browser/background_sync/one_shot_background_sync_service_impl.h"
 #include "content/browser/background_sync/periodic_background_sync_service_impl.h"
 #include "content/browser/devtools/devtools_background_services_context_impl.h"
+#include "content/browser/citizen_x/citizennotes_background_services_context_impl.h"
 #include "content/browser/service_worker/service_worker_context_wrapper.h"
 #include "content/public/browser/browser_task_traits.h"
 #include "content/public/browser/browser_thread.h"
@@ -55,10 +56,11 @@ void BackgroundSyncContext::FireBackgroundSyncEventsAcrossPartitions(
 
 void BackgroundSyncContextImpl::Init(
     const scoped_refptr<ServiceWorkerContextWrapper>& service_worker_context,
-    DevToolsBackgroundServicesContextImpl& devtools_context) {
+    DevToolsBackgroundServicesContextImpl& devtools_context,
+    CitizenNotesBackgroundServicesContextImpl& citizennotes_context) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
-  CreateBackgroundSyncManager(service_worker_context, devtools_context);
+  CreateBackgroundSyncManager(service_worker_context, devtools_context, citizennotes_context);
 }
 
 void BackgroundSyncContextImpl::Shutdown() {
@@ -183,12 +185,13 @@ void BackgroundSyncContextImpl::FireBackgroundSyncEvents(
 
 void BackgroundSyncContextImpl::CreateBackgroundSyncManager(
     scoped_refptr<ServiceWorkerContextWrapper> service_worker_context,
-    DevToolsBackgroundServicesContextImpl& devtools_context) {
+    DevToolsBackgroundServicesContextImpl& devtools_context,
+    CitizenNotesBackgroundServicesContextImpl& citizennotes_context) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   DCHECK(!background_sync_manager_);
 
   background_sync_manager_ = BackgroundSyncManager::Create(
-      std::move(service_worker_context), devtools_context);
+      std::move(service_worker_context), devtools_context, citizennotes_context);
 }
 
 }  // namespace content

@@ -25,6 +25,7 @@ group("resources") {
     ":components_resources",
     ":components_scaled_resources",
     ":dev_ui_components_resources",
+    ":citizen_ui_components_resources",
     "../flags_ui/resources:resources",
     "../version_ui/resources:resources",
   ]
@@ -134,6 +135,47 @@ action("about_credits") {
   if (defined(extra_third_party_notice_dirs)) {
     args += [ "--extra-third-party-dirs=$extra_third_party_notice_dirs" ]
   }
+}
+
+if (is_android) {
+  source_set("android_resources") {
+    sources = [
+      "android/autofill_resource_id.h",
+      "android/blocked_content_resource_id.h",
+      "android/page_info_resource_id.h",
+      "android/permissions_resource_id.h",
+      "android/sms_resource_id.h",
+      "android/theme_resources.h",
+      "android/webxr_resource_id.h",
+    ]
+
+    public_deps = [ "//device/vr/buildflags" ]
+  }
+}
+
+if (is_ios) {
+  bundle_data_from_filelist("terms_resources") {
+    # On iOS, the terms of service file need to be loaded from the application
+    # bundle, not from a datapack. As GetTermsOfServicePath() returns path to
+    # those files, they are added to the bundle resources dir.
+    filelist_name = "terms_resources.filelist"
+    outputs = [ "{{bundle_resources_dir}}/{{source_file_part}}" ]
+  }
+}
+
+grit("citizen_ui_components_resources") {
+  source = "citizen_ui_components_resources.grd"
+
+  outputs = [
+    "grit/citizen_ui_components_resources.h",
+    "citizen_ui_components_resources.pak",
+  ]
+
+  deps = [
+    "//components/crash/core/browser/resources:build_ts",
+    "//components/local_state:build",
+  ]
+  output_dir = "$root_gen_dir/components"
 }
 
 if (is_android) {

@@ -27,6 +27,8 @@
 #include "components/crash/content/browser/error_reporting/js_error_report_processor.h"  // nogncheck
 #endif  // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
 
+#include <iostream>
+
 extern const webui::ResourcePath kCitizennotesResources[];
 extern const size_t kCitizennotesResourcesSize;
 
@@ -86,9 +88,14 @@ void CitizenNotesFrontendHost::SetupExtensionsAPI(
 // static
 scoped_refptr<base::RefCountedMemory>
 CitizenNotesFrontendHost::GetFrontendResourceBytes(const std::string& path) {
+  std::cout << "CitizenNotesFrontendHost::GetFrontendResourceBytes(path = " << path << ")" << std::endl;
   for (size_t i = 0; i < kCitizennotesResourcesSize; ++i) {
+    std::cout << "    trying : " << kCitizennotesResources[i].path  << std::endl;
     if (path == kCitizennotesResources[i].path) {
-      return GetContentClient()->GetDataResourceBytes(kCitizennotesResources[i].id);
+        std::cout << "    found : " << kCitizennotesResources[i].path  << std::endl;
+        scoped_refptr<base::RefCountedMemory> result = GetContentClient()->GetDataResourceBytes(kCitizennotesResources[i].id);
+        std::cout << "    result:" << result  << std::endl;
+        return result;
     }
   }
   return nullptr;

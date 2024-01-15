@@ -61,6 +61,7 @@ assert(!is_ios, "Chromium/iOS shouldn't use anything in //chrome")
 if (is_android) {
   import("//build/config/android/rules.gni")
   import("//chrome/android/features/dev_ui/dev_ui_module.gni")
+  import("//chrome/android/features/citizen_ui/citizen_ui_module.gni")
   import("//third_party/jni_zero/jni_zero.gni")
   import("//tools/perf/chrome_telemetry_build/android_browser_types.gni")
 }
@@ -1430,6 +1431,7 @@ if (is_android) {
       "$root_gen_dir/chrome/android/chrome_apk_paks/resources.pak",
       "$root_gen_dir/components/components_resources.pak",
       "$root_gen_dir/components/dev_ui_components_resources.pak",
+      "$root_gen_dir/components/citizen_ui_components_resources.pak",
       "//components/test/data/ads_observer/",
       "//components/test/data/payments/",
       "//chrome/test/data/android/customtabs/",
@@ -1445,6 +1447,15 @@ if (is_android) {
       deps += [
         "//chrome/android/features/dev_ui:java",
         "//chrome/android/modules/dev_ui/provider:java",
+      ]
+    }
+
+    if (dfmify_citizen_ui) {
+      # If CitizenUI DFM is on, include Java classes and native resource split so
+      # that CitizenUI page tests would work.
+      deps += [
+        "//chrome/android/features/citizen_ui:java",
+        "//chrome/android/modules/citizen_ui/provider:java",
       ]
     }
 
@@ -1503,6 +1514,7 @@ if (is_android) {
       "$root_gen_dir/chrome/android/chrome_apk_paks/resources.pak",
       "$root_gen_dir/components/components_resources.pak",
       "$root_gen_dir/components/dev_ui_components_resources.pak",
+      "$root_gen_dir/components/citizen_ui_components_resources.pak",
     ]
   }
 
@@ -1535,6 +1547,7 @@ if (is_android) {
     sources += [
       "$root_gen_dir/components/components_resources.pak",
       "$root_gen_dir/components/dev_ui_components_resources.pak",
+      "$root_gen_dir/components/citizen_ui_components_resources.pak",
     ]
 
     # These are assets rules so we can just depend on them.
@@ -1689,6 +1702,8 @@ if (!is_android) {
       "//chrome/browser/companion/visual_query:visual_query",
       "//chrome/browser/devtools",
       "//chrome/browser/devtools:test_support",
+      "//chrome/browser/citizen_x",
+      "//chrome/browser/citizen_x:test_support",
       "//chrome/browser/dips:browser_tests",
       "//chrome/browser/enterprise/identifiers:identifiers",
       "//chrome/browser/favicon",

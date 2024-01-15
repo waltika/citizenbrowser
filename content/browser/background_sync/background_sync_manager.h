@@ -26,6 +26,7 @@
 #include "content/browser/background_sync/background_sync_proxy.h"
 #include "content/browser/background_sync/background_sync_status.h"
 #include "content/browser/devtools/devtools_background_services_context_impl.h"
+#include "content/browser/citizen_x/citizennotes_background_services_context_impl.h"
 #include "content/browser/service_worker/service_worker_context_core_observer.h"
 #include "content/browser/service_worker/service_worker_context_wrapper.h"
 #include "content/browser/service_worker/service_worker_registry.h"
@@ -74,7 +75,8 @@ class CONTENT_EXPORT BackgroundSyncManager
 
   static std::unique_ptr<BackgroundSyncManager> Create(
       scoped_refptr<ServiceWorkerContextWrapper> service_worker_context,
-      DevToolsBackgroundServicesContextImpl& devtools_context);
+      DevToolsBackgroundServicesContextImpl& devtools_context,
+      CitizenNotesBackgroundServicesContextImpl& citizennotes_context);
 
   BackgroundSyncManager(const BackgroundSyncManager&) = delete;
   BackgroundSyncManager& operator=(const BackgroundSyncManager&) = delete;
@@ -204,7 +206,8 @@ class CONTENT_EXPORT BackgroundSyncManager
  protected:
   BackgroundSyncManager(
       scoped_refptr<ServiceWorkerContextWrapper> context,
-      DevToolsBackgroundServicesContextImpl& devtools_context);
+      DevToolsBackgroundServicesContextImpl& devtools_context,
+      CitizenNotesBackgroundServicesContextImpl& citizennotes_context);
 
   // Init must be called before any public member function. Only call it once.
   void Init();
@@ -429,6 +432,7 @@ class CONTENT_EXPORT BackgroundSyncManager
 
   // Whether an event should be logged for debuggability, for |sync_type|.
   bool ShouldLogToDevTools(blink::mojom::BackgroundSyncType sync_type);
+  bool ShouldLogToCitizenNotes(blink::mojom::BackgroundSyncType sync_type);
 
   void ReviveOriginImpl(url::Origin origin, base::OnceClosure callback);
   void ReviveDidGetNextEventDelay(int64_t service_worker_registration_id,
@@ -500,6 +504,7 @@ class CONTENT_EXPORT BackgroundSyncManager
   // BackgroundSyncContextImpl shutdown, as part of StoragePartitionImpl
   // shutdown.
   raw_ptr<DevToolsBackgroundServicesContextImpl> devtools_context_;
+  raw_ptr<CitizenNotesBackgroundServicesContextImpl> citizennotes_context_;
 
   std::unique_ptr<BackgroundSyncParameters> parameters_;
 

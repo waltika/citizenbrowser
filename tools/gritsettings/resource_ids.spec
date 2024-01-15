@@ -542,10 +542,6 @@
     "META": {"sizes": {"includes": [10]}},
     "includes": [4500],
   },
-  "<(SHARED_INTERMEDIATE_DIR)/components/ukm/debug/resources.grd": {
-    "META": {"sizes": {"includes": [5]}},
-    "includes": [4510],
-  },
   "<(SHARED_INTERMEDIATE_DIR)/chrome/browser/resources/app_home/resources.grd": {
     "META": {"sizes": {"includes": [20]}},
     "includes": [4520],
@@ -689,6 +685,7 @@
     "META": {"sizes": {"includes": [10]}},
     "includes": [5260],
   },
+
   # END chrome/ WebUI resources section
 
   # START chrome/ miscellaneous section.
@@ -1264,18 +1261,29 @@
   },
 
   # This file is generated during the build.
+  "<(SHARED_INTERMEDIATE_DIR)/resources/cn_inspector_overlay/inspector_overlay_resources.grd": {
+    "META": {"sizes": {"includes": [50],}},
+    "includes": [8600],
+  },
+  "components/resources/citizen_ui_components_resources.grd": {
+    "includes": [8700],
+  },
+  "chrome/browser/citizen_ui_browser_resources.grd": {
+    # Big alignment at start of section.
+    "META": {"align": 100},
+    "includes": [8800],
+  },
+  # This file is generated during the build.
   # .grd extension is required because it's checked before var interpolation.
   "<(CITIZENNOTES_GRD_PATH).grd": {
     # In debug build, citizennotes frontend sources are not bundled and therefore
     # includes a lot of individual resources
     "META": {"sizes": {"includes": [3000],}},
-    "includes": [8500],
+    "includes": [8900],
   },
-
-  # This file is generated during the build.
-  "<(SHARED_INTERMEDIATE_DIR)/resources/cn_inspector_overlay/inspector_overlay_resources.grd": {
-    "META": {"sizes": {"includes": [50],}},
-    "includes": [8600],
+  "<(SHARED_INTERMEDIATE_DIR)/components/ukm/debug/resources.grd": {
+    "META": {"sizes": {"includes": [5]}},
+    "includes": [9000],
   },
 
 

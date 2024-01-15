@@ -14,6 +14,7 @@ import("//chrome/android/chrome_java_resources.gni")
 import("//chrome/android/chrome_public_apk_tmpl.gni")
 import("//chrome/android/expectations/expectations.gni")
 import("//chrome/android/features/dev_ui/dev_ui_module.gni")
+import("//chrome/android/features/citizen_ui/citizen_ui_module.gni")
 import("//chrome/android/features/start_surface/start_surface_java_sources.gni")
 import("//chrome/android/features/tab_ui/tab_management_java_sources.gni")
 import("//chrome/android/features/vr/public_vr_java_sources.gni")
@@ -2357,6 +2358,10 @@ if (current_toolchain == default_toolchain) {
         additional_extra_paks += [ "$root_gen_dir/chrome/dev_ui_resources.pak" ]
         deps += [ "//chrome/browser/resources:dev_ui_paks" ]
       }
+      if (!dfmify_citizen_ui || !_is_bundle_module) {
+        additional_extra_paks += [ "$root_gen_dir/chrome/citizen_ui_resources.pak" ]
+        deps += [ "//chrome/browser/resources:citizen_ui_paks" ]
+      }
 
       if (enable_resource_allowlist_generation) {
         repack_allowlist = _resource_allowlist_file
@@ -2664,6 +2669,9 @@ if (current_toolchain == default_toolchain) {
     # More deps for DFMs.
     if (dfmify_dev_ui) {
       deps += [ "//chrome/android/modules/dev_ui/provider:java" ]
+    }
+    if (dfmify_citizen_ui) {
+      deps += [ "//chrome/android/modules/citizen_ui/provider:java" ]
     }
 
     srcjar_deps = [

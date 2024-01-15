@@ -447,6 +447,32 @@ bool PathProvider(int key, base::FilePath* result) {
 #endif
       break;
 
+      case chrome::FILE_CITIZEN_UI_RESOURCES_PACK:
+  #if BUILDFLAG(IS_MAC)
+        cur = base::apple::FrameworkBundlePath();
+        cur = cur.Append(FILE_PATH_LITERAL("Resources"))
+                  .Append(FILE_PATH_LITERAL("resources.pak"));
+  #elif BUILDFLAG(IS_ANDROID)
+        if (!base::PathService::Get(ui::DIR_RESOURCE_PAKS_ANDROID, &cur)) {
+          return false;
+        }
+        if (key == chrome::FILE_CITIZEN_UI_RESOURCES_PACK) {
+          cur = cur.Append(FILE_PATH_LITERAL("citizen_ui_resources.pak"));
+        } else {
+          DCHECK_EQ(chrome::FILE_RESOURCES_PACK, key);
+          cur = cur.Append(FILE_PATH_LITERAL("resources.pak"));
+        }
+  #else
+        // If we're not bundled on mac or Android, resources.pak should be in
+        // the "assets" location (e.g. next to the binary, on many platforms, or
+        // in /pkg/data under Fuchsia, etc).
+        if (!base::PathService::Get(base::DIR_ASSETS, &cur)) {
+          return false;
+        }
+        cur = cur.Append(FILE_PATH_LITERAL("resources.pak"));
+  #endif
+        break;
+
 #if BUILDFLAG(IS_CHROMEOS_LACROS)
     case chrome::FILE_RESOURCES_FOR_SHARING_PACK:
       if (!GetDefaultUserDataDirectory(&cur)) {

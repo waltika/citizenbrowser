@@ -296,6 +296,14 @@ DevToolsBackgroundService GetDevToolsBackgroundService(
     return DevToolsBackgroundService::kPeriodicBackgroundSync;
 }
 
+CitizenNotesBackgroundService GetCitizenNotesBackgroundService(
+    BackgroundSyncType sync_type) {
+  if (sync_type == BackgroundSyncType::ONE_SHOT)
+    return CitizenNotesBackgroundService::kBackgroundSync;
+  else
+    return CitizenNotesBackgroundService::kPeriodicBackgroundSync;
+}
+
 std::string GetDelayAsString(base::TimeDelta delay) {
   if (delay.is_max())
     return "infinite";
@@ -375,11 +383,12 @@ BackgroundSyncManager::BackgroundSyncRegistrations::
 // static
 std::unique_ptr<BackgroundSyncManager> BackgroundSyncManager::Create(
     scoped_refptr<ServiceWorkerContextWrapper> service_worker_context,
-    DevToolsBackgroundServicesContextImpl& devtools_context) {
+    DevToolsBackgroundServicesContextImpl& devtools_context,
+    CitizenNotesBackgroundServicesContextImpl& citizennotes_context) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
 
   BackgroundSyncManager* sync_manager = new BackgroundSyncManager(
-      std::move(service_worker_context), devtools_context);
+      std::move(service_worker_context), devtools_context, citizennotes_context);
   sync_manager->Init();
   return base::WrapUnique(sync_manager);
 }
@@ -647,11 +656,13 @@ void BackgroundSyncManager::EmulateServiceWorkerOffline(
 
 BackgroundSyncManager::BackgroundSyncManager(
     scoped_refptr<ServiceWorkerContextWrapper> service_worker_context,
-    DevToolsBackgroundServicesContextImpl& devtools_context)
+    DevToolsBackgroundServicesContextImpl& devtools_context,
+    CitizenNotesBackgroundServicesContextImpl& citizennotes_context)
     : op_scheduler_(base::SingleThreadTaskRunner::GetCurrentDefault()),
       service_worker_context_(std::move(service_worker_context)),
       proxy_(std::make_unique<BackgroundSyncProxy>(service_worker_context_)),
       devtools_context_(&devtools_context),
+      citizennotes_context_(&citizennotes_context),
       parameters_(std::make_unique<BackgroundSyncParameters>()),
       disabled_(false),
       num_firing_registrations_one_shot_(0),
@@ -660,6 +671,7 @@ BackgroundSyncManager::BackgroundSyncManager(
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   DCHECK(devtools_context_);
+  DCHECK(citizennotes_context_);
   DCHECK(service_worker_context_);
 
   service_worker_context_->AddObserver(this);
@@ -1041,6 +1053,18 @@ void BackgroundSyncManager::RegisterDidGetDelay(
           GetDelayAsString(registration.delay_until() - clock_->Now())}});
   }
 
+  if (registration.sync_type() == BackgroundSyncType::PERIODIC &&
+      ShouldLogToCitizenNotes(registration.sync_type())) {
+    citizennotes_context_->LogBackgroundServiceEvent(
+      sw_registration_id,
+      blink::StorageKey::CreateFirstParty(registration.origin()),
+      CitizenNotesBackgroundService::kPeriodicBackgroundSync,
+      /* event_name= */ "Got next event delay",
+      /* instance_id= */ registration.options()->tag,
+      {{"Next Attempt Delay (ms)",
+        GetDelayAsString(registration.delay_until() - clock_->Now())}});
+  }
+
   AddOrUpdateActiveRegistration(sw_registration_id,
                                 sw_registration->key().origin(), registration);
 
@@ -1281,43 +1305,56 @@ void BackgroundSyncManager::ResolveRegistrationDidCreateKeepAlive(
 }
 
 void BackgroundSyncManager::RemoveActiveRegistration(
-    const blink::mojom::BackgroundSyncRegistrationInfo& registration_info) {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  DCHECK(LookupActiveRegistration(registration_info));
-
-  BackgroundSyncRegistrations* registrations =
-      &active_registrations_[registration_info.service_worker_registration_id];
-  const url::Origin& origin = registrations->origin;
-
-  registrations->registration_map.erase(
-      {registration_info.tag, registration_info.sync_type});
-
-  // Update controller's list of registered origin if necessary.
-  if (registrations->registration_map.empty())
-    proxy_->RemoveFromTrackedOrigins(origin);
-  else {
-    bool no_more_periodic_sync_registrations = true;
-    for (auto& key_and_registration : registrations->registration_map) {
-      if (key_and_registration.second.sync_type() ==
-          BackgroundSyncType::PERIODIC) {
-        no_more_periodic_sync_registrations = false;
-        break;
-      }
+                                                     const blink::mojom::BackgroundSyncRegistrationInfo& registration_info) {
+    DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+    DCHECK(LookupActiveRegistration(registration_info));
+    
+    BackgroundSyncRegistrations* registrations =
+    &active_registrations_[registration_info.service_worker_registration_id];
+    const url::Origin& origin = registrations->origin;
+    
+    registrations->registration_map.erase(
+                                          {registration_info.tag, registration_info.sync_type});
+    
+    // Update controller's list of registered origin if necessary.
+    if (registrations->registration_map.empty())
+        proxy_->RemoveFromTrackedOrigins(origin);
+    else {
+        bool no_more_periodic_sync_registrations = true;
+        for (auto& key_and_registration : registrations->registration_map) {
+            if (key_and_registration.second.sync_type() ==
+                BackgroundSyncType::PERIODIC) {
+                no_more_periodic_sync_registrations = false;
+                break;
+            }
+        }
+        if (no_more_periodic_sync_registrations)
+            proxy_->RemoveFromTrackedOrigins(origin);
     }
-    if (no_more_periodic_sync_registrations)
-      proxy_->RemoveFromTrackedOrigins(origin);
-  }
+    
+    if (registration_info.sync_type == BackgroundSyncType::PERIODIC &&
+        ShouldLogToDevTools(registration_info.sync_type)) {
+        devtools_context_->LogBackgroundServiceEvent(
+                                                     registration_info.service_worker_registration_id,
+                                                     blink::StorageKey::CreateFirstParty(origin),
+                                                     DevToolsBackgroundService::kPeriodicBackgroundSync,
+                                                     /* event_name= */ "Unregistered periodicsync",
+                                                     /* instance_id= */ registration_info.tag,
+                                                     /* event_metadata= */ {});
+    }
+    
+    if (registration_info.sync_type == BackgroundSyncType::PERIODIC &&
+        ShouldLogToCitizenNotes(registration_info.sync_type)) {
+      citizennotes_context_->LogBackgroundServiceEvent(
+          registration_info.service_worker_registration_id,
+          blink::StorageKey::CreateFirstParty(origin),
+          CitizenNotesBackgroundService::kPeriodicBackgroundSync,
+          /* event_name= */ "Unregistered periodicsync",
+          /* instance_id= */ registration_info.tag,
+          /* event_metadata= */ {});
+    }
 
-  if (registration_info.sync_type == BackgroundSyncType::PERIODIC &&
-      ShouldLogToDevTools(registration_info.sync_type)) {
-    devtools_context_->LogBackgroundServiceEvent(
-        registration_info.service_worker_registration_id,
-        blink::StorageKey::CreateFirstParty(origin),
-        DevToolsBackgroundService::kPeriodicBackgroundSync,
-        /* event_name= */ "Unregistered periodicsync",
-        /* instance_id= */ registration_info.tag,
-        /* event_metadata= */ {});
-  }
+    
 }
 
 void BackgroundSyncManager::AddOrUpdateActiveRegistration(
@@ -1344,6 +1381,11 @@ void BackgroundSyncManager::AddOrUpdateActiveRegistration(
     devtools_context_->LogBackgroundServiceEvent(
         sw_registration_id, blink::StorageKey::CreateFirstParty(origin),
         GetDevToolsBackgroundService(sync_type),
+        /* event_name= */ "Registered " + GetSyncEventName(sync_type),
+        /* instance_id= */ sync_registration.options()->tag, event_metadata);
+    citizennotes_context_->LogBackgroundServiceEvent(
+        sw_registration_id, blink::StorageKey::CreateFirstParty(origin),
+        GetCitizenNotesBackgroundService(sync_type),
         /* event_name= */ "Registered " + GetSyncEventName(sync_type),
         /* instance_id= */ sync_registration.options()->tag, event_metadata);
   }
@@ -2371,6 +2413,11 @@ blink::ServiceWorkerStatusCode BackgroundSyncManager::CanEmulateSyncEvent(
 bool BackgroundSyncManager::ShouldLogToDevTools(BackgroundSyncType sync_type) {
   return devtools_context_->IsRecording(
       GetDevToolsBackgroundService(sync_type));
+}
+
+bool BackgroundSyncManager::ShouldLogToCitizenNotes(BackgroundSyncType sync_type) {
+  return citizennotes_context_->IsRecording(
+      GetCitizenNotesBackgroundService(sync_type));
 }
 
 }  // namespace content
