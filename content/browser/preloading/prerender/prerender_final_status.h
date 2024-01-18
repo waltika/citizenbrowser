@@ -155,7 +155,9 @@ enum class PrerenderFinalStatus {
   kRedirectedPrerenderingUrlHasEffectiveUrl = 77,
   kActivationUrlHasEffectiveUrl = 78,
 
-  kMaxValue = kActivationUrlHasEffectiveUrl,
+  kPrerenderingDisabledByCitizenNotes = 79,
+
+  kMaxValue = kPrerenderingDisabledByCitizenNotes,
 };
 // LINT.ThenChange()
 

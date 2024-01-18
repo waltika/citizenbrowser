@@ -194,6 +194,10 @@ class CONTENT_EXPORT RenderWidgetHostInputEventRouter final
     route_to_root_for_devtools_ = route;
   }
 
+  void set_route_to_root_for_citizennotes(bool route) {
+    route_to_root_for_citizennotes_ = route;
+  }
+
   void SetAutoScrollInProgress(bool is_autoscroll_in_progress);
 
  private:
@@ -400,6 +404,7 @@ class CONTENT_EXPORT RenderWidgetHostInputEventRouter final
   // Route all input events into the root view while devtools is showing a full
   // page overlay.
   bool route_to_root_for_devtools_ = false;
+  bool route_to_root_for_citizennotes_ = false;
 
   // Touchscreen gesture pinch events must be routed to the main frame. This
   // keeps track of ongoing scroll and pinch gestures so we know when to divert

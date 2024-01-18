@@ -2230,7 +2230,7 @@ void CNNetworkHandler::NavigationRequestWillBeSent(
 
   std::unique_ptr<Network::Initiator> initiator;
   const absl::optional<base::Value::Dict>& initiator_optional =
-      nav_request.begin_params().devtools_initiator;
+      nav_request.begin_params().citizennotes_initiator;
   if (initiator_optional.has_value())
     crdtp::ConvertProtocolValue(initiator_optional.value(), &initiator);
   if (!initiator) {
@@ -2238,7 +2238,7 @@ void CNNetworkHandler::NavigationRequestWillBeSent(
                     .SetType(Network::Initiator::TypeEnum::Other)
                     .Build();
   }
-  std::string id = nav_request.devtools_navigation_token().ToString();
+  std::string id = nav_request.citizennotes_navigation_token().ToString();
   double current_ticks = timestamp.since_origin().InSecondsF();
   double current_wall_time = base::Time::Now().InSecondsFSinceUnixEpoch();
   std::string frame_token = nav_request.frame_tree_node()
@@ -2529,7 +2529,7 @@ void CNNetworkHandler::FetchKeepAliveRequestWillBeSent(
 }
 
 void CNNetworkHandler::OnSignedExchangeReceived(
-    absl::optional<const base::UnguessableToken> devtools_navigation_token,
+    absl::optional<const base::UnguessableToken> citizennotes_navigation_token,
     const GURL& outer_request_url,
     const network::mojom::URLResponseHead& outer_response,
     const absl::optional<SignedExchangeEnvelope>& envelope,
@@ -2601,7 +2601,7 @@ void CNNetworkHandler::OnSignedExchangeReceived(
     signed_exchange_info->SetErrors(BuildSignedExchangeErrors(errors));
 
   frontend_->SignedExchangeReceived(
-      devtools_navigation_token ? devtools_navigation_token->ToString() : "",
+      citizennotes_navigation_token ? citizennotes_navigation_token->ToString() : "",
       std::move(signed_exchange_info));
 }
 

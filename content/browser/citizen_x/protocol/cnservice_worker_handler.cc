@@ -287,7 +287,7 @@ Response CNServiceWorkerHandler::InspectWorker(const std::string& version_id) {
   if (content::ServiceWorkerVersion* version = context_->GetLiveVersion(id)) {
     OpenNewCitizenNotesWindow(
         version->embedded_worker()->process_id(),
-        version->embedded_worker()->worker_devtools_agent_route_id());
+        version->embedded_worker()->worker_citizennotes_agent_route_id());
   }
 
   return Response::Success();
@@ -372,10 +372,10 @@ Response CNServiceWorkerHandler::DispatchPeriodicSyncEvent(
 }
 
 void CNServiceWorkerHandler::OpenNewCitizenNotesWindow(int process_id,
-                                                 int devtools_agent_route_id) {
+                                                 int citizennotes_agent_route_id) {
   scoped_refptr<CitizenNotesAgentHostImpl> agent_host(
       ServiceWorkerCitizenNotesManager::GetInstance()
-          ->GetCitizenNotesAgentHostForWorker(process_id, devtools_agent_route_id));
+          ->GetCitizenNotesAgentHostForWorker(process_id, citizennotes_agent_route_id));
   if (!agent_host.get())
     return;
   agent_host->Inspect();
@@ -439,7 +439,7 @@ void CNServiceWorkerHandler::OnWorkerVersionUpdated(
         ServiceWorkerCitizenNotesManager::GetInstance()
             ->GetCitizenNotesAgentHostForWorker(
                 version.process_id,
-                version.devtools_agent_route_id));
+                version.citizennotes_agent_route_id));
     if (host) {
       version_value->SetTargetId(host->GetId());
     }

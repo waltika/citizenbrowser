@@ -108,6 +108,8 @@ inspector_protocol_generate("protocol_sources") {
     "protocol/device_access.h",
     "protocol/dom.cc",
     "protocol/dom.h",
+    "protocol/emulation.cc",
+    "protocol/emulation.h",
     "protocol/fed_cm.cc",
     "protocol/fed_cm.h",
     "protocol/fetch.cc",

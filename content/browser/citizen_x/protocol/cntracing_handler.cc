@@ -185,7 +185,7 @@ void SendProcessReadyInBrowserEvent(const base::UnguessableToken& frame_token,
   data->SetString("frame", frame_token.ToString());
   data->SetString("processPseudoId", GetProcessHostHex(host));
   data->SetInteger("processId", static_cast<int>(host->GetProcess().Pid()));
-  TRACE_EVENT_INSTANT1(TRACE_DISABLED_BY_DEFAULT("devtools.timeline"),
+  TRACE_EVENT_INSTANT1(TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline"),
                        "ProcessReadyInBrowser", TRACE_EVENT_SCOPE_THREAD,
                        "data", std::move(data));
 }
@@ -197,12 +197,12 @@ void FillFrameData(base::trace_event::TracedValue* data,
   GURL::Replacements strip_fragment;
   strip_fragment.ClearRef();
   std::string trimmed_url = url.ReplaceComponents(strip_fragment).spec();
-  data->SetString("frame", frame_host->devtools_frame_token().ToString());
+  data->SetString("frame", frame_host->citizennotes_frame_token().ToString());
   data->SetString("url", std::move(trimmed_url));
   data->SetString("name", frame_host->GetFrameName());
   if (frame_host->GetParent()) {
     data->SetString(
-        "parent", frame_host->GetParent()->GetDevToolsFrameToken().ToString()); //TODO: Cleanup
+        "parent", frame_host->GetParent()->GetCitizenNotesFrameToken().ToString()); //TODO: Cleanup
   }
   RenderProcessHost* process_host = frame_host->GetProcess();
   const base::Process& process_handle = process_host->GetProcess();
@@ -210,7 +210,7 @@ void FillFrameData(base::trace_event::TracedValue* data,
     data->SetString("processPseudoId", GetProcessHostHex(process_host));
     frame_host->GetProcess()->PostTaskWhenProcessIsReady(
         base::BindOnce(&SendProcessReadyInBrowserEvent,
-                       frame_host->devtools_frame_token(), process_host));
+                       frame_host->citizennotes_frame_token(), process_host));
   } else {
     // Cast process id to int to be compatible with tracing.
     data->SetInteger("processId", static_cast<int>(process_handle.Pid()));
@@ -275,7 +275,7 @@ absl::optional<perfetto::BackendType> GetBackendTypeFromParameters(
 }
 
 // Perfetto SDK build expects track_event data source to be configured via
-// track_event_config. But some devtools users (e.g. Perfetto UI) send
+// track_event_config. But some citizennotes users (e.g. Perfetto UI) send
 // a chrome_config instead. We build a track_event_config based on the
 // chrome_config if no other track_event data sources have been configured.
 void ConvertToTrackEventConfigIfNeeded(perfetto::TraceConfig& trace_config) {
@@ -303,7 +303,7 @@ void ConvertToTrackEventConfigIfNeeded(perfetto::TraceConfig& trace_config) {
 }
 
 // We currently don't support concurrent tracing sessions, but are planning to.
-// For the time being, we're using this flag as a workaround to prevent devtools
+// For the time being, we're using this flag as a workaround to prevent citizennotes
 // users from accidentally starting two concurrent sessions.
 // TODO(eseckler): Remove once we add support for concurrent sessions to the
 // perfetto backend.
@@ -883,8 +883,8 @@ void CNTracingHandler::AttemptAdoptStartupSession(
     return;
   }
   auto* startup_config = tracing::TraceStartupConfig::GetInstance();
-  if (!startup_config->AttemptAdoptBySessionOwner(//TODO: Cleanup
-          tracing::TraceStartupConfig::SessionOwner::kDevToolsTracingHandler)) {
+  if (!startup_config->AttemptAdoptBySessionOwner(
+          tracing::TraceStartupConfig::SessionOwner::kCitizenNotesTracingHandler)) {
     return;
   }
 
@@ -960,7 +960,7 @@ void CNTracingHandler::OnRecordingEnabled(std::unique_ptr<StartCallback> callbac
 
   bool screenshot_enabled;
   TRACE_EVENT_CATEGORY_GROUP_ENABLED(
-      TRACE_DISABLED_BY_DEFAULT("devtools.screenshot"), &screenshot_enabled);
+      TRACE_DISABLED_BY_DEFAULT("citizennotes.screenshot"), &screenshot_enabled);
   if (screenshot_enabled) {
     // Reset number of screenshots received, each time tracing begins.
     number_of_screenshots_from_video_consumer_ = 0;
@@ -1051,7 +1051,7 @@ void CNTracingHandler::OnFrameFromVideoConsumer(
   base::TimeTicks expected_display_time = *frame->metadata().reference_time;
 
   TRACE_EVENT_OBJECT_SNAPSHOT_WITH_ID_AND_TIMESTAMP(
-      TRACE_DISABLED_BY_DEFAULT("devtools.screenshot"), "Screenshot",
+      TRACE_DISABLED_BY_DEFAULT("citizennotes.screenshot"), "Screenshot",
       frame_sequence, expected_display_time,
       std::make_unique<CitizenNotesTraceableScreenshot>(skbitmap));
 
@@ -1128,7 +1128,7 @@ void CNTracingHandler::EmitFrameTree() {
     });
     data->EndArray();
   }
-  TRACE_EVENT_INSTANT1(TRACE_DISABLED_BY_DEFAULT("devtools.timeline"),
+  TRACE_EVENT_INSTANT1(TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline"),
                        "TracingStartedInBrowser", TRACE_EVENT_SCOPE_THREAD,
                        "data", std::move(data));
 }
@@ -1140,7 +1140,7 @@ void CNTracingHandler::WillInitiatePrerender(FrameTreeNode* frame_tree_node) {
   auto data = std::make_unique<base::trace_event::TracedValue>();
   FillFrameData(data.get(), frame_tree_node->current_frame_host(),
                 frame_tree_node->current_url());
-  TRACE_EVENT_INSTANT1(TRACE_DISABLED_BY_DEFAULT("devtools.timeline"),
+  TRACE_EVENT_INSTANT1(TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline"),
                        "FrameCommittedInBrowser", TRACE_EVENT_SCOPE_THREAD,
                        "data", std::move(data));
 }
@@ -1152,7 +1152,7 @@ void CNTracingHandler::ReadyToCommitNavigation(
   auto data = std::make_unique<base::trace_event::TracedValue>();
   RenderFrameHostImpl* frame_host = navigation_request->GetRenderFrameHost();
   FillFrameData(data.get(), frame_host, navigation_request->GetURL());
-  TRACE_EVENT_INSTANT1(TRACE_DISABLED_BY_DEFAULT("devtools.timeline"),
+  TRACE_EVENT_INSTANT1(TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline"),
                        "FrameCommittedInBrowser", TRACE_EVENT_SCOPE_THREAD,
                        "data", std::move(data));
   if (frame_host->IsOutermostMainFrame()) {
@@ -1174,8 +1174,8 @@ void CNTracingHandler::FrameDeleted(int frame_tree_node_id) {
   }
   auto data = std::make_unique<base::trace_event::TracedValue>();
   data->SetString(
-      "frame", node->current_frame_host()->devtools_frame_token().ToString());
-  TRACE_EVENT_INSTANT1(TRACE_DISABLED_BY_DEFAULT("devtools.timeline"),
+      "frame", node->current_frame_host()->citizennotes_frame_token().ToString());
+  TRACE_EVENT_INSTANT1(TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline"),
                        "FrameDeletedInBrowser", TRACE_EVENT_SCOPE_THREAD,
                        "data", std::move(data));
 }
@@ -1187,8 +1187,8 @@ bool CNTracingHandler::IsStartupTracingActive() {
 
 // static
 base::trace_event::TraceConfig CNTracingHandler::GetTraceConfigFromCitizenNotesConfig(
-    const base::Value& devtools_config) {
-  base::Value config = ConvertDictKeyStyle(devtools_config);
+    const base::Value& citizennotes_config) {
+  base::Value config = ConvertDictKeyStyle(citizennotes_config);
   base::Value::Dict& config_dict = config.GetDict();
   if (std::string* mode = config_dict.FindString(kRecordModeParam)) {
     config_dict.Set(kRecordModeParam, ConvertFromCamelCase(*mode, '-'));

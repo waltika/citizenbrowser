@@ -95,27 +95,27 @@ using BitmapEncoder =
 
 bool EncodeBitmapAsPngSlow(const SkBitmap& bitmap,
                            std::vector<uint8_t>& output) {
-  TRACE_EVENT0("devtools", "EncodeBitmapAsPngSlow");
+  TRACE_EVENT0("citizennotes", "EncodeBitmapAsPngSlow");
   return gfx::PNGCodec::EncodeBGRASkBitmap(bitmap, false, &output);
 }
 
 bool EncodeBitmapAsPngFast(const SkBitmap& bitmap,
                            std::vector<uint8_t>& output) {
-  TRACE_EVENT0("devtools", "EncodeBitmapAsPngFast");
+  TRACE_EVENT0("citizennotes", "EncodeBitmapAsPngFast");
   return gfx::PNGCodec::FastEncodeBGRASkBitmap(bitmap, false, &output);
 }
 
 bool EncodeBitmapAsJpeg(int quality,
                         const SkBitmap& bitmap,
                         std::vector<uint8_t>& output) {
-  TRACE_EVENT0("devtools", "EncodeBitmapAsJpeg");
+  TRACE_EVENT0("citizennotes", "EncodeBitmapAsJpeg");
   return gfx::JPEGCodec::Encode(bitmap, quality, &output);
 }
 
 bool EncodeBitmapAsWebp(int quality,
                         const SkBitmap& bitmap,
                         std::vector<uint8_t>& output) {
-  TRACE_EVENT0("devtools", "EncodeBitmapAsWebp");
+  TRACE_EVENT0("citizennotes", "EncodeBitmapAsWebp");
   return gfx::WebpCodec::Encode(bitmap, quality, &output);
 }
 
@@ -321,7 +321,7 @@ void CNPageHandler::DidRunJavaScriptDialog(const GURL& url,
                                          const std::u16string& message,
                                          const std::u16string& default_prompt,
                                          JavaScriptDialogType dialog_type,
-                                         bool has_non_devtools_handlers,
+                                         bool has_non_citizennotes_handlers,
                                          JavaScriptDialogCallback callback) {
   if (!enabled_)
     return;
@@ -333,12 +333,12 @@ void CNPageHandler::DidRunJavaScriptDialog(const GURL& url,
   if (dialog_type == JAVASCRIPT_DIALOG_TYPE_PROMPT)
     type = Page::DialogTypeEnum::Prompt;
   frontend_->JavascriptDialogOpening(url.spec(), base::UTF16ToUTF8(message),
-                                     type, has_non_devtools_handlers,
+                                     type, has_non_citizennotes_handlers,
                                      base::UTF16ToUTF8(default_prompt));
 }
 
 void CNPageHandler::DidRunBeforeUnloadConfirm(const GURL& url,
-                                            bool has_non_devtools_handlers,
+                                            bool has_non_citizennotes_handlers,
                                             JavaScriptDialogCallback callback) {
   if (!enabled_)
     return;
@@ -346,7 +346,7 @@ void CNPageHandler::DidRunBeforeUnloadConfirm(const GURL& url,
   pending_dialog_ = std::move(callback);
   frontend_->JavascriptDialogOpening(url.spec(), std::string(),
                                      Page::DialogTypeEnum::Beforeunload,
-                                     has_non_devtools_handlers, std::string());
+                                     has_non_citizennotes_handlers, std::string());
 }
 
 void CNPageHandler::DidCloseJavaScriptDialog(bool success,
@@ -469,7 +469,7 @@ void DispatchNavigateCallback(
     std::unique_ptr<CNPageHandler::NavigateCallback> callback) {
   std::string frame_id = request->frame_tree_node()
                              ->current_frame_host()
-                             ->devtools_frame_token()
+                             ->citizennotes_frame_token()
                              .ToString();
   // A new NavigationRequest may have been created before |request|
   // started, in which case it is not marked as aborted. We report this as an
@@ -485,7 +485,7 @@ void DispatchNavigateCallback(
   Maybe<std::string> loader_id =
       request->IsSameDocument()
           ? Maybe<std::string>()
-          : request->devtools_navigation_token().ToString();
+          : request->citizennotes_navigation_token().ToString();
   callback->sendSuccess(frame_id, std::move(loader_id), std::move(opt_error));
 }
 
@@ -555,7 +555,7 @@ void CNPageHandler::Navigate(const std::string& url,
   type = ui::PageTransitionFromInt(type | ui::PAGE_TRANSITION_FROM_API);
 
   std::string out_frame_id =
-      frame_id.value_or(host_->devtools_frame_token().ToString());
+      frame_id.value_or(host_->citizennotes_frame_token().ToString());
   FrameTreeNode* frame_tree_node = FrameTreeNodeFromCitizenNotesFrameToken(
       host_->frame_tree_node(), out_frame_id);
 
@@ -606,13 +606,13 @@ void CNPageHandler::Navigate(const std::string& url,
   // `NavigationReset()` is called when `NavigationRequest` is taken from
   // `FrameTreeNode`.
   const base::UnguessableToken& navigation_token =
-      navigation_request->devtools_navigation_token();
+      navigation_request->citizennotes_navigation_token();
   navigate_callbacks_[navigation_token] = std::move(callback);
 }
 
 void CNPageHandler::NavigationReset(NavigationRequest* navigation_request) {
   auto it =
-      navigate_callbacks_.find(navigation_request->devtools_navigation_token());
+      navigate_callbacks_.find(navigation_request->citizennotes_navigation_token());
   if (it == navigate_callbacks_.end())
     return;
   DispatchNavigateCallback(navigation_request, std::move(it->second));
@@ -635,7 +635,7 @@ void CNPageHandler::DownloadWillBegin(FrameTreeNode* ftn,
       item->GetSuggestedFilename(), item->GetMimeType(), "download");
 
   frontend_->DownloadWillBegin(
-      ftn->current_frame_host()->devtools_frame_token().ToString(),
+      ftn->current_frame_host()->citizennotes_frame_token().ToString(),
       item->GetGuid(), item->GetURL().spec(),
       base::UTF16ToUTF8(likely_filename));
 
@@ -654,7 +654,7 @@ void CNPageHandler::DidChangeFrameLoadingState(const FrameTreeNode& ftn) {
     return;
   }
   const std::string& frame_id =
-      ftn.current_frame_host()->devtools_frame_token().ToString();
+      ftn.current_frame_host()->citizennotes_frame_token().ToString();
   if (ftn.IsLoading()) {
     frontend_->FrameStartedLoading(frame_id);
   } else {
@@ -2014,10 +2014,10 @@ void CNPageHandler::BackForwardCacheNotUsed(
     return;
 
   FrameTreeNode* ftn = navigation->frame_tree_node();
-  std::string devtools_navigation_token =
-      navigation->devtools_navigation_token().ToString();
+  std::string citizennotes_navigation_token =
+      navigation->citizennotes_navigation_token().ToString();
   std::string frame_id =
-      ftn->current_frame_host()->devtools_frame_token().ToString();
+      ftn->current_frame_host()->citizennotes_frame_token().ToString();
 
   auto explanation = CNCreateNotRestoredExplanation(
       result->not_restored_reasons(), result->blocklisted_features(),
@@ -2029,7 +2029,7 @@ void CNPageHandler::BackForwardCacheNotUsed(
       explanation_tree =
           tree_result ? CNCNCreateNotRestoredExplanationTree(*tree_result)
                       : nullptr;
-  frontend_->BackForwardCacheNotUsed(devtools_navigation_token, frame_id,
+  frontend_->BackForwardCacheNotUsed(citizennotes_navigation_token, frame_id,
                                      std::move(explanation),
                                      std::move(explanation_tree));
 }

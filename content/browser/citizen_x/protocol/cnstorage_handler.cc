@@ -136,7 +136,7 @@ void GetUsageAndQuotaOnIOThread(
     const blink::StorageKey& storage_key,
     std::unique_ptr<CNStorageHandler::GetUsageAndQuotaCallback> callback) {
   DCHECK_CURRENTLY_ON(BrowserThread::IO);
-  manager->GetUsageAndQuotaForDevtools(
+  manager->GetUsageAndQuotaForCitizennotes(
       storage_key, blink::mojom::StorageType::kTemporary,
       base::BindOnce(&GotUsageAndQuotaDataCallback, std::move(callback)));
 }
@@ -1298,7 +1298,7 @@ void CNStorageHandler::GetSharedStorageEntries(
   url::Origin owner_origin = url::Origin::Create(owner_origin_url);
   DCHECK(!owner_origin.opaque());
 
-  manager->GetEntriesForDevTools(
+  manager->GetEntriesForCitizenNotes(
       owner_origin,
       base::BindOnce(&RetrieveSharedStorageEntries, std::move(callback))); //TODO: Cleanup
 }
@@ -1460,7 +1460,7 @@ void CNStorageHandler::ResetSharedStorageBudget(
   url::Origin owner_origin = url::Origin::Create(owner_origin_url);
   DCHECK(!owner_origin.opaque());
 
-/*  manager->ResetBudgetForDevTools(
+/*  manager->ResetBudgetForCitizenNotes(
       owner_origin,
       base::BindOnce(
           &DispatchSharedStorageCallback<ResetSharedStorageBudgetCallback>,

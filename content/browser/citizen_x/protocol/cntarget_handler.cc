@@ -41,9 +41,9 @@ namespace {
 
 constexpr net::NetworkTrafficAnnotationTag
     kSettingsProxyConfigTrafficAnnotation =
-        net::DefineNetworkTrafficAnnotation("devtools_proxy_config", R"(
+        net::DefineNetworkTrafficAnnotation("citizennotes_proxy_config", R"(
       semantics {
-        sender: "Proxy Configuration over Developer Tools"
+        sender: "Proxy Configuration over Citizen Notes"
         description:
           "Used to fetch HTTP/HTTPS/SOCKS5/PAC proxy configuration when "
           "proxy is configured by CitizenNotes. It is equivalent to the one "
@@ -426,10 +426,10 @@ class CNTargetHandler::Session : public CitizenNotesAgentHostClient {
         resume_callback = base::BindOnce(&Session::ResumeIfThrottled,
                                          base::Unretained(session));
       }
-      CitizenNotesSession* devtools_session =
+      CitizenNotesSession* citizennotes_session =
           handler->root_session_->AttachChildSession(
               id, agent_host_impl, session, mode, std::move(resume_callback));
-      session->citizennotes_session_ = devtools_session;
+      session->citizennotes_session_ = citizennotes_session;
     } else {
       agent_host_impl->AttachClient(session);
     }

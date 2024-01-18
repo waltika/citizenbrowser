@@ -333,6 +333,25 @@ void PermissionControllerImpl::ResetOverridesForDevTools() {
 }
 
 PermissionControllerImpl::OverrideStatus
+PermissionControllerImpl::GrantOverridesForCitizenNotes(
+    const absl::optional<url::Origin>& origin,
+    const std::vector<PermissionType>& permissions) {
+  return GrantPermissionOverrides(origin, permissions);
+}
+
+PermissionControllerImpl::OverrideStatus
+PermissionControllerImpl::SetOverrideForCitizenNotes(
+    const absl::optional<url::Origin>& origin,
+    PermissionType permission,
+    const PermissionStatus& status) {
+  return SetPermissionOverride(origin, permission, status);
+}
+
+void PermissionControllerImpl::ResetOverridesForCitizenNotes() {
+  ResetPermissionOverrides();
+}
+
+PermissionControllerImpl::OverrideStatus
 PermissionControllerImpl::SetPermissionOverride(
     const absl::optional<url::Origin>& origin,
     PermissionType permission,

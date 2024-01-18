@@ -62,7 +62,7 @@ void CNOverlayHandler::UpdateCaptureInputEvents() {
       !paused_message_.empty();
   if (!web_contents->GetInputEventRouter())
     return;
-  web_contents->GetInputEventRouter()->set_route_to_root_for_devtools(
+  web_contents->GetInputEventRouter()->set_route_to_root_for_citizennotes(
       capture_input);
 }
 

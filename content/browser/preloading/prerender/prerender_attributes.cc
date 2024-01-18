@@ -34,7 +34,9 @@ PrerenderAttributes::PrerenderAttributes(
     absl::optional<base::RepeatingCallback<void(NavigationHandle&)>>
         prerender_navigation_handle_callback,
     const absl::optional<base::UnguessableToken>&
-        initiator_devtools_navigation_token)
+        initiator_devtools_navigation_token,
+    const absl::optional<base::UnguessableToken>&
+        initiator_citizennotes_navigation_token)
     : prerendering_url(prerendering_url),
       trigger_type(trigger_type),
       embedder_histogram_suffix(embedder_histogram_suffix),
@@ -51,7 +53,8 @@ PrerenderAttributes::PrerenderAttributes(
       url_match_predicate(std::move(url_match_predicate)),
       prerender_navigation_handle_callback(
           std::move(prerender_navigation_handle_callback)),
-      initiator_devtools_navigation_token(initiator_devtools_navigation_token) {
+      initiator_devtools_navigation_token(initiator_devtools_navigation_token),
+      initiator_citizennotes_navigation_token(initiator_citizennotes_navigation_token) {
   CHECK(!IsBrowserInitiated() ||
         !initiator_devtools_navigation_token.has_value());
   CHECK(!IsBrowserInitiated() || !eagerness.has_value());
@@ -81,6 +84,9 @@ PrerenderAttributes::PrerenderAttributes(PrerenderAttributes&& attributes)
       prerender_navigation_handle_callback(
           attributes.prerender_navigation_handle_callback),
       initiator_devtools_navigation_token(
-          attributes.initiator_devtools_navigation_token) {}
+          attributes.initiator_devtools_navigation_token),
+      initiator_citizennotes_navigation_token(
+          attributes.initiator_citizennotes_navigation_token)
+{}
 
 }  // namespace content

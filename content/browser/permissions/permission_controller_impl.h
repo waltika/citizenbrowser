@@ -63,6 +63,15 @@ class CONTENT_EXPORT PermissionControllerImpl : public PermissionController {
       const PermissionStatus& status);
   void ResetOverridesForDevTools();
 
+  OverrideStatus GrantOverridesForCitizenNotes(
+    const absl::optional<url::Origin>& origin,
+    const std::vector<PermissionType>& permissions);
+  OverrideStatus SetOverrideForCitizenNotes(
+    const absl::optional<url::Origin>& origin,
+    PermissionType permission,
+    const PermissionStatus& status);
+  void ResetOverridesForCitizenNotes();
+
   // Sets status for |permissions| to GRANTED in |origin|, and DENIED
   // for all others.
   // Null |origin| grants permissions globally for context.

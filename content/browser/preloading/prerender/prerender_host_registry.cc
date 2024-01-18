@@ -20,8 +20,11 @@
 #include "build/build_config.h"
 #include "content/browser/devtools/devtools_instrumentation.h"
 #include "content/browser/devtools/render_frame_devtools_agent_host.h"
+#include "content/browser/citizen_x/citizennotes_instrumentation.h"
+#include "content/browser/citizen_x/render_frame_citizennotes_agent_host.h"
 #include "content/browser/preloading/preloading_trigger_type_impl.h"
 #include "content/browser/preloading/prerender/devtools_prerender_attempt.h"
+#include "content/browser/preloading/prerender/citizennotes_prerender_attempt.h"
 #include "content/browser/preloading/prerender/prerender_features.h"
 #include "content/browser/preloading/prerender/prerender_final_status.h"
 #include "content/browser/preloading/prerender/prerender_metrics.h"
@@ -224,6 +227,11 @@ bool IsDevToolsOpen(WebContents& web_contents) {
   return DevToolsAgentHost::HasFor(&web_contents);
 }
 
+bool IsCitizenNotesOpen(WebContents& web_contents) {
+  return CitizenNotesAgentHost::HasFor(&web_contents);
+}
+
+
 PreloadingEligibility ToEligibility(PrerenderFinalStatus status) {
   switch (status) {
     case PrerenderFinalStatus::kActivated:
@@ -306,6 +314,8 @@ PreloadingEligibility ToEligibility(PrerenderFinalStatus status) {
       NOTREACHED_NORETURN();
     case PrerenderFinalStatus::kPrerenderingDisabledByDevTools:
       return PreloadingEligibility::kPreloadingDisabledByDevTools;
+    case PrerenderFinalStatus::kPrerenderingDisabledByCitizenNotes:
+      return PreloadingEligibility::kPreloadingDisabledByCitizenNotes;
     case PrerenderFinalStatus::kSpeculationRuleRemoved:
     case PrerenderFinalStatus::kActivatedWithAuxiliaryBrowsingContexts:
     case PrerenderFinalStatus::kMaxNumOfRunningEagerPrerendersExceeded:
@@ -360,11 +370,13 @@ class PrerenderHostBuilder {
   // outlive the function.
   raw_ptr<PreloadingAttempt> attempt_;
   std::unique_ptr<DevToolsPrerenderAttempt> devtools_attempt_;
+  std::unique_ptr<CitizenNotesPrerenderAttempt> citizennotes_attempt_;
 };
 
 PrerenderHostBuilder::PrerenderHostBuilder(PreloadingAttempt* attempt)
     : attempt_(attempt),
-      devtools_attempt_(std::make_unique<DevToolsPrerenderAttempt>()) {}
+      devtools_attempt_(std::make_unique<DevToolsPrerenderAttempt>()),
+      citizennotes_attempt_(std::make_unique<CitizenNotesPrerenderAttempt>()) {}
 
 PrerenderHostBuilder::~PrerenderHostBuilder() {
   CHECK(IsDropped());
@@ -373,10 +385,11 @@ PrerenderHostBuilder::~PrerenderHostBuilder() {
 void PrerenderHostBuilder::Drop() {
   attempt_ = nullptr;
   devtools_attempt_.reset();
+  citizennotes_attempt_.reset();
 }
 
 bool PrerenderHostBuilder::IsDropped() {
-  return devtools_attempt_ == nullptr;
+  return devtools_attempt_ == nullptr && citizennotes_attempt_ == nullptr ;
 }
 
 std::unique_ptr<PrerenderHost> PrerenderHostBuilder::Build(
@@ -387,7 +400,8 @@ std::unique_ptr<PrerenderHost> PrerenderHostBuilder::Build(
   auto prerender_host = std::make_unique<PrerenderHost>(
       attributes, prerender_web_contents,
       attempt_ ? attempt_->GetWeakPtr() : nullptr,
-      std::move(devtools_attempt_));
+      std::move(devtools_attempt_),
+      std::move(citizennotes_attempt_));
 
   Drop();
 
@@ -404,6 +418,7 @@ void PrerenderHostBuilder::RejectAsNotEligible(
   }
 
   devtools_attempt_->SetFailureReason(attributes, status);
+  citizennotes_attempt_->SetFailureReason(attributes, status);
 
   RecordFailedPrerenderFinalStatus(PrerenderCancellationReason(status),
                                    attributes);
@@ -457,6 +472,7 @@ void PrerenderHostBuilder::RejectAsFailure(
   }
 
   devtools_attempt_->SetFailureReason(attributes, status);
+  citizennotes_attempt_->SetFailureReason(attributes, status);
 
   RecordFailedPrerenderFinalStatus(PrerenderCancellationReason(status),
                                    attributes);
@@ -653,12 +669,20 @@ int PrerenderHostRegistry::CreateAndStartHost(
       return RenderFrameHost::kNoFrameTreeNodeId;
     }
 
-    if (initiator_rfh && initiator_rfh->frame_tree() &&
-        !devtools_instrumentation::IsPrerenderAllowed(
+    if (initiator_rfh && initiator_rfh->frame_tree())
+    {
+        if(!devtools_instrumentation::IsPrerenderAllowed(
             *initiator_rfh->frame_tree())) {
-      builder.RejectAsNotEligible(
-          attributes, PrerenderFinalStatus::kPrerenderingDisabledByDevTools);
-      return RenderFrameHost::kNoFrameTreeNodeId;
+                builder.RejectAsNotEligible(
+                   attributes, PrerenderFinalStatus::kPrerenderingDisabledByDevTools);
+                return RenderFrameHost::kNoFrameTreeNodeId;
+        }
+        if(!citizennotes_instrumentation::IsPrerenderAllowed(
+            *initiator_rfh->frame_tree())) {
+                builder.RejectAsNotEligible(
+                   attributes, PrerenderFinalStatus::kPrerenderingDisabledByCitizenNotes);
+                return RenderFrameHost::kNoFrameTreeNodeId;
+        }
     }
 
     // Once all eligibility checks are completed, set the status to kEligible.
@@ -672,8 +696,12 @@ int PrerenderHostRegistry::CreateAndStartHost(
         initiator_rfh &&
         RenderFrameDevToolsAgentHost::GetFor(initiator_rfh) != nullptr;
 
-    if (has_devtools_open) {
-      // Never holdback when DevTools is opened, to avoid web developer
+    bool has_citizennotes_open =
+        initiator_rfh &&
+        RenderFrameCitizenNotesAgentHost::GetFor(initiator_rfh) != nullptr;
+
+    if (has_devtools_open || has_citizennotes_open) {
+      // Never holdback when DevTools or CitizenNotes is opened, to avoid web developer
       // frustration.
       builder.SetHoldbackOverride(PreloadingHoldbackStatus::kAllowed);
     } else if (attributes.holdback_status_override !=
@@ -869,6 +897,8 @@ int PrerenderHostRegistry::StartPrerendering(int frame_tree_node_id) {
   CHECK(prerender_host_it != prerender_host_by_frame_tree_node_id_.end());
   PrerenderHost& prerender_host = *prerender_host_it->second;
   devtools_instrumentation::WillInitiatePrerender(
+      prerender_host.GetPrerenderFrameTree());
+  citizennotes_instrumentation::WillInitiatePrerender(
       prerender_host.GetPrerenderFrameTree());
   if (!prerender_host.StartPrerendering()) {
     CancelHost(frame_tree_node_id, PrerenderFinalStatus::kStartFailed);
@@ -1827,8 +1857,8 @@ void PrerenderHostRegistry::DestroyWhenUsingExcessiveMemory(
     return;
   }
 
-  // Override the memory restriction when the DevTools is open.
-  if (IsDevToolsOpen(*web_contents())) {
+  // Override the memory restriction when the DevTools or CitizenNotes is open.
+  if (IsDevToolsOpen(*web_contents()) || IsCitizenNotesOpen(*web_contents())) {
     return;
   }
 
@@ -1847,7 +1877,7 @@ void PrerenderHostRegistry::DidReceiveMemoryDump(
       base::FeatureList::IsEnabled(blink::features::kPrerender2MemoryControls));
 
   // Override the memory restriction when the DevTools is open.
-  if (IsDevToolsOpen(*web_contents())) {
+  if (IsDevToolsOpen(*web_contents()) || IsCitizenNotesOpen(*web_contents())) {
     return;
   }
 

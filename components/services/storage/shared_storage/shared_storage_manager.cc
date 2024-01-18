@@ -322,6 +322,36 @@ void SharedStorageManager::ResetBudgetForDevTools(
       GetOperationResultCallback(std::move(callback)));
 }
 
+void SharedStorageManager::GetEntriesForCitizenNotes(
+    url::Origin context_origin,
+    base::OnceCallback<void(EntriesResult)> callback) {
+  DCHECK(callback);
+  DCHECK(database_);
+  auto new_callback = base::BindOnce(
+      [](base::WeakPtr<SharedStorageManager> manager,
+         base::OnceCallback<void(EntriesResult)> callback,
+         EntriesResult entries) {
+        if (manager) {
+          manager->OnOperationResult(entries.result);
+        }
+        std::move(callback).Run(std::move(entries));
+      },
+      weak_ptr_factory_.GetWeakPtr(), std::move(callback));
+
+  database_->GetEntriesForCitizenNotes(std::move(context_origin),
+                                   std::move(new_callback));
+}
+
+void SharedStorageManager::ResetBudgetForCitizenNotes(
+    url::Origin context_origin,
+    base::OnceCallback<void(OperationResult)> callback) {
+  DCHECK(callback);
+  DCHECK(database_);
+  database_->ResetBudgetForCitizenNotes(
+      std::move(context_origin),
+      GetOperationResultCallback(std::move(callback)));
+}
+
 void SharedStorageManager::SetOnDBDestroyedCallbackForTesting(
     base::OnceCallback<void(bool)> callback) {
   DCHECK(callback);

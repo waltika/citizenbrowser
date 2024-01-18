@@ -15,7 +15,7 @@ namespace protocol {
 
 FrameTreeNode* FrameTreeNodeFromCitizenNotesFrameToken(
     FrameTreeNode* root,
-    const std::string& devtools_frame_token);
+    const std::string& citizennotes_frame_token);
 }  // namespace protocol
 }  // namespace content
 

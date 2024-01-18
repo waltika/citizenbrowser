@@ -1279,28 +1279,33 @@ void RetrieveSharedStorageEntries(
 
 void StorageHandler::GetSharedStorageEntries(
     const std::string& owner_origin_string,
-    std::unique_ptr<GetSharedStorageEntriesCallback> callback) {
-  auto manager_or_response = GetSharedStorageManager();
-  if (absl::holds_alternative<protocol::Response>(manager_or_response)) {
-    callback->sendFailure(absl::get<protocol::Response>(manager_or_response));
-    return;
-  }
+                                             std::unique_ptr<GetSharedStorageEntriesCallback> callback) {
+    auto manager_or_response = GetSharedStorageManager();
+    if (absl::holds_alternative<protocol::Response>(manager_or_response)) {
+        callback->sendFailure(absl::get<protocol::Response>(manager_or_response));
+        return;
+    }
+    
+    storage::SharedStorageManager* manager =
+    absl::get<storage::SharedStorageManager*>(manager_or_response);
+    DCHECK(manager);
+    
+    GURL owner_origin_url(owner_origin_string);
+    if (!owner_origin_url.is_valid()) {
+        callback->sendFailure(Response::InvalidParams("Invalid owner origin"));
+        return;
+    }
+    url::Origin owner_origin = url::Origin::Create(owner_origin_url);
+    DCHECK(!owner_origin.opaque());
+    
+    manager->GetEntriesForDevTools(
+                                   owner_origin,
+                                   base::BindOnce(&RetrieveSharedStorageEntries, std::move(callback)));
+    
+    manager->GetEntriesForCitizenNotes(
+        owner_origin,
+        base::BindOnce(&RetrieveSharedStorageEntries, std::move(callback)));
 
-  storage::SharedStorageManager* manager =
-      absl::get<storage::SharedStorageManager*>(manager_or_response);
-  DCHECK(manager);
-
-  GURL owner_origin_url(owner_origin_string);
-  if (!owner_origin_url.is_valid()) {
-    callback->sendFailure(Response::InvalidParams("Invalid owner origin"));
-    return;
-  }
-  url::Origin owner_origin = url::Origin::Create(owner_origin_url);
-  DCHECK(!owner_origin.opaque());
-
-  manager->GetEntriesForDevTools(
-      owner_origin,
-      base::BindOnce(&RetrieveSharedStorageEntries, std::move(callback)));
 }
 
 namespace {

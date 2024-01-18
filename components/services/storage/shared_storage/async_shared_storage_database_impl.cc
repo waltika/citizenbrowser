@@ -247,6 +247,26 @@ void AsyncSharedStorageDatabaseImpl::ResetBudgetForDevTools(
       .Then(std::move(callback));
 }
 
+void AsyncSharedStorageDatabaseImpl::GetEntriesForCitizenNotes(
+    url::Origin context_origin,
+    base::OnceCallback<void(EntriesResult)> callback) {
+  DCHECK(callback);
+  DCHECK(database_);
+  database_.AsyncCall(&SharedStorageDatabase::GetEntriesForCitizenNotes)
+      .WithArgs(std::move(context_origin))
+      .Then(std::move(callback));
+}
+
+void AsyncSharedStorageDatabaseImpl::ResetBudgetForCitizenNotes(
+    url::Origin context_origin,
+    base::OnceCallback<void(OperationResult)> callback) {
+  DCHECK(callback);
+  DCHECK(database_);
+  database_.AsyncCall(&SharedStorageDatabase::ResetBudgetForCitizenNotes)
+      .WithArgs(std::move(context_origin))
+      .Then(std::move(callback));
+}
+
 base::SequenceBound<SharedStorageDatabase>*
 AsyncSharedStorageDatabaseImpl::GetSequenceBoundDatabaseForTesting() {
   return database_ ? &database_ : nullptr;

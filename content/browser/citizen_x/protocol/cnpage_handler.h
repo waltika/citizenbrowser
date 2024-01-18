@@ -93,10 +93,10 @@ class CNPageHandler : public CitizenNotesDomainHandler,
                               const std::u16string& message,
                               const std::u16string& default_prompt,
                               JavaScriptDialogType dialog_type,
-                              bool has_non_devtools_handlers,
+                              bool has_non_citizennotes_handlers,
                               JavaScriptDialogCallback callback);
   void DidRunBeforeUnloadConfirm(const GURL& url,
-                                 bool has_non_devtools_handlers,
+                                 bool has_non_citizennotes_handlers,
                                  JavaScriptDialogCallback callback);
   void DidCloseJavaScriptDialog(bool success, const std::u16string& user_input);
   void NavigationReset(NavigationRequest* navigation_request);

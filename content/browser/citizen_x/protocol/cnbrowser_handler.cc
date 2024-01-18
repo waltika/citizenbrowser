@@ -58,7 +58,7 @@ Response CNBrowserHandler::Disable() {
     if (browser_context) {
       PermissionControllerImpl* permission_controller =
           PermissionControllerImpl::FromBrowserContext(browser_context);
-      permission_controller->ResetOverridesForDevTools(); //TODO: Adapt
+      permission_controller->ResetOverridesForCitizenNotes();
     }
   }
   contexts_with_overridden_permissions_.clear();
@@ -345,8 +345,8 @@ Response CNBrowserHandler::SetPermission(
           "Permission can't be granted to opaque origins.");
   }
   PermissionControllerImpl::OverrideStatus status =
-      permission_controller->SetOverrideForDevTools(overridden_origin, type,
-                                                    permission_status); // TODO: Adapt
+      permission_controller->SetOverrideForCitizenNotes(overridden_origin, type,
+                                                    permission_status);
   if (status != PermissionControllerImpl::OverrideStatus::kOverrideSet) {
     return Response::InvalidParams(
         "Permission can't be granted in current context.");
@@ -386,8 +386,8 @@ Response CNBrowserHandler::GrantPermissions(
           "Permission can't be granted to opaque origins.");
   }
   PermissionControllerImpl::OverrideStatus status =
-      permission_controller->GrantOverridesForDevTools(overridden_origin,
-                                                       internal_permissions); //TODO: Adapt
+      permission_controller->GrantOverridesForCitizenNotes(overridden_origin,
+                                                       internal_permissions);
 
   if (status != PermissionControllerImpl::OverrideStatus::kOverrideSet) {
     return Response::InvalidParams(
@@ -405,7 +405,7 @@ Response CNBrowserHandler::ResetPermissions(
     return response;
   PermissionControllerImpl* permission_controller =
       PermissionControllerImpl::FromBrowserContext(browser_context);
-  permission_controller->ResetOverridesForDevTools(); //TODO: Adapt
+  permission_controller->ResetOverridesForCitizenNotes();
   contexts_with_overridden_permissions_.erase(browser_context_id.value_or(""));
   return Response::Success();
 }
@@ -592,7 +592,7 @@ void CNBrowserHandler::DownloadWillBegin(FrameTreeNode* ftn,
       item->GetSuggestedFilename(), item->GetMimeType(), "download");
 
   frontend_->DownloadWillBegin(
-      ftn->current_frame_host()->devtools_frame_token().ToString(),
+      ftn->current_frame_host()->citizennotes_frame_token().ToString(),
       item->GetGuid(), item->GetURL().spec(),
       base::UTF16ToUTF8(likely_filename));
   item->AddObserver(this);

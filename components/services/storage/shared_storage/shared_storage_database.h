@@ -380,6 +380,18 @@ class SharedStorageDatabase {
   [[nodiscard]] OperationResult ResetBudgetForDevTools(
       url::Origin context_origin);
 
+    
+  // Returns an origin's entries in a vector bundled with an `OperationResult`.
+  // To only be used by DevTools.
+  [[nodiscard]] EntriesResult GetEntriesForCitizenNotes(url::Origin context_origin);
+
+  // Removes all budget withdrawals for `context_origin`'s site. Intended as a
+  // convenience for the DevTools UX. Because DevTools displays shared storage
+  // data by origin, we continue to pass a `url::Origin` in as parameter
+  // `context_origin` and compute the site on the fly.
+  [[nodiscard]] OperationResult ResetBudgetForCitizenNotes(
+       url::Origin context_origin);
+
   // Returns whether the SQLite database is open.
   [[nodiscard]] bool IsOpenForTesting() const;
 

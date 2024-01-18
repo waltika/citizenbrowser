@@ -132,7 +132,7 @@ class CNTracingHandler : public CitizenNotesDomainHandler, public Tracing::Backe
   void EmitFrameTree();
   static bool IsStartupTracingActive();
   CONTENT_EXPORT static base::trace_event::TraceConfig
-  GetTraceConfigFromCitizenNotesConfig(const base::Value& devtools_config);
+  GetTraceConfigFromCitizenNotesConfig(const base::Value& citizennotes_config);
   perfetto::TraceConfig CreatePerfettoConfiguration(
       const base::trace_event::TraceConfig& browser_config,
       bool return_as_stream,

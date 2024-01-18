@@ -229,6 +229,7 @@ enum class PreloadingEligibility {
   kExistingProxy = 88,
   kBrowserContextOffTheRecord = 89,
   kSameSiteCrossOriginPrefetchRequiredProxy = 96,
+  kPreloadingDisabledByCitizenNotes = 97,
 
   // TODO(crbug.com/1309934): Add more specific ineligibility reasons subject to
   // each preloading operation

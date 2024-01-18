@@ -1003,6 +1003,54 @@ SharedStorageDatabase::GetEntriesForDevTools(url::Origin context_origin) {
   return entries;
 }
 
+SharedStorageDatabase::EntriesResult
+SharedStorageDatabase::GetEntriesForCitizenNotes(url::Origin context_origin) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  EntriesResult entries;
+
+  if (LazyInit(DBCreationPolicy::kIgnoreIfAbsent) != InitStatus::kSuccess) {
+    // We do not return an error if the database doesn't exist, but only if it
+    // pre-exists on disk and yet fails to initialize.
+    if (db_status_ == InitStatus::kUnattempted) {
+      entries.result = OperationResult::kSuccess;
+      return entries;
+    } else {
+      entries.result = OperationResult::kInitFailure;
+      return entries;
+    }
+  }
+
+  static constexpr char kSelectSql[] =
+      "SELECT key,value FROM values_mapping "
+      "WHERE context_origin=? AND last_used_time>=? "
+      "ORDER BY key";
+
+  sql::Statement select_statement(
+      db_.GetCachedStatement(SQL_FROM_HERE, kSelectSql));
+  std::string origin_str(SerializeOrigin(context_origin));
+  select_statement.BindString(0, origin_str);
+  select_statement.BindTime(1, clock_->Now() - staleness_threshold_);
+
+  while (select_statement.Step()) {
+    std::u16string key;
+    if (!select_statement.ColumnBlobAsString16(0, &key)) {
+      key = u"[[DATABASE_ERROR: unable to retrieve key]]";
+    }
+    std::u16string value;
+    if (!select_statement.ColumnBlobAsString16(1, &value)) {
+      value = u"[[DATABASE_ERROR: unable to retrieve value]]";
+    }
+    entries.entries.emplace_back(base::UTF16ToUTF8(key),
+                                 base::UTF16ToUTF8(value));
+  }
+
+  if (!select_statement.Succeeded())
+    return entries;
+
+  entries.result = OperationResult::kSuccess;
+  return entries;
+}
+
 SharedStorageDatabase::OperationResult
 SharedStorageDatabase::ResetBudgetForDevTools(url::Origin context_origin) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
@@ -1029,6 +1077,32 @@ SharedStorageDatabase::ResetBudgetForDevTools(url::Origin context_origin) {
   return OperationResult::kSuccess;
 }
 
+SharedStorageDatabase::OperationResult
+SharedStorageDatabase::ResetBudgetForCitizenNotes(url::Origin context_origin) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+
+  if (LazyInit(DBCreationPolicy::kIgnoreIfAbsent) != InitStatus::kSuccess) {
+    // We do not return an error if the database doesn't exist, but only if it
+    // pre-exists on disk and yet fails to initialize.
+    if (db_status_ == InitStatus::kUnattempted) {
+      return OperationResult::kSuccess;
+    } else {
+      return OperationResult::kInitFailure;
+    }
+  }
+
+  static constexpr char kDeleteSql[] =
+      "DELETE FROM budget_mapping WHERE context_site=?";
+
+  sql::Statement statement(db_.GetCachedStatement(SQL_FROM_HERE, kDeleteSql));
+  statement.BindString(0, SerializeSite(net::SchemefulSite(context_origin)));
+
+  if (!statement.Run()) {
+    return OperationResult::kSqlError;
+  }
+  return OperationResult::kSuccess;
+}
+    
 bool SharedStorageDatabase::IsOpenForTesting() const {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   return db_.is_open();

@@ -257,12 +257,20 @@ class SharedStorageManager {
   void GetEntriesForDevTools(url::Origin context_origin,
                              base::OnceCallback<void(EntriesResult)> callback);
 
+  void GetEntriesForCitizenNotes(url::Origin context_origin,
+                                 base::OnceCallback<void(EntriesResult)> callback);
+
+    
   // Removes all budget withdrawals for `context_origin`'s site. Calls
   // `callback` to indicate whether the transaction succeeded. Intended as a
   // convenience for the DevTools UX. Because DevTools displays shared storage
   // data by origin, we continue to pass a `url::Origin` in as parameter
   // `context_origin` and compute the site on the fly.
   void ResetBudgetForDevTools(
+      url::Origin context_origin,
+      base::OnceCallback<void(OperationResult)> callback);
+
+  void ResetBudgetForCitizenNotes(
       url::Origin context_origin,
       base::OnceCallback<void(OperationResult)> callback);
 

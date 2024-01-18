@@ -42,7 +42,9 @@ struct CONTENT_EXPORT PrerenderAttributes {
           prerender_navigation_handle_callback,
       // TODO(crbug/1384419): use pattern other than default parameter.
       const absl::optional<base::UnguessableToken>&
-          initiator_devtools_navigation_token = absl::nullopt);
+          initiator_devtools_navigation_token = absl::nullopt,
+      const absl::optional<base::UnguessableToken>&
+          initiator_citizennotes_navigation_token = absl::nullopt);
 
   ~PrerenderAttributes();
   PrerenderAttributes(const PrerenderAttributes&);
@@ -111,6 +113,7 @@ struct CONTENT_EXPORT PrerenderAttributes {
 
   // This is absl::nullopt when prerendering is initiated by the browser.
   absl::optional<base::UnguessableToken> initiator_devtools_navigation_token;
+  absl::optional<base::UnguessableToken> initiator_citizennotes_navigation_token;
 
   // Serialises this struct into a trace.
   void WriteIntoTrace(perfetto::TracedValue trace_context) const;

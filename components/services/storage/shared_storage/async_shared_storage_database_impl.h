@@ -133,6 +133,14 @@ class AsyncSharedStorageDatabaseImpl : public AsyncSharedStorageDatabase {
       url::Origin context_origin,
       base::OnceCallback<void(OperationResult)> callback) override;
 
+    
+  void GetEntriesForCitizenNotes(
+      url::Origin context_origin,
+      base::OnceCallback<void(EntriesResult)> callback) override;
+  void ResetBudgetForCitizenNotes(
+      url::Origin context_origin,
+      base::OnceCallback<void(OperationResult)> callback) override;
+
   // Gets the underlying database for tests.
   base::SequenceBound<SharedStorageDatabase>*
   GetSequenceBoundDatabaseForTesting();

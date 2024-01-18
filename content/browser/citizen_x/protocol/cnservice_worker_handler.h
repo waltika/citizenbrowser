@@ -73,7 +73,7 @@ class CNServiceWorkerHandler : public CitizenNotesDomainHandler,
                        int64_t version_id,
                        const ServiceWorkerContextObserver::ErrorInfo& info);
 
-  void OpenNewCitizenNotesWindow(int process_id, int devtools_agent_route_id);
+  void OpenNewCitizenNotesWindow(int process_id, int citizennotes_agent_route_id);
   void ClearForceUpdate();
 
   const bool allow_inspect_worker_;

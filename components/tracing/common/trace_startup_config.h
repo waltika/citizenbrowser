@@ -86,6 +86,7 @@ class TRACING_EXPORT TraceStartupConfig {
   enum class SessionOwner {
     kTracingController,
     kDevToolsTracingHandler,
+    kCitizenNotesTracingHandler,
     // The background tracing config set in application preferences on the
     // previous session, for current session.
     kBackgroundTracing,

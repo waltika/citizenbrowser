@@ -154,8 +154,9 @@ Preload::PrerenderFinalStatus PrerenderFinalStatusToProtocol(
       return Preload::PrerenderFinalStatusEnum::MemoryPressureOnTrigger;
     case PrerenderFinalStatus::kMemoryPressureAfterTriggered:
       return Preload::PrerenderFinalStatusEnum::MemoryPressureAfterTriggered;
-    case PrerenderFinalStatus::kPrerenderingDisabledByDevTools:
-      return Preload::PrerenderFinalStatusEnum::PrerenderingDisabledByDevTools;
+      case PrerenderFinalStatus::kPrerenderingDisabledByDevTools:
+    case PrerenderFinalStatus::kPrerenderingDisabledByCitizenNotes:
+      return Preload::PrerenderFinalStatusEnum::PrerenderingDisabledByDevTools; // TODO: Remember to check
     case PrerenderFinalStatus::kSpeculationRuleRemoved:
       return Preload::PrerenderFinalStatusEnum::SpeculationRuleRemoved;
     case PrerenderFinalStatus::kActivatedWithAuxiliaryBrowsingContexts:
@@ -343,7 +344,7 @@ std::vector<CNPreloadHandler*> CNPreloadHandler::ForAgentHost(
 }
 
 void CNPreloadHandler::DidUpdatePrefetchStatus(
-    const base::UnguessableToken& initiator_devtools_navigation_token,
+    const base::UnguessableToken& initiator_citizennotes_navigation_token,
     const std::string& initiating_frame_id,
     const GURL& prefetch_url,
     PreloadingTriggeringOutcome status,
@@ -355,7 +356,7 @@ void CNPreloadHandler::DidUpdatePrefetchStatus(
 
   auto preloading_attempt_key =
       protocol::Preload::PreloadingAttemptKey::Create()
-          .SetLoaderId(initiator_devtools_navigation_token.ToString())
+          .SetLoaderId(initiator_citizennotes_navigation_token.ToString())
           .SetAction(Preload::SpeculationActionEnum::Prefetch)
           .SetUrl(prefetch_url.spec())
           .Build();
@@ -368,7 +369,7 @@ void CNPreloadHandler::DidUpdatePrefetchStatus(
 }
 
 void CNPreloadHandler::DidUpdatePrerenderStatus(
-    const base::UnguessableToken& initiator_devtools_navigation_token,
+    const base::UnguessableToken& initiator_citizennotes_navigation_token,
     const GURL& prerender_url,
     absl::optional<blink::mojom::SpeculationTargetHint> target_hint,
     PreloadingTriggeringOutcome status,
@@ -381,7 +382,7 @@ void CNPreloadHandler::DidUpdatePrerenderStatus(
 
   auto preloading_attempt_key =
       protocol::Preload::PreloadingAttemptKey::Create()
-          .SetLoaderId(initiator_devtools_navigation_token.ToString())
+          .SetLoaderId(initiator_citizennotes_navigation_token.ToString())
           .SetAction(Preload::SpeculationActionEnum::Prerender)
           .SetUrl(prerender_url.spec())
           .Build();

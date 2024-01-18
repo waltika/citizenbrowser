@@ -36,14 +36,14 @@ class CNPreloadHandler : public CitizenNotesDomainHandler, public Preload::Backe
   static std::vector<CNPreloadHandler*> ForAgentHost(CitizenNotesAgentHostImpl* host);
 
   void DidUpdatePrefetchStatus(
-      const base::UnguessableToken& initiator_devtools_navigation_token,
+      const base::UnguessableToken& initiator_citizennotes_navigation_token,
       const std::string& initiating_frame_id,
       const GURL& prefetch_url,
       PreloadingTriggeringOutcome status,
       PrefetchStatus prefetch_status,
       const std::string& request_id);
   void DidUpdatePrerenderStatus(
-      const base::UnguessableToken& initiator_devtools_navigation_token,
+      const base::UnguessableToken& initiator_citizennotes_navigation_token,
       const GURL& prerender_url,
       absl::optional<blink::mojom::SpeculationTargetHint> target_hint,
       PreloadingTriggeringOutcome status,

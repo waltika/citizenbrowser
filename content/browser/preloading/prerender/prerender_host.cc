@@ -13,8 +13,11 @@
 #include "base/task/thread_pool.h"
 #include "base/trace_event/typed_macros.h"
 #include "content/browser/client_hints/client_hints.h"
-#include "content/browser/devtools/devtools_instrumentation.h"
+#include "content/browser/citizen_x/citizennotes_instrumentation.h"
 #include "content/browser/preloading/prerender/devtools_prerender_attempt.h"
+#include "content/browser/preloading/prerender/citizennotes_prerender_attempt.h"
+#include "content/browser/devtools/devtools_instrumentation.h"
+#include "content/browser/preloading/prerender/citizennotes_prerender_attempt.h"
 #include "content/browser/preloading/prerender/prerender_final_status.h"
 #include "content/browser/preloading/prerender/prerender_host_registry.h"
 #include "content/browser/preloading/prerender/prerender_metrics.h"
@@ -139,10 +142,12 @@ PrerenderHost::PrerenderHost(
     const PrerenderAttributes& attributes,
     WebContentsImpl& web_contents,
     base::WeakPtr<PreloadingAttempt> attempt,
-    std::unique_ptr<DevToolsPrerenderAttempt> devtools_attempt)
+    std::unique_ptr<DevToolsPrerenderAttempt> devtools_attempt,
+    std::unique_ptr<CitizenNotesPrerenderAttempt> citizennotes_attempt)
     : attributes_(attributes),
       attempt_(std::move(attempt)),
       devtools_attempt_(std::move(devtools_attempt)),
+      citizennotes_attempt_(std::move(citizennotes_attempt)),
       web_contents_(web_contents),
       frame_tree_(std::make_unique<FrameTree>(web_contents.GetBrowserContext(),
                                               this,
@@ -648,6 +653,8 @@ std::unique_ptr<StoredPage> PrerenderHost::Activate(
   SetTriggeringOutcome(PreloadingTriggeringOutcome::kSuccess);
   devtools_instrumentation::DidActivatePrerender(
       navigation_request, initiator_devtools_navigation_token());
+  citizennotes_instrumentation::DidActivatePrerender(
+        navigation_request, initiator_citizennotes_navigation_token());
   return page;
 }
 
@@ -1034,13 +1041,18 @@ void PrerenderHost::SetInitialNavigation(NavigationRequest* navigation) {
 }
 
 void PrerenderHost::SetTriggeringOutcome(PreloadingTriggeringOutcome outcome) {
-  if (attempt_) {
-    attempt_->SetTriggeringOutcome(outcome);
-  }
+    if (attempt_) {
+        attempt_->SetTriggeringOutcome(outcome);
+    }
+    
+    if (devtools_attempt_) {
+        devtools_attempt_->SetTriggeringOutcome(attributes_, outcome);
+    }
+    
+    if (citizennotes_attempt_) {
+        citizennotes_attempt_->SetTriggeringOutcome(attributes_, outcome);
+    }
 
-  if (devtools_attempt_) {
-    devtools_attempt_->SetTriggeringOutcome(attributes_, outcome);
-  }
 }
 
 void PrerenderHost::SetFailureReason(
@@ -1114,6 +1126,7 @@ void PrerenderHost::SetFailureReason(
     case PrerenderFinalStatus::kMemoryPressureOnTrigger:
     case PrerenderFinalStatus::kMemoryPressureAfterTriggered:
     case PrerenderFinalStatus::kPrerenderingDisabledByDevTools:
+    case PrerenderFinalStatus::kPrerenderingDisabledByCitizenNotes:
     case PrerenderFinalStatus::kActivatedWithAuxiliaryBrowsingContexts:
     case PrerenderFinalStatus::kMaxNumOfRunningEagerPrerendersExceeded:
     case PrerenderFinalStatus::kMaxNumOfRunningNonEagerPrerendersExceeded:
@@ -1135,6 +1148,10 @@ void PrerenderHost::SetFailureReason(
         devtools_attempt_.reset();
       }
 
+      if (citizennotes_attempt_) {
+        citizennotes_attempt_->SetFailureReason(attributes_, reason);
+        citizennotes_attempt_.reset();
+      }
       return;
     case PrerenderFinalStatus::kActivated:
       // The activation path does not call this method, so it should never reach

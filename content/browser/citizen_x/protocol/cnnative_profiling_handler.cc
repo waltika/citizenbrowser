@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "content/browser/citizen_x/protocol/native_profiling_handler.h"
+#include "content/browser/citizen_x/protocol/cnnative_profiling_handler.h"
 
-#include "content/browser/citizen_x/devtools_agent_host_impl.h"
+#include "content/browser/citizen_x/citizennotes_agent_host_impl.h"
 #include "content/public/browser/profiling_utils.h"
 
 namespace content {

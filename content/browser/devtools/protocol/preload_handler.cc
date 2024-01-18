@@ -154,6 +154,7 @@ Preload::PrerenderFinalStatus PrerenderFinalStatusToProtocol(
       return Preload::PrerenderFinalStatusEnum::MemoryPressureOnTrigger;
     case PrerenderFinalStatus::kMemoryPressureAfterTriggered:
       return Preload::PrerenderFinalStatusEnum::MemoryPressureAfterTriggered;
+    case PrerenderFinalStatus::kPrerenderingDisabledByCitizenNotes:
     case PrerenderFinalStatus::kPrerenderingDisabledByDevTools:
       return Preload::PrerenderFinalStatusEnum::PrerenderingDisabledByDevTools;
     case PrerenderFinalStatus::kSpeculationRuleRemoved:

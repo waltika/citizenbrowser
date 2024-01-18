@@ -5,7 +5,7 @@
 #ifndef CONTENT_BROWSER_CITIZENNOTES_PROTOCOL_NATIVE_PROFILING_HANDLER_H_
 #define CONTENT_BROWSER_CITIZENNOTES_PROTOCOL_NATIVE_PROFILING_HANDLER_H_
 
-#include "content/browser/citizen_x/protocol/devtools_domain_handler.h"
+#include "content/browser/citizen_x/protocol/citizennotes_domain_handler.h"
 #include "content/browser/citizen_x/protocol/native_profiling.h"
 #include "mojo/public/cpp/bindings/remote.h"
 

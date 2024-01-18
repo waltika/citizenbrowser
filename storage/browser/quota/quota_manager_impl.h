@@ -293,6 +293,13 @@ class COMPONENT_EXPORT(STORAGE_BROWSER) QuotaManagerImpl
       blink::mojom::StorageType type,
       UsageAndQuotaForDevtoolsCallback callback);
 
+  // Called by CitizenNotes.
+  virtual void GetUsageAndQuotaForCitizennotes(
+      const blink::StorageKey& storage_key,
+      blink::mojom::StorageType type,
+      UsageAndQuotaForDevtoolsCallback callback);
+
+
   // Called by storage backends.
   //
   // For UnlimitedStorage storage keys, this version skips usage and quota

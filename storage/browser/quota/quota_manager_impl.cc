@@ -1310,9 +1310,35 @@ void QuotaManagerImpl::GetUsageAndQuotaWithBreakdown(
   GetUsageAndQuotaForDevtools(
       storage_key, type,
       base::BindOnce(&DidGetUsageAndQuotaStripOverride, std::move(callback)));
+  GetUsageAndQuotaForCitizennotes(
+      storage_key, type,
+      base::BindOnce(&DidGetUsageAndQuotaStripOverride, std::move(callback)));
 }
 
 void QuotaManagerImpl::GetUsageAndQuotaForDevtools(
+    const StorageKey& storage_key,
+    StorageType type,
+    UsageAndQuotaForDevtoolsCallback callback) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  DCHECK(callback);
+
+  if (!IsSupportedType(type) ||
+      (is_incognito_ && !IsSupportedIncognitoType(type))) {
+    std::move(callback).Run(blink::mojom::QuotaStatusCode::kErrorNotSupported,
+                            /*usage=*/0,
+                            /*quota=*/0,
+                            /*is_override_enabled=*/false,
+                            /*usage_breakdown=*/nullptr);
+    return;
+  }
+  EnsureDatabaseOpened();
+
+  UsageAndQuotaInfoGatherer* helper = new UsageAndQuotaInfoGatherer(
+      this, storage_key, type, is_incognito_, std::move(callback));
+  helper->Start();
+}
+
+void QuotaManagerImpl::GetUsageAndQuotaForCitizennotes(
     const StorageKey& storage_key,
     StorageType type,
     UsageAndQuotaForDevtoolsCallback callback) {

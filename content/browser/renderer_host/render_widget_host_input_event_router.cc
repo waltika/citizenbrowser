@@ -459,6 +459,9 @@ RenderWidgetTargetResult RenderWidgetHostInputEventRouter::FindMouseEventTarget(
   if (route_to_root_for_devtools_)
     target = root_view;
 
+  if (route_to_root_for_citizennotes_)
+    target = root_view;
+
   if (!target && root_view->IsMouseLocked()) {
     target = root_view->host()->delegate()->GetMouseLockWidget()->GetView();
   }
