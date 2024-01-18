@@ -7,6 +7,7 @@
 
 #include "base/memory/raw_ptr.h"
 #include "chrome/browser/devtools/devtools_contents_resizing_strategy.h"
+#include "chrome/browser/citizen_x/citizennotes_contents_resizing_strategy.h"
 #include "ui/views/layout/layout_manager.h"
 
 // ContentsLayoutManager positions the WebContents and devtools WebContents.
@@ -23,6 +24,9 @@ class ContentsLayoutManager : public views::LayoutManager {
   void SetContentsResizingStrategy(
       const DevToolsContentsResizingStrategy& strategy);
 
+  void SetContentsResizingStrategy(
+      const CitizenNotesContentsResizingStrategy& strategy);
+
   // views::LayoutManager overrides:
   void Layout(views::View* host) override;
   gfx::Size GetPreferredSize(const views::View* host) const override;
@@ -36,6 +40,7 @@ class ContentsLayoutManager : public views::LayoutManager {
   raw_ptr<views::View> host_;
 
   DevToolsContentsResizingStrategy strategy_;
+  CitizenNotesContentsResizingStrategy cn_strategy_;
 };
 
 #endif  // CHROME_BROWSER_UI_VIEWS_FRAME_CONTENTS_LAYOUT_MANAGER_H_

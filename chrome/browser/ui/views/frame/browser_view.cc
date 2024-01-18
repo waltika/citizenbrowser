@@ -1715,6 +1715,7 @@ void BrowserView::OnActiveTabChanged(content::WebContents* old_contents,
       loading_bar_->SetWebContents(nullptr);
     contents_web_view_->SetWebContents(nullptr);
     devtools_web_view_->SetWebContents(nullptr);
+    citizennotes_web_view_->SetWebContents(nullptr);
   }
 
   // Do this before updating InfoBarContainer as the InfoBarContainer may
@@ -4725,11 +4726,11 @@ void BrowserView::UpdateCitizenNotesForContents(WebContents* web_contents,
 
   if (citizennotes) {
     citizennotes_web_view_->SetVisible(true);
-    // GetContentsLayoutManager()->SetContentsResizingStrategy(strategy); TODO: refactor
+    GetContentsLayoutManager()->SetContentsResizingStrategy(strategy);
   } else {
     citizennotes_web_view_->SetVisible(false);
-    // GetContentsLayoutManager()->SetContentsResizingStrategy(
-    //    CitizeNotesContentsResizingStrategy()); TODO: refactor
+    GetContentsLayoutManager()->SetContentsResizingStrategy(
+       CitizenNotesContentsResizingStrategy());
   }
   contents_container_->Layout();
 

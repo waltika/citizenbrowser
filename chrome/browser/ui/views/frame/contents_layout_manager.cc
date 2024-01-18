@@ -27,6 +27,16 @@ void ContentsLayoutManager::SetContentsResizingStrategy(
     host_->InvalidateLayout();
 }
 
+void ContentsLayoutManager::SetContentsResizingStrategy(
+    const CitizenNotesContentsResizingStrategy& strategy) {
+  if (cn_strategy_.Equals(strategy))
+    return;
+
+  cn_strategy_.CopyFrom(strategy);
+  if (host_)
+    host_->InvalidateLayout();
+}
+
 void ContentsLayoutManager::Layout(views::View* contents_container) {
   DCHECK(host_ == contents_container);
 
@@ -41,7 +51,7 @@ void ContentsLayoutManager::Layout(views::View* contents_container) {
   ApplyDevToolsContentsResizingStrategy(strategy_, container_size,
       &new_devtools_bounds, &new_contents_bounds);
 
-  ApplyDevToolsContentsResizingStrategy(strategy_, container_size,
+  ApplyCitizenNotesContentsResizingStrategy(cn_strategy_, container_size,
       &new_citizennotes_bounds, &new_contents_bounds);
 
   // DevTools cares about the specific position, so we have to compensate RTL
