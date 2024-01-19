@@ -1,5 +1,5 @@
-Name: Devtools-Frontend
-URL: https://chromium.googlesource.com/devtools/devtools-frontend
+Name: Citizennotes-Frontend
+URL: https://chromium.googlesource.com/citizennotes/citizennotes-frontend
 Version: 0
 License: BSD
 License File: src/LICENSE
@@ -8,4 +8,4 @@ Shipped: yes
 
 Description:
 
-Chrome DevTools frontend
+Citizen Browser CitizenNotes frontend
