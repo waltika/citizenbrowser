@@ -1,0 +1,29 @@
+# Copyright 2022 The Chromium Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import("../../../../scripts/build/ninja/citizennotes_entrypoint.gni")
+import("../../../../scripts/build/ninja/citizennotes_module.gni")
+import("../../visibility.gni")
+
+citizennotes_module("types") {
+  sources = [
+    "Configuration.ts",
+    "File.ts",
+    "Timing.ts",
+    "TraceEvents.ts",
+  ]
+
+  deps = [ "../../../generated" ]
+}
+
+citizennotes_entrypoint("bundle") {
+  entrypoint = "types.ts"
+  deps = [ ":types" ]
+  visibility = [
+    ":*",
+    "../*",
+  ]
+
+  visibility += citizennotes_models_visibility
+}

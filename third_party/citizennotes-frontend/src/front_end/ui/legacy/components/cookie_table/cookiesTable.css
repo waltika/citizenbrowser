@@ -1,0 +1,26 @@
+/*
+ * Copyright (c) 2019 The Chromium Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+.cookies-table citizennotes-icon {
+  margin-right: 4px;
+  margin-bottom: -2px;
+}
+
+.cookies-table td.flagged-cookie-attribute-cell citizennotes-icon {
+  filter: grayscale();
+}
+
+.cookies-table:focus-within tr.flagged-cookie-attribute-row.selected citizennotes-icon {
+  filter: brightness(0) invert(1);
+}
+
+.cookies-table tr.revealed.data-grid-data-grid-node.flagged-cookie-attribute-row:not(.selected):nth-child(odd) {
+  background-color: var(--sys-color-surface-yellow-high);
+}
+
+.cookies-table tr.revealed.data-grid-data-grid-node.flagged-cookie-attribute-row:not(.selected):nth-child(even) {
+  background-color: var(--sys-color-surface-yellow);
+}

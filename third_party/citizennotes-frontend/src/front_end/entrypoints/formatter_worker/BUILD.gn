@@ -1,0 +1,80 @@
+# Copyright 2020 The Chromium Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import("../../../scripts/build/ninja/citizennotes_entrypoint.gni")
+import("../../../scripts/build/ninja/citizennotes_module.gni")
+import("../visibility.gni")
+
+citizennotes_module("formatter_worker") {
+  sources = [
+    "AcornTokenizer.ts",
+    "CSSFormatter.ts",
+    "CSSRuleParser.ts",
+    "ESTreeWalker.ts",
+    "FormattedContentBuilder.ts",
+    "FormatterWorker.ts",
+    "HTMLFormatter.ts",
+    "IdentityFormatter.ts",
+    "JSONFormatter.ts",
+    "JavaScriptFormatter.ts",
+    "ScopeParser.ts",
+    "Substitute.ts",
+  ]
+
+  deps = [
+    ":formatter_actions",
+    "../../core/platform:bundle",
+    "../../core/root:bundle",
+    "../../models/text_utils:bundle",
+    "../../third_party/acorn:acorn",
+    "../../third_party/acorn:bundle",
+    "../../third_party/codemirror",
+    "../../third_party/codemirror:codemirror-legacy-types",
+  ]
+}
+
+citizennotes_entrypoint("bundle") {
+  entrypoint = "formatter_worker.ts"
+
+  deps = [ ":formatter_worker" ]
+
+  visibility = [
+    ":*",
+    "../../../test/unittests/front_end/entrypoints/formatter_worker/*",
+  ]
+
+  visibility += citizennotes_entrypoints_visibility
+}
+
+citizennotes_entrypoint("formatter_actions") {
+  entrypoint = "FormatterActions.ts"
+
+  deps = []
+
+  visibility = [
+    ":*",
+    "../../models/formatter/*",
+  ]
+
+  visibility += citizennotes_entrypoints_visibility
+}
+
+citizennotes_entrypoint("worker_entrypoint") {
+  entrypoint = "formatter_worker-entrypoint.ts"
+
+  is_web_worker = true
+
+  deps = [
+    ":bundle",
+    ":formatter_actions",
+    "../../core/platform:bundle",
+  ]
+
+  visibility = [
+    "../../../front_end",
+    "../../models/formatter/*",
+  ]
+
+  visibility += citizennotes_entrypoints_visibility
+}

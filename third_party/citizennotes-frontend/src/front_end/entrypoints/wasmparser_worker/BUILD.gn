@@ -1,0 +1,41 @@
+# Copyright 2020 The Chromium Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import("../../../scripts/build/ninja/citizennotes_entrypoint.gni")
+import("../../../scripts/build/ninja/citizennotes_module.gni")
+import("../visibility.gni")
+
+citizennotes_module("wasmparser_worker") {
+  sources = [ "WasmParserWorker.ts" ]
+
+  deps = [
+    "../../core/common:bundle",
+    "../../third_party/wasmparser:bundle",
+  ]
+}
+
+citizennotes_entrypoint("bundle") {
+  entrypoint = "wasmparser_worker.ts"
+
+  deps = [ ":wasmparser_worker" ]
+
+  visibility = [
+    ":*",
+    "../../../test/unittests/front_end/entrypoints/missing_entrypoints/*",
+  ]
+
+  visibility += citizennotes_entrypoints_visibility
+}
+
+citizennotes_entrypoint("worker_entrypoint") {
+  entrypoint = "wasmparser_worker-entrypoint.ts"
+
+  is_web_worker = true
+
+  deps = [ ":bundle" ]
+
+  visibility = [ "../../../front_end" ]
+
+  visibility += citizennotes_entrypoints_visibility
+}

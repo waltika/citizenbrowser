@@ -1,0 +1,35 @@
+# Copyright 2023 The Chromium Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+import("../../../../scripts/build/ninja/citizennotes_entrypoint.gni")
+import("../../../../scripts/build/ninja/citizennotes_module.gni")
+import("../../visibility.gni")
+
+citizennotes_module("extras") {
+  sources = [
+    "FetchNodes.ts",
+    "FilmStrip.ts",
+    "MainThreadActivity.ts",
+    "Metadata.ts",
+  ]
+
+  deps = [
+    "../../../core/platform:bundle",
+    "../../../core/sdk:bundle",
+    "../../../generated:protocol",
+    "../handlers:bundle",
+    "../types:bundle",
+  ]
+}
+
+citizennotes_entrypoint("bundle") {
+  entrypoint = "extras.ts"
+  deps = [ ":extras" ]
+  visibility = [
+    ":*",
+    "../*",
+  ]
+
+  visibility += citizennotes_models_visibility
+}
