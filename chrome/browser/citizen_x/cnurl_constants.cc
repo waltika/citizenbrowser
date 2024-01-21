@@ -4,7 +4,7 @@
 
 #include "chrome/browser/citizen_x/cnurl_constants.h"
 
-const char kCNRemoteFrontendDomain[] = "chrome-citizennotes-frontend.appspot.com";
+const char kCNRemoteFrontendDomain[] = "chrome-devtools-frontend.appspot.com";
 const char kCNRemoteFrontendBase[] =
-    "https://chrome-citizennotes-frontend.appspot.com/";
+    "https://chrome-devtools-frontend.appspot.com/";
 const char kCNRemoteFrontendPath[] = "serve_file";

@@ -92,10 +92,10 @@ const int32_t kReceiveBufferSizeForCitizenNotes = 100 * 1024 * 1024;  // 100Mb
 
 const char kRemoteUrlPattern[] =
 #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
-    "https://chrome-citizennotes-frontend.appspot.com/serve_internal_file/%s/"
+    "https://chrome-devtools-frontend.appspot.com/serve_internal_file/%s/"
     "%s.html";
 #else
-    "https://chrome-citizennotes-frontend.appspot.com/serve_rev/%s/%s.html";
+    "https://chrome-devtools-frontend.appspot.com/serve_rev/%s/%s.html";
 #endif
 
 constexpr net::NetworkTrafficAnnotationTag

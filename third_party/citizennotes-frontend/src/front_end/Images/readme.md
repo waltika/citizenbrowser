@@ -17,7 +17,7 @@
    - Save the icon with `_icon.svg` suffix. For instance `list_icon.svg`.
 
 2. Add respective entries to `.gni` files.
-   - Update the `devtols_image_files` list in `config/gni/citizennotes_image_files.gni`.
+   - Update the `citizennotes_image_files` list in `config/gni/citizennotes_image_files.gni`.
    - Update the `grd_files_release_sources` list in `config/gni/citizennotes_grd_files.gni`.
 
 3. Use Icon component in the CitizenNotes front-end:

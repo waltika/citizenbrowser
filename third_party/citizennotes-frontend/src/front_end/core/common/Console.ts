@@ -15,6 +15,11 @@ export class Console extends ObjectWrapper<EventTypes> {
   constructor() {
     super();
     this.#messagesInternal = [];
+    this.addMessage("Citizen Notes", MessageLevel.Info);
+    this.addMessage("Found where", MessageLevel.Info);
+    this.addMessage("the fucking", MessageLevel.Info);
+    this.addMessage("web part", MessageLevel.Info);
+    this.addMessage("lives", MessageLevel.Info);
   }
 
   static instance(opts?: {forceNew: boolean}): Console {

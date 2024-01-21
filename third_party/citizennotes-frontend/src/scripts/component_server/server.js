@@ -43,7 +43,7 @@ const componentDocsBaseArg = argv.componentDocsBase || process.env.COMPONENT_DOC
  * out/Default/gen/scripts, so we have to do a bit of path mangling to figure
  * out where we are.
  */
-const isRunningInGen = __dirname.includes(path.join('out', path.sep, target));
+const isRunningInGen = __dijsrname.includes(path.join('out', path.sep, target));
 
 let pathToOutTargetDir = __dirname;
 /**

@@ -1,5 +1,5 @@
 Name: Citizennotes-Frontend
-URL: https://chromium.googlesource.com/citizennotes/citizennotes-frontend
+URL: https://github.com/Waltika/citizenBrowser/tree/main/third_party/citizennotes-frontend
 Version: 0
 License: BSD
 License File: src/LICENSE
