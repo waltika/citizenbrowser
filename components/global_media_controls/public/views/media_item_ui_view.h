@@ -96,7 +96,7 @@ class COMPONENT_EXPORT(GLOBAL_MEDIA_CONTROLS) MediaItemUIView
   void OnColorsChanged(SkColor foreground,
                        SkColor foreground_disabled,
                        SkColor background) override;
-  void OnHeaderClicked() override;
+  void OnHeaderClicked(bool activate_original_media) override;
   void OnShowCastingDevicesRequested() override;
   void OnDeviceSelectorViewSizeChanged() override;
 
@@ -128,7 +128,6 @@ class COMPONENT_EXPORT(GLOBAL_MEDIA_CONTROLS) MediaItemUIView
   views::ImageButton* GetDismissButtonForTesting();
 
   media_message_center::MediaNotificationViewImpl* view_for_testing() {
-    DCHECK(!base::FeatureList::IsEnabled(media::kGlobalMediaControlsModernUI));
     return static_cast<media_message_center::MediaNotificationViewImpl*>(view_);
   }
   MediaItemUIDeviceSelector* device_selector_view_for_testing() {
@@ -152,7 +151,7 @@ class COMPONENT_EXPORT(GLOBAL_MEDIA_CONTROLS) MediaItemUIView
   // Updates the forced expanded state of |view_|.
   void ForceExpandedState();
   // Notify observers that we've been clicked.
-  void ContainerClicked();
+  void ContainerClicked(bool activate_original_media);
   void OnSizeChanged();
 
   const std::string id_;

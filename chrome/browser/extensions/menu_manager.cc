@@ -36,6 +36,7 @@
 #include "extensions/common/extension.h"
 #include "extensions/common/manifest_handlers/background_info.h"
 #include "extensions/common/mojom/event_dispatcher.mojom.h"
+#include "ipc/ipc_message.h"
 #include "third_party/blink/public/mojom/context_menu/context_menu.mojom.h"
 #include "ui/gfx/favicon_size.h"
 #include "ui/gfx/text_elider.h"
@@ -77,7 +78,7 @@ void SetIdKeyValue(base::Value::Dict& properties,
 
 MenuItem::OwnedList MenuItemsFromValue(
     const std::string& extension_id,
-    const absl::optional<base::Value>& value) {
+    const std::optional<base::Value>& value) {
   MenuItem::OwnedList items;
 
   if (!value || !value->is_list())
@@ -230,7 +231,7 @@ base::Value::Dict MenuItem::ToValue() const {
 std::unique_ptr<MenuItem> MenuItem::Populate(const std::string& extension_id,
                                              const base::Value::Dict& value,
                                              std::string* error) {
-  absl::optional<bool> incognito = value.FindBool(kMenuManagerIncognitoKey);
+  std::optional<bool> incognito = value.FindBool(kMenuManagerIncognitoKey);
   if (!incognito.has_value())
     return nullptr;
   Id id(incognito.value(), MenuItem::ExtensionKey(extension_id));
@@ -239,7 +240,7 @@ std::unique_ptr<MenuItem> MenuItem::Populate(const std::string& extension_id,
     return nullptr;
   id.string_uid = *string_uid;
 
-  absl::optional<int> type_int = value.FindInt(kMenuManagerTypeKey);
+  std::optional<int> type_int = value.FindInt(kMenuManagerTypeKey);
   if (!type_int.has_value())
     return nullptr;
 
@@ -254,7 +255,7 @@ std::unique_ptr<MenuItem> MenuItem::Populate(const std::string& extension_id,
 
   bool checked = false;
   if (type == CHECKBOX || type == RADIO) {
-    absl::optional<bool> specified_checked = value.FindBool(kCheckedKey);
+    std::optional<bool> specified_checked = value.FindBool(kCheckedKey);
     if (!specified_checked)
       return nullptr;
     checked = specified_checked.value();
@@ -266,7 +267,7 @@ std::unique_ptr<MenuItem> MenuItem::Populate(const std::string& extension_id,
   // TODO(catmullings): Remove this in M65 when all prefs should be migrated.
   bool visible = value.FindBool(kVisibleKey).value_or(true);
 
-  absl::optional<bool> specified_enabled = value.FindBool(kEnabledKey);
+  std::optional<bool> specified_enabled = value.FindBool(kEnabledKey);
   if (!specified_enabled.has_value())
     return nullptr;
   bool enabled = specified_enabled.value();
@@ -393,8 +394,8 @@ bool MenuManager::AddContextItem(const Extension* extension,
       SanitizeRadioListsInMenu(context_items_[key]);
   }
 
-  // If this is the first item for this extension, start loading its icon.
-  if (first_item && extension) {
+  // If this is the first item, start loading its icon.
+  if (first_item) {
     GetMenuIconLoader(key)->LoadIcon(browser_context_, extension, key);
   }
 
@@ -879,7 +880,7 @@ void MenuManager::WriteToStorageInternal(
 }
 
 void MenuManager::ReadFromStorage(const std::string& extension_id,
-                                  absl::optional<base::Value> value) {
+                                  std::optional<base::Value> value) {
   const Extension* extension = ExtensionRegistry::Get(browser_context_)
                                    ->enabled_extensions()
                                    .GetByID(extension_id);
@@ -990,15 +991,18 @@ MenuItem::ExtensionKey::ExtensionKey()
 MenuItem::ExtensionKey::ExtensionKey(const std::string& extension_id)
     : extension_id(extension_id),
       webview_embedder_process_id(ChildProcessHost::kInvalidUniqueID),
+      webview_embedder_frame_id(MSG_ROUTING_NONE),
       webview_instance_id(kInstanceIDNone) {
   DCHECK(!extension_id.empty());
 }
 
 MenuItem::ExtensionKey::ExtensionKey(const std::string& extension_id,
                                      int webview_embedder_process_id,
+                                     int webview_embedder_frame_id,
                                      int webview_instance_id)
     : extension_id(extension_id),
       webview_embedder_process_id(webview_embedder_process_id),
+      webview_embedder_frame_id(webview_embedder_frame_id),
       webview_instance_id(webview_instance_id) {
   DCHECK(webview_embedder_process_id != ChildProcessHost::kInvalidUniqueID &&
          webview_instance_id != kInstanceIDNone);

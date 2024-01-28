@@ -58,6 +58,7 @@ class ReadAnythingAppModel {
   // Theme
   const std::string& font_name() const { return font_name_; }
   float font_size() const { return font_size_; }
+  bool links_enabled() const { return links_enabled_; }
   float letter_spacing() const { return letter_spacing_; }
   float line_spacing() const { return line_spacing_; }
   int color_theme() const { return color_theme_; }
@@ -122,11 +123,13 @@ class ReadAnythingAppModel {
       read_anything::mojom::LetterSpacing letter_spacing,
       const std::string& font,
       double font_size,
+      bool links_enabled,
       read_anything::mojom::Colors color,
       double speech_rate,
       base::Value::Dict* voices,
       read_anything::mojom::HighlightGranularity granularity);
   void OnScroll(bool on_selection, bool from_reading_mode) const;
+  void OnSelection(ax::mojom::EventFrom event_from);
 
   void Reset(const std::vector<ui::AXNodeID>& content_node_ids);
   bool PostProcessSelection();
@@ -176,6 +179,7 @@ class ReadAnythingAppModel {
   void IncreaseTextSize();
   void DecreaseTextSize();
   void ResetTextSize();
+  void ToggleLinksEnabled();
 
   // PDF handling.
   void SetIsPdf(const GURL& url);
@@ -281,6 +285,7 @@ class ReadAnythingAppModel {
   // Theme information.
   std::string font_name_ = string_constants::kReadAnythingPlaceholderFontName;
   float font_size_ = kReadAnythingDefaultFontScale;
+  bool links_enabled_ = kReadAnythingDefaultLinksEnabled;
   float letter_spacing_ =
       (int)read_anything::mojom::LetterSpacing::kDefaultValue;
   float line_spacing_ = (int)read_anything::mojom::LineSpacing::kDefaultValue;

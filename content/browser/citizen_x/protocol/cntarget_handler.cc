@@ -1174,7 +1174,7 @@ Response CNTargetHandler::CloseTarget(const std::string& target_id,
   return Response::Success();
 }
 
-Response CNTargetHandler::ExposeCitizenNotesProtocol(
+Response CNTargetHandler::ExposeDevToolsProtocol(
     const std::string& target_id,
     Maybe<std::string> binding_name) {
   if (access_mode_ != AccessMode::kBrowser)

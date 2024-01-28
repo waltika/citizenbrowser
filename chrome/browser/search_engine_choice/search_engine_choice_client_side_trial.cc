@@ -21,7 +21,7 @@
 namespace SearchEngineChoiceClientSideTrial {
 namespace {
 
-absl::optional<version_info::Channel> g_channel_for_testing;
+std::optional<version_info::Channel> g_channel_for_testing;
 
 // Should match the trial name from Finch.
 const char kTrialName[] = "WaffleStudy";
@@ -100,8 +100,11 @@ void SetUp(const base::FieldTrial::EntropyProvider& entropy_provider,
 
   // Set up the state of the features based on the obtained group.
   base::FeatureList::OverrideState feature_state =
-      group_name == kEnabledGroup ? base::FeatureList::OVERRIDE_ENABLE_FEATURE
-                                  : base::FeatureList::OVERRIDE_DISABLE_FEATURE;
+      group_name == kDefaultGroup
+          ? base::FeatureList::OVERRIDE_USE_DEFAULT
+          : (group_name == kEnabledGroup
+                 ? base::FeatureList::OVERRIDE_ENABLE_FEATURE
+                 : base::FeatureList::OVERRIDE_DISABLE_FEATURE);
 
   if (feature_state == base::FeatureList::OVERRIDE_ENABLE_FEATURE) {
     base::AssociateFieldTrialParams(
@@ -112,10 +115,6 @@ void SetUp(const base::FieldTrial::EntropyProvider& entropy_provider,
 
   feature_list.RegisterFieldTrialOverride(
       switches::kSearchEngineChoiceTrigger.name, feature_state, trial.get());
-  feature_list.RegisterFieldTrialOverride(switches::kSearchEngineChoice.name,
-                                          feature_state, trial.get());
-  feature_list.RegisterFieldTrialOverride(switches::kSearchEngineChoiceFre.name,
-                                          feature_state, trial.get());
 
   // Activate only after the overrides are completed.
   trial->Activate();
@@ -151,10 +150,7 @@ void SetUpIfNeeded(const base::FieldTrial::EntropyProvider& entropy_provider,
   // Skip setup if an associated feature is overriden, typically via the
   // commandline or setup during tests.
   if (feature_list->IsFeatureOverridden(
-          switches::kSearchEngineChoiceTrigger.name) ||
-      feature_list->IsFeatureOverridden(switches::kSearchEngineChoice.name) ||
-      feature_list->IsFeatureOverridden(
-          switches::kSearchEngineChoiceFre.name)) {
+          switches::kSearchEngineChoiceTrigger.name)) {
     LOG(WARNING) << "Not setting up client-side trial for WaffleStudy, feature "
                     "already overridden.";
     return;

@@ -11,6 +11,8 @@
 #include "chrome/browser/browsing_data/chrome_browsing_data_remover_constants.h"
 #include "chrome/browser/browsing_topics/browsing_topics_service_factory.h"
 #include "chrome/browser/media/webrtc/media_device_salt_service_factory.h"
+#include "chrome/browser/webid/federated_identity_permission_context.h"
+#include "chrome/browser/webid/federated_identity_permission_context_factory.h"
 #include "chrome/test/base/testing_browser_process.h"
 #include "chrome/test/base/testing_profile.h"
 #include "chrome/test/base/testing_profile_manager.h"
@@ -57,9 +59,7 @@ blink::StorageKey StorageKey2() {
 #if BUILDFLAG(ENABLE_NACL)
 class ScopedNaClBrowserDelegate {
  public:
-  ~ScopedNaClBrowserDelegate() {
-    nacl::NaClBrowser::ClearAndDeleteDelegateForTest();
-  }
+  ~ScopedNaClBrowserDelegate() { nacl::NaClBrowser::ClearAndDeleteDelegate(); }
 
   void Init(ProfileManager* profile_manager) {
     nacl::NaClBrowser::SetDelegate(
@@ -138,6 +138,10 @@ class ChromeBrowsingDataModelDelegateTest : public testing::Test {
         all_keys_future.GetCallback());
     ASSERT_THAT(all_keys_future.Get(),
                 UnorderedElementsAre(StorageKey1(), StorageKey2()));
+
+    federated_identity_permission_context_ =
+        FederatedIdentityPermissionContextFactory::GetForProfile(
+            profile_.get());
   }
 
   TestingProfile* profile() { return profile_.get(); }
@@ -150,6 +154,10 @@ class ChromeBrowsingDataModelDelegateTest : public testing::Test {
 
   media_device_salt::MediaDeviceSaltService* media_device_salt_service() {
     return media_device_salt_service_;
+  }
+
+  FederatedIdentityPermissionContext* federated_identity_permission_context() {
+    return federated_identity_permission_context_;
   }
 
  protected:
@@ -166,6 +174,8 @@ class ChromeBrowsingDataModelDelegateTest : public testing::Test {
       mock_browsing_topics_service_;
   std::unique_ptr<ChromeBrowsingDataModelDelegate> delegate_;
   raw_ptr<media_device_salt::MediaDeviceSaltService> media_device_salt_service_;
+  raw_ptr<FederatedIdentityPermissionContext>
+      federated_identity_permission_context_;
 };
 
 TEST_F(ChromeBrowsingDataModelDelegateTest, RemoveDataKeyForTopics) {
@@ -216,7 +226,7 @@ TEST_F(ChromeBrowsingDataModelDelegateTest, GetAllDataKeysAndGetDataOwner) {
                   entry.storage_type),
               ChromeBrowsingDataModelDelegate::StorageType::kMediaDeviceSalt);
 
-    absl::optional<BrowsingDataModel::DataOwner> owner =
+    std::optional<BrowsingDataModel::DataOwner> owner =
         delegate()->GetDataOwner(
             entry.data_key, static_cast<BrowsingDataModel::StorageType>(
                                 ChromeBrowsingDataModelDelegate::StorageType::
@@ -299,3 +309,35 @@ TEST_F(ChromeBrowsingDataModelDelegateTest, CookieDeletionFilterIncognitoUser) {
       delegate()->IsCookieDeletionDisabled(GURL("https://youtube.com")));
 }
 #endif  // !BUILDFLAG(IS_MAC) && BUILDFLAG(ENABLE_SUPERVISED_USERS)
+
+TEST_F(ChromeBrowsingDataModelDelegateTest, RemoveFederatedIdentityData) {
+  const url::Origin kRequester =
+      url::Origin::Create(GURL("https://requester.com"));
+  const url::Origin kEmbedder =
+      url::Origin::Create(GURL("https://embedder.com"));
+  const url::Origin kIdentityProvider =
+      url::Origin::Create(GURL("https://idp.com"));
+  constexpr std::string kAccountId = "accountId";
+
+  FederatedIdentityPermissionContext* context =
+      federated_identity_permission_context();
+  context->GrantSharingPermission(kRequester, kEmbedder, kIdentityProvider,
+                                  kAccountId);
+  EXPECT_TRUE(context->HasSharingPermission(kRequester, kEmbedder,
+                                            kIdentityProvider, kAccountId));
+  EXPECT_TRUE(context->HasSharingPermission(kRequester));
+  EXPECT_FALSE(context->HasSharingPermission(kEmbedder));
+
+  base::RunLoop run_loop;
+  delegate_->RemoveDataKey(
+      webid::FederatedIdentityDataModel::DataKey(kRequester, kEmbedder,
+                                                 kIdentityProvider, kAccountId),
+      {static_cast<BrowsingDataModel::StorageType>(
+          ChromeBrowsingDataModelDelegate::StorageType::kFederatedIdentity)},
+      run_loop.QuitClosure());
+  run_loop.Run();
+
+  EXPECT_FALSE(context->HasSharingPermission(kRequester, kEmbedder,
+                                             kIdentityProvider, kAccountId));
+  EXPECT_FALSE(context->HasSharingPermission(kRequester));
+}

@@ -31,7 +31,7 @@ namespace apps {
 
 class DeviceInfoManager;
 class PreloadAppDefinition;
-class WebAppPreloadInstaller;
+class WebAppInstaller;
 
 struct DeviceInfo;
 
@@ -81,7 +81,7 @@ class AppPreloadService : public KeyedService {
   // Processes the list of apps retrieved by the server connector.
   void OnGetAppsForFirstLoginCompleted(
       base::TimeTicks start_time,
-      absl::optional<std::vector<PreloadAppDefinition>> apps);
+      std::optional<std::vector<PreloadAppDefinition>> apps);
   // Called when the installation flow started by
   // `StartAppInstallationForFirstLogin` is complete, with `success` indicating
   // whether the overall flow was successful.
@@ -94,7 +94,7 @@ class AppPreloadService : public KeyedService {
   raw_ptr<Profile> profile_;
   std::unique_ptr<AppPreloadServerConnector> server_connector_;
   std::unique_ptr<DeviceInfoManager> device_info_manager_;
-  std::unique_ptr<WebAppPreloadInstaller> web_app_installer_;
+  std::unique_ptr<WebAppInstaller> web_app_installer_;
 
   // For testing
   PreloadStatusCallback installation_complete_callback_;

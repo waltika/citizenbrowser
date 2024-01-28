@@ -118,6 +118,28 @@ public interface Player {
     /** Update players when playback fails. */
     default void playbackFailed() {}
 
-    /** Hide players. */
+    /** Show mini player. Assumes the playback is running. */
+    default void restoreMiniPlayer() {}
+
+    /** Only called after playback is released and no more events are coming. */
+    default void recordPlaybackDuration() {}
+
+    /** Hide players, clears playback and sets UI to a stopped state. */
     default void dismissPlayers() {}
+
+    /**
+     * Hide miniPlayer, unsubscribe from updates. State updates will resume after {@link
+     * #restoreMiniPlayer() restoreMiniPlayer} is called.
+     */
+    default void hideMiniPlayer() {}
+
+    /**
+     * Hide players, unsubscribe from progress updates. Updates will resume after {@link
+     * #restoreMiniPlayer() restoreMiniPlayer} or {@link #restorePlayers() restorePlayers} is
+     * called.
+     */
+    default void hidePlayers() {}
+
+    /** Show back whatever player was shown last. Assumes the playback is running. */
+    default void restorePlayers() {}
 }

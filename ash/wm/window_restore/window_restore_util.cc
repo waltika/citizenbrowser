@@ -10,6 +10,7 @@
 #include "ash/shell.h"
 #include "ash/wm/mru_window_tracker.h"
 #include "ash/wm/window_state.h"
+#include "base/memory/raw_ptr.h"
 #include "base/ranges/algorithm.h"
 #include "components/app_restore/window_properties.h"
 #include "ui/aura/client/aura_constants.h"
@@ -48,7 +49,7 @@ std::unique_ptr<app_restore::WindowInfo> BuildWindowInfo(
     aura::Window* window,
     std::optional<int> activation_index,
     bool for_saved_desks,
-    const std::vector<aura::Window*>& mru_windows) {
+    const std::vector<raw_ptr<aura::Window, VectorExperimental>>& mru_windows) {
   auto window_info = std::make_unique<app_restore::WindowInfo>();
   int window_activation_index = -1;
   if (activation_index) {
@@ -146,12 +147,11 @@ std::unique_ptr<app_restore::WindowInfo> BuildWindowInfo(
   if (IsArcWindow(window)) {
     views::Widget* widget = views::Widget::GetWidgetForNativeWindow(window);
     if (widget) {
-      auto extra = app_restore::WindowInfo::ArcExtraInfo();
-      extra.maximum_size = widget->GetMaximumSize();
-      extra.minimum_size = widget->GetMinimumSize();
-      extra.bounds_in_root =
-          GetBoundsIgnoringTransforms(window, /*use_screen=*/false);
-      window_info->arc_extra_info = extra;
+      window_info->arc_extra_info = {
+          .maximum_size = widget->GetMaximumSize(),
+          .minimum_size = widget->GetMinimumSize(),
+          .bounds_in_root =
+              GetBoundsIgnoringTransforms(window, /*use_screen=*/false)};
       window_info->app_title = window->GetTitle();
     }
   }

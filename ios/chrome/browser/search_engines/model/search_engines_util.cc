@@ -28,15 +28,18 @@ static const int kGoogleEnginePrepopulatedId = 1;
 void UpdateSearchEngine(PrefService* preferences, TemplateURLService* service) {
   CHECK(service);
   CHECK(service->loaded());
-  std::vector<TemplateURL*> old_engines = service->GetTemplateURLs();
+  std::vector<raw_ptr<TemplateURL, VectorExperimental>> old_engines =
+      service->GetTemplateURLs();
   std::vector<std::unique_ptr<TemplateURLData>> new_engines;
   if (search_engines::IsChoiceScreenFlagEnabled(
           search_engines::ChoicePromo::kAny)) {
     new_engines = TemplateURLPrepopulateData::GetPrepopulatedEngines(
-        preferences, nullptr);
+        preferences, /*search_engine_choice_service=*/nullptr,
+        /*default_search_provider_index=*/nullptr);
   } else {
-    new_engines =
-        TemplateURLPrepopulateData::GetPrepopulatedEngines(nullptr, nullptr);
+    new_engines = TemplateURLPrepopulateData::GetPrepopulatedEngines(
+        /*prefs=*/nullptr, /*search_engine_choice_service=*/nullptr,
+        /*default_search_provider_index=*/nullptr);
   }
   // The aim is to replace the old search engines with the new ones.
   // It is not possible to remove all of them, because removing the current
@@ -49,14 +52,14 @@ void UpdateSearchEngine(PrefService* preferences, TemplateURLService* service) {
   // third pass, it will add all new engines except Google.
   const TemplateURL* default_engine = service->GetDefaultSearchProvider();
   if (default_engine->prepopulate_id() > kGoogleEnginePrepopulatedId) {
-    for (auto* engine : old_engines) {
+    for (TemplateURL* engine : old_engines) {
       if (engine->prepopulate_id() == kGoogleEnginePrepopulatedId) {
         service->SetUserSelectedDefaultSearchProvider(engine);
         break;
       }
     }
   }
-  for (auto* engine : old_engines) {
+  for (TemplateURL* engine : old_engines) {
     if (engine->prepopulate_id() > kGoogleEnginePrepopulatedId)
       service->Remove(engine);
   }

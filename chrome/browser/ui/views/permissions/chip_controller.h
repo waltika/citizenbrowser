@@ -11,8 +11,6 @@
 #include "base/check_is_test.h"
 #include "base/functional/callback_helpers.h"
 #include "base/timer/timer.h"
-#include "chrome/browser/picture_in_picture/picture_in_picture_occlusion_observer.h"
-#include "chrome/browser/picture_in_picture/scoped_picture_in_picture_occlusion_observation.h"
 #include "chrome/browser/ui/views/location_bar/omnibox_chip_button.h"
 #include "components/permissions/permission_prompt.h"
 #include "components/permissions/permission_request_manager.h"
@@ -21,6 +19,8 @@
 
 class PermissionPromptChipModel;
 class LocationBarView;
+class PermissionDashboardView;
+class PermissionDashboardController;
 // ButtonController that NotifyClick from being called when the
 // BubbleOwnerDelegate's bubble is showing. Otherwise the bubble will show again
 // immediately after being closed via losing focus.
@@ -40,10 +40,13 @@ class BubbleOwnerDelegate {
 class ChipController : public permissions::PermissionRequestManager::Observer,
                        public views::WidgetObserver,
                        public BubbleOwnerDelegate,
-                       public OmniboxChipButton::Observer,
-                       public PictureInPictureOcclusionObserver {
+                       public OmniboxChipButton::Observer {
  public:
-  ChipController(Browser* browser_, OmniboxChipButton* chip_view);
+  ChipController(
+      Browser* browser,
+      OmniboxChipButton* chip_view,
+      PermissionDashboardView* permission_dashboard_view = nullptr,
+      PermissionDashboardController* permission_dashboard_controller = nullptr);
 
   ~ChipController() override;
   ChipController(const ChipController&) = delete;
@@ -81,9 +84,6 @@ class ChipController : public permissions::PermissionRequestManager::Observer,
   void OnChipVisibilityChanged(bool is_visible) override;
   void OnExpandAnimationEnded() override;
   void OnCollapseAnimationEnded() override;
-
-  // PictureInPictureOcclusionObserver:
-  void OnOcclusionStateChanged(bool occluded) override;
 
   // Initializes the permission prompt model as well as the permission request
   // manager and observes the prompt bubble.
@@ -141,16 +141,13 @@ class ChipController : public permissions::PermissionRequestManager::Observer,
     return bubble_tracker_.view();
   }
 
-  absl::optional<permissions::PermissionRequestManager*>
+  std::optional<permissions::PermissionRequestManager*>
   active_permission_request_manager_for_testing() {
     CHECK_IS_TEST();
     return active_chip_permission_request_manager_;
   }
 
-  bool is_confirmation_showing_for_testing() const {
-    CHECK_IS_TEST();
-    return is_confirmation_showing_;
-  }
+  bool is_confirmation_showing() const { return is_confirmation_showing_; }
 
   bool is_waiting_for_confirmation_collapse_for_testing() const {
     CHECK_IS_TEST();
@@ -158,7 +155,8 @@ class ChipController : public permissions::PermissionRequestManager::Observer,
   }
 
  private:
-  bool ShouldWaitForConfirmationToComplete();
+  bool ShouldWaitForConfirmationToComplete() const;
+  bool ShouldWaitForLHSIndicatorToCollapse() const;
   void AnimateExpand();
 
   // Confirmation chip.
@@ -209,10 +207,15 @@ class ChipController : public permissions::PermissionRequestManager::Observer,
   bool is_confirmation_showing_ = false;
   bool is_waiting_for_confirmation_collapse_ = false;
 
+  raw_ptr<Browser> browser_;
+
   // The chip view this controller modifies.
   raw_ptr<OmniboxChipButton> chip_;
 
-  raw_ptr<Browser> browser_;
+  // `PermissionDashboardView` is an owner of OmniboxChipButton.
+  raw_ptr<PermissionDashboardView> permission_dashboard_view_;
+  // `PermissionDashboardController` is an owner of this.
+  raw_ptr<PermissionDashboardController> permission_dashboard_controller_;
 
   // The time when the request chip was displayed.
   base::TimeTicks request_chip_shown_time_;
@@ -233,7 +236,7 @@ class ChipController : public permissions::PermissionRequestManager::Observer,
   // The model of a permission prompt if one is present.
   std::unique_ptr<PermissionPromptChipModel> permission_prompt_model_;
 
-  absl::optional<permissions::PermissionRequestManager*>
+  std::optional<permissions::PermissionRequestManager*>
       active_chip_permission_request_manager_;
 
   views::ViewTracker bubble_tracker_;
@@ -242,8 +245,6 @@ class ChipController : public permissions::PermissionRequestManager::Observer,
 
   base::ScopedObservation<OmniboxChipButton, OmniboxChipButton::Observer>
       observation_{this};
-
-  ScopedPictureInPictureOcclusionObservation occlusion_observation_{this};
 
   base::WeakPtrFactory<ChipController> weak_factory_{this};
 };

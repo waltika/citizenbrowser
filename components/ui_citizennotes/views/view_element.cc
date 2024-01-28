@@ -239,7 +239,7 @@ ui::Layer* ViewElement::GetLayer() const {
 
 void ViewElement::RebuildTree() {
   ClearChildren();
-  for (auto* child : view_->children()) {
+  for (views::View* child : view_->children()) {
     AddChild(new ViewElement(child, delegate(), this));
   }
 }

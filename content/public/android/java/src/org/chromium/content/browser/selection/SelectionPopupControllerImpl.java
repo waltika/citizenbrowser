@@ -58,7 +58,6 @@ import org.chromium.content.browser.webcontents.WebContentsImpl;
 import org.chromium.content.browser.webcontents.WebContentsImpl.UserDataFactory;
 import org.chromium.content_public.browser.ActionModeCallback;
 import org.chromium.content_public.browser.ActionModeCallbackHelper;
-import org.chromium.content_public.browser.AdditionalSelectionMenuItemProvider;
 import org.chromium.content_public.browser.ContentFeatureList;
 import org.chromium.content_public.browser.ContentFeatureMap;
 import org.chromium.content_public.browser.ImeEventObserver;
@@ -69,7 +68,9 @@ import org.chromium.content_public.browser.SelectionMenuGroup;
 import org.chromium.content_public.browser.SelectionMenuItem;
 import org.chromium.content_public.browser.SelectionPopupController;
 import org.chromium.content_public.browser.WebContents;
+import org.chromium.content_public.browser.selection.SelectionActionMenuDelegate;
 import org.chromium.content_public.browser.selection.SelectionDropdownMenuDelegate;
+import org.chromium.content_public.common.ContentFeatures;
 import org.chromium.ui.base.Clipboard;
 import org.chromium.ui.base.DeviceFormFactor;
 import org.chromium.ui.base.MenuSourceType;
@@ -161,9 +162,6 @@ public class SelectionPopupControllerImpl extends ActionModeCallbackHelper
 
     private SelectionClient.ResultCallback mResultCallback;
 
-    // Used to customize PastePopupMenu
-    private @Nullable AdditionalSelectionMenuItemProvider mNonSelectionAdditionalItemProvider;
-
     // Selection rectangle in DIP.
     private final Rect mSelectionRect = new Rect();
 
@@ -232,6 +230,9 @@ public class SelectionPopupControllerImpl extends ActionModeCallbackHelper
     private SelectionClient.Result mClassificationResult;
 
     private boolean mPreserveSelectionOnNextLossOfFocus;
+
+    // Delegate used by embedders to customize selection menu.
+    @Nullable private SelectionActionMenuDelegate mSelectionActionMenuDelegate;
 
     private MagnifierAnimator mMagnifierAnimator;
 
@@ -416,14 +417,13 @@ public class SelectionPopupControllerImpl extends ActionModeCallbackHelper
     }
 
     @Override
-    public RenderFrameHost getRenderFrameHost() {
-        return mRenderFrameHost;
+    public void setSelectionActionMenuDelegate(@Nullable SelectionActionMenuDelegate delegate) {
+        mSelectionActionMenuDelegate = delegate;
     }
 
     @Override
-    public void setNonSelectionAdditionalMenuItemProvider(
-            @Nullable AdditionalSelectionMenuItemProvider provider) {
-        mNonSelectionAdditionalItemProvider = provider;
+    public RenderFrameHost getRenderFrameHost() {
+        return mRenderFrameHost;
     }
 
     @Override
@@ -712,7 +712,7 @@ public class SelectionPopupControllerImpl extends ActionModeCallbackHelper
         if (windowContext == null) return;
         mPastePopupMenu =
                 new FloatingPastePopupMenu(
-                        windowContext, mView, delegate, mNonSelectionAdditionalItemProvider);
+                        windowContext, mView, delegate, mSelectionActionMenuDelegate);
         showPastePopup();
     }
 
@@ -741,7 +741,9 @@ public class SelectionPopupControllerImpl extends ActionModeCallbackHelper
             if (hasSelection()) {
                 allItemGroups = getSelectionMenuItems();
             } else {
-                allItemGroups = getNonSelectionMenuItems(this, mNonSelectionAdditionalItemProvider);
+                allItemGroups =
+                        getNonSelectionMenuItems(
+                                mContext, this, mSelectionActionMenuDelegate);
             }
 
             int groupIndex = 0;
@@ -1041,14 +1043,17 @@ public class SelectionPopupControllerImpl extends ActionModeCallbackHelper
                 mClassificationResult,
                 isSelectionPassword(),
                 !isFocusedNodeEditable(),
-                textProcessingIntentHandler);
+                getSelectedText(),
+                textProcessingIntentHandler,
+                mSelectionActionMenuDelegate);
     }
 
     private static SortedSet<SelectionMenuGroup> getNonSelectionMenuItems(
+            @Nullable Context context,
             SelectActionMenuDelegate delegate,
-            @Nullable AdditionalSelectionMenuItemProvider nonSelectionAdditionalItemProvider) {
+            @Nullable SelectionActionMenuDelegate selectionActionMenuDelegate) {
         return SelectActionMenuHelper.getNonSelectionMenuItems(
-                delegate, nonSelectionAdditionalItemProvider);
+                context, delegate, selectionActionMenuDelegate);
     }
 
     /**
@@ -1065,7 +1070,7 @@ public class SelectionPopupControllerImpl extends ActionModeCallbackHelper
             Map<MenuItem, View.OnClickListener> customMenuItemClickListeners,
             @Nullable MenuItem.OnMenuItemClickListener additionalMenuItemClickListener) {
         boolean isSelectionMenuOrderCorrectionEnabled =
-                ContentFeatureMap.isEnabled(ContentFeatureList.SELECTION_MENU_ORDER_CORRECTION);
+                ContentFeatureMap.isEnabled(ContentFeatures.SELECTION_MENU_ITEM_MODIFICATION);
         for (SelectionMenuGroup group : menuGroups) {
             addMenuItemsToActionMenu(
                     context,
@@ -1199,10 +1204,11 @@ public class SelectionPopupControllerImpl extends ActionModeCallbackHelper
 
         SelectionMenuGroup textProcessingItems =
                 SelectActionMenuHelper.getTextProcessingItems(
-                        mContext, false, false, this::processText);
-        if (textProcessingItems != null) {
+                        mContext, false, false, this::processText, mSelectionActionMenuDelegate);
+        if (!textProcessingItems.items.isEmpty()) {
             boolean isSelectionMenuOrderCorrectionEnabled =
-                    ContentFeatureMap.isEnabled(ContentFeatureList.SELECTION_MENU_ORDER_CORRECTION);
+                    ContentFeatureMap.isEnabled(
+                            ContentFeatures.SELECTION_MENU_ITEM_MODIFICATION);
             addMenuItemsToActionMenu(
                     mContext, textProcessingItems, menu, mCustomActionMenuItemClickListeners, null,
                     isSelectionMenuOrderCorrectionEnabled);

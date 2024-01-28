@@ -49,7 +49,7 @@ class ServiceWorkerNewScriptLoader::WrappedIOBuffer
     : public net::WrappedIOBuffer {
  public:
   WrappedIOBuffer(const char* data, size_t size)
-      : net::WrappedIOBuffer(data, size) {}
+      : net::WrappedIOBuffer(base::make_span(data, size)) {}
 
  private:
   ~WrappedIOBuffer() override = default;
@@ -176,7 +176,8 @@ ServiceWorkerNewScriptLoader::ServiceWorkerNewScriptLoader(
     throttles = CreateContentBrowserURLLoaderThrottles(
         resource_request, version_->context()->wrapper()->browser_context(),
         std::move(web_contents_getter),
-        /*navigation_ui_data=*/nullptr, RenderFrameHost::kNoFrameTreeNodeId);
+        /*navigation_ui_data=*/nullptr, RenderFrameHost::kNoFrameTreeNodeId,
+        /*navigation_id=*/absl::nullopt);
   }
 
   network_loader_ = blink::ThrottlingURLLoader::CreateLoaderAndStart(
@@ -215,7 +216,7 @@ void ServiceWorkerNewScriptLoader::FollowRedirect(
     const std::vector<std::string>& removed_headers,
     const net::HttpRequestHeaders& modified_headers,
     const net::HttpRequestHeaders& modified_cors_exempt_headers,
-    const absl::optional<GURL>& new_url) {
+    const std::optional<GURL>& new_url) {
   // Resource requests for service worker scripts should not follow redirects.
   // See comments in OnReceiveRedirect().
   CHECK(false);  // NOTREACHED
@@ -266,7 +267,7 @@ void ServiceWorkerNewScriptLoader::OnReceiveEarlyHints(
 void ServiceWorkerNewScriptLoader::OnReceiveResponse(
     network::mojom::URLResponseHeadPtr response_head,
     mojo::ScopedDataPipeConsumerHandle body,
-    absl::optional<mojo_base::BigBuffer> cached_metadata) {
+    std::optional<mojo_base::BigBuffer> cached_metadata) {
   TRACE_EVENT_WITH_FLOW0("ServiceWorker",
                          "ServiceWorkerNewScriptLoader::OnReceiveResponse",
                          TRACE_ID_WITH_SCOPE(kServiceWorkerNewScriptLoaderScope,

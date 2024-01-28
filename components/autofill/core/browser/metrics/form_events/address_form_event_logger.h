@@ -52,11 +52,9 @@ class AddressFormEventLogger : public FormEventLoggerBase {
       AutofillMetrics::PaymentsSigninState signin_state_for_metrics,
       const AutofillTriggerSource trigger_source);
 
-  void OnDidSeeFillableDynamicForm(
-      AutofillMetrics::PaymentsSigninState signin_state_for_metrics,
-      const FormStructure& form);
+  void OnDidUndoAutofill();
 
-  void OnDidRefill(
+  void OnDidSeeFillableDynamicForm(
       AutofillMetrics::PaymentsSigninState signin_state_for_metrics,
       const FormStructure& form);
 

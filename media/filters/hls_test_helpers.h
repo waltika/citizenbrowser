@@ -32,9 +32,8 @@ class MockHlsDataSourceProvider : public HlsDataSourceProvider {
   MockHlsDataSourceProvider();
   ~MockHlsDataSourceProvider() override;
   MOCK_METHOD(void,
-              ReadFromUrl,
-              (GURL,
-               absl::optional<hls::types::ByteRange>,
+              ReadFromCombinedUrlQueue,
+              (HlsDataSourceProvider::SegmentQueue,
                HlsDataSourceProvider::ReadCb),
               (override));
   MOCK_METHOD(void,
@@ -114,12 +113,14 @@ class MockHlsRenditionHost : public HlsRenditionHost {
   MockHlsRenditionHost();
   ~MockHlsRenditionHost() override;
   MOCK_METHOD(void,
-              ReadFromUrl,
-              (GURL uri,
-               bool read_chunked,
-               absl::optional<hls::types::ByteRange> range,
-               HlsDataSourceProvider::ReadCb cb),
+              ReadManifest,
+              (const GURL&, HlsDataSourceProvider::ReadCb),
               (override));
+  MOCK_METHOD(
+      void,
+      ReadMediaSegment,
+      (const hls::MediaSegment&, bool, bool, HlsDataSourceProvider::ReadCb),
+      (override));
 
   MOCK_METHOD(void,
               UpdateRenditionManifestUri,
@@ -131,6 +132,8 @@ class MockHlsRenditionHost : public HlsRenditionHost {
               (std::unique_ptr<HlsDataSourceStream>,
                HlsDataSourceProvider::ReadCb),
               (override));
+
+  MOCK_METHOD(void, UpdateNetworkSpeed, (uint64_t), (override));
 };
 
 class MockHlsRendition : public HlsRendition {
@@ -153,7 +156,7 @@ class MockHlsRendition : public HlsRendition {
   MOCK_METHOD(void, Stop, (), (override));
   MOCK_METHOD(void,
               UpdatePlaylist,
-              (scoped_refptr<hls::MediaPlaylist>),
+              (scoped_refptr<hls::MediaPlaylist>, std::optional<GURL>),
               (override));
 };
 

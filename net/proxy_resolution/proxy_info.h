@@ -58,10 +58,11 @@ class NET_EXPORT ProxyInfo {
   // proxy configuration.
   void OverrideProxyList(const ProxyList& proxy_list);
 
-  // Indicates that this is a proxy for IP Protection.
-  void set_is_for_ip_protection(bool is_for_ip_protection) {
-    is_for_ip_protection_ = is_for_ip_protection;
-  }
+  // Indicates that the request that uses this proxy config caused a match with
+  // the masked domain list.
+  // This is a temporary workaround to gather initial metrics for IP Protection.
+  // TODO(1507085): Remove once the experiment is concluded.
+  void set_is_mdl_match(bool is_mdl_match) { is_mdl_match_ = is_mdl_match; }
 
   // Returns true if this proxy info specifies a direct connection.
   bool is_direct() const {
@@ -127,8 +128,15 @@ class NET_EXPORT ProxyInfo {
     return did_bypass_proxy_;
   }
 
-  // Returns true if this proxy info is for IP Protection.
-  bool is_for_ip_protection() const { return is_for_ip_protection_; }
+  // Returns true if the first proxy chain corresponds to one used for IP
+  // Protection. For more info, see `ProxyChain::is_for_ip_protection()`.
+  bool is_for_ip_protection() const;
+
+  // Returns true if the request that uses this proxy config caused a match with
+  // the masked domain list.
+  // This is a temporary workaround to gather initial metrics for IP Protection.
+  // TODO(1507085): Remove once the experiment is concluded.
+  bool is_mdl_match() const { return is_mdl_match_; }
 
   // Returns the first valid proxy chain. is_empty() must be false to be able
   // to call this function.
@@ -210,8 +218,11 @@ class NET_EXPORT ProxyInfo {
   // Whether the proxy result represent a proxy bypass.
   bool did_bypass_proxy_ = false;
 
-  // Whether this proxy is for IP Protection.
-  bool is_for_ip_protection_ = false;
+  // Whether the request that uses this proxy config caused a match with the
+  // masked domain list.
+  // This is a temporary workaround to gather initial metrics for IP Protection.
+  // TODO(1507085): Remove once the experiment is concluded.
+  bool is_mdl_match_ = false;
 
   // How long it took to resolve the proxy.  Times are both null if proxy was
   // determined synchronously without running a PAC.

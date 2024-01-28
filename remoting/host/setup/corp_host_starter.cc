@@ -224,8 +224,20 @@ void CorpHostStarter::OnProvisionCorpMachineResponse(
 
   service_account_email_ =
       base::ToLowerASCII(internal::GetServiceAccount(*response));
-  // TODO(joedow): Check owner_email against what was provided by the user.
   start_host_params_.id = internal::GetHostId(*response);
+
+  // Update the owner_email to reflect the account returned by the Directory.
+  // The corp-user arg (copied to the owner_email start host param struct) can
+  // contain two types of values:
+  //   1. The email address of the user to provision the machine for
+  //   2. A user permission, defined by the service, which is used to select the
+  //      account (e.g. the account which the machine is associated with)
+  //
+  // The value returned by the Directory should match for scenario #1 and needs
+  // to be stored for scenario #2. We don't need to compare since the server
+  // will return an error for scenario #1 if the user doesn't have permission.
+  start_host_params_.owner_email =
+      base::ToLowerASCII(internal::GetOwnerEmail(*response));
 
   authorization_code_ = internal::GetAuthorizationCode(*response);
   if (authorization_code_.empty()) {
@@ -337,34 +349,32 @@ void CorpHostStarter::OnNetworkError(int response_code) {
 
 void CorpHostStarter::HandleHttpStatusError(const ProtobufHttpStatus& status) {
   ProtobufHttpStatus::Code error_code = status.error_code();
+  std::string error_message = status.error_message();
   LOG(ERROR) << "\n  Received error code: " << static_cast<int>(error_code)
-             << ", message: " << status.error_message();
+             << ", message: " << error_message;
 
   if (!status.response_body().empty()) {
-    // TODO(joedow): Parse this output in //remoting/internal and return a
-    // concise error message and accurate error code to increase debugability.
     size_t pos = status.response_body().rfind("Caused by: ");
     if (pos != std::string::npos) {
-      LOG(ERROR) << "\n  Extended error information: \n"
-                 << status.response_body().substr(pos);
+      error_message = status.response_body().substr(pos);
+      LOG(ERROR) << "\n  Extended error information: \n" << error_message;
       VLOG(1) << "\n  Full error information: \n" << status.response_body();
     } else {
+      error_message = status.response_body();
       LOG(ERROR) << "\n  Failed to find extended error information, showing "
                  << "full output:\n"
-                 << status.response_body();
+                 << error_message;
     }
   }
 
-  switch (error_code) {
-    case ProtobufHttpStatus::Code::PERMISSION_DENIED:
-      std::move(on_done_).Run(PERMISSION_DENIED);
-      return;
-    case ProtobufHttpStatus::Code::UNAUTHENTICATED:
-      std::move(on_done_).Run(OAUTH_ERROR);
-      return;
-    default:
-      std::move(on_done_).Run(NETWORK_ERROR);
+  auto result = NETWORK_ERROR;
+  if (error_code == ProtobufHttpStatus::Code::PERMISSION_DENIED) {
+    result = PERMISSION_DENIED;
+  } else if (error_code == ProtobufHttpStatus::Code::UNAUTHENTICATED) {
+    result = OAUTH_ERROR;
   }
+
+  ReportProvisioningError(error_message, result);
 }
 
 void CorpHostStarter::ReportProvisioningError(const std::string& message,

@@ -5,6 +5,8 @@
 #ifndef CONTENT_COMMON_SERVICE_WORKER_RACE_NETWORK_REQUEST_URL_LOADER_CLIENT_H_
 #define CONTENT_COMMON_SERVICE_WORKER_RACE_NETWORK_REQUEST_URL_LOADER_CLIENT_H_
 
+#include <optional>
+#include "base/containers/span.h"
 #include "base/time/time.h"
 #include "content/common/content_export.h"
 #include "content/common/service_worker/service_worker_resource_loader.h"
@@ -124,7 +126,7 @@ class CONTENT_EXPORT ServiceWorkerRaceNetworkRequestURLLoaderClient
   void OnReceiveResponse(
       network::mojom::URLResponseHeadPtr head,
       mojo::ScopedDataPipeConsumerHandle body,
-      absl::optional<mojo_base::BigBuffer> cached_metadata) override;
+      std::optional<mojo_base::BigBuffer> cached_metadata) override;
   void OnReceiveRedirect(const net::RedirectInfo& redirect_info,
                          network::mojom::URLResponseHeadPtr head) override;
   void OnUploadProgress(int64_t current_position,
@@ -163,7 +165,8 @@ class CONTENT_EXPORT ServiceWorkerRaceNetworkRequestURLLoaderClient
     mojo::ScopedDataPipeProducerHandle producer;
     mojo::ScopedDataPipeConsumerHandle consumer;
     mojo::SimpleWatcher watcher;
-    uint32_t num_write_bytes;
+    base::span<char> buffer;
+    size_t buffer_size() const { return buffer.size(); }
     DataPipeInfo();
     ~DataPipeInfo();
   };
@@ -203,15 +206,14 @@ class CONTENT_EXPORT ServiceWorkerRaceNetworkRequestURLLoaderClient
   // process, and there could be the case if the response is not returned due to
   // the long fetch handler execution. and test case the mechanism to wait for
   // the fetch handler
-  void ReadAndWrite(MojoResult);
+  void ReadAndWrite(MojoResult mojo_result);
   void WatchDataUpdate();
+  std::pair<MojoResult, base::span<const char>> BeginReadData();
   MojoResult BeginWriteData(DataPipeInfo& data_pipe_info,
-                            void** buffer,
                             const std::string& histogram_prefix);
-  void CompleteWriteData(DataPipeInfo& data_pipe_info,
-                         void* write_buffer,
-                         const void* read_buffer,
-                         uint32_t num_bytes_to_consume);
+  size_t CompleteWriteData(DataPipeInfo& data_pipe_info,
+                           base::span<const char> read_buffer,
+                           std::optional<uint32_t> max_num_bytes_to_consume);
   void CompleteReadData(uint32_t num_bytes_to_consume);
 
   void Abort();
@@ -233,18 +235,18 @@ class CONTENT_EXPORT ServiceWorkerRaceNetworkRequestURLLoaderClient
   mojo::ScopedDataPipeConsumerHandle body_;
 
   network::mojom::URLResponseHeadPtr head_;
-  absl::optional<mojo_base::BigBuffer> cached_metadata_;
+  std::optional<mojo_base::BigBuffer> cached_metadata_;
 
   DataPipeInfo data_pipe_for_race_network_request_;
   DataPipeInfo data_pipe_for_fetch_handler_;
   uint32_t data_pipe_buffer_size_;
-  absl::optional<network::URLLoaderCompletionStatus> completion_status_;
+  std::optional<network::URLLoaderCompletionStatus> completion_status_;
   bool redirected_ = false;
   std::unique_ptr<mojo::DataPipeDrainer> data_drainer_;
   DataConsumePolicy data_consume_policy_ = DataConsumePolicy::kTeeResponse;
-  absl::optional<base::TimeTicks> response_received_time_;
-  absl::optional<base::TimeTicks> fetch_handler_end_time_;
-  absl::optional<bool> is_fetch_handler_fallback_;
+  std::optional<base::TimeTicks> response_received_time_;
+  std::optional<base::TimeTicks> fetch_handler_end_time_;
+  std::optional<bool> is_fetch_handler_fallback_;
 
   base::TimeTicks request_start_;
   base::Time request_start_time_;

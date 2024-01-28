@@ -363,9 +363,9 @@ HistoryBackend::HistoryBackend(
     std::unique_ptr<HistoryBackendClient> backend_client,
     scoped_refptr<base::SequencedTaskRunner> task_runner)
     : delegate_(std::move(delegate)),
-      expirer_(this, backend_client.get(), task_runner),
       recent_redirects_(kMaxRedirectCount),
       backend_client_(std::move(backend_client)),
+      expirer_(this, backend_client_.get(), task_runner),
       task_runner_(task_runner) {
   DCHECK(delegate_);
 }
@@ -1334,6 +1334,9 @@ void HistoryBackend::OnMemoryPressure(
 }
 
 void HistoryBackend::CloseAllDatabases() {
+  // Reset to avoid dangling pointers to the database.
+  history_sync_bridge_.reset();
+  expirer_.SetDatabases(/*main_db=*/nullptr, /*favicon_db=*/nullptr);
   if (db_) {
     CommitSingletonTransactionIfItExists();
     db_.reset();
@@ -1971,14 +1974,17 @@ QueryURLResult HistoryBackend::QueryURL(const GURL& url, bool want_visits) {
 
 base::WeakPtr<syncer::ModelTypeControllerDelegate>
 HistoryBackend::GetHistorySyncControllerDelegate() {
-  DCHECK(history_sync_bridge_);
-  return history_sync_bridge_->change_processor()->GetControllerDelegate();
+  if (history_sync_bridge_) {
+    return history_sync_bridge_->change_processor()->GetControllerDelegate();
+  }
+  return nullptr;
 }
 
 void HistoryBackend::SetSyncTransportState(
     syncer::SyncService::TransportState state) {
-  DCHECK(history_sync_bridge_);
-  history_sync_bridge_->SetSyncTransportState(state);
+  if (history_sync_bridge_) {
+    history_sync_bridge_->SetSyncTransportState(state);
+  }
 }
 
 // Statistics ------------------------------------------------------------------
@@ -2009,7 +2015,6 @@ HistoryBackend::GetDomainDiversity(
       std::min(number_of_days_to_report, kDomainDiversityMaxBacktrackedDays);
 
   base::Time current_midnight = report_time.LocalMidnight();
-  SCOPED_UMA_HISTOGRAM_TIMER("History.DomainCountQueryTime_V3");
 
   for (int days_back = 0; days_back < number_of_days_to_report; ++days_back) {
     DomainMetricSet local_metric_set;
@@ -3246,7 +3251,6 @@ void HistoryBackend::BeginSingletonTransaction() {
   singleton_transaction_ = db_->CreateTransaction();
 
   bool success = singleton_transaction_->Begin();
-  UMA_HISTOGRAM_BOOLEAN("History.Backend.TransactionBeginSuccess", success);
   if (success) {
     DCHECK_EQ(db_->transaction_nesting(), 1);
   } else {

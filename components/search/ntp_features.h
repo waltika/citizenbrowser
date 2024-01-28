@@ -25,6 +25,7 @@ BASE_DECLARE_FEATURE(kCacheOneGoogleBar);
 BASE_DECLARE_FEATURE(kCustomizeChromeColorExtraction);
 BASE_DECLARE_FEATURE(kCustomizeChromeSidePanelExtensionsCard);
 BASE_DECLARE_FEATURE(kCustomizeChromeWallpaperSearch);
+BASE_DECLARE_FEATURE(kCustomizeChromeWallpaperSearchInspirationCard);
 BASE_DECLARE_FEATURE(kCwsDarkLogo);
 BASE_DECLARE_FEATURE(kDismissPromos);
 BASE_DECLARE_FEATURE(kIframeOneGoogleBar);
@@ -33,6 +34,7 @@ BASE_DECLARE_FEATURE(kRealboxCr23All);
 BASE_DECLARE_FEATURE(kRealboxCr23ConsistentRowHeight);
 BASE_DECLARE_FEATURE(kRealboxCr23ExpandedStateIcons);
 BASE_DECLARE_FEATURE(kRealboxCr23ExpandedStateLayout);
+BASE_DECLARE_FEATURE(kRealboxCr23HoverFillShape);
 BASE_DECLARE_FEATURE(kRealboxCr23Theming);
 BASE_DECLARE_FEATURE(kRealboxMatchOmniboxTheme);
 BASE_DECLARE_FEATURE(kRealboxMatchSearchboxTheme);
@@ -49,7 +51,6 @@ BASE_DECLARE_FEATURE(kNtpDriveModuleShowSixFiles);
 BASE_DECLARE_FEATURE(kNtpDummyModules);
 #endif
 BASE_DECLARE_FEATURE(kNtpComprehensiveTheming);
-BASE_DECLARE_FEATURE(kNtpComprehensiveThemeRealbox);
 BASE_DECLARE_FEATURE(kNtpLogo);
 BASE_DECLARE_FEATURE(kNtpReducedLogoSpace);
 BASE_DECLARE_FEATURE(kNtpMiddleSlotPromo);
@@ -70,7 +71,6 @@ BASE_DECLARE_FEATURE(kNtpPhotosModuleCustomizedOptInArtWork);
 BASE_DECLARE_FEATURE(kNtpPhotosModuleSplitSvgOptInArtWork);
 BASE_DECLARE_FEATURE(kNtpFeedModule);
 BASE_DECLARE_FEATURE(kNtpOneGoogleBar);
-BASE_DECLARE_FEATURE(kNtpRealboxLensSearch);
 BASE_DECLARE_FEATURE(kNtpLensDirectUpload);
 BASE_DECLARE_FEATURE(kNtpRecipeTasksModule);
 BASE_DECLARE_FEATURE(kNtpSafeBrowsingModule);
@@ -93,7 +93,6 @@ BASE_DECLARE_FEATURE(kNtpChromeCartHistoryClusterCoexist);
 BASE_DECLARE_FEATURE(kNtpHistoryClustersModuleFetchClustersUntilExhausted);
 BASE_DECLARE_FEATURE(kNtpHistoryClustersModuleIncludeSyncedVisits);
 BASE_DECLARE_FEATURE(kNtpHistoryClustersModuleEnableContentClustering);
-BASE_DECLARE_FEATURE(kNtpHistoryClustersModuleDiscounts);
 BASE_DECLARE_FEATURE(kNtpTabResumptionModule);
 
 // Parameter for controlling the luminosity difference for NTP elements on light
@@ -106,6 +105,11 @@ extern const base::FeatureParam<double>
 extern const base::FeatureParam<double>
     kNtpElementLuminosityChangeForDarkBackgroundParam;
 
+// Parameter determining the ignore based survey launch delay time.
+extern const char kNtpModuleIgnoredHaTSDelayTimeParam[];
+// Parameter determining the number of times a module must have loaded with no
+// interaction by the user before it's considered as ignored.
+extern const char kNtpModuleIgnoredCriteriaThreshold[];
 // Parameter determining the module load timeout.
 extern const char kNtpModulesLoadTimeoutMillisecondsParam[];
 // Parameter determining the module order.
@@ -138,8 +142,11 @@ extern const char kNtpHistoryClustersModuleDataParam[];
 extern const char kNtpChromeCartInHistoryClustersModuleDataParam[];
 // Parameter determining the type of middle slot promo data to render.
 extern const char kNtpMiddleSlotPromoDismissalParam[];
-// Parameter determining the modules that are eligigle for HATS.
+// Parameter determining the modules that are eligigle for HaTS.
 extern const char kNtpModulesEligibleForHappinessTrackingSurveyParam[];
+// Parameter determining module trigger ids for HaTS for eligible module ids for
+// a given module interaction type.
+extern const char kNtpModulesInteractionBasedSurveyEligibleIdsParam[];
 // Parameter determining the type of Photos data to render.
 extern const char kNtpPhotosModuleDataParam[];
 // Parameter determining the art work in opt-in card.
@@ -182,8 +189,17 @@ extern const char kNtpHistoryClustersModuleCategoriesBoostlistParam[];
 // Parameter for setting the maximum number of candidate clusters for the
 // History Clusters Service to return.
 extern const char kNtpHistoryClustersModuleMaxClustersParam[];
+extern const char kNtpHistoryClustersModuleScoreThresholdParam[];
 extern const char kNtpRealboxWidthBehaviorParam[];
 extern const char kNtpTabResumptionModuleDataParam[];
+// Parameter determining the trigger delay of the Wallpaper Search HaTS survey.
+extern const char kWallpaperSearchHatsDelayParam[];
+
+// Parameter determining the background color of the expanded state realbox.
+extern const base::FeatureParam<bool>
+    kNtpRealboxCr23ExpandedStateBgMatchesOmnibox;
+// Parameter determining the whether the steady state realbox has a shadow.
+extern const base::FeatureParam<bool> kNtpRealboxCr23SteadyStateShadow;
 
 // Returns the timeout after which the load of a module should be aborted.
 base::TimeDelta GetModulesLoadTimeout();

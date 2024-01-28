@@ -12,9 +12,7 @@
 #import "ios/chrome/browser/ui/search_engine_choice/search_engine_choice_table/cells/snippet_search_engine_cell.h"
 #import "ios/chrome/browser/ui/settings/cells/settings_cells_constants.h"
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
-#import "ios/chrome/common/ui/favicon/favicon_view.h"
 #import "ios/chrome/common/ui/table_view/table_view_cells_constants.h"
-#import "url/gurl.h"
 
 #pragma mark - SnippetSearchEngineItem
 
@@ -37,17 +35,11 @@
   cell.snippetLabel.text = self.snippetDescription;
   cell.snippetState = self.snippetState;
   cell.checked = self.checked;
-  cell.accessibilityTraits |= UIAccessibilityTraitButton;
-  cell.userInteractionEnabled = YES;
-  cell.accessibilityTraits &= ~UIAccessibilityTraitNotEnabled;
-  [cell.faviconView configureWithAttributes:self.faviconAttributes];
+  cell.faviconImage = self.faviconImage;
   if (styler.cellTitleColor) {
     cell.nameLabel.textColor = styler.cellTitleColor;
   }
-}
-
-- (BOOL)isEqual:(SnippetSearchEngineItem*)otherItem {
-  return (self.name == otherItem.name) && (self.URL == otherItem.URL);
+  [cell updateAccessibilityTraits];
 }
 
 @end

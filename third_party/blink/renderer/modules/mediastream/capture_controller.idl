@@ -34,11 +34,10 @@ interface CaptureController : EventTarget {
   [RuntimeEnabled=CapturedSurfaceControl, CallWith=ScriptState]
   Promise<undefined> sendWheel(CapturedWheelAction action);
 
-  [RuntimeEnabled=CapturedSurfaceControl] long getMinZoomLevel();
-  [RuntimeEnabled=CapturedSurfaceControl] long getMaxZoomLevel();
+  [RuntimeEnabled=CapturedSurfaceControl] static sequence<long> getSupportedZoomLevels();
 
   [RuntimeEnabled=CapturedSurfaceControl, CallWith = ScriptState] Promise<long> getZoomLevel();
-  [RuntimeEnabled=CapturedSurfaceControl]
+  [RuntimeEnabled=CapturedSurfaceControl, CallWith = ScriptState]
   Promise<undefined> setZoomLevel(long zoomLevel);
 
   [RuntimeEnabled=CapturedSurfaceControl]

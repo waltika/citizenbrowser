@@ -51,6 +51,9 @@ namespace {
 // change.
 constexpr int kDefaultCompositorLockTimeoutMs = 100;
 
+// Compositor lock timeout for slower changes (e.g. display scale change).
+constexpr int kSlowCompositorLockTimeoutMs = 500;
+
 gfx::Rect GetClientBoundsInScreen(views::Widget* widget) {
   gfx::Rect window_bounds = widget->GetWindowBoundsInScreen();
   // Account for popup windows not having a non-client view.
@@ -415,6 +418,9 @@ void ShellSurface::MaybeActivateSurface() {
   // `host_window()`'s layer doesn't have a SurfaceId yet, so set it to embed
   // the upcoming CompositorFrame.
   if (!host_window()->layer()->GetSurfaceId()) {
+    DCHECK(host_window()->GetLocalSurfaceId().parent_sequence_number() ==
+               GetCurrentLocalSurfaceId().parent_sequence_number() ||
+           !pending_configs_.empty());
     host_window()->layer()->SetShowSurface(
         host_window()->GetSurfaceId(), host_window()->bounds().size(),
         SK_ColorWHITE, cc::DeadlinePolicy::UseDefaultDeadline(),
@@ -546,6 +552,27 @@ void ShellSurface::SetUseImmersiveForFullscreen(bool value) {
     Configure();
 }
 
+void ShellSurface::OnDidProcessDisplayChanges(
+    const DisplayConfigurationChange& configuration_change) {
+  ShellSurfaceBase::OnDidProcessDisplayChanges(configuration_change);
+
+  // Keep client surface coordinates in sync with the server when display
+  // layouts change.
+  const bool should_update_window_position = base::ranges::any_of(
+      configuration_change.display_metrics_changes,
+      [id = output_display_id()](
+          const DisplayManagerObserver::DisplayMetricsChange& change) {
+        return change.display->id() == id &&
+               (change.changed_metrics &
+                    display::DisplayObserver::DISPLAY_METRIC_BOUNDS ||
+                change.changed_metrics &
+                    display::DisplayObserver::DISPLAY_METRIC_WORK_AREA);
+      });
+  if (should_update_window_position) {
+    OnWidgetScreenPositionChanged();
+  }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // aura::WindowObserver overrides:
 
@@ -566,9 +593,7 @@ void ShellSurface::OnWindowBoundsChanged(aura::Window* window,
     }
 
     if (new_bounds.size() == old_bounds.size()) {
-      if (!origin_change_callback_.is_null())
-        origin_change_callback_.Run(GetClientBoundsInScreen(widget_).origin());
-      UpdateHostWindowOrigin();
+      OnWidgetScreenPositionChanged();
       return;
     }
 
@@ -602,8 +627,23 @@ void ShellSurface::OnWindowBoundsChanged(aura::Window* window,
 
     // A window state change will send a configuration event. Avoid sending
     // two configuration events for the same change.
-    if (!window_state_is_changing_)
+    if (!window_state_is_changing_) {
+      if (!configure_callback_.is_null()) {
+        // Lock when the display scale changes and we are a maximized window to
+        // prevent flashes.
+        if (reason != ui::PropertyChangeReason::FROM_ANIMATION &&
+            ash::WindowState::Get(window)->IsMaximizedOrFullscreenOrPinned()) {
+          ui::Compositor* compositor =
+              widget_->GetNativeWindow()->layer()->GetCompositor();
+          // TODO(crbug.com/1399478): See if we can rid of the slow lock timeout
+          // by adjusting the order of resize of windows to top to bottom.
+          configure_compositor_lock_ = compositor->GetCompositorLock(
+              nullptr, base::Milliseconds(kSlowCompositorLockTimeoutMs));
+        }
+      }
+
       Configure();
+    }
   }
 }
 
@@ -630,8 +670,7 @@ void ShellSurface::OnWindowAddedToRootWindow(aura::Window* window) {
       Configure();
 
   } else {
-    if (!origin_change_callback_.is_null())
-      origin_change_callback_.Run(GetClientBoundsInScreen(widget_).origin());
+    OnWidgetScreenPositionChanged();
   }
 }
 
@@ -732,9 +771,10 @@ void ShellSurface::OnPostWindowStateTypeChange(
   }
 
   if (root_surface() && window_state->GetStateType() != old_type &&
-      (window_state->GetStateType() == chromeos::WindowStateType::kFullscreen ||
-       old_type == chromeos::WindowStateType::kFullscreen)) {
-    root_surface()->OnFullscreenStateChanged(window_state->IsFullscreen());
+      (IsFullscreenOrPinnedWindowStateType(window_state->GetStateType()) ||
+       IsFullscreenOrPinnedWindowStateType(old_type))) {
+    root_surface()->OnFullscreenStateChanged(window_state->IsFullscreen() ||
+                                             window_state->IsPinned());
   }
 
   // Re-enable animations if they were disabled in pre state change handler.
@@ -1080,19 +1120,22 @@ void ShellSurface::UpdateLayerSurfaceRange(
     layer->SetOldestAcceptableFallback(
         viz::SurfaceId(frame_sink_id_, current_lsi));
   } else {
-    viz::SurfaceId surface_id(frame_sink_id_, current_lsi);
-    // Update the surface only when the surface id changes, which indicates that
-    // the change needs to be synchronized due to size change or scale change.
-    if (!layer->GetSurfaceId() || *layer->GetSurfaceId() != surface_id) {
-      // `current_lsi` has caught up to `layer`. Allow the shell_surface to
-      // modify the surface layer bounds, clear the oldest fallback and disable
-      // stretch.
-      layer->SetShowSurface(surface_id, layer->bounds().size(), SK_ColorWHITE,
-                            cc::DeadlinePolicy::UseDefaultDeadline(),
-                            false /* stretch_content_to_fill_bounds */);
-      layer->SetOldestAcceptableFallback(viz::SurfaceId{});
-    }
+    // `current_lsi` has caught up to `layer`. Allow the shell_surface to modify
+    // the surface layer bounds, clear the oldest fallback and disable stretch.
+    layer->SetShowSurface(viz::SurfaceId(frame_sink_id_, current_lsi),
+                          layer->bounds().size(), SK_ColorWHITE,
+                          cc::DeadlinePolicy::UseDefaultDeadline(),
+                          false /* stretch_content_to_fill_bounds */);
+    layer->SetOldestAcceptableFallback(viz::SurfaceId{});
   }
+}
+
+void ShellSurface::OnWidgetScreenPositionChanged() {
+  if (!origin_change_callback_.is_null()) {
+    origin_change_callback_.Run(GetClientBoundsInScreen(widget_).origin());
+  }
+  // Ensure the host window's origin is kept in sync with the widget.
+  UpdateHostWindowOrigin();
 }
 
 }  // namespace exo

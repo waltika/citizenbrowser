@@ -39,8 +39,9 @@ using bubble_anchor_util::GetPageInfoAnchorRect;
 // extension pages. Instead of the |PageInfoBubbleView|, the
 // |InternalPageInfoBubbleView| is displayed.
 class InternalPageInfoBubbleView : public PageInfoBubbleViewBase {
+  METADATA_HEADER(InternalPageInfoBubbleView, PageInfoBubbleViewBase)
+
  public:
-  METADATA_HEADER(InternalPageInfoBubbleView);
   // If |anchor_view| is nullptr, or has no Widget, |parent_window| may be
   // provided to ensure this bubble is closed when the parent closes.
   InternalPageInfoBubbleView(views::View* anchor_view,
@@ -121,7 +122,7 @@ InternalPageInfoBubbleView::InternalPageInfoBubbleView(
 
 InternalPageInfoBubbleView::~InternalPageInfoBubbleView() = default;
 
-BEGIN_METADATA(InternalPageInfoBubbleView, PageInfoBubbleViewBase)
+BEGIN_METADATA(InternalPageInfoBubbleView)
 END_METADATA
 
 PageInfoBubbleView::PageInfoBubbleView(
@@ -231,7 +232,7 @@ void PageInfoBubbleView::OpenPermissionPage(ContentSettingsType type) {
   presenter_->RecordPageInfoAction(
       PageInfo::PageInfoAction::PAGE_INFO_PERMISSION_DIALOG_OPENED);
   std::unique_ptr<views::View> permissions_page_view =
-      view_factory_->CreatePermissionPageView(type);
+      view_factory_->CreatePermissionPageView(type, web_contents());
   permissions_page_view->SetID(
       PageInfoViewFactory::VIEW_ID_PAGE_INFO_CURRENT_VIEW);
   page_container_->SwitchToPage(std::move(permissions_page_view));
@@ -340,3 +341,6 @@ void ShowPageInfoDialogImpl(Browser* browser,
   bubble->SetArrow(configuration.bubble_arrow);
   bubble->GetWidget()->Show();
 }
+
+BEGIN_METADATA(PageInfoBubbleView)
+END_METADATA

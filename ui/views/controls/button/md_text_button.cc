@@ -12,6 +12,7 @@
 #include "base/i18n/case_conversion.h"
 #include "base/memory/ptr_util.h"
 #include "build/build_config.h"
+#include "ui/actions/actions.h"
 #include "ui/base/metadata/base_type_conversion.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/base/ui_base_features.h"
@@ -21,7 +22,7 @@
 #include "ui/gfx/color_palette.h"
 #include "ui/gfx/color_utils.h"
 #include "ui/native_theme/native_theme.h"
-#include "ui/views/action_view_controller.h"
+#include "ui/views/action_view_interface.h"
 #include "ui/views/animation/flood_fill_ink_drop_ripple.h"
 #include "ui/views/animation/ink_drop.h"
 #include "ui/views/animation/ink_drop_highlight.h"
@@ -36,14 +37,20 @@
 #include "ui/views/style/platform_style.h"
 #include "ui/views/style/typography.h"
 #include "ui/views/style/typography_provider.h"
+#include "ui/views/view_utils.h"
 
 namespace views {
 
-MdTextButton::MdTextButton(PressedCallback callback,
-                           const std::u16string& text,
-                           int button_context,
-                           bool use_text_color_for_icon)
-    : LabelButton(std::move(callback), text, button_context),
+MdTextButton::MdTextButton(
+    PressedCallback callback,
+    const std::u16string& text,
+    int button_context,
+    bool use_text_color_for_icon,
+    std::unique_ptr<LabelButtonImageContainer> image_container)
+    : LabelButton(std::move(callback),
+                  text,
+                  button_context,
+                  std::move(image_container)),
       use_text_color_for_icon_(use_text_color_for_icon) {
   InkDrop::Get(this)->SetMode(views::InkDropHost::InkDropMode::ON);
   SetHasInkDropActionOnClick(true);
@@ -83,19 +90,6 @@ MdTextButton::MdTextButton(PressedCallback callback,
 }
 
 MdTextButton::~MdTextButton() = default;
-
-void MdTextButton::SetProminent(bool is_prominent) {
-  if (is_prominent == (style_ == ui::ButtonStyle::kProminent)) {
-    return;
-  }
-  SetStyle(is_prominent ? ui::ButtonStyle::kProminent
-                        : ui::ButtonStyle::kDefault);
-  UpdateColors();
-}
-
-bool MdTextButton::GetProminent() const {
-  return style_ == ui::ButtonStyle::kProminent;
-}
 
 void MdTextButton::SetStyle(ui::ButtonStyle button_style) {
   if (style_ == button_style) {
@@ -201,7 +195,10 @@ void MdTextButton::SetText(const std::u16string& text) {
 }
 
 PropertyEffects MdTextButton::UpdateStyleToIndicateDefaultStatus() {
-  SetProminent(style_ == ui::ButtonStyle::kProminent || GetIsDefault());
+  SetStyle(style_ == ui::ButtonStyle::kProminent || GetIsDefault()
+               ? ui::ButtonStyle::kProminent
+               : ui::ButtonStyle::kDefault);
+  UpdateColors();
   return kPropertyEffectsNone;
 }
 
@@ -350,29 +347,23 @@ SkColor MdTextButton::GetHoverColor(ui::ButtonStyle button_style) {
   }
 }
 
-template <>
-void ActionViewControllerTemplate<MdTextButton,
-                                  ActionViewControllerTemplate<Button>>::
-    ActionItemChangedImpl(MdTextButton* action_view,
-                          actions::ActionItem* action_item) {
-  action_view->SetText(action_item->GetText());
-  action_view->SetTooltipText(action_item->GetTooltipText());
-  action_view->SetImageModel(Button::ButtonState::STATE_NORMAL,
-                             action_item->GetImage());
+std::unique_ptr<ActionViewInterface> MdTextButton::GetActionViewInterface() {
+  return std::make_unique<MdTextButtonActionViewInterface>(this);
 }
 
-template <>
-void ActionViewControllerTemplate<MdTextButton,
-                                  ActionViewControllerTemplate<Button>>::
-    SetActionViewImpl(MdTextButton* action_view) {
-  if (action_view) {
-    action_view->SetCallback(base::BindRepeating(
-        &ActionViewControllerTemplate::TriggerAction, base::Unretained(this)));
-  }
+MdTextButtonActionViewInterface::MdTextButtonActionViewInterface(
+    MdTextButton* action_view)
+    : LabelButtonActionViewInterface(action_view), action_view_(action_view) {}
+
+void MdTextButtonActionViewInterface::ActionItemChangedImpl(
+    actions::ActionItem* action_item) {
+  LabelButtonActionViewInterface::ActionItemChangedImpl(action_item);
+  action_view_->SetText(action_item->GetText());
+  action_view_->SetImageModel(action_view_->GetState(),
+                              action_item->GetImage());
 }
 
-BEGIN_METADATA(MdTextButton, LabelButton)
-ADD_PROPERTY_METADATA(bool, Prominent)
+BEGIN_METADATA(MdTextButton)
 ADD_PROPERTY_METADATA(absl::optional<float>, CornerRadius)
 ADD_PROPERTY_METADATA(absl::optional<SkColor>, BgColorOverride)
 ADD_PROPERTY_METADATA(absl::optional<gfx::Insets>, CustomPadding)

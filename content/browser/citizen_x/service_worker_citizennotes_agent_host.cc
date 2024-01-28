@@ -393,7 +393,7 @@ ServiceWorkerCitizenNotesAgentHost::CreateNetworkFactoryParamsForCitizenNotes() 
       rph, origin, version->key().ToPartialNetIsolationInfo(),
       /*coep_reporter=*/mojo::NullRemote(),
       static_cast<StoragePartitionImpl*>(rph->GetStoragePartition())
-          ->CreateAuthCertObserverForServiceWorker(),
+          ->CreateAuthCertObserverForServiceWorker(rph->GetID()),
       NetworkServiceDevToolsObserver::MakeSelfOwned(GetId()),
       NetworkServiceCitizenNotesObserver::MakeSelfOwned(GetId()),
       /*client_security_state=*/nullptr,

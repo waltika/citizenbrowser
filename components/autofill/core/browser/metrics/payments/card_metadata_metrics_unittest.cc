@@ -3,11 +3,11 @@
 // found in the LICENSE file.
 
 #include "components/autofill/core/browser/metrics/payments/card_metadata_metrics.h"
+
 #include "base/test/metrics/histogram_tester.h"
 #include "components/autofill/core/browser/autofill_test_utils.h"
 #include "components/autofill/core/browser/metrics/autofill_metrics_test_base.h"
 #include "components/autofill/core/browser/payments/constants.h"
-#include "components/autofill/core/browser/test_autofill_tick_clock.h"
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
@@ -184,6 +184,17 @@ TEST_P(CardMetadataFormEventMetricsTest, LogShownMetrics) {
 
 // Test metadata selected metrics are correctly logged.
 TEST_P(CardMetadataFormEventMetricsTest, LogSelectedMetrics) {
+  // Add a second card which won't be selected but will be logged in
+  // Autofill.CreditCard.Amex.SelectedWithIssuerMetadataPresentOnce.
+  CreditCard card2 = test::GetMaskedServerCard2();
+  card2.set_guid(kTestMaskedCardId);
+  card2.set_issuer_id("amex");
+  if (card_metadata_available()) {
+    card2.set_product_description(u"product description");
+    card2.set_card_art_url(GURL("https://www.example.com/cardarturl.png"));
+  }
+  personal_data().AddServerCreditCard(card2);
+
   base::HistogramTester histogram_tester;
 
   // Simulate selecting the card.
@@ -256,6 +267,18 @@ TEST_P(CardMetadataFormEventMetricsTest, LogSelectedMetrics) {
   histogram_tester.ExpectUniqueSample(
       GetHistogramName(".SelectedWithMetadataOnce"), card_metadata_available(),
       registered_card_issuer_available() ? 1 : 0);
+  histogram_tester.ExpectUniqueSample(
+      GetHistogramName(".SelectedWithIssuerMetadataPresentOnce"), true,
+      card_metadata_available() && registered_card_issuer_available() ? 1 : 0);
+
+  // Only test non-Amex because for Amex case it will log true in
+  // SelectedWithIssuerMetadataPresentOnce histogram.
+  if (issuer_id() != "amex") {
+    histogram_tester.ExpectUniqueSample(
+        "Autofill.CreditCard.Amex.SelectedWithIssuerMetadataPresentOnce", false,
+        card_metadata_available() && registered_card_issuer_available() ? 1
+                                                                        : 0);
+  }
 }
 
 // Test metadata filled metrics are correctly logged.
@@ -453,16 +476,13 @@ INSTANTIATE_TEST_SUITE_P(All,
 // Test to ensure that we log card metadata related metrics only when card
 // metadata is available.
 TEST_P(CardMetadataLatencyMetricsTest, LogMetrics) {
-  base::TimeTicks now = AutofillTickClock::NowTicks();
-  TestAutofillTickClock test_clock;
-  test_clock.SetNowTicks(now);
   base::HistogramTester histogram_tester;
 
   // Simulate activating the autofill popup for the credit card field.
   autofill_manager().OnAskForValuesToFillTest(form(), form().fields.back());
   DidShowAutofillSuggestions(form(), /*field_index=*/form().fields.size() - 1,
                              PopupItemId::kCreditCardEntry);
-  test_clock.SetNowTicks(now + base::Seconds(2));
+  task_environment_.FastForwardBy(base::Seconds(2));
   autofill_manager().FillOrPreviewCreditCardForm(
       mojom::ActionPersistence::kFill, form(), form().fields.front(),
       *personal_data().GetCreditCardByGUID(kTestMaskedCardId),

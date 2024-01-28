@@ -235,6 +235,8 @@ Preload::PrefetchStatus PrefetchStatusToProtocol(PrefetchStatus status) {
       return Preload::PrefetchStatusEnum::PrefetchProxyNotAvailable;
     case PrefetchStatus::kPrefetchIsPrivacyDecoy:
       return Preload::PrefetchStatusEnum::PrefetchIsPrivacyDecoy;
+    case PrefetchStatus::kPrefetchIsStale:
+      return Preload::PrefetchStatusEnum::PrefetchIsStale;
     case PrefetchStatus::kPrefetchNotUsedCookiesChanged:
       return Preload::PrefetchStatusEnum::PrefetchNotUsedCookiesChanged;
     case PrefetchStatus::kPrefetchIneligibleHostIsNonUnique:
@@ -267,8 +269,10 @@ Preload::PrefetchStatus PrefetchStatusToProtocol(PrefetchStatus status) {
         kPrefetchIneligibleSameSiteCrossOriginPrefetchRequiredProxy:
       return Preload::PrefetchStatusEnum::
           PrefetchNotEligibleSameSiteCrossOriginPrefetchRequiredProxy;
-    case PrefetchStatus::kPrefetchEvicted:
-      return Preload::PrefetchStatusEnum::PrefetchEvicted;
+    case PrefetchStatus::kPrefetchEvictedAfterCandidateRemoved:
+      return Preload::PrefetchStatusEnum::PrefetchEvictedAfterCandidateRemoved;
+    case PrefetchStatus::kPrefetchEvictedForNewerPrefetch:
+      return Preload::PrefetchStatusEnum::PrefetchEvictedForNewerPrefetch;
   }
 }
 
@@ -314,15 +318,15 @@ bool PreloadingTriggeringOutcomeSupportedByPrerender(
   }
 }
 
-absl::optional<protocol::Preload::SpeculationTargetHint>
+std::optional<protocol::Preload::SpeculationTargetHint>
 GetProtocolSpeculationTargetHint(
-    absl::optional<blink::mojom::SpeculationTargetHint> target_hint) {
+    std::optional<blink::mojom::SpeculationTargetHint> target_hint) {
   if (!target_hint.has_value()) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   switch (target_hint.value()) {
     case blink::mojom::SpeculationTargetHint::kNoHint:
-      return absl::nullopt;
+      return std::nullopt;
     case blink::mojom::SpeculationTargetHint::kBlank:
       return protocol::Preload::SpeculationTargetHintEnum::Blank;
     case blink::mojom::SpeculationTargetHint::kSelf:
@@ -371,10 +375,10 @@ void PreloadHandler::DidUpdatePrefetchStatus(
 void PreloadHandler::DidUpdatePrerenderStatus(
     const base::UnguessableToken& initiator_devtools_navigation_token,
     const GURL& prerender_url,
-    absl::optional<blink::mojom::SpeculationTargetHint> target_hint,
+    std::optional<blink::mojom::SpeculationTargetHint> target_hint,
     PreloadingTriggeringOutcome status,
-    absl::optional<PrerenderFinalStatus> prerender_status,
-    absl::optional<std::string> disallowed_mojo_interface,
+    std::optional<PrerenderFinalStatus> prerender_status,
+    std::optional<std::string> disallowed_mojo_interface,
     const std::vector<PrerenderMismatchedHeaders>* mismatched_headers) {
   if (!enabled_) {
     return;
@@ -386,8 +390,8 @@ void PreloadHandler::DidUpdatePrerenderStatus(
           .SetAction(Preload::SpeculationActionEnum::Prerender)
           .SetUrl(prerender_url.spec())
           .Build();
-  absl::optional<protocol::Preload::SpeculationTargetHint>
-      protocol_target_hint = GetProtocolSpeculationTargetHint(target_hint);
+  std::optional<protocol::Preload::SpeculationTargetHint> protocol_target_hint =
+      GetProtocolSpeculationTargetHint(target_hint);
   if (protocol_target_hint.has_value()) {
     preloading_attempt_key->SetTargetHint(protocol_target_hint.value());
   }

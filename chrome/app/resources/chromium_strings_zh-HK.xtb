@@ -74,6 +74,7 @@
 <translation id="2329088755516916767">開啟後，Chromium 會預先載入網頁，加快瀏覽和搜尋速度。</translation>
 <translation id="2343156876103232566">如要將號碼從此處傳送至 Android 手機，請在這兩部裝置上登入 Chromium。</translation>
 <translation id="2359808026110333948">繼續</translation>
+<translation id="2359920621792549529">如果只清除此裝置上的瀏覽資料，並保留 Google 帳戶中的資料，請<ph name="BEGIN_LINK" />登出 Chromium<ph name="END_LINK" />。</translation>
 <translation id="2384373936468275798">您的帳戶登入詳情已過時，因此 Chromium 作業系統無法同步處理您的資料。</translation>
 <translation id="2398377054246527950">{NUM_DEVICES,plural, =0{當時至少有一個 Chromium 擴充程式正在存取 1 部 HID 裝置}=1{至少有一個 Chromium 擴充程式正在存取 1 部 HID 裝置}other{至少有一個 Chromium 擴充程式正在存取 # 部 HID 裝置}}</translation>
 <translation id="2401032172288869980">Chromium 需要相機權限和麥克風權限，才能執行此網站要求的功能</translation>
@@ -141,7 +142,6 @@
 <translation id="3533435340678213462">為保障您的私隱，我們會自動刪除超過 4 星期的興趣。按瀏覽內容而定，某個主題可能會再次在您的興趣清單中顯示。您亦可移除不希望 Chromium 列在興趣喜好清單中的項目。</translation>
 <translation id="3567254597502212821">您的瀏覽記錄，亦即您在此裝置上使用 Chromium 瀏覽過的網站記錄。</translation>
 <translation id="3593091352817399191">已登入另一個帳戶。Chromium 可為您建立您的設定檔，以分開您的瀏覽區。</translation>
-<translation id="363078681319665186">如要取得日後的 Chromium 更新，您將需要 macOS 10.15 或以上版本。此電腦正在使用 macOS 10.13。</translation>
 <translation id="3639635944603682591">此使用者的瀏覽資料將從裝置上刪除。如要復原資料，請以「<ph name="USER_EMAIL" />」身分登入 Chromium。</translation>
 <translation id="364817392622123556">{COUNT,plural, =0{Chromium 有可用的更新，重新啟動後即可套用。}=1{Chromium 有可用的更新，重新啟動後即可套用。您的無痕式視窗不會重新開啟。}other{Chromium 有可用的更新，重新啟動後即可套用。您的 # 個無痕式視窗不會重新開啟。}}</translation>
 <translation id="3651803019964686660">如要將號碼從 <ph name="ORIGIN" /> 傳送至 Android 手機，請在這兩部裝置上登入 Chromium。</translation>
@@ -158,7 +158,6 @@
 <translation id="3848258323044014972"><ph name="PAGE_TITLE" /> - Chromium</translation>
 <translation id="386822487697155367">取得 Chromium 作業系統相關說明</translation>
 <translation id="3871664619793219264">從 <ph name="ACCOUNT_EMAIL" /> 存取 Chromium 瀏覽器內容</translation>
-<translation id="387966568917439637">如要取得日後的 Chromium 更新，您將需要 macOS 10.15 或以上版本。此電腦正在使用 macOS 10.14。</translation>
 <translation id="388648406173476553">自訂及控制 Chromium。重要注意事項 - 按這裡瞭解詳情。</translation>
 <translation id="3889543394854987837">按一下您的名稱即可開啟 Chromium 並開始瀏覽。</translation>
 <translation id="390528597099634151"><ph name="EXISTING_USER" />已登入此 Chromium 設定檔。Chromium 可為您建立您的設定檔，以分開您的瀏覽區。</translation>
@@ -375,6 +374,7 @@ Chromium 無法復原您的設定。</translation>
 <translation id="7461356015007898716">如要取得日後的 Chromium 更新，您需要使用 Windows 10 或以上版本。此電腦目前版本為 Windows 7。</translation>
 <translation id="7467949745582939695">要重新啟動 Chromium 嗎？</translation>
 <translation id="7483335560992089831">無法安裝這個版本的 Chromium，因為目前正在執行相同版本。請關閉 Chromium，然後再試一次。</translation>
+<translation id="751935028865900641">網站可能會正常運作。關閉所有 Chromium 視窗後，系統會將你登出所有網站，但如果你已登入 Chromium，Google 帳戶就會維持登入狀態。</translation>
 <translation id="753534427205733210">{0,plural, =1{Chromium 將於 1 分鐘後重新啟動}other{Chromium 將於 # 分鐘後重新啟動}}</translation>
 <translation id="7582945390259497898">Chromium 可以推測您的興趣。您日後瀏覽的網站可向 Chromium 要求查看您的興趣，以便向您顯示個人化廣告。</translation>
 <translation id="7583399374488819119"><ph name="COMPANY_NAME" /> 安裝程式</translation>

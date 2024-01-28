@@ -20,7 +20,6 @@
 #include "gpu/command_buffer/service/shared_image/shared_image_backing.h"
 #include "gpu/command_buffer/service/shared_image/texture_holder_vk.h"
 #include "gpu/command_buffer/service/shared_memory_region_wrapper.h"
-#include "gpu/command_buffer/service/texture_manager.h"
 #include "gpu/ipc/common/surface_handle.h"
 #include "gpu/vulkan/vulkan_device_queue.h"
 #include "third_party/skia/include/private/chromium/GrPromiseImageTexture.h"
@@ -118,7 +117,7 @@ class ExternalVkImageBacking final : public ClearTrackingSharedImageBacking {
       return true;
     }
 
-    if (usage() & SHARED_IMAGE_USAGE_GLES2) {
+    if (HasGLES2ReadOrWriteUsage(usage())) {
       return !use_separate_gl_texture() && !gl_textures_.empty();
     }
 
@@ -179,7 +178,8 @@ class ExternalVkImageBacking final : public ClearTrackingSharedImageBacking {
       MemoryTypeTracker* tracker,
       const wgpu::Device& dawnDevice,
       wgpu::BackendType backend_type,
-      std::vector<wgpu::TextureFormat> view_formats) override;
+      std::vector<wgpu::TextureFormat> view_formats,
+      scoped_refptr<SharedContextState> context_state) override;
   std::unique_ptr<GLTextureImageRepresentation> ProduceGLTexture(
       SharedImageManager* manager,
       MemoryTypeTracker* tracker) override;

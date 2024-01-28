@@ -163,7 +163,9 @@ void OnDone(HostStarter::Result result) {
 
 bool InitializeHostStarterParams(HostStarter::Params& params,
                                  const base::CommandLine* command_line) {
-  params.id = command_line->GetSwitchValueASCII("host-id");
+  if (command_line->HasSwitch("host-id")) {
+    params.id = command_line->GetSwitchValueASCII("host-id");
+  }
   params.name = command_line->GetSwitchValueASCII("name");
   params.pin = command_line->GetSwitchValueASCII("pin");
   params.auth_code = command_line->GetSwitchValueASCII("code");
@@ -217,12 +219,16 @@ bool InitializeHostStarterParams(HostStarter::Params& params,
 
 bool InitializeCorpMachineParams(HostStarter::Params& params,
                                  const base::CommandLine* command_line) {
-  size_t corp_arg_count = 1;
-  params.owner_email =
-      base::ToLowerASCII(command_line->GetSwitchValueASCII("corp-user"));
   // Crash reporting is always enabled for this flow.
   params.enable_crash_reporting = true;
 
+  // Count the number of args provided so we can show a helpful error message
+  // if the user provides an unexpected value.
+  size_t corp_arg_count = 1;
+  params.owner_email =
+      base::ToLowerASCII(command_line->GetSwitchValueASCII("corp-user"));
+
+  // Allow user to specify a display name.
   if (command_line->HasSwitch("display-name")) {
     corp_arg_count++;
     params.name = command_line->GetSwitchValueASCII("display-name");

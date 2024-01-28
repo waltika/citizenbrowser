@@ -82,6 +82,7 @@ Baadhi ya vipengele huenda visipatikane na mabadiliko katika mapendeleo hayatahi
 <translation id="2258103955319320201">Ili uweze kufikia vitu vyako vya kivinjari cha Chrome kwenye vifaa vyako vyote, ingia katika akaunti kisha uwashe kipengele cha kusawazisha.</translation>
 <translation id="2290014774651636340">Funguo za API za Google zinakosekana. Baadhi ya utendaji wa Google Chrome utazimwa.</translation>
 <translation id="2290095356545025170">Je, una hakika kuwa ungependa kusanidua Google Chrome?</translation>
+<translation id="2298849085402457754">Ili ufute data ya kuvinjari kwenye kifaa hiki pekee, huku ukiihifadhi katika Akaunti yako ya Google, <ph name="BEGIN_LINK" />ondoka kwenye akaunti ya Chrome<ph name="END_LINK" />.</translation>
 <translation id="2309047409763057870">Huu ni usakinishaji wa pili wa Google Chrome, na haiwezi kufanywa kuwa kivinjari chako chaguomsingi.</translation>
 <translation id="2345992953227471816">Chrome imegundua kwamba viendelezi hivi vina programu hasidi:</translation>
 <translation id="2348335408836342058">Chrome inahitaji ruhusa ya kufikia kamera na maikrofoni yako katika tovuti hii</translation>
@@ -202,6 +203,7 @@ Baadhi ya vipengele huenda visipatikane na mabadiliko katika mapendeleo hayatahi
 <translation id="4148957013307229264">Inasakinisha...</translation>
 <translation id="4149882025268051530">Kisanidi kimeshindwa kufungua saraka. Tafadhali pakua Google Chrome tena.</translation>
 <translation id="4153934450158521343">Chrome itafungwa na kufuta data hivi karibuni</translation>
+<translation id="4173512894976930765">Huenda tovuti zitafanya kazi kama inavyotarajiwa. Utaondolewa kwenye tovuti nyingi ukifunga madirisha yote ya Chrome, isipokuwa katika Akaunti yako ya Google ikiwa umeingia kwenye Chrome.</translation>
 <translation id="4175922240926474352">Chrome imezuia upakuaji huu kwa sababu tovuti haitumii muunganisho salama na huenda faili imeharibiwa</translation>
 <translation id="4191857738314598978">{0,plural, =1{Fungua Chrome upya ndani ya siku moja}other{Fungua Chrome upya ndani ya siku #}}</translation>
 <translation id="4205939740494406371">Chrome imeshindwa kukagua manenosiri yako. Jaribu tena baada ya saa 24 au <ph name="BEGIN_LINK" />kagua manenosiri katika Akaunti yako ya Google<ph name="END_LINK" />.</translation>
@@ -219,13 +221,12 @@ Baadhi ya vipengele huenda visipatikane na mabadiliko katika mapendeleo hayatahi
 <translation id="4343195214584226067"><ph name="EXTENSION_NAME" /> imeongezwa kwenye Chrome</translation>
 <translation id="4384570495110188418">Chrome imeshindwa kukagua manenosiri yako kwa sababu hujaingia katika akaunti</translation>
 <translation id="4389991535395284064">Unapovinjari katika hali fiche, Chrome itakutahadharisha kabla ya kupakia tovuti kwa kutumia muunganisho usio salama</translation>
-<translation id="4393248995085527349">Ili upate masasisho ya Google Chrome ya hapo baadaye, utahitaji toleo la macOS 10.15 au toleo jipya zaidi. Kompyuta hii inatumia macOS 10.13.</translation>
 <translation id="4427306783828095590">Kipengele cha ulinzi wa hali ya juu hufanya mengi zaidi ili kuzuia programu hasidi na wizi wa data binafsi</translation>
 <translation id="4450664632294415862">Chrome - Kuingia katika Akaunti ya Mtandao - <ph name="PAGE_TITLE" /></translation>
 <translation id="4458462641685292929">Kuna shughuli nyingine zinaendelea kwenye Google Chrome. Tafadhali jaribu tena baadaye.</translation>
 <translation id="4459234553906210702">Upimaji wa tangazo huruhusu tovuti unazotembelea ziombe maelezo kutoka Chrome ambayo yanasaidia tovuti kupima ufanisi wa matangazo yao. Upimaji wa tangazo huzuia ufuatiliaji katika tovuti mbalimbali kwa kuhamisha maelezo machache kadiri iwezekanavyo miongoni mwa tovuti.</translation>
 <translation id="4501471624619070934">Imeshindwa kusakinisha kwa sababu ufikiaji umedhibitiwa katika nchi hii.</translation>
-<translation id="4561051373932531560">Google Chrome inakuwezesha kubofya nambari ya simu kwenye wavuti na kuipigia simu kwa Skype!</translation>
+<translation id="4561051373932531560">Google Chrome inakuwezesha kubofya namba ya simu kwenye wavuti na kuipigia simu kwa Skype!</translation>
 <translation id="4567424176335768812">Umeingia katika akaunti kama <ph name="USER_EMAIL_ADDRESS" />. Sasa unaweza kupata alamisho, historia, na mipangilio yako mingine kwenye vifaa vyako vyote vilivyoingia katika akaunti.</translation>
 <translation id="4571503333518166079">Nenda kwenye mipangilio ya arifa za Chrome</translation>
 <translation id="459622048091363950">Chrome itakapopata idhini, tovuti zitaweza kukuomba idhini ya kufikia.</translation>
@@ -307,7 +308,6 @@ Google Chrome haiwezi kufufua mipangilio yako.</translation>
 <translation id="5941711191222866238">Punguza</translation>
 <translation id="5941830788786076944">Fanya Google Chrome iwe kivinjari chaguomsingi</translation>
 <translation id="6003112304606738118">Inapakua... Zimesalia saa <ph name="HOURS" /></translation>
-<translation id="6010556343189461180">Ili upate masasisho ya Google Chrome ya hapo baadaye, utahitaji toleo la macOS 10.15 au toleo jipya zaidi. Kompyuta hii inatumia macOS 10.14.</translation>
 <translation id="6014316319780893079">Kwa kutumia <ph name="BEGIN_LINK" />zana kutoka Chrome<ph name="END_LINK" />, unaweza kuvinjari kwa usalama na kuwa na udhibiti</translation>
 <translation id="6022659036123304283">Weka mapendeleo kwenye Chrome iwe unavyopenda</translation>
 <translation id="6025087594896450715">Google Chrome itazima kisha iwake baada ya <ph name="REMAINING_TIME" /></translation>
@@ -451,7 +451,7 @@ Huenda ruhusa ambazo tayari umezipa tovuti na programu zikatumika kwenye akaunti
 <translation id="8416347857511542594">Pata maelezo zaidi kuhusu kuweka mapendeleo ya matangazo kwenye Chrome</translation>
 <translation id="8418845734693287262">Mfumo wa Uendeshaji wa Chrome haukusawazisha data yako kwa sababu maelezo yako ya kuingia katika akaunti yamepitwa na wakati.</translation>
 <translation id="842386925677997438">Zana za usalama za Chrome</translation>
-<translation id="8433638294851456451">Ili uweze kutuma nambari kwa simu yako ya Android kutoka hapa, ingia katika akaunti kwenye Chrome ukitumia vifaa vyote viwili.</translation>
+<translation id="8433638294851456451">Ili uweze kutuma namba kwa simu yako ya Android kutoka hapa, ingia katika akaunti kwenye Chrome ukitumia vifaa vyote viwili.</translation>
 <translation id="8451192282033883849">Akaunti yako inadhibitiwa na <ph name="MANAGER_NAME" />. Msimamizi wako anaweza kuona na kubadilisha wasifu wa kivinjari hiki cha Chrome na data yake kama vile alamisho, historia na manenosiri.</translation>
 <translation id="8496177819998570653">Kidhibiti cha Manenosiri cha Google</translation>
 <translation id="8498858610309223613">Sasisho maalum la usalama wa Google Chrome limewekwa sasa hivi. Ifunge kisha uifungue sasa na tutarejesha vichupo vyako.</translation>
@@ -480,7 +480,7 @@ Huenda ruhusa ambazo tayari umezipa tovuti na programu zikatumika kwenye akaunti
 <translation id="8834965163890861871">Google Chrome inajaribu kubadilisha manenosiri. Andika nenosiri lako la Windows ili uiruhusu.</translation>
 <translation id="8862326446509486874">Huna haki zifaazo ili kufanya usakinishaji wa kiwango cha mfumo. Jaribu kutumia kisakinishi kama msimamiaji kompyuta.</translation>
 <translation id="8914504000324227558">Zindua upya Chrome</translation>
-<translation id="8922193594870374009">Ili uweze kutuma nambari kwa simu yako ya Android kutoka <ph name="ORIGIN" />, ingia katika akaunti kwenye Chrome ukitumia vifaa vyote viwili.</translation>
+<translation id="8922193594870374009">Ili uweze kutuma namba kwa simu yako ya Android kutoka <ph name="ORIGIN" />, ingia katika akaunti kwenye Chrome ukitumia vifaa vyote viwili.</translation>
 <translation id="8986207147630327271">Unaongeza wasifu wa kazini kwenye kivinjari hiki na unampa msimamizi wako uwezo wa kudhibiti wasifu huo wa kazini pekee.</translation>
 <translation id="8989968390305463310">Historia yako ya kuvinjari huathiri matangazo unayoyaona na mambo yanayokuvutia kama inavyokadiriwa hapa chini. Ili kulinda faragha yako, Chrome hufuta kiotomatiki mambo yanayokuvutia kadiri unavyoendelea kutumia kila mwezi. Mambo yanayokuvutia yanaweza kuonyeshwa upya isipokuwa ukiyaondoa.</translation>
 <translation id="8999117580775242387">Wakati kiendelezi cha HTTPS hakipatikani, Chrome itatumia muunganisho usio salama bila kukutahadharisha</translation>

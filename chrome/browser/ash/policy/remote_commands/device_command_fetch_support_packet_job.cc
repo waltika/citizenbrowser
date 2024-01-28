@@ -6,14 +6,18 @@
 
 #include <algorithm>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "base/check.h"
+#include "base/check_deref.h"
 #include "base/check_is_test.h"
 #include "base/files/file_path.h"
+#include "base/files/file_util.h"
+#include "base/files/scoped_temp_dir.h"
 #include "base/functional/bind.h"
 #include "base/json/json_reader.h"
 #include "base/json/json_writer.h"
@@ -25,20 +29,23 @@
 #include "base/strings/stringprintf.h"
 #include "base/syslog_logging.h"
 #include "base/task/sequenced_task_runner.h"
+#include "base/task/thread_pool.h"
 #include "base/values.h"
 #include "chrome/browser/ash/policy/core/browser_policy_connector_ash.h"
 #include "chrome/browser/ash/policy/core/device_cloud_policy_manager_ash.h"
-#include "chrome/browser/ash/policy/remote_commands/crd_remote_command_utils.h"
+#include "chrome/browser/ash/policy/remote_commands/crd/crd_remote_command_utils.h"
 #include "chrome/browser/ash/policy/uploading/system_log_uploader.h"
 #include "chrome/browser/ash/settings/cros_settings.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/browser_process_platform_part_ash.h"
 #include "chrome/browser/policy/messaging_layer/proto/synced/log_upload_event.pb.h"
+#include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/profiles/profile_manager.h"
 #include "chrome/browser/support_tool/data_collection_module.pb.h"
 #include "chrome/browser/support_tool/data_collector.h"
 #include "chrome/browser/support_tool/support_tool_util.h"
 #include "chrome/browser/ui/webui/support_tool/support_tool_ui_utils.h"
+#include "chromeos/ash/components/browser_context_helper/browser_context_helper.h"
 #include "chromeos/ash/components/settings/cros_settings_names.h"
 #include "chromeos/components/kiosk/kiosk_utils.h"
 #include "components/feedback/redaction_tool/pii_types.h"
@@ -49,13 +56,14 @@
 #include "components/reporting/client/report_queue_factory.h"
 #include "components/reporting/proto/synced/record.pb.h"
 #include "components/reporting/util/status.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 
 using enterprise_management::FetchSupportPacketResultCode;
 using enterprise_management::FetchSupportPacketResultNote;
 using enterprise_management::UserSessionType;
 
 namespace {
+
+static const base::FilePath* g_target_directory_for_testing = nullptr;
 
 // The directory that the support packets will be stored.
 constexpr char kTargetDir[] = "/var/spool/support";
@@ -194,8 +202,15 @@ namespace policy {
 const char kFetchSupportPacketFailureHistogramName[] =
     "Enterprise.DeviceRemoteCommand.FetchSupportPacket.Failure";
 
-DeviceCommandFetchSupportPacketJob::DeviceCommandFetchSupportPacketJob()
-    : target_dir_(kTargetDir) {}
+// static
+void DeviceCommandFetchSupportPacketJob::SetTargetDirForTesting(
+    const base::FilePath* target_dir) {
+  CHECK_IS_TEST();
+  g_target_directory_for_testing = target_dir;
+}
+
+DeviceCommandFetchSupportPacketJob::DeviceCommandFetchSupportPacketJob() =
+    default;
 
 DeviceCommandFetchSupportPacketJob::~DeviceCommandFetchSupportPacketJob() =
     default;
@@ -208,10 +223,12 @@ DeviceCommandFetchSupportPacketJob::GetType() const {
   return enterprise_management::RemoteCommand_Type_FETCH_SUPPORT_PACKET;
 }
 
-void DeviceCommandFetchSupportPacketJob::SetReportQueueForTesting(
-    std::unique_ptr<reporting::ReportQueue> report_queue) {
-  CHECK_IS_TEST();
-  report_queue_ = std::move(report_queue);
+const base::FilePath DeviceCommandFetchSupportPacketJob::GetTargetDir() {
+  if (g_target_directory_for_testing) {
+    CHECK_IS_TEST();
+    return *g_target_directory_for_testing;
+  }
+  return base::FilePath(kTargetDir);
 }
 
 bool DeviceCommandFetchSupportPacketJob::ParseCommandPayload(
@@ -230,7 +247,7 @@ bool DeviceCommandFetchSupportPacketJob::ParseCommandPayload(
 
 bool DeviceCommandFetchSupportPacketJob::ParseCommandPayloadImpl(
     const std::string& command_payload) {
-  absl::optional<base::Value> value = base::JSONReader::Read(command_payload);
+  std::optional<base::Value> value = base::JSONReader::Read(command_payload);
   if (!value.has_value() || !value->is_dict()) {
     return false;
   }
@@ -306,12 +323,12 @@ void DeviceCommandFetchSupportPacketJob::RunImpl(
                 notes_)));
     return;
   }
+
   StartJobExecution();
 }
 
 bool DeviceCommandFetchSupportPacketJob::IsPiiAllowed() const {
-  UserSessionType session_type = GetCurrentUserSessionType();
-  switch (session_type) {
+  switch (current_session_type_) {
     case UserSessionType::AUTO_LAUNCHED_KIOSK_SESSION:
     case UserSessionType::MANUALLY_LAUNCHED_KIOSK_SESSION:
     case UserSessionType::AFFILIATED_USER_SESSION:
@@ -328,16 +345,24 @@ bool DeviceCommandFetchSupportPacketJob::IsPiiAllowed() const {
 }
 
 void DeviceCommandFetchSupportPacketJob::StartJobExecution() {
+  current_session_type_ = GetCurrentUserSessionType();
+
+  // Get sign-in profile on sign-in screen.
+  // TODO: b/252962974 - Remove the dependency to sign-in profile and use
+  // nullptr when user profile isn't created yet.
+  Profile* profile = current_session_type_ == UserSessionType::NO_SESSION
+                         ? Profile::FromBrowserContext(
+                               CHECK_DEREF(ash::BrowserContextHelper::Get())
+                                   .GetSigninBrowserContext())
+                         : ProfileManager::GetActiveUserProfile();
   // Initialize SupportToolHandler with the requested details.
-  support_tool_handler_ = GetSupportToolHandler(
-      support_packet_details_.issue_case_id,
-      // Leave the email address empty since data collection is triggered by the
-      // admin remotely.
-      /*email_address=*/std::string(),
-      support_packet_details_.issue_description,
-      // TODO(b/253185578): Get sign-in profile on sign-in screen.
-      ProfileManager::GetActiveUserProfile(),
-      support_packet_details_.requested_data_collectors);
+  support_tool_handler_ =
+      GetSupportToolHandler(support_packet_details_.issue_case_id,
+                            // Leave the email address empty since data
+                            // collection is triggered by the admin remotely.
+                            /*email_address=*/std::string(),
+                            support_packet_details_.issue_description, profile,
+                            support_packet_details_.requested_data_collectors);
 
   // Start data collection.
   support_tool_handler_->CollectSupportData(
@@ -357,7 +382,7 @@ void DeviceCommandFetchSupportPacketJob::OnDataCollected(
   }
 
   base::FilePath target_file = GetFilepathToExport(
-      target_dir_, kFilenamePrefix, support_tool_handler_->GetCaseId(),
+      GetTargetDir(), kFilenamePrefix, support_tool_handler_->GetCaseId(),
       base::Time::Now());
 
   std::set<redaction::PIIType> pii_types =
@@ -396,15 +421,6 @@ void DeviceCommandFetchSupportPacketJob::OnDataExported(
 
   exported_path_ = exported_path;
 
-  // No need to create a `report_queue_` if it is already initialized. Since the
-  // DeviceCommandFetchSupportPacketJob instance will be created per command,
-  // `report_queue_` will only be already initialized for tests by
-  // `SetReportQueueForTesting()` function.
-  if (report_queue_) {
-    EnqueueEvent();
-    return;
-  }
-
   ::reporting::SourceInfo source_info;
   source_info.set_source(::reporting::SourceInfo::ASH);
   ::reporting::ReportQueueFactory::Create(
@@ -430,6 +446,9 @@ void DeviceCommandFetchSupportPacketJob::EnqueueEvent() {
   log_upload_event->mutable_upload_settings()->set_upload_parameters(
       GetUploadParameters(exported_path_, unique_id()));
   log_upload_event->set_command_id(unique_id());
+  log_upload_event->set_command_result_payload(GetCommandResultPayload(
+      FetchSupportPacketResultCode::FETCH_SUPPORT_PACKET_RESULT_SUCCESS,
+      notes_));
   report_queue_->Enqueue(
       std::move(log_upload_event), reporting::Priority::SLOW_BATCH,
       base::BindOnce(&DeviceCommandFetchSupportPacketJob::OnEventEnqueued,
@@ -444,11 +463,12 @@ void DeviceCommandFetchSupportPacketJob::OnEventEnqueued(
         EnterpriseFetchSupportPacketFailureType::kNoFailure);
     SYSLOG(INFO) << "FETCH_SUPPORT_PACKET command job has successfully "
                     "finished execution.";
-    std::move(result_callback_)
-        .Run(ResultType::kAcked,
-             GetCommandResultPayload(FetchSupportPacketResultCode::
-                                         FETCH_SUPPORT_PACKET_RESULT_SUCCESS,
-                                     notes_));
+    // Command result will only be send to DMServer if the command execution is
+    // finished (with success or failure). It won't be sent when command is only
+    // acked. That's why we omit result payload here. FETCH_SUPPORT_PACKET
+    // command execution will be counted as finished only when LogUploadEvent is
+    // uploaded to Reporting server.
+    std::move(result_callback_).Run(ResultType::kAcked, std::nullopt);
     return;
   }
 

@@ -2,6 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import {SeaPenActionName, SeaPenActions} from 'chrome://resources/ash/common/sea_pen/sea_pen_actions.js';
+import {seaPenReducer} from 'chrome://resources/ash/common/sea_pen/sea_pen_reducer.js';
+import {SeaPenState} from 'chrome://resources/ash/common/sea_pen/sea_pen_state';
+import {isImageDataUrl, isNonEmptyArray, isNonEmptyFilePath} from 'chrome://resources/ash/common/sea_pen/sea_pen_utils.js';
 import {assert} from 'chrome://resources/js/assert.js';
 import {FilePath} from 'chrome://resources/mojo/mojo/public/mojom/base/file_path.mojom-webui.js';
 
@@ -9,11 +13,9 @@ import {WallpaperCollection} from '../../personalization_app.mojom-webui.js';
 import {Actions} from '../personalization_actions.js';
 import {ReducerFunction} from '../personalization_reducers.js';
 import {PersonalizationState} from '../personalization_state.js';
-import {isImageDataUrl, isNonEmptyArray} from '../utils.js';
 
 import {DefaultImageSymbol, kDefaultImageSymbol} from './constants.js';
-import {SeaPenActionName} from './sea_pen/sea_pen_actions.js';
-import {findAlbumById, isDefaultImage, isFilePath, isImageEqualToSelected} from './utils.js';
+import {findAlbumById, isDefaultImage, isImageEqualToSelected} from './utils.js';
 import {WallpaperActionName} from './wallpaper_actions.js';
 import {DailyRefreshType, WallpaperState} from './wallpaper_state.js';
 
@@ -119,7 +121,7 @@ function loadingReducer(
         local: {
           data: imagesToKeep.reduce(
               (result, next) => {
-                const path = isFilePath(next) ? next.path : next;
+                const path = isNonEmptyFilePath(next) ? next.path : next;
                 if (state.local.data.hasOwnProperty(path)) {
                   result[path] = state.local.data[path];
                 }
@@ -253,54 +255,6 @@ function loadingReducer(
           photos: false,
         },
       };
-    case SeaPenActionName.BEGIN_LOAD_RECENT_SEA_PEN_IMAGES:
-      return {
-        ...state,
-        seaPen: {
-          ...state.seaPen,
-          recentImages: true,
-        },
-      };
-    case SeaPenActionName.SET_RECENT_SEA_PEN_IMAGES:
-      const newRecentImages: FilePath[] =
-          Array.isArray(action.recentImages) ? action.recentImages : [];
-      // Only keep loading state for most recent Sea Pen images.
-      return {
-        ...state,
-        seaPen: {
-          ...state.seaPen,
-          recentImageData: newRecentImages.reduce(
-              (result, next) => {
-                const path = next.path;
-                if (state.seaPen.recentImageData.hasOwnProperty(path)) {
-                  result[path] = state.seaPen.recentImageData[path];
-                }
-                return result;
-              },
-              {} as Record<FilePath['path'], boolean>),
-          // Recent image list is done loading.
-          recentImages: false,
-        },
-      };
-    case SeaPenActionName.BEGIN_LOAD_RECENT_SEA_PEN_IMAGE_DATA:
-      return {
-        ...state,
-        seaPen: {
-          ...state.seaPen,
-          recentImageData: {...state.seaPen.recentImageData, [action.id]: true},
-        },
-      };
-    case SeaPenActionName.SET_RECENT_SEA_PEN_IMAGE_DATA:
-      return {
-        ...state,
-        seaPen: {
-          ...state.seaPen,
-          recentImageData: {
-            ...state.seaPen.recentImageData,
-            [action.id]: false,
-          },
-        },
-      };
     default:
       return state;
   }
@@ -315,7 +269,7 @@ function localReducer(
         return {
           images: [
             kDefaultImageSymbol,
-            ...(state.images || []).filter(img => isFilePath(img)),
+            ...(state.images || []).filter(img => isNonEmptyFilePath(img)),
           ],
           data: {
             ...state.data,
@@ -325,7 +279,7 @@ function localReducer(
       }
       return {
         images: Array.isArray(state.images) ?
-            state.images.filter(img => isFilePath(img)) :
+            state.images.filter(img => isNonEmptyFilePath(img)) :
             null,
         data: {...state.data, [kDefaultImageSymbol]: {url: ''}},
       };
@@ -351,7 +305,7 @@ function localReducer(
         // Only keep image thumbnails if the image is still in |images|.
         data: newImages.reduce(
             (result, next) => {
-              const key = isFilePath(next) ? next.path : next;
+              const key = isNonEmptyFilePath(next) ? next.path : next;
               if (state.data.hasOwnProperty(key)) {
                 result[key] = state.data[key];
               }
@@ -684,50 +638,19 @@ function googlePhotosReducer(
   }
 }
 
-function seaPenReducer(
-    state: WallpaperState['seaPen'], action: Actions,
-    _: PersonalizationState): WallpaperState['seaPen'] {
-  switch (action.name) {
-    case SeaPenActionName.BEGIN_SEARCH_SEA_PEN_THUMBNAILS:
-      return {
-        ...state,
-        thumbnailsLoading: true,
-      };
-    case SeaPenActionName.SET_SEA_PEN_THUMBNAILS:
-      assert(!!action.query, 'input text is empty.');
-      return {
-        ...state,
-        thumbnailsLoading: false,
-        thumbnails: action.images,
-      };
-    case SeaPenActionName.SET_RECENT_SEA_PEN_IMAGES:
-      const newRecentImages: FilePath[] =
-          Array.isArray(action.recentImages) ? action.recentImages : [];
-      return {
-        ...state,
-        recentImages: newRecentImages,
-        // Only keep the image data if the image is still in |newRecentImages|.
-        recentImageData: newRecentImages.reduce(
-            (result, next) => {
-              const key = next.path;
-              if (key && state.recentImageData.hasOwnProperty(key)) {
-                result[key] = state.recentImageData[key];
-              }
-              return result;
-            },
-            {} as typeof state.recentImageData),
-      };
-    case SeaPenActionName.SET_RECENT_SEA_PEN_IMAGE_DATA:
-      return {
-        ...state,
-        recentImageData: {
-          ...state.recentImageData,
-          [action.id]: action.data,
-        },
-      };
-    default:
-      return state;
+const allSeaPenActionNames =
+    new Set<Actions['name']>(Object.values(SeaPenActionName));
+
+function actionIsSeaPenAction(action: Actions): action is SeaPenActions {
+  return allSeaPenActionNames.has(action.name);
+}
+
+function seaPenReducerAdapter(
+    state: SeaPenState, action: Actions, _: PersonalizationState): SeaPenState {
+  if (actionIsSeaPenAction(action)) {
+    return seaPenReducer(state, action);
   }
+  return state;
 }
 
 export const wallpaperReducers:
@@ -743,5 +666,5 @@ export const wallpaperReducers:
       shouldShowTimeOfDayWallpaperDialog:
           shouldShowTimeOfDayWallpaperDialogReducer,
       googlePhotos: googlePhotosReducer,
-      seaPen: seaPenReducer,
+      seaPen: seaPenReducerAdapter,
     };

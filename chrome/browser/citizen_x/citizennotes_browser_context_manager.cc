@@ -76,82 +76,83 @@ CitizenNotesBrowserContextManager::GetDefaultBrowserContext() {
 void CitizenNotesBrowserContextManager::DisposeBrowserContext(
     content::BrowserContext* context,
     content::CitizenNotesManagerDelegate::DisposeCallback callback) {
-  std::string context_id = context->UniqueId();
-  if (pending_context_disposals_.find(context_id) !=
-      pending_context_disposals_.end()) {
-    std::move(callback).Run(false, "Disposal of browser context " + context_id +
-                                       " is already pending");
-    return;
-  }
-  auto it = otr_profiles_.find(context_id);
-  if (it == otr_profiles_.end()) {
-    std::move(callback).Run(
-        false, "Failed to find browser context with id " + context_id);
-    return;
-  }
-
-  Profile* profile = it->second;
-  bool has_opened_browser = false;
-  for (auto* opened_browser : *BrowserList::GetInstance()) {
-    if (opened_browser->profile() == profile) {
-      has_opened_browser = true;
-      break;
+    std::string context_id = context->UniqueId();
+    if (pending_context_disposals_.find(context_id) !=
+        pending_context_disposals_.end()) {
+      std::move(callback).Run(false, "Disposal of browser context " + context_id +
+                                         " is already pending");
+      return;
     }
-  }
+    auto it = otr_profiles_.find(context_id);
+    if (it == otr_profiles_.end()) {
+      std::move(callback).Run(
+          false, "Failed to find browser context with id " + context_id);
+      return;
+    }
 
-  // If no browsers are opened - dispose right away.
-  if (!has_opened_browser) {
-    StopObservingProfileIfAny(profile);
-    DestroyOTRProfileWhenAppropriate(profile->GetWeakPtr());
-    std::move(callback).Run(true, "");
-    return;
-  }
+    Profile* profile = it->second;
+    bool has_opened_browser = false;
+    for (Browser* opened_browser : *BrowserList::GetInstance()) {
+      if (opened_browser->profile() == profile) {
+        has_opened_browser = true;
+        break;
+      }
+    }
 
-  if (pending_context_disposals_.empty())
-    BrowserList::AddObserver(this);
+    // If no browsers are opened - dispose right away.
+    if (!has_opened_browser) {
+      StopObservingProfileIfAny(profile);
+      DestroyOTRProfileWhenAppropriate(profile->GetWeakPtr());
+      std::move(callback).Run(true, "");
+      return;
+    }
 
-  pending_context_disposals_[context_id] = std::move(callback);
-  BrowserList::CloseAllBrowsersWithIncognitoProfile(
-      profile, base::DoNothing(), base::DoNothing(),
-      true /* skip_beforeunload */);
+    if (pending_context_disposals_.empty())
+      BrowserList::AddObserver(this);
+
+    pending_context_disposals_[context_id] = std::move(callback);
+    BrowserList::CloseAllBrowsersWithIncognitoProfile(
+        profile, base::DoNothing(), base::DoNothing(),
+        true /* skip_beforeunload */);
 }
 
 void CitizenNotesBrowserContextManager::OnProfileWillBeDestroyed(Profile* profile) {
   // This is likely happening during shutdown. We'll immediately
   // close all browser windows for our profile without unload handling.
-  BrowserList::BrowserVector browsers_to_close;
-  for (auto* browser : *BrowserList::GetInstance()) {
-    if (browser->profile() == profile)
-      browsers_to_close.push_back(browser);
-  }
-  for (auto* browser : browsers_to_close)
-    browser->window()->Close();
+    BrowserList::BrowserVector browsers_to_close;
+    for (Browser* browser : *BrowserList::GetInstance()) {
+      if (browser->profile() == profile)
+        browsers_to_close.push_back(browser);
+    }
+    for (Browser* browser : browsers_to_close) {
+      browser->window()->Close();
+    }
 
-  StopObservingProfileIfAny(profile);
+    StopObservingProfileIfAny(profile);
 }
 
 void CitizenNotesBrowserContextManager::OnBrowserRemoved(Browser* browser) {
-  std::string context_id = browser->profile()->UniqueId();
-  auto pending_disposal = pending_context_disposals_.find(context_id);
-  if (pending_disposal == pending_context_disposals_.end())
-    return;
-  for (auto* opened_browser : *BrowserList::GetInstance()) {
-    if (opened_browser->profile() == browser->profile())
+    std::string context_id = browser->profile()->UniqueId();
+    auto pending_disposal = pending_context_disposals_.find(context_id);
+    if (pending_disposal == pending_context_disposals_.end())
       return;
-  }
+    for (Browser* opened_browser : *BrowserList::GetInstance()) {
+      if (opened_browser->profile() == browser->profile())
+        return;
+    }
 
-  StopObservingProfileIfAny(browser->profile());
+    StopObservingProfileIfAny(browser->profile());
 
-  // We cannot delete immediately here: the profile might still be referenced
-  // during the browser tear-down process.
-  base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
-      FROM_HERE, base::BindOnce(&DestroyOTRProfileWhenAppropriate,
-                                browser->profile()->GetWeakPtr()));
+    // We cannot delete immediately here: the profile might still be referenced
+    // during the browser tear-down process.
+    base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
+        FROM_HERE, base::BindOnce(&DestroyOTRProfileWhenAppropriate,
+                                  browser->profile()->GetWeakPtr()));
 
-  std::move(pending_disposal->second).Run(true, "");
-  pending_context_disposals_.erase(pending_disposal);
-  if (pending_context_disposals_.empty())
-    BrowserList::RemoveObserver(this);
+    std::move(pending_disposal->second).Run(true, "");
+    pending_context_disposals_.erase(pending_disposal);
+    if (pending_context_disposals_.empty())
+      BrowserList::RemoveObserver(this);
 }
 
 void CitizenNotesBrowserContextManager::StopObservingProfileIfAny(

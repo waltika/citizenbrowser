@@ -40,11 +40,16 @@ BASE_FEATURE(kIOSPasswordBottomSheet,
              "IOSPasswordBottomSheet",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
+// Enables password bottom sheet to be triggered on autofocus events (on iOS).
+BASE_FEATURE(kIOSPasswordBottomSheetAutofocus,
+             "kIOSPasswordBottomSheetAutofocus",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
 // When enabled, eligible users will be given the possibility to bulk upload
 // local passwords in the iOS password settings.
 BASE_FEATURE(kIOSPasswordSettingsBulkUploadLocalPasswords,
              "IOSPasswordSettingsBulkUploadLocalPasswords",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 #endif  // IS_IOS
 
 // Killswitch for changes regarding password issues in
@@ -57,6 +62,11 @@ BASE_FEATURE(kPasswordIssuesInSpecificsMetadata,
 // Enables sending credentials from the settings UI.
 BASE_FEATURE(kSendPasswords,
              "SendPasswords",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+// Enables filling and saving for forms in shadow DOM.
+BASE_FEATURE(kShadowDomSupport,
+             "ShadowDomSupport",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Enables .well-known based password change flow from leaked password dialog.

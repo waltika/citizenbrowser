@@ -15,6 +15,17 @@ enum class SnippetState {
   kShown,
 };
 
+// Fake omnibox width and height (for the empty and not-empty illustration).
+extern const CGFloat kFakeOmniboxWidth;
+extern const CGFloat kFakeOmniboxHeight;
+// Favicon size and radius.
+extern const CGFloat kFaviconImageViewSize;
+extern const CGFloat kFaviconImageViewRadius;
+// The space before the fake omnibox field.
+extern const CGFloat kFakeOmniboxFieldLeadingInset;
+
+// Accessibility identifier for the choice screen title.
+extern NSString* const kSearchEngineChoiceTitleAccessibilityIdentifier;
 // Prefix for the SearchEngineCell accessibility identifier.
 extern NSString* const kSnippetSearchEngineIdentifierPrefix;
 // `Set as Default` button accessibility identifier.
@@ -23,5 +34,8 @@ extern NSString* const kSetAsDefaultSearchEngineIdentifier;
 extern NSString* const kSearchEngineTableViewIdentifier;
 // `More` button accessibility identifier.
 extern NSString* const kSearchEngineMoreButtonIdentifier;
+
+// Flags that allow to enable the search engine choice in tests.
+extern NSString* const kSearchEngineForceEnabled;
 
 #endif  // IOS_CHROME_BROWSER_UI_SEARCH_ENGINE_CHOICE_SEARCH_ENGINE_CHOICE_CONSTANTS_H_

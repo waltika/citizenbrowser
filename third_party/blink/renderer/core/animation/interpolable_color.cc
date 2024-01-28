@@ -41,7 +41,7 @@ std::tuple<double, double, double, double> AddPremultipliedColor(
                          alpha + fraction * color.Alpha());
 }
 
-// Convert color paramaters back to unpremultiplied form (not scaled by alpha)
+// Convert color parameters back to unpremultiplied form (not scaled by alpha)
 // suitable for the Color constructor.
 std::tuple<double, double, double> UnpremultiplyColor(double param0,
                                                       double param1,

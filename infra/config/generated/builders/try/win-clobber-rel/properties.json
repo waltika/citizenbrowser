@@ -22,7 +22,8 @@
                 ],
                 "build_config": "Release",
                 "config": "chromium",
-                "target_bits": 64
+                "target_bits": 64,
+                "target_platform": "win"
               },
               "legacy_gclient_config": {
                 "config": "chromium"
@@ -37,7 +38,8 @@
           "builder": "win-archive-rel",
           "project": "chromium"
         }
-      ]
+      ],
+      "targets_spec_directory": "src/infra/config/generated/builders/try/win-clobber-rel/targets"
     }
   },
   "$build/reclient": {

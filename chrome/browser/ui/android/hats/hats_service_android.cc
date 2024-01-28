@@ -38,14 +38,16 @@ HatsServiceAndroid::DelayedSurveyTask::DelayedSurveyTask(
     const SurveyBitsData& product_specific_bits_data,
     const SurveyStringData& product_specific_string_data,
     base::OnceClosure success_callback,
-    base::OnceClosure failure_callback)
+    base::OnceClosure failure_callback,
+    std::optional<std::string_view> supplied_trigger_id)
     : web_contents_(web_contents),
       hats_service_(hats_service),
       trigger_(trigger),
       product_specific_bits_data_(product_specific_bits_data),
       product_specific_string_data_(product_specific_string_data),
       success_callback_(std::move(success_callback)),
-      failure_callback_(std::move(failure_callback)) {}
+      failure_callback_(std::move(failure_callback)),
+      supplied_trigger_id_(std::move(supplied_trigger_id)) {}
 
 HatsServiceAndroid::DelayedSurveyTask::~DelayedSurveyTask() = default;
 
@@ -145,13 +147,15 @@ void HatsServiceAndroid::LaunchSurveyForWebContents(
     const SurveyBitsData& product_specific_bits_data,
     const SurveyStringData& product_specific_string_data,
     base::OnceClosure success_callback,
-    base::OnceClosure failure_callback) {
+    base::OnceClosure failure_callback,
+    const std::optional<std::string_view>& supplied_trigger_id) {
   // By using a delayed survey with a delay of 0, we can centralize the object
   // lifecycle management duties for native clank survey triggers.
   LaunchDelayedSurveyForWebContents(
       trigger, web_contents, 0, product_specific_bits_data,
-      product_specific_string_data, false, std::move(success_callback),
-      std::move(failure_callback));
+      product_specific_string_data, HatsService::NavigationBehaviour::ALLOW_ANY,
+      std::move(success_callback), std::move(failure_callback),
+      supplied_trigger_id);
 }
 
 bool HatsServiceAndroid::LaunchDelayedSurvey(
@@ -169,11 +173,14 @@ bool HatsServiceAndroid::LaunchDelayedSurveyForWebContents(
     int timeout_ms,
     const SurveyBitsData& product_specific_bits_data,
     const SurveyStringData& product_specific_string_data,
-    bool require_same_origin,
+    NavigationBehaviour navigation_behaviour,
     base::OnceClosure success_callback,
-    base::OnceClosure failure_callback) {
+    base::OnceClosure failure_callback,
+    const std::optional<std::string_view>& supplied_trigger_id) {
   CHECK(web_contents);
-  CHECK(!require_same_origin);  // Currently not supported on Android
+  CHECK(navigation_behaviour ==
+        NavigationBehaviour::ALLOW_ANY);  // Currently only ALLOW_ANY is
+                                          // supported on Android
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
   if (survey_configs_by_triggers_.find(trigger) ==
       survey_configs_by_triggers_.end()) {
@@ -186,7 +193,7 @@ bool HatsServiceAndroid::LaunchDelayedSurveyForWebContents(
   auto result = pending_tasks_.emplace(
       this, trigger, web_contents, product_specific_bits_data,
       product_specific_string_data, std::move(success_callback),
-      std::move(failure_callback));
+      std::move(failure_callback), supplied_trigger_id);
   if (!result.second) {
     return false;
   }

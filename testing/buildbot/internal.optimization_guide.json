@@ -46,6 +46,21 @@
   "optimization_guide-chromeos": {
     "gtest_tests": [
       {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_gtest_merge.py"
+        },
+        "name": "chrome_ml_unittests",
+        "swarming": {
+          "dimensions": {
+            "os": "Ubuntu-22.04",
+            "pool": "chrome.tests"
+          },
+          "service_account": "chrome-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test": "chrome_ml_unittests",
+        "test_id_prefix": "ninja://components/optimization_guide/internal:chrome_ml_unittests/"
+      },
+      {
         "args": [
           "--gtest_filter=*OptimizationGuide*:*PageContentAnnotations*"
         ],
@@ -99,7 +114,26 @@
     ]
   },
   "optimization_guide-linux": {
+    "additional_compile_targets": [
+      "ondevice_model_benchmark",
+      "ondevice_model_example"
+    ],
     "gtest_tests": [
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_gtest_merge.py"
+        },
+        "name": "chrome_ml_unittests",
+        "swarming": {
+          "dimensions": {
+            "os": "Ubuntu-22.04",
+            "pool": "chrome.tests.intelligence"
+          },
+          "service_account": "chrome-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test": "chrome_ml_unittests",
+        "test_id_prefix": "ninja://components/optimization_guide/internal:chrome_ml_unittests/"
+      },
       {
         "args": [
           "--gtest_filter=*OptimizationGuide*:*PageContentAnnotations*"
@@ -154,6 +188,9 @@
     ],
     "isolated_scripts": [
       {
+        "args": [
+          "--out_dir=."
+        ],
         "merge": {
           "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
         },
@@ -175,6 +212,7 @@
       },
       {
         "args": [
+          "--out_dir=.",
           "--chromedriver",
           "chromedriver",
           "--binary",
@@ -202,7 +240,27 @@
     ]
   },
   "optimization_guide-mac-arm64": {
+    "additional_compile_targets": [
+      "ondevice_model_benchmark",
+      "ondevice_model_example"
+    ],
     "gtest_tests": [
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_gtest_merge.py"
+        },
+        "name": "chrome_ml_unittests",
+        "swarming": {
+          "dimensions": {
+            "cpu": "arm64",
+            "os": "Mac-13",
+            "pool": "chrome.tests"
+          },
+          "service_account": "chrome-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test": "chrome_ml_unittests",
+        "test_id_prefix": "ninja://components/optimization_guide/internal:chrome_ml_unittests/"
+      },
       {
         "args": [
           "--gtest_filter=*OptimizationGuide*:*PageContentAnnotations*"
@@ -245,6 +303,22 @@
         "merge": {
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
+        "name": "optimization_guide_gpu_unittests",
+        "swarming": {
+          "dimensions": {
+            "cpu": "arm64",
+            "os": "Mac-13",
+            "pool": "chrome.tests"
+          },
+          "service_account": "chrome-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test": "optimization_guide_gpu_unittests",
+        "test_id_prefix": "ninja://components/optimization_guide/internal:optimization_guide_gpu_unittests/"
+      },
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_gtest_merge.py"
+        },
         "name": "optimization_guide_unittests",
         "swarming": {
           "dimensions": {
@@ -260,6 +334,9 @@
     ],
     "isolated_scripts": [
       {
+        "args": [
+          "--out_dir=."
+        ],
         "merge": {
           "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
         },
@@ -282,10 +359,11 @@
       },
       {
         "args": [
+          "--out_dir=.",
           "--chromedriver",
           "chromedriver",
           "--binary",
-          "Chromium.app/Contents/MacOS/Chromium"
+          "Google Chrome.app/Contents/MacOS/Google Chrome"
         ],
         "merge": {
           "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
@@ -310,7 +388,27 @@
     ]
   },
   "optimization_guide-mac-x64": {
+    "additional_compile_targets": [
+      "ondevice_model_benchmark",
+      "ondevice_model_example"
+    ],
     "gtest_tests": [
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_gtest_merge.py"
+        },
+        "name": "chrome_ml_unittests",
+        "swarming": {
+          "dimensions": {
+            "cpu": "x86-64",
+            "os": "Mac-13",
+            "pool": "chrome.tests"
+          },
+          "service_account": "chrome-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test": "chrome_ml_unittests",
+        "test_id_prefix": "ninja://components/optimization_guide/internal:chrome_ml_unittests/"
+      },
       {
         "args": [
           "--gtest_filter=*OptimizationGuide*:*PageContentAnnotations*"
@@ -353,6 +451,22 @@
         "merge": {
           "script": "//testing/merge_scripts/standard_gtest_merge.py"
         },
+        "name": "optimization_guide_gpu_unittests",
+        "swarming": {
+          "dimensions": {
+            "cpu": "x86-64",
+            "os": "Mac-13",
+            "pool": "chrome.tests"
+          },
+          "service_account": "chrome-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test": "optimization_guide_gpu_unittests",
+        "test_id_prefix": "ninja://components/optimization_guide/internal:optimization_guide_gpu_unittests/"
+      },
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_gtest_merge.py"
+        },
         "name": "optimization_guide_unittests",
         "swarming": {
           "dimensions": {
@@ -368,6 +482,9 @@
     ],
     "isolated_scripts": [
       {
+        "args": [
+          "--out_dir=."
+        ],
         "merge": {
           "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
         },
@@ -390,10 +507,11 @@
       },
       {
         "args": [
+          "--out_dir=.",
           "--chromedriver",
           "chromedriver",
           "--binary",
-          "Chromium.app/Contents/MacOS/Chromium"
+          "Google Chrome.app/Contents/MacOS/Google Chrome"
         ],
         "merge": {
           "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
@@ -418,7 +536,26 @@
     ]
   },
   "optimization_guide-win32": {
+    "additional_compile_targets": [
+      "ondevice_model_benchmark",
+      "ondevice_model_example"
+    ],
     "gtest_tests": [
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_gtest_merge.py"
+        },
+        "name": "chrome_ml_unittests",
+        "swarming": {
+          "dimensions": {
+            "os": "Windows-10-19045",
+            "pool": "chrome.tests.intelligence"
+          },
+          "service_account": "chrome-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test": "chrome_ml_unittests",
+        "test_id_prefix": "ninja://components/optimization_guide/internal:chrome_ml_unittests/"
+      },
       {
         "args": [
           "--gtest_filter=*OptimizationGuide*:*PageContentAnnotations*"
@@ -474,6 +611,7 @@
     "isolated_scripts": [
       {
         "args": [
+          "--out_dir=.",
           "--target-platform=win32"
         ],
         "merge": {
@@ -497,6 +635,7 @@
       },
       {
         "args": [
+          "--out_dir=.",
           "--chromedriver",
           "chromedriver.exe",
           "--binary",
@@ -524,7 +663,26 @@
     ]
   },
   "optimization_guide-win64": {
+    "additional_compile_targets": [
+      "ondevice_model_benchmark",
+      "ondevice_model_example"
+    ],
     "gtest_tests": [
+      {
+        "merge": {
+          "script": "//testing/merge_scripts/standard_gtest_merge.py"
+        },
+        "name": "chrome_ml_unittests",
+        "swarming": {
+          "dimensions": {
+            "os": "Windows-10-19045",
+            "pool": "chrome.tests.intelligence"
+          },
+          "service_account": "chrome-tester@chops-service-accounts.iam.gserviceaccount.com"
+        },
+        "test": "chrome_ml_unittests",
+        "test_id_prefix": "ninja://components/optimization_guide/internal:chrome_ml_unittests/"
+      },
       {
         "args": [
           "--gtest_filter=*OptimizationGuide*:*PageContentAnnotations*"
@@ -579,6 +737,9 @@
     ],
     "isolated_scripts": [
       {
+        "args": [
+          "--out_dir=."
+        ],
         "merge": {
           "script": "//testing/merge_scripts/standard_isolated_script_merge.py"
         },
@@ -600,6 +761,7 @@
       },
       {
         "args": [
+          "--out_dir=.",
           "--chromedriver",
           "chromedriver.exe",
           "--binary",

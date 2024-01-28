@@ -78,6 +78,7 @@
 <translation id="2258103955319320201">如要透過所有裝置存取你的 Chrome 瀏覽器資料，請登入並開啟同步功能</translation>
 <translation id="2290014774651636340">缺少 Google API 金鑰，系統將停用 Google Chrome 的部分功能。</translation>
 <translation id="2290095356545025170">你是否確定要解除安裝 Google Chrome？</translation>
+<translation id="2298849085402457754">如果只要清除這部裝置上的瀏覽資料，但保留 Google 帳戶中的資料，請<ph name="BEGIN_LINK" />登出 Chrome<ph name="END_LINK" />。</translation>
 <translation id="2309047409763057870">這是以並存形式安裝的次要 Google Chrome，無法設為您的預設瀏覽器。</translation>
 <translation id="2345992953227471816">Chrome 偵測到下列擴充功能含有惡意軟體：</translation>
 <translation id="2348335408836342058">Chrome 需要相關權限，才能讓這個網站使用你的攝影機和麥克風</translation>
@@ -198,6 +199,7 @@
 <translation id="4148957013307229264">安裝中...</translation>
 <translation id="4149882025268051530">安裝程式無法解壓縮封存檔案，請再次下載 Google Chrome。</translation>
 <translation id="4153934450158521343">Chrome 即將關閉並刪除資料</translation>
+<translation id="4173512894976930765">網站可能會正常運作。關閉所有 Chrome 視窗後，系統會將你登出大部分網站，但如果你已登入 Chrome，Google 帳戶就會維持登入狀態。</translation>
 <translation id="4175922240926474352">這個網站沒有使用安全連線，檔案可能已經遭人竄改，因此 Chrome 已禁止下載</translation>
 <translation id="4191857738314598978">{0,plural, =1{請在 1 天內重新啟動 Chrome}other{請在 # 天內重新啟動 Chrome}}</translation>
 <translation id="4205939740494406371">Chrome 無法檢查你的密碼，請於 24 小時後再試，或<ph name="BEGIN_LINK" />檢查 Google 帳戶中的密碼<ph name="END_LINK" />。</translation>
@@ -215,7 +217,6 @@
 <translation id="4343195214584226067">已將「<ph name="EXTENSION_NAME" />」加到 Chrome</translation>
 <translation id="4384570495110188418">你尚未登入帳戶，因此 Chrome 無法檢查你的密碼</translation>
 <translation id="4389991535395284064">以無痕模式瀏覽網頁時，Chrome 會在使用不安全的連線載入網站前發出警告</translation>
-<translation id="4393248995085527349">如果之後要更新 Google Chrome，必須使用 macOS 10.15 以上版本。這部電腦目前的版本為 macOS 10.13。</translation>
 <translation id="4427306783828095590">強化防護功能可進一步封鎖網路詐騙和惡意軟體</translation>
 <translation id="4450664632294415862">Chrome - 網路登入 - <ph name="PAGE_TITLE" /></translation>
 <translation id="4458462641685292929">Google Chrome 正在執行另一項作業，請稍後再試。</translation>
@@ -301,7 +302,6 @@ Google Chrome 無法復原你的設定。</translation>
 <translation id="5941711191222866238">最小化</translation>
 <translation id="5941830788786076944">使用 Google Chrome 做為我的預設瀏覽器</translation>
 <translation id="6003112304606738118">下載中… 還剩 <ph name="HOURS" /> 小時</translation>
-<translation id="6010556343189461180">如果之後要更新 Google Chrome，必須使用 macOS 10.15 以上版本。這部電腦目前的版本為 macOS 10.14。</translation>
 <translation id="6014316319780893079">有了 <ph name="BEGIN_LINK" />Chrome 的工具<ph name="END_LINK" />，你可以放心瀏覽網路、掌控全局</translation>
 <translation id="6022659036123304283">打造專屬的 Chrome</translation>
 <translation id="6025087594896450715">Google Chrome 將於 <ph name="REMAINING_TIME" /> 後重新啟動</translation>

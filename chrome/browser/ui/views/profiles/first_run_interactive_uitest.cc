@@ -12,7 +12,7 @@
 #include "chrome/browser/privacy_sandbox/privacy_sandbox_service.h"
 #include "chrome/browser/privacy_sandbox/privacy_sandbox_service_factory.h"
 #include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/search_engine_choice/search_engine_choice_service.h"
+#include "chrome/browser/search_engine_choice/search_engine_choice_dialog_service.h"
 #include "chrome/browser/signin/chrome_signin_client_test_util.h"
 #include "chrome/browser/signin/dice_tab_helper.h"
 #include "chrome/browser/signin/identity_manager_factory.h"
@@ -48,11 +48,9 @@
 #include "ui/views/interaction/element_tracker_views.h"
 #include "ui/views/view_class_properties.h"
 
-#if BUILDFLAG(ENABLE_SEARCH_ENGINE_CHOICE)
-#include "chrome/browser/search_engine_choice/search_engine_choice_service_factory.h"
+#include "chrome/browser/search_engine_choice/search_engine_choice_dialog_service_factory.h"
 #include "components/search_engines/search_engine_choice_utils.h"
 #include "components/search_engines/search_engines_switches.h"
-#endif
 
 #if !BUILDFLAG(ENABLE_DICE_SUPPORT)
 #error "Unsupported platform"
@@ -70,7 +68,7 @@ const DeepQuery kSignInButton{"intro-app", "sign-in-promo",
                               "#acceptSignInButton"};
 const DeepQuery kDontSignInButton{"intro-app", "sign-in-promo",
                                   "#declineSignInButton"};
-const DeepQuery kDeclineManagementButton{"enterprise-profile-welcome-app",
+const DeepQuery kDeclineManagementButton{"managed-user-profile-notice-app",
                                          "#cancelButton"};
 const DeepQuery kOptInSyncButton{"sync-confirmation-app", "#confirmButton"};
 const DeepQuery kDontSyncButton{"sync-confirmation-app", "#notNowButton"};
@@ -96,7 +94,6 @@ const TestParam kTestParams[] = {
     {.test_suffix = "Default"},
     {.test_suffix = "WithDefaultBrowserStep",
      .with_default_browser_step = true},
-#if BUILDFLAG(ENABLE_SEARCH_ENGINE_CHOICE)
     {.test_suffix = "WithSearchEngineChoiceStep",
      .with_search_engine_choice_step = true},
     {.test_suffix = "WithDefaultBrowserAndSearchEngineChoiceSteps",
@@ -105,7 +102,6 @@ const TestParam kTestParams[] = {
     {.test_suffix = "WithSearchEngineChoiceAndPrivacySandboxEnabled",
      .with_search_engine_choice_step = true,
      .with_privacy_sandbox_enabled = true},
-#endif
 };
 
 }  // namespace
@@ -141,6 +137,7 @@ class FirstRunInteractiveUiTestBase
         identity_manager,
         signin::AccountAvailabilityOptionsBuilder(test_url_loader_factory())
             .WithCookie()
+            .AsPrimary(signin::ConsentLevel::kSignin)
             .WithAccessPoint(
                 signin_metrics::AccessPoint::ACCESS_POINT_FOR_YOU_FRE)
             .Build(account_email));
@@ -265,24 +262,15 @@ class FirstRunParameterizedInteractiveUiTest
            WithDefaultBrowserStep() ? "forced" : "no"}}});
 
     if (WithSearchEngineChoiceStep()) {
-#if BUILDFLAG(ENABLE_SEARCH_ENGINE_CHOICE)
       scoped_chrome_build_override_ = std::make_unique<base::AutoReset<bool>>(
-          SearchEngineChoiceServiceFactory::ScopedChromeBuildOverrideForTesting(
-              /*force_chrome_build=*/true));
+          SearchEngineChoiceDialogServiceFactory::
+              ScopedChromeBuildOverrideForTesting(
+                  /*force_chrome_build=*/true));
 
       enabled_features_and_params.push_back(
-          {switches::kSearchEngineChoiceFre, {}});
-      enabled_features_and_params.push_back(
-          {switches::kSearchEngineChoice, {
-             { switches::kWithForcedScrollEnabled.name,
-               "true" }
-           }});
-#else
-      NOTREACHED_NORETURN();
-#endif
+          {switches::kSearchEngineChoiceTrigger, {}});
     } else {
-      disabled_features.push_back(switches::kSearchEngineChoice);
-      disabled_features.push_back(switches::kSearchEngineChoiceFre);
+      disabled_features.push_back(switches::kSearchEngineChoiceTrigger);
     }
 
     if (WithPrivacySandboxEnabled()) {
@@ -328,12 +316,10 @@ class FirstRunParameterizedInteractiveUiTest
       embedded_test_server()->StartAcceptingConnections();
     }
 
-#if BUILDFLAG(ENABLE_SEARCH_ENGINE_CHOICE)
     if (WithSearchEngineChoiceStep()) {
-      SearchEngineChoiceService::SetDialogDisabledForTests(
+      SearchEngineChoiceDialogService::SetDialogDisabledForTests(
           /*dialog_disabled=*/false);
     }
-#endif
   }
 
   bool WithDefaultBrowserStep() const {
@@ -348,7 +334,6 @@ class FirstRunParameterizedInteractiveUiTest
     return GetParam().with_privacy_sandbox_enabled;
   }
 
-#if BUILDFLAG(ENABLE_SEARCH_ENGINE_CHOICE)
   auto CompleteSearchEngineChoiceStep() {
     const DeepQuery first_search_engine = {"search-engine-choice-app",
                                            "cr-radio-button"};
@@ -365,7 +350,6 @@ class FirstRunParameterizedInteractiveUiTest
         WaitForButtonEnabled(kWebContentsId, kSearchEngineChoiceActionButton),
         PressJsButton(kWebContentsId, kSearchEngineChoiceActionButton));
   }
-#endif
 
   auto CompleteDefaultBrowserStep() {
     return Steps(
@@ -518,10 +502,8 @@ IN_PROC_BROWSER_TEST_P(FirstRunParameterizedInteractiveUiTest, SignInAndSync) {
       PressJsButton(kWebContentsId, kOptInSyncButton)
           .SetMustRemainVisible(false),
 
-#if BUILDFLAG(ENABLE_SEARCH_ENGINE_CHOICE)
       If([&] { return WithSearchEngineChoiceStep(); },
          CompleteSearchEngineChoiceStep()),
-#endif
 
       If([&] { return WithDefaultBrowserStep(); },
          CompleteDefaultBrowserStep()));
@@ -550,13 +532,11 @@ IN_PROC_BROWSER_TEST_P(FirstRunParameterizedInteractiveUiTest, SignInAndSync) {
         DefaultBrowserChoice::kClickSetAsDefault, 1);
   }
 
-#if BUILDFLAG(ENABLE_SEARCH_ENGINE_CHOICE)
   if (WithSearchEngineChoiceStep()) {
     histogram_tester.ExpectBucketCount(
         search_engines::kSearchEngineChoiceScreenEventsHistogram,
         search_engines::SearchEngineChoiceScreenEvents::kFreDefaultWasSet, 1);
   }
-#endif
 
   EXPECT_TRUE(proceed_future.Get());
 
@@ -619,10 +599,8 @@ IN_PROC_BROWSER_TEST_P(FirstRunParameterizedInteractiveUiTest, DeclineSync) {
       EnsurePresent(kWebContentsId, kDontSyncButton),
       PressJsButton(kWebContentsId, kDontSyncButton),
 
-#if BUILDFLAG(ENABLE_SEARCH_ENGINE_CHOICE)
       If([&] { return WithSearchEngineChoiceStep(); },
          CompleteSearchEngineChoiceStep()),
-#endif
       If([&] { return WithDefaultBrowserStep(); },
          CompleteDefaultBrowserStep()));
 
@@ -691,13 +669,12 @@ IN_PROC_BROWSER_TEST_P(FirstRunParameterizedInteractiveUiTest, GoToSettings) {
       browser()->tab_strip_model()->GetActiveWebContents()->GetVisibleURL(),
       GURL(chrome::kChromeUISettingsURL).Resolve(chrome::kSyncSetupSubPage));
 
-#if BUILDFLAG(ENABLE_SEARCH_ENGINE_CHOICE)
   if (WithSearchEngineChoiceStep()) {
-    SearchEngineChoiceService* search_engine_choice_service =
-        SearchEngineChoiceServiceFactory::GetForProfile(profile());
-    EXPECT_FALSE(search_engine_choice_service->IsShowingDialog(browser()));
+    SearchEngineChoiceDialogService* search_engine_choice_dialog_service =
+        SearchEngineChoiceDialogServiceFactory::GetForProfile(profile());
+    EXPECT_FALSE(
+        search_engine_choice_dialog_service->IsShowingDialog(browser()));
   }
-#endif
 
   EXPECT_TRUE(proceed_future.Get());
   EXPECT_EQ(base::ASCIIToUTF16(kTestGivenName), GetProfileName());
@@ -753,10 +730,8 @@ IN_PROC_BROWSER_TEST_P(FirstRunParameterizedInteractiveUiTest,
       CheckJsResultAt(kWebContentsId, kDontSignInButton, "(e) => !e.disabled"),
       PressJsButton(kWebContentsId, kDontSignInButton),
 
-#if BUILDFLAG(ENABLE_SEARCH_ENGINE_CHOICE)
       If([&] { return WithSearchEngineChoiceStep(); },
          CompleteSearchEngineChoiceStep()),
-#endif
       If([&] { return WithDefaultBrowserStep(); },
          CompleteDefaultBrowserStep()));
 
@@ -821,15 +796,13 @@ IN_PROC_BROWSER_TEST_P(FirstRunParameterizedInteractiveUiTest,
       // The FakeUserPolicySigninService resolves, indicating the the account
       // is managed and requiring to show the enterprise management opt-in.
       WaitForWebContentsNavigation(
-          kWebContentsId, GURL(chrome::kChromeUIEnterpriseProfileWelcomeURL)),
+          kWebContentsId, GURL(chrome::kChromeUIManagedUserProfileNoticeUrl)),
 
       EnsurePresent(kWebContentsId, kDeclineManagementButton),
       PressJsButton(kWebContentsId, kDeclineManagementButton),
 
-#if BUILDFLAG(ENABLE_SEARCH_ENGINE_CHOICE)
       If([&] { return WithSearchEngineChoiceStep(); },
          CompleteSearchEngineChoiceStep()),
-#endif
       If([&] { return WithDefaultBrowserStep(); },
          CompleteDefaultBrowserStep()));
 

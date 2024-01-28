@@ -24,6 +24,7 @@
 
 #include "third_party/blink/renderer/core/dom/first_letter_pseudo_element.h"
 
+#include "third_party/blink/renderer/core/accessibility/ax_object_cache.h"
 #include "third_party/blink/renderer/core/css/resolver/style_resolver.h"
 #include "third_party/blink/renderer/core/css/style_change_reason.h"
 #include "third_party/blink/renderer/core/css/style_request.h"
@@ -418,10 +419,11 @@ void FirstLetterPseudoElement::AttachFirstLetterTextLayoutObjects(
       FirstLetterPseudoElement::FirstLetterLength(old_text, preserve_breaks);
 
   // In case of inline level content made of punctuation, we use
-  // first_letter_text length instead of FirstLetterLength.
+  // the whole text length instead of FirstLetterLength.
   if (IsParentInlineLayoutObject(first_letter_text) && length == 0 &&
-      first_letter_text->TextLength())
-    length = first_letter_text->TextLength();
+      old_text.length()) {
+    length = old_text.length();
+  }
 
   unsigned remaining_length = old_text.length() - length;
 
@@ -470,6 +472,13 @@ void FirstLetterPseudoElement::AttachFirstLetterTextLayoutObjects(
   }
   GetLayoutObject()->AddChild(letter);
 
+  // AXObjects are normally removed from destroyed layout objects in
+  // Node::DetachLayoutTree(), but as the ::first-letter implementation manually
+  // destroys the layout object for the first letter text, it must manually
+  // remove the accessibility object for it as well.
+  if (auto* cache = GetDocument().ExistingAXObjectCache()) {
+    cache->RemoveAXObjectsInLayoutSubtree(first_letter_text);
+  }
   first_letter_text->Destroy();
 }
 

@@ -49,6 +49,16 @@ std::string_view GetStringNameForModelExecutionFeature(
 // host that is not supported by the remote optimization guide.
 bool IsHostValidToFetchFromRemoteOptimizationGuide(const std::string& host);
 
+// Returns the hashed client id with the feature and day.
+int64_t GetHashedModelQualityClientId(proto::ModelExecutionFeature feature,
+                                      base::Time day,
+                                      int64_t client_id);
+
+// Creates a new client id if not persisted to prefs. Returns a different ID for
+// different `feature` for each day.
+int64_t GetOrCreateModelQualityClientId(proto::ModelExecutionFeature feature,
+                                        PrefService* pref_service);
+
 // Validates that the metadata stored in |any_metadata_| is of the same type
 // and is parseable as |T|. Will return metadata if all checks pass.
 template <class T,
@@ -101,6 +111,11 @@ void PopulateAuthorizationRequestHeader(
 // format with the `api_key`.
 void PopulateApiKeyRequestHeader(network::ResourceRequest* resource_request,
                                  std::string_view api_key);
+
+// Returns whether model validator service should be started to validate various
+// model executions such as, TFLite, server-side AI, on-device AI models. Used
+// for integration testing purposes.
+bool ShouldStartModelValidator();
 
 }  // namespace optimization_guide
 

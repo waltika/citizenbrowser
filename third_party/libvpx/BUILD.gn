@@ -98,7 +98,10 @@ config("libvpx_config") {
 
 # This config is applied to targets that depend on libvpx.
 config("libvpx_external_config") {
-  include_dirs = [ "source/libvpx" ]
+  include_dirs = [
+    "source/libvpx",
+    platform_include_dir,
+  ]
 }
 
 if (current_cpu == "x86" || (current_cpu == "x64" && !is_msan)) {
@@ -326,6 +329,23 @@ if (current_cpu == "arm64") {
       deps = [ ":libvpx_arm64_highbd_headers" ]
     }
   }
+
+  source_set("libvpx_intrinsics_sve") {
+    check_includes = false
+    configs -= [ "//build/config/compiler:chromium_code" ]
+    configs += [ "//build/config/compiler:no_chromium_code" ]
+    configs += [ ":libvpx_config" ]
+    if (!is_win || is_clang) {
+      cflags = [ "-march=armv8.2-a+dotprod+i8mm+sve" ]
+    }
+    if (cpu_arch_full == "arm64") {
+      sources = libvpx_srcs_arm64_sve
+      deps = [ ":libvpx_arm64_headers" ]
+    } else if (cpu_arch_full == "arm64-highbd") {
+      sources = libvpx_srcs_arm64_highbd_sve
+      deps = [ ":libvpx_arm64_highbd_headers" ]
+    }
+  }
 }
 
 if (current_cpu == "arm") {
@@ -509,6 +529,7 @@ static_library("libvpx") {
   if (current_cpu == "arm64") {
     deps += [ ":libvpx_intrinsics_neon_dotprod" ]
     deps += [ ":libvpx_intrinsics_neon_i8mm" ]
+    deps += [ ":libvpx_intrinsics_sve" ]
   }
   if (is_android) {
     deps += [ "//third_party/cpu_features:ndk_compat" ]
@@ -548,6 +569,17 @@ static_library("libvpxrc") {
 if (fuzztest_supported) {
   test("vp8_encoder_fuzz_test") {
     sources = [ "tests/fuzzer/vp8_encoder_fuzz_test.cc" ]
+
+    enable_fuzztest = true
+
+    deps = [
+      ":libvpx",
+      "//third_party/fuzztest:fuzztest_gtest_main",
+    ]
+  }
+
+  test("vp9_encoder_fuzz_test") {
+    sources = [ "tests/fuzzer/vp9_encoder_fuzz_test.cc" ]
 
     enable_fuzztest = true
 

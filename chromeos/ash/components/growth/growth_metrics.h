@@ -6,6 +6,11 @@
 #define CHROMEOS_ASH_COMPONENTS_GROWTH_GROWTH_METRICS_H_
 
 #include "base/component_export.h"
+#include "chromeos/ash/components/growth/campaigns_model.h"
+
+namespace base {
+class TimeDelta;
+}  // namespace base
 
 namespace growth {
 
@@ -31,6 +36,15 @@ enum class CampaignsManagerError {
 // Records errors encountered during the campaigns loading and matching flow.
 COMPONENT_EXPORT(CHROMEOS_ASH_COMPONENTS_GROWTH)
 void RecordCampaignsManagerError(CampaignsManagerError error_code);
+
+// Records how many times a campaign is fetched for the given `slot`.
+void RecordGetCampaignBySlot(Slot slot);
+
+void RecordCampaignsComponentDownloadDuration(const base::TimeDelta duration);
+
+void RecordCampaignsComponentReadDuration(const base::TimeDelta duration);
+
+void RecordCampaignMatchDuration(const base::TimeDelta duration);
 
 }  // namespace growth
 

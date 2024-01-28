@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "base/memory/raw_ptr.h"
+#include "base/memory/scoped_refptr.h"
 #include "base/scoped_observation.h"
 #include "build/build_config.h"
 #include "chrome/browser/profiles/profile_observer.h"
@@ -40,10 +41,12 @@ class OptimizationGuideBridge;
 }  // namespace android
 class ChromeHintsManager;
 class ModelExecutionEnterprisePolicyBrowserTest;
+class ModelExecutionLiveTest;
 class ModelExecutionManager;
 class ModelInfo;
 class ModelQualityLogEntry;
 class ModelQualityLogsUploaderService;
+class OnDeviceModelComponentStateManager;
 class OptimizationGuideStore;
 class PredictionManager;
 class PredictionManagerBrowserTestBase;
@@ -104,7 +107,7 @@ class OptimizationGuideKeyedService
   // optimization_guide::OptimizationGuideModelProvider implementation:
   void AddObserverForOptimizationTargetModel(
       optimization_guide::proto::OptimizationTarget optimization_target,
-      const absl::optional<optimization_guide::proto::Any>& model_metadata,
+      const std::optional<optimization_guide::proto::Any>& model_metadata,
       optimization_guide::OptimizationTargetModelObserver* observer) override;
   void RemoveObserverForOptimizationTargetModel(
       optimization_guide::proto::OptimizationTarget optimization_target,
@@ -134,6 +137,11 @@ class OptimizationGuideKeyedService
   virtual bool ShouldFeatureBeCurrentlyEnabledForUser(
       optimization_guide::proto::ModelExecutionFeature feature) const;
 
+  // Returns whether the `feature` should be currently allowed for logging model
+  // quality logs.
+  virtual bool ShouldFeatureBeCurrentlyAllowedForLogging(
+      optimization_guide::proto::ModelExecutionFeature feature) const;
+
   // Adds `observer` which can observe the change in feature settings.
   void AddModelExecutionSettingsEnabledObserver(
       optimization_guide::SettingsEnabledObserver* observer);
@@ -149,7 +157,7 @@ class OptimizationGuideKeyedService
   void AddHintForTesting(
       const GURL& url,
       optimization_guide::proto::OptimizationType optimization_type,
-      const absl::optional<optimization_guide::OptimizationMetadata>& metadata);
+      const std::optional<optimization_guide::OptimizationMetadata>& metadata);
 
   // Override the model file sent to observers of |optimization_target|. Use
   // |TestModelInfoBuilder| to construct the model metadata. For
@@ -172,6 +180,7 @@ class OptimizationGuideKeyedService
   void SimulateBrowserRestartForControllerTesting();
 
  private:
+  friend class BrowserView;
   friend class ChromeBrowserMainExtraPartsOptimizationGuide;
   friend class ChromeBrowsingDataRemoverDelegate;
   friend class HintsFetcherBrowserTest;
@@ -180,6 +189,7 @@ class OptimizationGuideKeyedService
   friend class OptimizationGuideMessageHandler;
   friend class OptimizationGuideWebContentsObserver;
   friend class optimization_guide::ModelExecutionEnterprisePolicyBrowserTest;
+  friend class optimization_guide::ModelExecutionLiveTest;
   friend class optimization_guide::PredictionManagerBrowserTestBase;
   friend class optimization_guide::PredictionModelDownloadClient;
   friend class optimization_guide::PredictionModelStoreBrowserTestBase;
@@ -187,8 +197,10 @@ class OptimizationGuideKeyedService
   friend class PersonalizedHintsFetcherBrowserTest;
   friend class settings::SettingsUI;
 
-  // Logs metrics from the OnDeviceModelService.
-  static void LogOnDeviceMetrics();
+  // Evaluates and logs the device performance class.
+  static void DeterminePerformanceClass(
+      base::WeakPtr<optimization_guide::OnDeviceModelComponentStateManager>
+          on_device_component_state_manager);
 
   // Initializes |this|.
   void Initialize();
@@ -205,13 +217,14 @@ class OptimizationGuideKeyedService
   }
 
   // Notifies |hints_manager_| that the navigation associated with
-  // |navigation_data| has started or redirected.
-  void OnNavigationStartOrRedirect(
+  // |navigation_data| has started or redirected. Virtual for testing.
+  virtual void OnNavigationStartOrRedirect(
       OptimizationGuideNavigationData* navigation_data);
 
   // Notifies |hints_manager_| that the navigation associated with
-  // |navigation_redirect_chain| has finished.
-  void OnNavigationFinish(const std::vector<GURL>& navigation_redirect_chain);
+  // |navigation_redirect_chain| has finished. Virtual for testing.
+  virtual void OnNavigationFinish(
+      const std::vector<GURL>& navigation_redirect_chain);
 
   // Clears data specific to the user.
   void ClearData();
@@ -236,6 +249,10 @@ class OptimizationGuideKeyedService
   bool IsSettingVisible(
       optimization_guide::proto::ModelExecutionFeature feature) const;
 
+  // Returns whether all conditions are met to show the IPH promo for
+  // experimental AI.
+  bool ShouldShowExperimentalAIPromo() const;
+
   download::BackgroundDownloadService* BackgroundDownloadServiceProvider();
 
   bool ComponentUpdatesEnabledProvider() const;
@@ -249,6 +266,19 @@ class OptimizationGuideKeyedService
   // internals page. Must outlive `prediction_manager_` and `hints_manager_`.
   std::unique_ptr<OptimizationGuideLogger> optimization_guide_logger_;
 
+  // Keep a reference to this so it stays alive.
+  scoped_refptr<optimization_guide::OnDeviceModelComponentStateManager>
+      on_device_component_manager_;
+
+  // The tab URL provider to use for fetching information for the user's active
+  // tabs. Will be null if the user is off the record.
+  std::unique_ptr<optimization_guide::TabUrlProvider> tab_url_provider_;
+
+  // The top host provider to use for fetching information for the user's top
+  // hosts. Will be null if the user has not consented to this type of browser
+  // behavior.
+  std::unique_ptr<optimization_guide::TopHostProvider> top_host_provider_;
+
   // Manages the storing, loading, and fetching of hints.
   std::unique_ptr<optimization_guide::ChromeHintsManager> hints_manager_;
 
@@ -261,15 +291,6 @@ class OptimizationGuideKeyedService
   // Manages the storing, loading, and evaluating of optimization target
   // prediction models.
   std::unique_ptr<optimization_guide::PredictionManager> prediction_manager_;
-
-  // The top host provider to use for fetching information for the user's top
-  // hosts. Will be null if the user has not consented to this type of browser
-  // behavior.
-  std::unique_ptr<optimization_guide::TopHostProvider> top_host_provider_;
-
-  // The tab URL provider to use for fetching information for the user's active
-  // tabs. Will be null if the user is off the record.
-  std::unique_ptr<optimization_guide::TabUrlProvider> tab_url_provider_;
 
   // Manages the model execution. Not created for off the record profiles.
   std::unique_ptr<optimization_guide::ModelExecutionManager>

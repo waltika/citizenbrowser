@@ -1,14 +1,13 @@
 // Copyright 2021 The Chromium Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
+import {emptyState as emptySeaPenState, SeaPenState} from 'chrome://resources/ash/common/sea_pen/sea_pen_state.js';
 import {FilePath} from 'chrome://resources/mojo/mojo/public/mojom/base/file_path.mojom-webui.js';
 import {Url} from 'chrome://resources/mojo/url/mojom/url.mojom-webui.js';
 
 import {CurrentAttribution, CurrentWallpaper, GooglePhotosAlbum, GooglePhotosEnablementState, GooglePhotosPhoto, WallpaperCollection, WallpaperImage} from '../../personalization_app.mojom-webui.js';
-import {SeaPenThumbnail} from '../../sea_pen.mojom-webui.js';
 
 import {DefaultImageSymbol, DisplayableImage, kDefaultImageSymbol} from './constants.js';
-import {RecentSeaPenData} from './sea_pen/constants.js';
 
 /**
  * Stores collections and images from backdrop server.
@@ -85,17 +84,6 @@ export interface LoadingState {
     photos: boolean,
     photosByAlbumId: Record<string, boolean>,
   };
-  seaPen: {
-    recentImages: boolean,
-    recentImageData: Record<FilePath['path'], boolean>,
-  };
-}
-
-export interface SeaPenState {
-  thumbnails: SeaPenThumbnail[]|null;
-  thumbnailsLoading: boolean;
-  recentImages: FilePath[]|null;
-  recentImageData: Record<FilePath['path'], RecentSeaPenData>;
 }
 
 /**
@@ -157,10 +145,6 @@ export function emptyState(): WallpaperState {
         photos: false,
         photosByAlbumId: {},
       },
-      seaPen: {
-        recentImages: false,
-        recentImageData: {},
-      },
     },
     local: {images: null, data: {[kDefaultImageSymbol]: {url: ''}}},
     attribution: null,
@@ -178,11 +162,6 @@ export function emptyState(): WallpaperState {
       resumeTokens:
           {albums: null, albumsShared: null, photos: null, photosByAlbumId: {}},
     },
-    seaPen: {
-      thumbnails: null,
-      thumbnailsLoading: false,
-      recentImages: null,
-      recentImageData: {},
-    },
+    seaPen: emptySeaPenState(),
   };
 }

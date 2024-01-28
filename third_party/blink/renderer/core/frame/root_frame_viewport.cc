@@ -747,6 +747,11 @@ void RootFrameViewport::UpdateSnappedTargetsAndEnqueueSnapChanged() {
   LayoutViewport().UpdateSnappedTargetsAndEnqueueSnapChanged();
 }
 
+const cc::SnappedTargetData* RootFrameViewport::GetSnapChangingTargetData()
+    const {
+  return LayoutViewport().GetSnapChangingTargetData();
+}
+
 void RootFrameViewport::SetSnapChangingTargetData(
     absl::optional<cc::SnappedTargetData> data) {
   LayoutViewport().SetSnapChangingTargetData(data);
@@ -756,6 +761,20 @@ void RootFrameViewport::UpdateSnapChangingTargetsAndEnqueueSnapChanging(
     const gfx::PointF& scroll_offset) {
   LayoutViewport().UpdateSnapChangingTargetsAndEnqueueSnapChanging(
       scroll_offset);
+}
+
+const cc::SnapSelectionStrategy* RootFrameViewport::GetImplSnapStrategy()
+    const {
+  return LayoutViewport().GetImplSnapStrategy();
+}
+
+void RootFrameViewport::SetImplSnapStrategy(
+    std::unique_ptr<cc::SnapSelectionStrategy> strategy) {
+  LayoutViewport().SetImplSnapStrategy(std::move(strategy));
+}
+
+void RootFrameViewport::EnqueueSnapChangingEventFromImplIfNeeded() {
+  LayoutViewport().EnqueueSnapChangingEventFromImplIfNeeded();
 }
 
 }  // namespace blink

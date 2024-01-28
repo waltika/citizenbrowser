@@ -7,7 +7,7 @@
 #include <memory>
 #include <utility>
 
-#include "ash/accessibility/accessibility_controller_impl.h"
+#include "ash/accessibility/accessibility_controller.h"
 #include "ash/resources/vector_icons/vector_icons.h"
 #include "ash/shell.h"
 #include "ash/shell_delegate.h"
@@ -20,6 +20,8 @@
 #include "ash/style/system_textfield.h"
 #include "ash/style/system_textfield_controller.h"
 #include "ash/style/typography.h"
+#include "ash/system/focus_mode/focus_mode_animations.h"
+#include "ash/system/focus_mode/focus_mode_controller.h"
 #include "ash/system/focus_mode/focus_mode_countdown_view.h"
 #include "ash/system/focus_mode/focus_mode_task_view.h"
 #include "ash/system/focus_mode/focus_mode_util.h"
@@ -28,6 +30,7 @@
 #include "ash/system/tray/hover_highlight_view.h"
 #include "ash/system/tray/tri_view.h"
 #include "ash/wm/desks/templates/saved_desk_item_view.h"
+#include "base/check_op.h"
 #include "base/i18n/time_formatting.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/time/time.h"
@@ -36,6 +39,7 @@
 #include "ui/base/models/image_model.h"
 #include "ui/chromeos/styles/cros_tokens_color_mappings.h"
 #include "ui/color/color_id.h"
+#include "ui/compositor/layer.h"
 #include "ui/gfx/canvas.h"
 #include "ui/gfx/geometry/insets.h"
 #include "ui/gfx/text_constants.h"
@@ -70,8 +74,8 @@ constexpr auto kToggleViewHeight = 64;
 
 // Timer view constants.
 constexpr auto kTimerViewBorderInsets = gfx::Insets::TLBR(4, 0, 8, 8);
-constexpr auto kTimerViewHeaderInsets = gfx::Insets::VH(10, 24);
-constexpr auto kTimerSettingViewInsets = gfx::Insets::TLBR(8, 16, 12, 16);
+constexpr auto kTimerViewHeaderInsets = gfx::Insets::TLBR(14, 24, 10, 24);
+constexpr auto kTimerSettingViewInsets = gfx::Insets::TLBR(0, 16, 12, 16);
 constexpr int kTimerSettingViewMaxCharacters = 3;
 constexpr int kTimerSettingViewTextHeight = 32;
 constexpr int kTimerSettingViewBetweenChildSpacing = 8;
@@ -79,7 +83,7 @@ constexpr auto kTimerAdjustmentButtonSize = gfx::Size(63, 36);
 constexpr auto kTimerCountdownViewInsets = gfx::Insets::TLBR(0, 24, 12, 16);
 
 // Task view constants.
-constexpr auto kTaskViewContainerInsets = gfx::Insets::TLBR(0, 24, 22, 24);
+constexpr auto kTaskViewContainerInsets = gfx::Insets::TLBR(4, 24, 22, 24);
 constexpr auto kTaskViewHeaderInsets = gfx::Insets::VH(18, 0);
 
 // Feedback button constants.
@@ -89,31 +93,9 @@ constexpr int kFeedbackButtonIconTextSpacing = 8;
 
 constexpr int kToggleButtonLeftPadding = 8;
 
-// Creates an `IconButton` with the formatting needed for the
-// `timer_setting_view_`'s timer adjustment buttons.
-std::unique_ptr<IconButton> CreateTimerAdjustmentButton(
-    views::Button::PressedCallback callback,
-    const gfx::VectorIcon& icon,
-    ui::ColorId background_color,
-    int accessible_name_id) {
-  std::unique_ptr<IconButton> timer_adjustment_button =
-      std::make_unique<IconButton>(std::move(callback),
-                                   IconButton::Type::kLarge, &icon,
-                                   accessible_name_id);
-  timer_adjustment_button->SetImageHorizontalAlignment(
-      views::ImageButton::HorizontalAlignment::ALIGN_CENTER);
-  timer_adjustment_button->SetImageVerticalAlignment(
-      views::ImageButton::VerticalAlignment::ALIGN_MIDDLE);
-  timer_adjustment_button->SetPreferredSize(kTimerAdjustmentButtonSize);
-  timer_adjustment_button->SetIconColor(cros_tokens::kCrosSysOnSurface);
-  timer_adjustment_button->SetBackground(
-      views::CreateThemedRoundedRectBackground(
-          background_color, kTimerAdjustmentButtonSize.height() / 2, 0));
-  return timer_adjustment_button;
-}
-
 // Gives us the amount of time by which we should increment or decrement the
-// current session duration.
+// current session duration. A negative result indicates a decrement, and
+// positive an increment.
 int GetDurationDelta(int duration, bool decrement) {
   const int direction = decrement ? -1 : 1;
 
@@ -147,6 +129,34 @@ int GetDurationDelta(int duration, bool decrement) {
   return direction * (decrement ? duration_remainder : 15 - duration_remainder);
 }
 
+// Creates an `IconButton` with the formatting needed for the
+// `timer_setting_view_`'s timer adjustment buttons.
+std::unique_ptr<IconButton> CreateTimerAdjustmentButton(
+    views::Button::PressedCallback callback,
+    bool decrement) {
+  const int accessible_name_id =
+      decrement ? IDS_ASH_STATUS_TRAY_FOCUS_MODE_TIMER_DECREMENT_BUTTON
+                : IDS_ASH_STATUS_TRAY_FOCUS_MODE_TIMER_INCREMENT_BUTTON;
+  std::unique_ptr<IconButton> timer_adjustment_button =
+      std::make_unique<IconButton>(
+          std::move(callback), IconButton::Type::kLarge,
+          decrement ? &kChevronDownIcon : &kChevronUpIcon, accessible_name_id);
+  timer_adjustment_button->SetTooltipText(l10n_util::GetStringFUTF16(
+      accessible_name_id,
+      base::NumberToString16(std::abs(GetDurationDelta(
+          FocusModeController::Get()->session_duration().InMinutes(),
+          decrement)))));
+  timer_adjustment_button->SetImageHorizontalAlignment(
+      views::ImageButton::HorizontalAlignment::ALIGN_CENTER);
+  timer_adjustment_button->SetImageVerticalAlignment(
+      views::ImageButton::VerticalAlignment::ALIGN_MIDDLE);
+  timer_adjustment_button->SetPreferredSize(kTimerAdjustmentButtonSize);
+  timer_adjustment_button->SetIconColor(cros_tokens::kCrosSysOnSurface);
+  timer_adjustment_button->SetBackgroundColor(
+      cros_tokens::kCrosSysHighlightShape);
+  return timer_adjustment_button;
+}
+
 // Tells us what the current session duration would be after an increment or
 // decrement.
 base::TimeDelta CalculateSessionDurationAfterAdjustment(int duration,
@@ -154,6 +164,31 @@ base::TimeDelta CalculateSessionDurationAfterAdjustment(int duration,
   duration += GetDurationDelta(duration, decrement);
   return std::clamp(base::Minutes(duration), focus_mode_util::kMinimumDuration,
                     focus_mode_util::kMaximumDuration);
+}
+
+// Returns true if `contents` is constructed by a number with no more than 3
+// digits or by an empty string.
+bool IsValidTimeNumber(const std::u16string& contents) {
+  const int length = contents.length();
+  if (length > kTimerSettingViewMaxCharacters) {
+    return false;
+  }
+
+  // Check the character from the tail, because each time when the user inserts
+  // a new char, `ContentsChanged` will be called.
+  for (int i = contents.length() - 1; i >= 0; --i) {
+    if (!std::isdigit(contents[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+std::u16string GetAccessibleNameForDndButton(bool do_not_disturb_enabled) {
+  return l10n_util::GetStringUTF16(
+      do_not_disturb_enabled
+          ? IDS_ASH_STATUS_TRAY_FOCUS_MODE_DO_NOT_DISTURB_ACCESSIBLE_NAME_ENABLED
+          : IDS_ASH_STATUS_TRAY_FOCUS_MODE_DO_NOT_DISTURB_ACCESSIBLE_NAME_DISABLED);
 }
 
 }  // namespace
@@ -178,12 +213,29 @@ class FocusModeDetailedView::TimerTextfieldController
   // SystemTextfieldController:
   void ContentsChanged(views::Textfield* sender,
                        const std::u16string& new_contents) override {
+    // If there are more than 3 chars inserted from the virtual keyboard, or if
+    // a non-numeric character is inserted from the virtual keyboard, set the
+    // `textfield_` with the last known valid contents before `new_contents`
+    // came in.
+    if (!IsValidTimeNumber(new_contents)) {
+      textfield_->SetText(valid_new_contents_);
+      return;
+    }
+
+    valid_new_contents_ = new_contents;
     RefreshTextfieldSize(new_contents);
   }
 
   bool HandleKeyEvent(views::Textfield* sender,
                       const ui::KeyEvent& key_event) override {
     if (key_event.type() != ui::ET_KEY_PRESSED) {
+      return false;
+    }
+
+    if (key_event.key_code() == ui::VKEY_PROCESSKEY) {
+      // Default handling for keyboard events that are not generated by physical
+      // key press. This can happen, for example, when virtual keyboard button
+      // is pressed.
       return false;
     }
 
@@ -199,12 +251,22 @@ class FocusModeDetailedView::TimerTextfieldController
         textfield_->SetActive(false);
       }
 
+      owner_->SetInactiveSessionDuration(base::Minutes(
+          focus_mode_util::GetTimerTextfieldInputInMinutes(textfield_)));
+
       focus_manager->ClearFocus();
 
       // Avoid having the focus restored to the same view when the parent view
       // is refocused.
       focus_manager->SetStoredFocusView(nullptr);
       return true;
+    }
+
+    // Make sure that we set the timer adjustment buttons' enabled states before
+    // moving focus to avoid recursively focusing.
+    if (key_event.key_code() == ui::VKEY_TAB) {
+      owner_->SetInactiveSessionDuration(base::Minutes(
+          focus_mode_util::GetTimerTextfieldInputInMinutes(textfield_)));
     }
 
     if (SystemTextfieldController::HandleKeyEvent(sender, key_event)) {
@@ -233,9 +295,12 @@ class FocusModeDetailedView::TimerTextfieldController
   }
 
   // views::ViewObserver:
+  void OnViewFocused(views::View* view) override {
+    valid_new_contents_ = textfield_->GetText();
+  }
+
   void OnViewBlurred(views::View* view) override {
-    owner_->SetInactiveSessionDuration(base::Minutes(
-        focus_mode_util::GetTimerTextfieldInputInMinutes(textfield_)));
+    valid_new_contents_.clear();
   }
 
   // Recalculates and sets the size of the textfield to fit the input contents.
@@ -252,6 +317,10 @@ class FocusModeDetailedView::TimerTextfieldController
 
  private:
   const raw_ptr<SystemTextfield> textfield_ = nullptr;
+
+  // The valid contents (only digits and no more than 3 chars) showing in the
+  // textfield while the `textfield_` in an editing state.
+  std::u16string valid_new_contents_ = std::u16string();
 
   // The owning `FocusModeDetailedView`.
   const raw_ptr<FocusModeDetailedView> owner_ = nullptr;
@@ -283,10 +352,28 @@ FocusModeDetailedView::FocusModeDetailedView(DetailedViewDelegate* delegate)
   }
 
   focus_mode_controller->AddObserver(this);
+  task_view_container_->AddObserver(this);
 }
 
 FocusModeDetailedView::~FocusModeDetailedView() {
+  task_view_container_->RemoveObserver(this);
   FocusModeController::Get()->RemoveObserver(this);
+}
+
+void FocusModeDetailedView::OnViewBoundsChanged(views::View* observed_view) {
+  DCHECK_EQ(task_view_container_, observed_view);
+
+  const int old_height = task_view_container_height_;
+  task_view_container_height_ = task_view_container_->bounds().height();
+  // Skip the animations during the first time the user opens the
+  // `FocusModeDetailedView`.
+  const int shift_height = old_height - task_view_container_height_;
+  if (old_height == 0) {
+    return;
+  }
+  PerformTaskContainerViewResizeAnimation(task_view_container_->layer(),
+                                          old_height);
+  OnTaskViewAnimate(shift_height);
 }
 
 void FocusModeDetailedView::AddedToWidget() {
@@ -300,41 +387,42 @@ void FocusModeDetailedView::AddedToWidget() {
 
 void FocusModeDetailedView::OnFocusModeChanged(bool in_focus_session) {
   if (in_focus_session) {
-    // The system tray bubble is closed by the `FocusModeController` whenever we
-    // toggle focus mode on, so do nothing here.
+    // The system tray bubble is closed by the `FocusModeController` whenever
+    // we toggle focus mode on, so do nothing here.
     return;
   }
 
-  toggle_view_->text_label()->SetText(l10n_util::GetStringUTF16(
-      in_focus_session ? IDS_ASH_STATUS_TRAY_FOCUS_MODE_TOGGLE_ACTIVE_LABEL
-                       : IDS_ASH_STATUS_TRAY_FOCUS_MODE));
+  toggle_view_->text_label()->SetText(
+      l10n_util::GetStringUTF16(IDS_ASH_STATUS_TRAY_FOCUS_MODE));
   if (toggle_view_->sub_text_label()) {
     toggle_view_->sub_text_label()->SetVisible(false);
   }
   views::AsViewClass<PillButton>(toggle_view_->right_view())
       ->SetText(l10n_util::GetStringUTF16(
-          in_focus_session
-              ? IDS_ASH_STATUS_TRAY_FOCUS_MODE_TOGGLE_END_BUTTON
-              : IDS_ASH_STATUS_TRAY_FOCUS_MODE_TOGGLE_START_BUTTON));
+          IDS_ASH_STATUS_TRAY_FOCUS_MODE_TOGGLE_START_BUTTON));
+  UpdateToggleButtonAccessibility(in_focus_session);
 
-  UpdateTimerView(in_focus_session);
+  UpdateTimerView(false);
 
   StartClockTimer();
   do_not_disturb_view_->SetVisible(true);
 }
 
-void FocusModeDetailedView::OnTimerTick() {
-  timer_countdown_view_->UpdateUI();
+void FocusModeDetailedView::OnTimerTick(
+    const FocusModeSession::Snapshot& session_snapshot) {
+  timer_countdown_view_->UpdateUI(session_snapshot);
 }
 
-void FocusModeDetailedView::OnSessionDurationChanged() {
-  if (!FocusModeController::Get()->in_focus_session()) {
+void FocusModeDetailedView::OnActiveSessionDurationChanged(
+    const FocusModeSession::Snapshot& session_snapshot) {
+  if (session_snapshot.state != FocusModeSession::State::kOn) {
     return;
   }
 
   toggle_view_->SetSubText(focus_mode_util::GetFormattedEndTimeString(
-      FocusModeController::Get()->end_time()));
-  timer_countdown_view_->UpdateUI();
+      FocusModeController::Get()->GetActualEndTime()));
+  timer_countdown_view_->UpdateUI(session_snapshot);
+  UpdateToggleButtonAccessibility(/*in_focus_session=*/true);
 }
 
 void FocusModeDetailedView::CreateToggleView() {
@@ -347,6 +435,8 @@ void FocusModeDetailedView::CreateToggleView() {
   toggle_view_ = toggle_container->AddChildView(
       std::make_unique<HoverHighlightView>(/*listener=*/this));
   toggle_view_->SetPreferredSize(gfx::Size(0, kToggleViewHeight));
+  views::InkDrop::Get(toggle_view_)
+      ->SetMode(views::InkDropHost::InkDropMode::OFF);
 
   FocusModeController* focus_mode_controller = FocusModeController::Get();
   const bool in_focus_session = focus_mode_controller->in_focus_session();
@@ -369,7 +459,7 @@ void FocusModeDetailedView::CreateToggleView() {
 
   if (in_focus_session) {
     toggle_view_->SetSubText(focus_mode_util::GetFormattedEndTimeString(
-        focus_mode_controller->end_time()));
+        focus_mode_controller->GetActualEndTime()));
     toggle_view_->sub_text_label()->SetEnabledColorId(
         cros_tokens::kCrosSysSecondary);
     TypographyProvider::Get()->StyleLabel(
@@ -380,13 +470,14 @@ void FocusModeDetailedView::CreateToggleView() {
   toggle_view_->AddRightView(
       std::make_unique<PillButton>(
           base::BindRepeating(&FocusModeController::ToggleFocusMode,
-                              base::Unretained(FocusModeController::Get())),
+                              base::Unretained(focus_mode_controller)),
           l10n_util::GetStringUTF16(
               in_focus_session
                   ? IDS_ASH_STATUS_TRAY_FOCUS_MODE_TOGGLE_END_BUTTON
                   : IDS_ASH_STATUS_TRAY_FOCUS_MODE_TOGGLE_START_BUTTON),
           PillButton::Type::kPrimaryLargeWithoutIcon, /*icon=*/nullptr)
           .release());
+  UpdateToggleButtonAccessibility(in_focus_session);
 
   toggle_view_->SetFocusBehavior(View::FocusBehavior::NEVER);
   toggle_view_->tri_view()->SetInsets(kToggleViewInsets);
@@ -395,6 +486,27 @@ void FocusModeDetailedView::CreateToggleView() {
   toggle_view_tri_view_layout->set_cross_axis_alignment(
       views::BoxLayout::CrossAxisAlignment::kCenter);
   toggle_view_tri_view_layout->InvalidateLayout();
+}
+
+void FocusModeDetailedView::UpdateToggleButtonAccessibility(
+    bool in_focus_session) {
+  auto* toggle_button =
+      views::AsViewClass<PillButton>(toggle_view_->right_view());
+
+  if (!in_focus_session) {
+    toggle_button->SetAccessibleName(l10n_util::GetStringUTF16(
+        IDS_ASH_STATUS_TRAY_FOCUS_MODE_TOGGLE_START_BUTTON_ACCESSIBLE_NAME));
+    toggle_button->SetTooltipText(toggle_button->GetAccessibleName());
+    return;
+  }
+
+  const std::u16string duration_string = focus_mode_util::GetDurationString(
+      FocusModeController::Get()->GetActualEndTime() - base::Time::Now(),
+      /*digital_format=*/false);
+  toggle_button->SetAccessibleName(l10n_util::GetStringFUTF16(
+      IDS_ASH_STATUS_TRAY_FOCUS_MODE_TOGGLE_END_BUTTON_ACCESSIBLE_NAME,
+      duration_string));
+  toggle_button->SetTooltipText(toggle_button->GetAccessibleName());
 }
 
 void FocusModeDetailedView::CreateTimerView() {
@@ -498,11 +610,12 @@ void FocusModeDetailedView::CreateTimerView() {
               &FocusModeDetailedView::AdjustInactiveSessionDuration,
               base::Unretained(this),
               /*decrement=*/true),
-          kChevronDownIcon, cros_tokens::kCrosSysBaseElevated,
-          IDS_ASH_STATUS_TRAY_FOCUS_MODE_TIMER_DECREMENT_BUTTON));
+          /*decrement=*/true));
   views::InstallRoundRectHighlightPathGenerator(
       timer_decrement_button_, gfx::Insets(),
       kTimerAdjustmentButtonSize.height() / 2);
+  views::InkDrop::Get(timer_decrement_button_)
+      ->SetMode(views::InkDropHost::InkDropMode::OFF);
 
   timer_increment_button_ =
       timer_setting_view_->AddChildView(CreateTimerAdjustmentButton(
@@ -510,11 +623,12 @@ void FocusModeDetailedView::CreateTimerView() {
               &FocusModeDetailedView::AdjustInactiveSessionDuration,
               base::Unretained(this),
               /*decrement=*/false),
-          kChevronUpIcon, cros_tokens::kCrosSysHighlightShape,
-          IDS_ASH_STATUS_TRAY_FOCUS_MODE_TIMER_INCREMENT_BUTTON));
+          /*decrement=*/false));
   views::InstallRoundRectHighlightPathGenerator(
       timer_increment_button_, gfx::Insets(),
       kTimerAdjustmentButtonSize.height() / 2);
+  views::InkDrop::Get(timer_increment_button_)
+      ->SetMode(views::InkDropHost::InkDropMode::OFF);
 
   UpdateTimerView(FocusModeController::Get()->in_focus_session());
 }
@@ -525,7 +639,9 @@ void FocusModeDetailedView::UpdateTimerView(bool in_focus_session) {
   timer_countdown_view_->SetVisible(in_focus_session);
 
   if (in_focus_session) {
-    timer_countdown_view_->UpdateUI();
+    timer_countdown_view_->UpdateUI(
+        FocusModeController::Get()->current_session()->GetSnapshot(
+            base::Time::Now()));
     UpdateEndTimeLabelUI();
   } else {
     UpdateTimerSettingViewUI();
@@ -533,16 +649,18 @@ void FocusModeDetailedView::UpdateTimerView(bool in_focus_session) {
 }
 
 void FocusModeDetailedView::CreateTaskView() {
-  auto* task_view_container =
+  task_view_container_ =
       scroll_content()->AddChildView(std::make_unique<RoundedContainer>(
           RoundedContainer::Behavior::kAllRounded));
-  task_view_container->SetProperty(views::kMarginsKey,
-                                   kDisconnectedContainerMargins);
-  task_view_container->SetBorderInsets(kTaskViewContainerInsets);
+  task_view_container_->SetProperty(views::kMarginsKey,
+                                    kDisconnectedContainerMargins);
+  task_view_container_->SetBorderInsets(kTaskViewContainerInsets);
+  task_view_container_->SetPaintToLayer();
+  task_view_container_->layer()->SetFillsBoundsOpaquely(false);
 
   // Create the task header.
   auto* task_view_header =
-      task_view_container->AddChildView(std::make_unique<views::Label>());
+      task_view_container_->AddChildView(std::make_unique<views::Label>());
   task_view_header->SetText(
       l10n_util::GetStringUTF16(IDS_ASH_STATUS_TRAY_FOCUS_MODE_TASK_SUBHEADER));
   task_view_header->SetHorizontalAlignment(
@@ -553,7 +671,23 @@ void FocusModeDetailedView::CreateTaskView() {
                                         *task_view_header);
 
   // Create the focus mode task view.
-  task_view_container->AddChildView(std::make_unique<FocusModeTaskView>());
+  focus_mode_task_view_ =
+      task_view_container_->AddChildView(std::make_unique<FocusModeTaskView>());
+}
+
+void FocusModeDetailedView::OnTaskViewAnimate(const int shift_height) {
+  std::vector<views::View*> animatable_views;
+
+  // Currently, we only have the `do_not_disturb_view_` below the task view
+  // container. We only need to insert a new added view into this map in future.
+  if (do_not_disturb_view_->GetVisible()) {
+    animatable_views.push_back(do_not_disturb_view_);
+  }
+
+  if (animatable_views.empty()) {
+    return;
+  }
+  PerformViewsVerticalShitfAnimation(animatable_views, shift_height);
 }
 
 void FocusModeDetailedView::CreateDoNotDisturbContainer() {
@@ -569,6 +703,8 @@ void FocusModeDetailedView::CreateDoNotDisturbContainer() {
       std::make_unique<HoverHighlightView>(/*listener=*/this));
   toggle_row->SetFocusBehavior(View::FocusBehavior::NEVER);
   toggle_row->SetPreferredSize(gfx::Size(0, kToggleViewHeight));
+  views::InkDrop::Get(toggle_row)
+      ->SetMode(views::InkDropHost::InkDropMode::OFF);
 
   // Create the do not disturb icon and its label.
   auto icon = std::make_unique<views::ImageView>();
@@ -585,11 +721,11 @@ void FocusModeDetailedView::CreateDoNotDisturbContainer() {
   auto toggle = std::make_unique<Switch>(
       base::BindRepeating(&FocusModeDetailedView::OnDoNotDisturbToggleClicked,
                           weak_factory_.GetWeakPtr()));
-  toggle->SetAccessibleName(
-      l10n_util::GetStringUTF16(IDS_ASH_STATUS_TRAY_DO_NOT_DISTURB));
   auto* controller = FocusModeController::Get();
-
-  toggle->SetIsOn(controller->turn_on_do_not_disturb());
+  const bool do_not_disturb_enabled = controller->turn_on_do_not_disturb();
+  toggle->SetAccessibleName(
+      GetAccessibleNameForDndButton(do_not_disturb_enabled));
+  toggle->SetIsOn(do_not_disturb_enabled);
   do_not_disturb_toggle_button_ = toggle.get();
   toggle_row->AddRightView(toggle.release(),
                            views::CreateEmptyBorder(gfx::Insets::TLBR(
@@ -610,6 +746,9 @@ void FocusModeDetailedView::OnDoNotDisturbToggleClicked() {
 
   controller->set_turn_on_do_not_disturb(
       do_not_disturb_toggle_button_->GetIsOn());
+
+  do_not_disturb_toggle_button_->SetAccessibleName(
+      GetAccessibleNameForDndButton(controller->turn_on_do_not_disturb()));
 }
 
 void FocusModeDetailedView::CreateFeedbackButton() {
@@ -650,15 +789,24 @@ void FocusModeDetailedView::OnFeedbackButtonPressed() {
 
 void FocusModeDetailedView::OnClockMinutePassed() {
   if (FocusModeController::Get()->in_focus_session()) {
+    UpdateToggleButtonAccessibility(/*in_focus_session=*/true);
     return;
   }
 
-  // When a clock minute passes outside of focus mode, we want to update the
-  // subheading to display the correct session end time and restart the clock
-  // timer. If we are in focus mode, then `FocusModeController::end_time()` will
-  // tell us the time at which the session will end.
-  UpdateTimerSettingViewUI();
   StartClockTimer();
+
+  // If the user is still setting the timer, we should not always update the UI
+  // (for example, if a clock minute passes while the textfield is focused).
+  if (timer_textfield_->HasFocus()) {
+    return;
+  }
+
+  // When a clock minute passes outside of a focus session, we want to update
+  // the subheading to display the correct session end time and restart the
+  // clock timer. If we are in a focus session, then
+  // `FocusModeController::GetEndTime()` will tell us the time at which the
+  // session will end.
+  UpdateTimerSettingViewUI();
 }
 
 void FocusModeDetailedView::StartClockTimer() {
@@ -671,13 +819,30 @@ void FocusModeDetailedView::StartClockTimer() {
 void FocusModeDetailedView::AdjustInactiveSessionDuration(bool decrement) {
   FocusModeController* focus_mode_controller = FocusModeController::Get();
   CHECK(!focus_mode_controller->in_focus_session());
+  const base::TimeDelta adjusted_duration =
+      CalculateSessionDurationAfterAdjustment(
+          focus_mode_util::GetTimerTextfieldInputInMinutes(timer_textfield_),
+          decrement);
 
-  SetInactiveSessionDuration(CalculateSessionDurationAfterAdjustment(
-      focus_mode_util::GetTimerTextfieldInputInMinutes(timer_textfield_),
-      decrement));
+  SetInactiveSessionDuration(adjusted_duration);
+
+  // `GetDurationDelta` will return a negative number for a decrement, so we
+  // take the absolute value to indicate a positive number of minutes to
+  // decrement by.
+  timer_decrement_button_->SetTooltipText(l10n_util::GetStringFUTF16(
+      IDS_ASH_STATUS_TRAY_FOCUS_MODE_TIMER_DECREMENT_BUTTON,
+      base::NumberToString16(std::abs(GetDurationDelta(
+          adjusted_duration.InMinutes(), /*decrement=*/true)))));
+  timer_increment_button_->SetTooltipText(l10n_util::GetStringFUTF16(
+      IDS_ASH_STATUS_TRAY_FOCUS_MODE_TIMER_INCREMENT_BUTTON,
+      base::NumberToString16(GetDurationDelta(adjusted_duration.InMinutes(),
+                                              /*decrement=*/false))));
 }
 
 void FocusModeDetailedView::UpdateTimerSettingViewUI() {
+  // We always directly fetch `session_duration` here since the timer setting
+  // view doesn't care about the durations that are adjusted during a focus
+  // session.
   const base::TimeDelta session_duration =
       FocusModeController::Get()->session_duration();
   end_time_label_->SetText(focus_mode_util::GetFormattedEndTimeString(
@@ -696,13 +861,13 @@ void FocusModeDetailedView::UpdateTimerSettingViewUI() {
 
 void FocusModeDetailedView::SetInactiveSessionDuration(
     base::TimeDelta duration) {
-  FocusModeController::Get()->SetSessionDuration(duration);
+  FocusModeController::Get()->SetInactiveSessionDuration(duration);
   UpdateTimerSettingViewUI();
 }
 
 void FocusModeDetailedView::UpdateEndTimeLabelUI() {
   end_time_label_->SetText(focus_mode_util::GetFormattedEndTimeString(
-      FocusModeController::Get()->end_time()));
+      FocusModeController::Get()->GetActualEndTime()));
 }
 
 BEGIN_METADATA(FocusModeDetailedView, TrayDetailedView)

@@ -3,7 +3,9 @@
 // found in the LICENSE file.
 
 #include "content/browser/preloading/prerender/prerender_host.h"
+
 #include <memory>
+#include <optional>
 
 #include "base/debug/alias.h"
 #include "base/feature_list.h"
@@ -34,7 +36,6 @@
 #include "content/public/common/referrer.h"
 #include "net/base/load_flags.h"
 #include "net/http/http_request_headers.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 #include "third_party/blink/public/common/client_hints/enabled_client_hints.h"
 #include "third_party/blink/public/common/features.h"
 #include "url/origin.h"
@@ -269,11 +270,11 @@ bool PrerenderHost::IsActivationHeaderMatch(
     } else if (prerender_header_list_it->key < potential_header_list_it->key) {
       mismatched_headers->emplace_back(prerender_header_list_it->key,
                                        prerender_header_list_it->value,
-                                       absl::nullopt);
+                                       std::nullopt);
       prerender_header_list_it++;
     } else {
       mismatched_headers->emplace_back(potential_header_list_it->key,
-                                       absl::nullopt,
+                                       std::nullopt,
                                        potential_header_list_it->value);
       potential_header_list_it++;
     }
@@ -282,13 +283,13 @@ bool PrerenderHost::IsActivationHeaderMatch(
   while (prerender_header_list_it != prerender_header_list.end()) {
     mismatched_headers->emplace_back(prerender_header_list_it->key,
                                      prerender_header_list_it->value,
-                                     absl::nullopt);
+                                     std::nullopt);
     prerender_header_list_it++;
   }
 
   while (potential_header_list_it != potential_header_list.end()) {
     mismatched_headers->emplace_back(potential_header_list_it->key,
-                                     absl::nullopt,
+                                     std::nullopt,
                                      potential_header_list_it->value);
     potential_header_list_it++;
   }
@@ -494,7 +495,7 @@ void PrerenderHost::DidFinishNavigation(NavigationHandle* navigation_handle) {
   // NavigationThrottle::WillFailRequest().
   net::Error net_error = navigation_request->GetNetErrorCode();
 
-  absl::optional<PrerenderFinalStatus> status;
+  std::optional<PrerenderFinalStatus> status;
   if (net_error == net::Error::ERR_BLOCKED_BY_CSP) {
     status = PrerenderFinalStatus::kNavigationRequestBlockedByCsp;
   } else if (net_error == net::Error::ERR_BLOCKED_BY_CLIENT) {
@@ -1024,7 +1025,7 @@ void PrerenderHost::RemoveObserver(Observer* observer) {
   observers_.RemoveObserver(observer);
 }
 
-absl::optional<int64_t> PrerenderHost::GetInitialNavigationId() const {
+std::optional<int64_t> PrerenderHost::GetInitialNavigationId() const {
   return initial_navigation_id_;
 }
 

@@ -78,6 +78,7 @@
 <translation id="2258103955319320201">Log ind, og aktivér derefter synkronisering for at få adgang til dine Chrome-ting på alle dine enheder.</translation>
 <translation id="2290014774651636340">Google API-nøgler mangler. Nogle funktioner i Google Chrome deaktiveres.</translation>
 <translation id="2290095356545025170">Er du sikker på, at du vil afinstallere Google Chrome?</translation>
+<translation id="2298849085402457754"><ph name="BEGIN_LINK" />Log ud af Chrome<ph name="END_LINK" /> for kun at rydde browserdata fra denne enhed uden at slette dataene på din Google-konto.</translation>
 <translation id="2309047409763057870">Dette er en sekundær installation af Google Chrome, og den kan ikke gøres til din standardbrowser.</translation>
 <translation id="2345992953227471816">Chrome har registreret malware i disse udvidelser:</translation>
 <translation id="2348335408836342058">Chrome skal have tilladelse til at bruge dit kamera og din mikrofon på dette website</translation>
@@ -198,6 +199,7 @@
 <translation id="4148957013307229264">Installerer...</translation>
 <translation id="4149882025268051530">Installationsprogrammet kunne ikke pakke arkivet ud. Download Google Chrome igen.</translation>
 <translation id="4153934450158521343">Chrome lukkes snart, og dataene slettes</translation>
+<translation id="4173512894976930765">Websites fungerer sandsynligvis som forventet. Du logges ud af de fleste websites, når du lukker alle Chrome-vinduer, med undtagelse af din Google-konto, hvis du er logget ind i Chrome.</translation>
 <translation id="4175922240926474352">Chrome har blokeret denne download, fordi websitet ikke anvender en sikker forbindelse, og der kan være blevet manipuleret med filen</translation>
 <translation id="4191857738314598978">{0,plural, =1{Genstart Chrome inden for én dag}one{Genstart Chrome inden for # dag}other{Genstart Chrome inden for # dage}}</translation>
 <translation id="4205939740494406371">Chrome kan ikke tjekke dine adgangskoder. Prøv igen efter 24 timer, eller <ph name="BEGIN_LINK" />tjek adgangskoder på din Google-konto<ph name="END_LINK" />.</translation>
@@ -215,7 +217,6 @@
 <translation id="4343195214584226067"><ph name="EXTENSION_NAME" /> er føjet til Chrome</translation>
 <translation id="4384570495110188418">Chrome kan ikke tjekke dine adgangskoder, da du ikke er logget ind</translation>
 <translation id="4389991535395284064">Når du browser i inkognitotilstand, advarer Chrome dig, inden et website indlæses via en usikker forbindelse</translation>
-<translation id="4393248995085527349">Hvis du vil have fremtidige Google Chrome-opdateringer, skal du have macOS 10.15 eller nyere. Denne computer anvender macOS 10.13.</translation>
 <translation id="4427306783828095590">Forbedret beskyttelse gør mere end at blokere phishing og malware</translation>
 <translation id="4450664632294415862">Chrome – Login på netværk – <ph name="PAGE_TITLE" /></translation>
 <translation id="4458462641685292929">En anden handling i Google Chrome er i gang. Prøv igen senere.</translation>
@@ -299,7 +300,6 @@
 <translation id="5941711191222866238">Minimer</translation>
 <translation id="5941830788786076944">Gør Google Chrome til din standardbrowser</translation>
 <translation id="6003112304606738118">Downloader… Der er <ph name="HOURS" /> timer tilbage</translation>
-<translation id="6010556343189461180">Hvis du vil have fremtidige Google Chrome-opdateringer, skal du have macOS 10.15 eller nyere. Denne computer anvender macOS 10.14.</translation>
 <translation id="6014316319780893079">Med <ph name="BEGIN_LINK" />værktøjer fra Chrome<ph name="END_LINK" /> kan du søge sikkert på nettet og bevare styringen</translation>
 <translation id="6022659036123304283">Gør Chrome til din egen</translation>
 <translation id="6025087594896450715">Google Chrome genstarter om <ph name="REMAINING_TIME" /></translation>

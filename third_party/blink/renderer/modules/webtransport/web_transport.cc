@@ -604,7 +604,10 @@ class WebTransport::StreamVendingUnderlyingSource final
   }
 
  private:
-  void Enqueue(ScriptWrappable* stream) { Controller()->Enqueue(stream); }
+  void Enqueue(ScriptWrappable* stream) {
+    Controller()->Enqueue(
+        ToV8Traits<ScriptWrappable>::ToV8(script_state_, stream));
+  }
 
   const Member<ScriptState> script_state_;
   const Member<StreamVendor> vendor_;
@@ -891,9 +894,8 @@ void WebTransport::close(const WebTransportCloseInfo* close_info) {
   }
 
   v8::Local<v8::Value> reason;
-  if (close_info &&
-      ToV8Traits<WebTransportCloseInfo>::ToV8(script_state_, close_info)
-          .ToLocal(&reason)) {
+  if (close_info) {
+    reason = ToV8Traits<WebTransportCloseInfo>::ToV8(script_state_, close_info);
   } else {
     reason = v8::Object::New(isolate);
   }
@@ -1040,13 +1042,13 @@ void WebTransport::OnClosed(
   ScriptState::Scope scope(script_state_);
   v8::Isolate* isolate = script_state_->GetIsolate();
 
-  v8::Local<v8::Value> reason;
   WebTransportCloseInfo idl_close_info;
   if (close_info) {
     idl_close_info.setCloseCode(close_info->code);
     idl_close_info.setReason(close_info->reason);
   }
-  reason = ToV8(&idl_close_info, script_state_);
+  v8::Local<v8::Value> reason =
+      ToV8Traits<WebTransportCloseInfo>::ToV8(script_state_, &idl_close_info);
 
   v8::Local<v8::Value> error = WebTransportError::Create(
       isolate, /*stream_error_code=*/absl::nullopt, "The session is closed.",

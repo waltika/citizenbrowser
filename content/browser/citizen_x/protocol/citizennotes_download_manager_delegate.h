@@ -67,7 +67,7 @@ class CitizenNotesDownloadManagerDelegate
   void Shutdown() override;
   bool DetermineDownloadTarget(
       download::DownloadItem* download,
-      content::DownloadTargetCallback* callback) override;
+      download::DownloadTargetCallback* callback) override;
   bool ShouldOpenDownload(
       download::DownloadItem* item,
       content::DownloadOpenDelayedCallback callback) override;
@@ -90,7 +90,7 @@ class CitizenNotesDownloadManagerDelegate
                                FilenameDeterminedCallback callback);
 
   void OnDownloadPathGenerated(uint32_t download_id,
-                               content::DownloadTargetCallback callback,
+                               download::DownloadTargetCallback callback,
                                const base::FilePath& suggested_path);
 
   RAW_PTR_EXCLUSION content::DownloadManager* download_manager_;

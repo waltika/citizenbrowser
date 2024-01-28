@@ -214,9 +214,6 @@ public class EventForwarder {
         try {
             // Android may batch multiple events together for efficiency. We
             // want to use the oldest event time as hardware time stamp.
-            //
-            // We can't get nanosecond for historical event time, so we get milliseconds and cast
-            // them to nanosecond.
             final long oldestEventTime =
                     event.getHistorySize() > 0
                             ? MotionEventUtils.getHistoricalEventTimeNanos(event, 0)
@@ -532,11 +529,15 @@ public class EventForwarder {
      * @param containerView A view on which the drag event is taking place.
      */
     public boolean onDragEvent(DragEvent event, View containerView) {
+        ClipDescription clipDescription = event.getClipDescription();
+        // Do not forward chrome/tab events to native eventForwarder.
+        if (clipDescription != null
+                && clipDescription.hasMimeType(MimeTypeUtils.CHROME_MIMETYPE_TAB)) {
+            return false;
+        }
         if (mNativeEventForwarder == 0) {
             return false;
         }
-
-        ClipDescription clipDescription = event.getClipDescription();
 
         // text/* will match text/uri-list, text/html, text/plain.
         String[] mimeTypes =

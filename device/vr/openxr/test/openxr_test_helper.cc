@@ -144,18 +144,17 @@ void OpenXrTestHelper::OnPresentedFrame() {
     const device::OpenXrViewConfiguration& view_config =
         GetViewConfigInfo(view_config_type);
     if (view_config.Active()) {
-      const std::vector<XrViewConfigurationView>& view_properties =
+      const std::vector<device::OpenXrViewProperties>& view_properties =
           view_config.Properties();
       for (uint32_t i = 0; i < view_properties.size(); i++) {
-        const XrViewConfigurationView& properties = view_properties[i];
+        const device::OpenXrViewProperties& properties = view_properties[i];
         device::ViewData& data = submitted_views.emplace_back();
         data.viewport =
-            gfx::Rect(current_x, 0, properties.recommendedImageRectWidth,
-                      properties.recommendedImageRectHeight);
+            gfx::Rect(current_x, 0, properties.Width(), properties.Height());
         data.eye = GetEyeForIndex(i, view_properties.size());
 
         CopyTextureDataIntoFrameData(current_x, data);
-        current_x += properties.recommendedImageRectWidth;
+        current_x += properties.Width();
       }
     }
   }
@@ -597,10 +596,11 @@ void OpenXrTestHelper::AddDimensions(
     const device::OpenXrViewConfiguration& view_config,
     uint32_t& width,
     uint32_t& height) const {
-  const std::vector<XrViewConfigurationView>& views = view_config.Properties();
-  for (const XrViewConfigurationView& view : views) {
-    width += view.recommendedImageRectWidth;
-    height = std::max(height, view.recommendedImageRectHeight);
+  const std::vector<device::OpenXrViewProperties>& views =
+      view_config.Properties();
+  for (const device::OpenXrViewProperties& view : views) {
+    width += view.Width();
+    height = std::max(height, view.Height());
   }
 }
 
@@ -967,39 +967,41 @@ bool OpenXrTestHelper::IsSessionRunning() const {
 }
 
 void OpenXrTestHelper::UpdateInteractionProfile(
-    device_test::mojom::InteractionProfileType type) {
+    device::mojom::OpenXrInteractionProfileType type) {
   switch (type) {
-    case device_test::mojom::InteractionProfileType::kWMRMotion:
+    case device::mojom::OpenXrInteractionProfileType::kMicrosoftMotion:
       interaction_profile_ = device::kMicrosoftMotionInteractionProfilePath;
       break;
-    case device_test::mojom::InteractionProfileType::kKHRSimple:
+    case device::mojom::OpenXrInteractionProfileType::kKHRSimple:
       interaction_profile_ = device::kKHRSimpleInteractionProfilePath;
       break;
-    case device_test::mojom::InteractionProfileType::kOculusTouch:
+    case device::mojom::OpenXrInteractionProfileType::kOculusTouch:
       interaction_profile_ = device::kOculusTouchInteractionProfilePath;
       break;
-    case device_test::mojom::InteractionProfileType::kValveIndex:
+    case device::mojom::OpenXrInteractionProfileType::kValveIndex:
       interaction_profile_ = device::kValveIndexInteractionProfilePath;
       break;
-    case device_test::mojom::InteractionProfileType::kHTCVive:
+    case device::mojom::OpenXrInteractionProfileType::kHTCVive:
       interaction_profile_ = device::kHTCViveInteractionProfilePath;
       break;
-    case device_test::mojom::InteractionProfileType::kSamsungOdyssey:
+    case device::mojom::OpenXrInteractionProfileType::kSamsungOdyssey:
       interaction_profile_ = device::kSamsungOdysseyInteractionProfilePath;
       break;
-    case device_test::mojom::InteractionProfileType::kHPReverbG2:
+    case device::mojom::OpenXrInteractionProfileType::kHPReverbG2:
       interaction_profile_ = device::kHPReverbG2InteractionProfilePath;
       break;
-    case device_test::mojom::InteractionProfileType::kHandSelectGrasp:
+    case device::mojom::OpenXrInteractionProfileType::kHandSelectGrasp:
       interaction_profile_ = device::kHandSelectGraspInteractionProfilePath;
       break;
-    case device_test::mojom::InteractionProfileType::kViveCosmos:
+    case device::mojom::OpenXrInteractionProfileType::kViveCosmos:
       interaction_profile_ = device::kHTCViveCosmosInteractionProfilePath;
       break;
-    case device_test::mojom::InteractionProfileType::kExtHand:
+    case device::mojom::OpenXrInteractionProfileType::kExtHand:
       interaction_profile_ = device::kExtHandInteractionProfilePath;
       break;
-    case device_test::mojom::InteractionProfileType::kInvalid:
+    case device::mojom::OpenXrInteractionProfileType::kInvalid:
+    case device::mojom::OpenXrInteractionProfileType::kAndroidHandGestures:
+    case device::mojom::OpenXrInteractionProfileType::kMetaHandAim:
       NOTREACHED() << "Invalid EventData interaction_profile type";
       break;
   }

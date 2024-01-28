@@ -44,6 +44,9 @@ SkColor4f GetFallbackColorForPlane(viz::SharedImageFormat format,
     case viz::SharedImageFormat::PlaneConfig::kY_U_V:
     case viz::SharedImageFormat::PlaneConfig::kY_V_U:
       return plane_index == 0 ? SkColors::kWhite : SkColors::kGray;
+    case viz::SharedImageFormat::PlaneConfig::kY_U_V_A:
+      return (plane_index == 0 || plane_index == 3) ? SkColors::kWhite
+                                                    : SkColors::kGray;
     case viz::SharedImageFormat::PlaneConfig::kY_UV:
       return plane_index == 0 ? SkColors::kWhite : SkColors::kGray;
     case viz::SharedImageFormat::PlaneConfig::kY_UV_A:
@@ -174,8 +177,11 @@ void ImageContextImpl::CreateFallbackImage(
   // allocated. Skia will skip drawing a null GrPromiseImageTexture, do nothing
   // and leave it null.
   const auto& formats = backend_formats();
-  if (formats.empty() || formats[0].textureType() == GrTextureType::kExternal)
+  // Return early if SIFormat prefers external sampler.
+  if (formats.empty() || formats[0].textureType() == GrTextureType::kExternal ||
+      format().PrefersExternalSampler()) {
     return;
+  }
 
   DCHECK(!fallback_context_state_);
   fallback_context_state_ = context_state;

@@ -28,11 +28,11 @@ namespace base {
 namespace {
 
 constexpr char kFeatureOnByDefaultName[] = "OnByDefault";
-CONSTINIT Feature kFeatureOnByDefault(kFeatureOnByDefaultName,
+constinit Feature kFeatureOnByDefault(kFeatureOnByDefaultName,
                                       FEATURE_ENABLED_BY_DEFAULT);
 
 constexpr char kFeatureOffByDefaultName[] = "OffByDefault";
-CONSTINIT Feature kFeatureOffByDefault(kFeatureOffByDefaultName,
+constinit Feature kFeatureOffByDefault(kFeatureOffByDefaultName,
                                        FEATURE_DISABLED_BY_DEFAULT);
 
 std::string SortFeatureListString(const std::string& feature_list) {
@@ -688,6 +688,40 @@ TEST_F(FeatureListTest, StoreAndRetrieveAssociatedFeaturesFromSharedMemory) {
       feature_list2->GetAssociatedFieldTrial(kFeatureOffByDefault);
   EXPECT_EQ(associated_trial1, trial1);
   EXPECT_EQ(associated_trial2, trial2);
+}
+
+TEST_F(FeatureListTest, SetEarlyAccessInstance_AllowList) {
+  test::ScopedFeatureList clear_feature_list;
+  clear_feature_list.InitWithNullFeatureAndFieldTrialLists();
+
+  auto early_access_feature_list = std::make_unique<FeatureList>();
+  early_access_feature_list->InitFromCommandLine("OffByDefault", "OnByDefault");
+  FeatureList::SetEarlyAccessInstance(std::move(early_access_feature_list),
+                                      {"DcheckIsFatal", "OnByDefault"});
+  EXPECT_FALSE(FeatureList::IsEnabled(kFeatureOnByDefault));
+  EXPECT_FALSE(FeatureList::IsEnabled(kFeatureOffByDefault));
+  EXPECT_EQ(&kFeatureOffByDefault,
+            FeatureList::GetEarlyAccessedFeatureForTesting());
+  FeatureList::ResetEarlyFeatureAccessTrackerForTesting();
+}
+
+TEST_F(FeatureListTest, SetEarlyAccessInstance_ReplaceByRealList) {
+  test::ScopedFeatureList clear_feature_list;
+  clear_feature_list.InitWithNullFeatureAndFieldTrialLists();
+
+  auto early_access_feature_list = std::make_unique<FeatureList>();
+  early_access_feature_list->InitFromCommandLine("OffByDefault", "OnByDefault");
+  FeatureList::SetEarlyAccessInstance(
+      std::move(early_access_feature_list),
+      {"DcheckIsFatal", "OffByDefault", "OnByDefault"});
+  EXPECT_FALSE(FeatureList::IsEnabled(kFeatureOnByDefault));
+  EXPECT_TRUE(FeatureList::IsEnabled(kFeatureOffByDefault));
+
+  auto feature_list = std::make_unique<FeatureList>();
+  feature_list->InitFromCommandLine("", "");
+  FeatureList::SetInstance(std::move(feature_list));
+  EXPECT_TRUE(FeatureList::IsEnabled(kFeatureOnByDefault));
+  EXPECT_FALSE(FeatureList::IsEnabled(kFeatureOffByDefault));
 }
 
 #if BUILDFLAG(ENABLE_BANNED_BASE_FEATURE_PREFIX) && \

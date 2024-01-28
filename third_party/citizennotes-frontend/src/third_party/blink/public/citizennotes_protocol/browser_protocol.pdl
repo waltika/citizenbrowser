@@ -2,14 +2,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 #
-# Contributing to Chrome CitizenNotes Protocol: https://goo.gle/citizennotes-contribution-guide-cdp
+# Contributing to Chrome CitizenNotes Protocol: https://goo.gle/devtools-contribution-guide-cdp
 
 version
   major 1
-  minor 4
+  minor 3
 
 experimental domain Accessibility
-  depends on CnDOM
+  depends on DOM
 
   # Unique accessibility node identifier.
   type AXNodeId extends string
@@ -83,8 +83,8 @@ experimental domain Accessibility
 
   type AXRelatedNode extends object
     properties
-      # The BackendNodeId of the related CnDOM.node.
-      CnDOM.BackendNodeId backendDOMNodeId
+      # The BackendNodeId of the related DOM node.
+      DOM.BackendNodeId backendDOMNodeId
       # The IDRef value provided, if any.
       optional string idref
       # The text alternative of this node in the current context.
@@ -182,10 +182,10 @@ experimental domain Accessibility
       optional AXNodeId parentId
       # IDs for each of this node's child nodes.
       optional array of AXNodeId childIds
-      # The backend ID for the associated CnDOM.node, if any.
-      optional CnDOM.BackendNodeId backendDOMNodeId
+      # The backend ID for the associated DOM node, if any.
+      optional DOM.BackendNodeId backendDOMNodeId
       # The frame ID for the frame associated with this nodes document.
-      optional CnPage.FrameId frameId
+      optional Page.FrameId frameId
 
   # Disables the accessibility domain.
   command disable
@@ -194,19 +194,19 @@ experimental domain Accessibility
   # This turns on accessibility for the page, which can impact performance until accessibility is disabled.
   command enable
 
-  # Fetches the accessibility node and partial accessibility tree for this CnDOM.node, if it exists.
+  # Fetches the accessibility node and partial accessibility tree for this DOM node, if it exists.
   experimental command getPartialAXTree
     parameters
       # Identifier of the node to get the partial accessibility tree for.
-      optional CnDOM.NodeId nodeId
+      optional DOM.NodeId nodeId
       # Identifier of the backend node to get the partial accessibility tree for.
-      optional CnDOM.BackendNodeId backendNodeId
+      optional DOM.BackendNodeId backendNodeId
       # JavaScript object id of the node wrapper to get the partial accessibility tree for.
-      optional CnRuntime.RemoteObjectId objectId
+      optional Runtime.RemoteObjectId objectId
       # Whether to fetch this node's ancestors, siblings and children. Defaults to true.
       optional boolean fetchRelatives
     returns
-      # The `Accessibility.AXNode` for this CnDOM.node, if it exists, plus its ancestors, siblings and
+      # The `Accessibility.AXNode` for this DOM node, if it exists, plus its ancestors, siblings and
       # children, if requested.
       array of AXNode nodes
 
@@ -218,7 +218,7 @@ experimental domain Accessibility
       optional integer depth
       # The frame for whose document the AX tree should be retrieved.
       # If omited, the root frame is used.
-      optional CnPage.FrameId frameId
+      optional Page.FrameId frameId
     returns
       array of AXNode nodes
 
@@ -228,7 +228,7 @@ experimental domain Accessibility
     parameters
       # The frame in whose document the node resides.
       # If omitted, the root frame is used.
-      optional CnPage.FrameId frameId
+      optional Page.FrameId frameId
     returns
       AXNode node
 
@@ -237,11 +237,11 @@ experimental domain Accessibility
   experimental command getAXNodeAndAncestors
     parameters
       # Identifier of the node to get.
-      optional CnDOM.NodeId nodeId
+      optional DOM.NodeId nodeId
       # Identifier of the backend node to get.
-      optional CnDOM.BackendNodeId backendNodeId
+      optional DOM.BackendNodeId backendNodeId
       # JavaScript object id of the node wrapper to get.
-      optional CnRuntime.RemoteObjectId objectId
+      optional Runtime.RemoteObjectId objectId
     returns
       array of AXNode nodes
 
@@ -252,23 +252,23 @@ experimental domain Accessibility
       AXNodeId id
       # The frame in whose document the node resides.
       # If omitted, the root frame is used.
-      optional CnPage.FrameId frameId
+      optional Page.FrameId frameId
     returns
       array of AXNode nodes
 
-  # Query a CnDOM.node's accessibility subtree for accessible name and role.
+  # Query a DOM node's accessibility subtree for accessible name and role.
   # This command computes the name and role for all nodes in the subtree, including those that are
-  # ignored for accessibility, and returns those that mactch the specified name and role. If no CnDOM
-  # node is specified, or the CnDOM.node does not exist, the command returns an error. If neither
+  # ignored for accessibility, and returns those that mactch the specified name and role. If no DOM
+  # node is specified, or the DOM node does not exist, the command returns an error. If neither
   # `accessibleName` or `role` is specified, it returns all the accessibility nodes in the subtree.
   experimental command queryAXTree
     parameters
       # Identifier of the node for the root to query.
-      optional CnDOM.NodeId nodeId
+      optional DOM.NodeId nodeId
       # Identifier of the backend node for the root to query.
-      optional CnDOM.BackendNodeId backendNodeId
+      optional DOM.BackendNodeId backendNodeId
       # JavaScript object id of the node wrapper for the root to query.
-      optional CnRuntime.RemoteObjectId objectId
+      optional Runtime.RemoteObjectId objectId
       # Find nodes with this computed name.
       optional string accessibleName
       # Find nodes with this computed role.
@@ -292,8 +292,8 @@ experimental domain Accessibility
       array of AXNode nodes
 
 experimental domain Animation
-  depends on CnRuntime
-  depends on CnDOM
+  depends on Runtime
+  depends on DOM
 
   # Animation instance.
   type Animation extends object
@@ -341,7 +341,7 @@ experimental domain Animation
       # `AnimationEffect`'s fill mode.
       string fill
       # `AnimationEffect`'s target node.
-      optional CnDOM.BackendNodeId backendNodeId
+      optional DOM.BackendNodeId backendNodeId
       # `AnimationEffect`'s keyframes.
       optional KeyframesRule keyframesRule
       # `AnimationEffect`'s timing function.
@@ -397,7 +397,7 @@ experimental domain Animation
       string animationId
     returns
       # Corresponding remote object.
-      CnRuntime.RemoteObject remoteObject
+      Runtime.RemoteObject remoteObject
 
   # Seek a set of animations to a particular time within each animation.
   command seekAnimations
@@ -451,7 +451,7 @@ experimental domain Animation
 
 # Audits domain allows investigation of page violations and possible improvements.
 experimental domain Audits
-  depends on CnNetwork
+  depends on Network
 
   # Information about a cookie that is affected by an inspector issue.
   type AffectedCookie extends object
@@ -465,13 +465,13 @@ experimental domain Audits
   type AffectedRequest extends object
     properties
       # The unique request id.
-      CnNetwork.RequestId requestId
+      Network.RequestId requestId
       optional string url
 
   # Information about the frame affected by an inspector issue.
   type AffectedFrame extends object
     properties
-      CnPage.FrameId frameId
+      Page.FrameId frameId
 
   type CookieExclusionReason extends string
     enum
@@ -552,7 +552,7 @@ experimental domain Audits
       Prefetch
       Resource
       Script
-      CnServiceWorker
+      ServiceWorker
       SharedWorker
       SpeculationRules
       Stylesheet
@@ -632,7 +632,7 @@ experimental domain Audits
 
   type SourceCodeLocation extends object
     properties
-      optional CnRuntime.ScriptId scriptId
+      optional Runtime.ScriptId scriptId
       string url
       integer lineNumber
       integer columnNumber
@@ -647,7 +647,7 @@ experimental domain Audits
       ContentSecurityPolicyViolationType contentSecurityPolicyViolationType
       optional AffectedFrame frameAncestor
       optional SourceCodeLocation sourceCodeLocation
-      optional CnDOM.BackendNodeId violatingNodeId
+      optional DOM.BackendNodeId violatingNodeId
 
   type SharedArrayBufferIssueType extends string
     enum
@@ -664,7 +664,7 @@ experimental domain Audits
 
   type LowTextContrastIssueDetails extends object
     properties
-      CnDOM.BackendNodeId violatingNodeId
+      DOM.BackendNodeId violatingNodeId
       string violatingNodeSelector
       number contrastRatio
       number thresholdAA
@@ -676,13 +676,13 @@ experimental domain Audits
   # CORS RFC1918 enforcement.
   type CorsIssueDetails extends object
     properties
-      CnNetwork.CorsErrorStatus corsErrorStatus
+      Network.CorsErrorStatus corsErrorStatus
       boolean isWarning
       AffectedRequest request
       optional SourceCodeLocation location
       optional string initiatorOrigin
-      optional CnNetwork.IPAddressSpace resourceIPAddressSpace
-      optional CnNetwork.ClientSecurityState clientSecurityState
+      optional Network.IPAddressSpace resourceIPAddressSpace
+      optional Network.ClientSecurityState clientSecurityState
 
   type AttributionReportingIssueType extends string
     enum
@@ -709,7 +709,7 @@ experimental domain Audits
     properties
       AttributionReportingIssueType violationType
       optional AffectedRequest request
-      optional CnDOM.BackendNodeId violatingNodeId
+      optional DOM.BackendNodeId violatingNodeId
       optional string invalidParameter
 
 # Details for issues about documents in Quirks Mode
@@ -719,10 +719,10 @@ experimental domain Audits
       # If false, it means the document's mode is "quirks"
       # instead of "limited-quirks".
       boolean isLimitedQuirksMode
-      CnDOM.BackendNodeId documentNodeId
+      DOM.BackendNodeId documentNodeId
       string url
-      CnPage.FrameId frameId
-      CnNetwork.LoaderId loaderId
+      Page.FrameId frameId
+      Network.LoaderId loaderId
 
   deprecated type NavigatorUserAgentIssueDetails extends object
     properties
@@ -749,8 +749,8 @@ experimental domain Audits
     properties
       # Issues with the same errorType are aggregated in the frontend.
       GenericIssueErrorType errorType
-      optional CnPage.FrameId frameId
-      optional CnDOM.BackendNodeId violatingNodeId
+      optional Page.FrameId frameId
+      optional DOM.BackendNodeId violatingNodeId
       optional string violatingNodeAttribute
       optional AffectedRequest request
 
@@ -796,7 +796,7 @@ experimental domain Audits
 
   # Represents the failure reason when a federated authentication reason fails.
   # Should be updated alongside RequestIdTokenStatus in
-  # third_party/blink/public/mojom/citizennotes/inspector_issue.mojom to include
+  # third_party/blink/public/mojom/devtools/inspector_issue.mojom to include
   # all cases except for success.
   type FederatedAuthRequestIssueReason extends string
     enum
@@ -845,7 +845,7 @@ experimental domain Audits
 
   # Represents the failure reason when a getUserInfo() call fails.
   # Should be updated alongside FederatedAuthUserInfoRequestResult in
-  # third_party/blink/public/mojom/citizennotes/inspector_issue.mojom.
+  # third_party/blink/public/mojom/devtools/inspector_issue.mojom.
   type FederatedAuthUserInfoRequestIssueReason extends string
     enum
       NotSameOrigin
@@ -871,7 +871,7 @@ experimental domain Audits
       string url
       # The failure message for the failed request.
       string failureMessage
-      optional CnNetwork.RequestId requestId
+      optional Network.RequestId requestId
 
   type StyleSheetLoadingIssueReason extends string
     enum
@@ -977,7 +977,7 @@ experimental domain Audits
   command getEncodedResponse
     parameters
       # Identifier of the network request to get content for.
-      CnNetwork.RequestId requestId
+      Network.RequestId requestId
       # The encoding to use.
       enum encoding
         webp
@@ -1083,6 +1083,8 @@ experimental domain Autofill
       string autofillType
       # The filling strategy
       FillingStrategy fillingStrategy
+      # The form field's DOM node
+      DOM.BackendNodeId fieldId
 
   # Emitted when an address form is filled.
   event addressFormFilled
@@ -1098,9 +1100,9 @@ experimental domain Autofill
   command trigger
     parameters
       # Identifies a field that serves as an anchor for autofill.
-      CnDOM.BackendNodeId fieldId
+      DOM.BackendNodeId fieldId
       # Identifies the frame that field belongs to.
-      optional CnPage.FrameId frameId
+      optional Page.FrameId frameId
       # Credit card information to fill out the form. Credit card data is not saved.
       CreditCard card
 
@@ -1166,11 +1168,11 @@ experimental domain BackgroundService
   type BackgroundServiceEvent extends object
     properties
       # Timestamp of the event (in seconds).
-      CnTarget.TargetID timestamp
+      Network.TimeSinceEpoch timestamp
       # The origin this event belongs to.
       string origin
       # The Service Worker ID that initiated the event.
-      CnServiceWorker.RegistrationID serviceWorkerRegistrationId
+      ServiceWorker.RegistrationID serviceWorkerRegistrationId
       # The Background Service this event belongs to.
       ServiceName service
       # A description of the event.
@@ -1179,7 +1181,7 @@ experimental domain BackgroundService
       string instanceId
       # A list of event-specific information.
       array of EventMetadata eventMetadata
-      # CnStorage key this event belongs to.
+      # Storage key this event belongs to.
       string storageKey
 
   # Called with all existing backgroundServiceEvents when enabled, and all new
@@ -1188,7 +1190,7 @@ experimental domain BackgroundService
     parameters
       BackgroundServiceEvent backgroundServiceEvent
 
-# The CnBrowser domain defines methods and events for browser managing.
+# The Browser domain defines methods and events for browser managing.
 domain Browser
   experimental type BrowserContextID extends string
   experimental type WindowID extends integer
@@ -1201,7 +1203,7 @@ domain Browser
       maximized
       fullscreen
 
-  # CnBrowser window bounds information
+  # Browser window bounds information
   experimental type Bounds extends object
     properties
       # The offset from the left edge of the screen to the window in pixels.
@@ -1268,7 +1270,7 @@ domain Browser
       # For "camera" permission, may specify panTiltZoom.
       optional boolean panTiltZoom
 
-  # CnBrowser command ids used by executeBrowserCommand.
+  # Browser command ids used by executeBrowserCommand.
   experimental type BrowserCommandId extends string
     enum
       openTabSearch
@@ -1332,7 +1334,7 @@ domain Browser
   experimental event downloadWillBegin
     parameters
       # Id of the frame that caused the download to begin.
-      CnPage.FrameId frameId
+      Page.FrameId frameId
       # Global unique identifier of the download.
       string guid
       # URL of the resource being downloaded.
@@ -1435,20 +1437,20 @@ domain Browser
   # Get position and size of the browser window.
   experimental command getWindowBounds
     parameters
-      # CnBrowser window id.
+      # Browser window id.
       WindowID windowId
     returns
       # Bounds information of the window. When window state is 'minimized', the restored window
       # position and size are returned.
       Bounds bounds
 
-  # Get the browser window that contains the citizennotes target.
+  # Get the browser window that contains the devtools target.
   experimental command getWindowForTarget
     parameters
-      # Citizennotes agent host id. If called as a part of the session, associated targetId is used.
-      optional CnTarget.TargetID targetId
+      # Devtools agent host id. If called as a part of the session, associated targetId is used.
+      optional Target.TargetID targetId
     returns
-      # CnBrowser window id.
+      # Browser window id.
       WindowID windowId
       # Bounds information of the window. When window state is 'minimized', the restored window
       # position and size are returned.
@@ -1457,7 +1459,7 @@ domain Browser
   # Set position and/or size of the browser window.
   experimental command setWindowBounds
     parameters
-      # CnBrowser window id.
+      # Browser window id.
       WindowID windowId
       # New window bounds. The 'minimized', 'maximized' and 'fullscreen' states cannot be combined
       # with 'left', 'top', 'width' or 'height'. Leaves unspecified fields unchanged.
@@ -1484,12 +1486,12 @@ domain Browser
 # This domain exposes CSS read/write operations. All CSS objects (stylesheets, rules, and styles)
 # have an associated `id` used in subsequent operations on the related object. Each object type has
 # a specific `id` structure, and those are not interchangeable between objects of different kinds.
-# CSS objects can be loaded using the `get*ForNode()` calls (which accept a CnDOM.node id). A client
+# CSS objects can be loaded using the `get*ForNode()` calls (which accept a DOM node id). A client
 # can also keep track of stylesheets via the `styleSheetAdded`/`styleSheetRemoved` events and
 # subsequently load the required stylesheet contents using the `getStyleSheet[Text]()` methods.
 experimental domain CSS
-  depends on CnDOM
-  depends on CnPage
+  depends on DOM
+  depends on Page
 
   type StyleSheetId extends string
 
@@ -1507,7 +1509,7 @@ experimental domain CSS
   type PseudoElementMatches extends object
     properties
       # Pseudo element type.
-      CnDOM.PseudoType pseudoType
+      DOM.PseudoType pseudoType
       # Pseudo element custom ident.
       optional string pseudoIdentifier
       # Matches of CSS rules applicable to the pseudo style.
@@ -1571,7 +1573,7 @@ experimental domain CSS
       # The stylesheet identifier.
       StyleSheetId styleSheetId
       # Owner frame identifier.
-      CnPage.FrameId frameId
+      Page.FrameId frameId
       # Stylesheet resource URL. Empty if this is a constructed stylesheet created using
       # new CSSStyleSheet() (but non-empty if this is a constructed sylesheet imported
       # as a CSS module script).
@@ -1583,7 +1585,7 @@ experimental domain CSS
       # Stylesheet title.
       string title
       # The backend id for the owner node of the stylesheet.
-      optional CnDOM.BackendNodeId ownerNode
+      optional DOM.BackendNodeId ownerNode
       # Denotes whether the stylesheet is disabled.
       boolean disabled
       # Whether the sourceURL field value comes from the sourceURL comment.
@@ -1793,9 +1795,9 @@ experimental domain CSS
       # Optional name for the container.
       optional string name
       # Optional physical axes queried for the container.
-      optional CnDOM.PhysicalAxes physicalAxes
+      optional DOM.PhysicalAxes physicalAxes
       # Optional logical axes queried for the container.
-      optional CnDOM.LogicalAxes logicalAxes
+      optional DOM.LogicalAxes logicalAxes
 
   # CSS Supports at-rule descriptor.
   experimental type CSSSupports extends object
@@ -2004,7 +2006,7 @@ experimental domain CSS
   command createStyleSheet
     parameters
       # Identifier of the frame where "via-inspector" stylesheet should be created.
-      CnPage.FrameId frameId
+      Page.FrameId frameId
     returns
       # Identifier of the created "via-inspector" stylesheet.
       StyleSheetId styleSheetId
@@ -2021,14 +2023,14 @@ experimental domain CSS
   command forcePseudoState
     parameters
       # The element id for which to force the pseudo state.
-      CnDOM.NodeId nodeId
+      DOM.NodeId nodeId
       # Element pseudo classes to force when computing the element's style.
       array of string forcedPseudoClasses
 
   command getBackgroundColors
     parameters
       # Id of the node to get background colors for.
-      CnDOM.NodeId nodeId
+      DOM.NodeId nodeId
     returns
       # The range of background colors behind this element, if it contains any visible text. If no
       # visible text is present, this will be undefined. In the case of a flat background color,
@@ -2042,31 +2044,31 @@ experimental domain CSS
       # '100').
       optional string computedFontWeight
 
-  # Returns the computed style for a CnDOM.node identified by `nodeId`.
+  # Returns the computed style for a DOM node identified by `nodeId`.
   command getComputedStyleForNode
     parameters
-      CnDOM.NodeId nodeId
+      DOM.NodeId nodeId
     returns
-      # Computed style for the specified CnDOM.node.
+      # Computed style for the specified DOM node.
       array of CSSComputedStyleProperty computedStyle
 
-  # Returns the styles defined inline (explicitly in the "style" attribute and implicitly, using CnDOM
-  # attributes) for a CnDOM.node identified by `nodeId`.
+  # Returns the styles defined inline (explicitly in the "style" attribute and implicitly, using DOM
+  # attributes) for a DOM node identified by `nodeId`.
   command getInlineStylesForNode
     parameters
-      CnDOM.NodeId nodeId
+      DOM.NodeId nodeId
     returns
-      # Inline style for the specified CnDOM.node.
+      # Inline style for the specified DOM node.
       optional CSSStyle inlineStyle
       # Attribute-defined element style (e.g. resulting from "width=20 height=100%").
       optional CSSStyle attributesStyle
 
-  # Returns requested styles for a CnDOM.node identified by `nodeId`.
+  # Returns requested styles for a DOM node identified by `nodeId`.
   command getMatchedStylesForNode
     parameters
-      CnDOM.NodeId nodeId
+      DOM.NodeId nodeId
     returns
-      # Inline style for the specified CnDOM.node.
+      # Inline style for the specified DOM node.
       optional CSSStyle inlineStyle
       # Attribute-defined element style (e.g. resulting from "width=20 height=100%").
       optional CSSStyle attributesStyle
@@ -2074,9 +2076,9 @@ experimental domain CSS
       optional array of RuleMatch matchedCSSRules
       # Pseudo style matches for this node.
       optional array of PseudoElementMatches pseudoElements
-      # A chain of inherited styles (from the immediate node parent up to the CnDOM.tree root).
+      # A chain of inherited styles (from the immediate node parent up to the DOM tree root).
       optional array of InheritedStyleEntry inherited
-      # A chain of inherited pseudo element styles (from the immediate node parent up to the CnDOM.tree root).
+      # A chain of inherited pseudo element styles (from the immediate node parent up to the DOM tree root).
       optional array of InheritedPseudoElementMatches inheritedPseudoElements
       # A list of CSS keyframed animations matching this node.
       optional array of CSSKeyframesRule cssKeyframesRules
@@ -2089,7 +2091,7 @@ experimental domain CSS
       # A font-palette-values rule matching this node.
       optional CSSFontPaletteValuesRule cssFontPaletteValuesRule
       # Id of the first parent element that does not have display: contents.
-      experimental optional CnDOM.NodeId parentLayoutNodeId
+      experimental optional DOM.NodeId parentLayoutNodeId
 
   # Returns all media queries parsed by the rendering engine.
   command getMediaQueries
@@ -2100,7 +2102,7 @@ experimental domain CSS
   # node.
   command getPlatformFontsForNode
     parameters
-      CnDOM.NodeId nodeId
+      DOM.NodeId nodeId
     returns
       # Usage statistics for every employed platform font.
       array of PlatformFontUsage fonts
@@ -2114,12 +2116,12 @@ experimental domain CSS
       string text
 
   # Returns all layers parsed by the rendering engine for the tree scope of a node.
-  # Given a CnDOM.element identified by nodeId, getLayersForNode returns the root
+  # Given a DOM element identified by nodeId, getLayersForNode returns the root
   # layer for the nearest ancestor document or shadow root. The layer root contains
   # the full layer tree for the tree scope and their ordering.
   experimental command getLayersForNode
     parameters
-      CnDOM.NodeId nodeId
+      DOM.NodeId nodeId
     returns
       CSSLayerData rootLayer
 
@@ -2127,7 +2129,7 @@ experimental domain CSS
   # replaces the one previously specified. Pass empty array to disable tracking.
   # Use takeComputedStyleUpdates to retrieve the list of nodes that had properties modified.
   # The changes to computed style properties are only tracked for nodes pushed to the front-end
-  # by the CnDOM.agent. If no changes to the tracked properties occur after the node has been pushed
+  # by the DOM agent. If no changes to the tracked properties occur after the node has been pushed
   # to the front-end, no updates will be issued for the node.
   experimental command trackComputedStyleUpdates
     parameters
@@ -2137,14 +2139,14 @@ experimental domain CSS
   experimental command takeComputedStyleUpdates
     returns
       # The list of node Ids that have their tracked computed styles updated.
-      array of CnDOM.NodeId nodeIds
+      array of DOM.NodeId nodeIds
 
   # Find a rule with the given active property for the given node and set the new value for this
   # property
   command setEffectivePropertyValueForNode
     parameters
       # The element id for which to set property.
-      CnDOM.NodeId nodeId
+      DOM.NodeId nodeId
       string propertyName
       string value
 
@@ -2287,7 +2289,7 @@ experimental domain CSS
       StyleSheetId styleSheetId
 
 experimental domain CacheStorage
-  depends on CnStorage
+  depends on Storage
 
   # Unique identifier of the Cache object.
   type CacheId extends string
@@ -2327,12 +2329,12 @@ experimental domain CacheStorage
     properties
       # An opaque unique id of the cache.
       CacheId cacheId
-      # CnSecurity.origin of the cache.
+      # Security origin of the cache.
       string securityOrigin
-      # CnStorage key of the cache.
+      # Storage key of the cache.
       string storageKey
-      # CnStorage bucket of the cache.
-      optional CnStorage.StorageBucket storageBucket
+      # Storage bucket of the cache.
+      optional Storage.StorageBucket storageBucket
       # The name of the cache.
       string cacheName
 
@@ -2365,14 +2367,14 @@ experimental domain CacheStorage
   command requestCacheNames
     parameters
       # At least and at most one of securityOrigin, storageKey, storageBucket must be specified.
-      # CnSecurity.origin.
+      # Security origin.
       optional string securityOrigin
-      # CnStorage key.
+      # Storage key.
       optional string storageKey
-      # CnStorage bucket. If not specified, it uses the default bucket.
-      optional CnStorage.StorageBucket storageBucket
+      # Storage bucket. If not specified, it uses the default bucket.
+      optional Storage.StorageBucket storageBucket
     returns
-      # Caches for the CnSecurity.origin.
+      # Caches for the security origin.
       array of Cache caches
 
   # Fetches cache entry.
@@ -2464,20 +2466,20 @@ experimental domain Cast
       string issueMessage
 
 
-# This domain exposes CnDOM.read/write operations. Each CnDOM.Node is represented with its mirror object
+# This domain exposes DOM read/write operations. Each DOM Node is represented with its mirror object
 # that has an `id`. This `id` can be used to get additional information on the Node, resolve it into
-# the JavaScript object wrapper, etc. It is important that client receives CnDOM.events only for the
+# the JavaScript object wrapper, etc. It is important that client receives DOM events only for the
 # nodes that are known to the client. Backend keeps track of the nodes that were sent to the client
 # and never sends the same node twice. It is client's responsibility to collect information about
 # the nodes that were sent to the client. Note that `iframe` owner elements will return
 # corresponding document elements as their child nodes.
 domain DOM
-  depends on CnRuntime
+  depends on Runtime
 
-  # Unique CnDOM.node identifier.
+  # Unique DOM node identifier.
   type NodeId extends integer
 
-  # Unique CnDOM.node identifier used to reference a node that may not have been pushed to the
+  # Unique DOM node identifier used to reference a node that may not have been pushed to the
   # front-end.
   type BackendNodeId extends integer
 
@@ -2547,13 +2549,13 @@ domain DOM
       Block
       Both
 
-  # CnDOM.interaction is implemented in terms of mirror objects that represent the actual CnDOM.nodes.
+  # DOM interaction is implemented in terms of mirror objects that represent the actual DOM nodes.
   # DOMNode is a base node mirror type.
   type Node extends object
     properties
-      # Node identifier that is passed into the rest of the CnDOM.messages as the `nodeId`. Backend
+      # Node identifier that is passed into the rest of the DOM messages as the `nodeId`. Backend
       # will only push node with given `id` once. It is aware of all requested nodes and will only
-      # fire CnDOM.events for nodes known to the client.
+      # fire DOM events for nodes known to the client.
       NodeId nodeId
       # The id of the parent node if any.
       optional NodeId parentId
@@ -2597,7 +2599,7 @@ domain DOM
       # Shadow root type.
       optional ShadowRootType shadowRootType
       # Frame ID for frame owner elements.
-      optional CnPage.FrameId frameId
+      optional Page.FrameId frameId
       # Content document for frame owner elements.
       optional Node contentDocument
       # Shadow root list for given element host.
@@ -2712,7 +2714,7 @@ domain DOM
       # Identifier of the backend node.
       optional BackendNodeId backendNodeId
       # JavaScript object id of the node wrapper.
-      optional CnRuntime.RemoteObjectId objectId
+      optional Runtime.RemoteObjectId objectId
       # The maximum depth at which children should be retrieved, defaults to 1. Use -1 for the
       # entire subtree or provide an integer larger than 0.
       optional integer depth
@@ -2733,12 +2735,12 @@ domain DOM
       # Identifier of the backend node.
       optional BackendNodeId backendNodeId
       # JavaScript object id of the node wrapper.
-      optional CnRuntime.RemoteObjectId objectId
+      optional Runtime.RemoteObjectId objectId
       # The rect to be scrolled into view, relative to the node's border box, in CSS pixels.
       # When omitted, center of the node will be used, similar to Element.scrollIntoView.
       optional Rect rect
 
-  # Disables CnDOM.agent for the given page.
+  # Disables DOM agent for the given page.
   command disable
 
   # Discards search results from the session with the given id. `getSearchResults` should no longer
@@ -2748,7 +2750,7 @@ domain DOM
       # Unique search session identifier.
       string searchId
 
-  # Enables CnDOM.agent for the given page.
+  # Enables DOM agent for the given page.
   command enable
     parameters
       # Whether to include whitespaces in the children array of returned Nodes.
@@ -2766,7 +2768,7 @@ domain DOM
       # Identifier of the backend node.
       optional BackendNodeId backendNodeId
       # JavaScript object id of the node wrapper.
-      optional CnRuntime.RemoteObjectId objectId
+      optional Runtime.RemoteObjectId objectId
 
   # Returns attributes for the specified node.
   command getAttributes
@@ -2785,7 +2787,7 @@ domain DOM
       # Identifier of the backend node.
       optional BackendNodeId backendNodeId
       # JavaScript object id of the node wrapper.
-      optional CnRuntime.RemoteObjectId objectId
+      optional Runtime.RemoteObjectId objectId
     returns
       # Box model for the node.
       BoxModel model
@@ -2799,13 +2801,13 @@ domain DOM
       # Identifier of the backend node.
       optional BackendNodeId backendNodeId
       # JavaScript object id of the node wrapper.
-      optional CnRuntime.RemoteObjectId objectId
+      optional Runtime.RemoteObjectId objectId
     returns
       # Quads that describe node layout relative to viewport.
       array of Quad quads
 
-  # Returns the root CnDOM.node (and optionally the subtree) to the caller.
-  # Implicitly enables the CnDOM.domain events for the current target.
+  # Returns the root DOM node (and optionally the subtree) to the caller.
+  # Implicitly enables the DOM domain events for the current target.
   command getDocument
     parameters
       # The maximum depth at which children should be retrieved, defaults to 1. Use -1 for the
@@ -2818,8 +2820,8 @@ domain DOM
       # Resulting node.
       Node root
 
-  # Returns the root CnDOM.node (and optionally the subtree) to the caller.
-  # Deprecated, as it is not designed to work well with the rest of the CnDOM.agent.
+  # Returns the root DOM node (and optionally the subtree) to the caller.
+  # Deprecated, as it is not designed to work well with the rest of the DOM agent.
   # Use DOMSnapshot.captureSnapshot instead.
   deprecated command getFlattenedDocument
     parameters
@@ -2847,7 +2849,7 @@ domain DOM
       # Resulting nodes.
       array of NodeId nodeIds
 
-  # Returns node id at given location. Depending on whether CnDOM.domain is enabled, nodeId is
+  # Returns node id at given location. Depending on whether DOM domain is enabled, nodeId is
   # either returned or not.
   command getNodeForLocation
     parameters
@@ -2863,7 +2865,7 @@ domain DOM
       # Resulting node.
       BackendNodeId backendNodeId
       # Frame this node belongs to.
-      CnPage.FrameId frameId
+      Page.FrameId frameId
       # Id of the node at given coordinates, only when enabled and requested document.
       optional NodeId nodeId
 
@@ -2875,7 +2877,7 @@ domain DOM
       # Identifier of the backend node.
       optional BackendNodeId backendNodeId
       # JavaScript object id of the node wrapper.
-      optional CnRuntime.RemoteObjectId objectId
+      optional Runtime.RemoteObjectId objectId
     returns
       # Outer HTML markup.
       string outerHTML
@@ -2905,18 +2907,18 @@ domain DOM
 
   # Hides any highlight.
   command hideHighlight
-    # Use 'CnOverlay.hideHighlight' instead
-    redirect CnOverlay
+    # Use 'Overlay.hideHighlight' instead
+    redirect Overlay
 
-  # Highlights CnDOM.node.
+  # Highlights DOM node.
   command highlightNode
-    # Use 'CnOverlay.highlightNode' instead
-    redirect CnOverlay
+    # Use 'Overlay.highlightNode' instead
+    redirect Overlay
 
   # Highlights given rectangle.
   command highlightRect
-    # Use 'CnOverlay.highlightRect' instead
-    redirect CnOverlay
+    # Use 'Overlay.highlightRect' instead
+    redirect Overlay
 
   # Marks last undoable state.
   experimental command markUndoableState
@@ -2935,13 +2937,13 @@ domain DOM
       # New id of the moved node.
       NodeId nodeId
 
-  # Searches for a given string in the CnDOM.tree. Use `getSearchResults` to access search results or
+  # Searches for a given string in the DOM tree. Use `getSearchResults` to access search results or
   # `cancelSearch` to end this search session.
   experimental command performSearch
     parameters
       # Plain text or query selector or XPath search query.
       string query
-      # True to search in user agent shadow CnDOM.
+      # True to search in user agent shadow DOM.
       optional boolean includeUserAgentShadowDOM
     returns
       # Unique search session identifier.
@@ -3035,7 +3037,7 @@ domain DOM
   command requestNode
     parameters
       # JavaScript object id to convert into node.
-      CnRuntime.RemoteObjectId objectId
+      Runtime.RemoteObjectId objectId
     returns
       # Node id for given object.
       NodeId nodeId
@@ -3046,14 +3048,14 @@ domain DOM
       # Id of the node to resolve.
       optional NodeId nodeId
       # Backend identifier of the node to resolve.
-      optional CnDOM.BackendNodeId backendNodeId
+      optional DOM.BackendNodeId backendNodeId
       # Symbolic group name that can be used to release multiple objects.
       optional string objectGroup
       # Execution context in which to resolve the node.
-      optional CnRuntime.ExecutionContextId executionContextId
+      optional Runtime.ExecutionContextId executionContextId
     returns
       # JavaScript object wrapper for given node.
-      CnRuntime.RemoteObject object
+      Runtime.RemoteObject object
 
   # Sets attribute for an element with given id.
   command setAttributeValue
@@ -3087,7 +3089,7 @@ domain DOM
       # Identifier of the backend node.
       optional BackendNodeId backendNodeId
       # JavaScript object id of the node wrapper.
-      optional CnRuntime.RemoteObjectId objectId
+      optional Runtime.RemoteObjectId objectId
 
   # Sets if stack traces should be captured for Nodes. See `Node.getNodeStackTraces`. Default is disabled.
   experimental command setNodeStackTracesEnabled
@@ -3102,14 +3104,14 @@ domain DOM
       NodeId nodeId
     returns
       # Creation stack trace, if available.
-      optional CnRuntime.StackTrace creation
+      optional Runtime.StackTrace creation
 
   # Returns file information for the given
   # File wrapper.
   experimental command getFileInfo
     parameters
       # JavaScript object id of the node wrapper.
-      CnRuntime.RemoteObjectId objectId
+      Runtime.RemoteObjectId objectId
     returns
       string path
 
@@ -3117,7 +3119,7 @@ domain DOM
   # $x functions).
   experimental command setInspectedNode
     parameters
-      # CnDOM.node id to be accessible by means of $x command line API.
+      # DOM node id to be accessible by means of $x command line API.
       NodeId nodeId
 
   # Sets node name for a node with given id.
@@ -3153,7 +3155,7 @@ domain DOM
   # Returns iframe node that owns iframe with the given domain.
   experimental command getFrameOwner
     parameters
-      CnPage.FrameId frameId
+      Page.FrameId frameId
     returns
       # Resulting node.
       BackendNodeId backendNodeId
@@ -3272,7 +3274,7 @@ domain DOM
       # The removed pseudo element id.
       NodeId pseudoElementId
 
-  # Fired when backend wants to provide client with the missing CnDOM.structure. This happens upon
+  # Fired when backend wants to provide client with the missing DOM structure. This happens upon
   # most of the calls requesting node ids.
   event setChildNodes
     parameters
@@ -3297,13 +3299,13 @@ domain DOM
       # Shadow root.
       Node root
 
-# CnDOM.debugging allows setting breakpoints on particular CnDOM.operations and events. JavaScript
+# DOM debugging allows setting breakpoints on particular DOM operations and events. JavaScript
 # execution will stop on these operations as if there was a regular breakpoint set.
 domain DOMDebugger
-  depends on CnDOM
-  depends on CnRuntime
+  depends on DOM
+  depends on Runtime
 
-  # CnDOM.breakpoint type.
+  # DOM breakpoint type.
   type DOMBreakpointType extends string
     enum
       subtree-modified
@@ -3328,23 +3330,23 @@ domain DOMDebugger
       # `EventListener`'s once flag.
       boolean once
       # Script id of the handler code.
-      CnRuntime.ScriptId scriptId
+      Runtime.ScriptId scriptId
       # Line number in the script (0-based).
       integer lineNumber
       # Column number in the script (0-based).
       integer columnNumber
       # Event handler function value.
-      optional CnRuntime.RemoteObject handler
+      optional Runtime.RemoteObject handler
       # Event original handler function value.
-      optional CnRuntime.RemoteObject originalHandler
+      optional Runtime.RemoteObject originalHandler
       # Node the listener is added to (if any).
-      optional CnDOM.BackendNodeId backendNodeId
+      optional DOM.BackendNodeId backendNodeId
 
   # Returns event listeners of the given object.
   command getEventListeners
     parameters
       # Identifier of the object to return listeners for.
-      CnRuntime.RemoteObjectId objectId
+      Runtime.RemoteObjectId objectId
       # The maximum depth at which Node children should be retrieved, defaults to 1. Use -1 for the
       # entire subtree or provide an integer larger than 0.
       optional integer depth
@@ -3355,15 +3357,15 @@ domain DOMDebugger
       # Array of relevant listeners.
       array of EventListener listeners
 
-  # Removes CnDOM.breakpoint that was set using `setDOMBreakpoint`.
+  # Removes DOM breakpoint that was set using `setDOMBreakpoint`.
   command removeDOMBreakpoint
     parameters
       # Identifier of the node to remove breakpoint from.
-      CnDOM.NodeId nodeId
+      DOM.NodeId nodeId
       # Type of the breakpoint to remove.
       DOMBreakpointType type
 
-  # Removes breakpoint on particular CnDOM.event.
+  # Removes breakpoint on particular DOM event.
   command removeEventListenerBreakpoint
     parameters
       # Event name.
@@ -3390,18 +3392,18 @@ domain DOMDebugger
       # CSP Violations to stop upon.
       array of CSPViolationType violationTypes
 
-  # Sets breakpoint on particular operation with CnDOM.
+  # Sets breakpoint on particular operation with DOM.
   command setDOMBreakpoint
     parameters
       # Identifier of the node to set breakpoint on.
-      CnDOM.NodeId nodeId
+      DOM.NodeId nodeId
       # Type of the operation to stop upon.
       DOMBreakpointType type
 
-  # Sets breakpoint on particular CnDOM.event.
+  # Sets breakpoint on particular DOM event.
   command setEventListenerBreakpoint
     parameters
-      # CnDOM.Event name to stop on (any CnDOM.event will do).
+      # DOM Event name to stop on (any DOM event will do).
       string eventName
       # EventTarget interface name to stop on. If equal to `"*"` or not provided, will stop on any
       # EventTarget.
@@ -3439,14 +3441,14 @@ experimental domain EventBreakpoints
   # Removes all breakpoints
   command disable
 
-# This domain facilitates obtaining document snapshots with CnDOM, layout, and style information.
+# This domain facilitates obtaining document snapshots with DOM, layout, and style information.
 experimental domain DOMSnapshot
-  depends on CnCSS
-  depends on CnDOM
-  depends on CnDOMDebugger
-  depends on CnPage
+  depends on CSS
+  depends on DOM
+  depends on DOMDebugger
+  depends on Page
 
-  # A Node in the CnDOM.tree.
+  # A Node in the DOM tree.
   type DOMNode extends object
     properties
       # `Node`'s nodeType.
@@ -3463,8 +3465,8 @@ experimental domain DOMSnapshot
       optional boolean inputChecked
       # Only set for option elements, indicates if the element has been selected
       optional boolean optionSelected
-      # `Node`'s id, corresponds to CnDOM.Node.backendNodeId.
-      CnDOM.BackendNodeId backendNodeId
+      # `Node`'s id, corresponds to DOM.Node.backendNodeId.
+      DOM.BackendNodeId backendNodeId
       # The indexes of the node's child nodes in the `domNodes` array returned by `getSnapshot`, if
       # any.
       optional array of integer childNodeIndexes
@@ -3489,15 +3491,15 @@ experimental domain DOMSnapshot
       # `DocumentType` node's systemId.
       optional string systemId
       # Frame ID for frame owner elements and also for the document node.
-      optional CnPage.FrameId frameId
+      optional Page.FrameId frameId
       # The index of a frame owner element's content document in the `domNodes` array returned by
       # `getSnapshot`, if any.
       optional integer contentDocumentIndex
       # Type of a pseudo element node.
-      optional CnDOM.PseudoType pseudoType
+      optional DOM.PseudoType pseudoType
       # Shadow root type.
-      optional CnDOM.ShadowRootType shadowRootType
-      # Whether this CnDOM.node responds to mouse clicks. This includes nodes that have had click
+      optional DOM.ShadowRootType shadowRootType
+      # Whether this DOM node responds to mouse clicks. This includes nodes that have had click
       # event listeners attached via JavaScript as well as anchor tags that naturally navigate when
       # clicked.
       optional boolean isClickable
@@ -3516,7 +3518,7 @@ experimental domain DOMSnapshot
   type InlineTextBox extends object
     properties
       # The bounding box in document coordinates. Note that scroll offset of the document is ignored.
-      CnDOM.Rect boundingBox
+      DOM.Rect boundingBox
       # The starting index in characters, for this post layout textbox substring. Characters that
       # would be represented as a surrogate pair in UTF-16 have length 2.
       integer startCharacterIndex
@@ -3524,13 +3526,13 @@ experimental domain DOMSnapshot
       # represented as a surrogate pair in UTF-16 have length 2.
       integer numCharacters
 
-  # Details of an element in the CnDOM.tree with a LayoutObject.
+  # Details of an element in the DOM tree with a LayoutObject.
   type LayoutTreeNode extends object
     properties
-      # The index of the related CnDOM.node in the `domNodes` array returned by `getSnapshot`.
+      # The index of the related DOM node in the `domNodes` array returned by `getSnapshot`.
       integer domNodeIndex
       # The bounding box in document coordinates. Note that scroll offset of the document is ignored.
-      CnDOM.Rect boundingBox
+      DOM.Rect boundingBox
       # Contents of the LayoutText, if any.
       optional string layoutText
       # The post-layout inline text nodes, if any.
@@ -3628,8 +3630,8 @@ experimental domain DOMSnapshot
       optional array of StringIndex nodeName
       # `Node`'s nodeValue.
       optional array of StringIndex nodeValue
-      # `Node`'s id, corresponds to CnDOM.Node.backendNodeId.
-      optional array of CnDOM.BackendNodeId backendNodeId
+      # `Node`'s id, corresponds to DOM.Node.backendNodeId.
+      optional array of DOM.BackendNodeId backendNodeId
       # Attributes of an `Element` node. Flatten name, value pairs.
       optional array of ArrayOfStrings attributes
       # Only set for textarea elements, contains the text value.
@@ -3647,7 +3649,7 @@ experimental domain DOMSnapshot
       # Pseudo element identifier for this node. Only present if there is a
       # valid pseudoType.
       optional RareStringData pseudoIdentifier
-      # Whether this CnDOM.node responds to mouse clicks. This includes nodes that have had click
+      # Whether this DOM node responds to mouse clicks. This includes nodes that have had click
       # event listeners attached via JavaScript as well as anchor tags that naturally navigate when
       # clicked.
       optional RareBooleanData isClickable
@@ -3656,7 +3658,7 @@ experimental domain DOMSnapshot
       # The url of the script (if any) that generates this node.
       optional RareStringData originURL
 
-  # Table of details of an element in the CnDOM.tree with a LayoutObject.
+  # Table of details of an element in the DOM tree with a LayoutObject.
   type LayoutTreeSnapshot extends object
     properties
       # Index of the corresponding node in the `NodeTreeSnapshot` array returned by `captureSnapshot`.
@@ -3699,37 +3701,37 @@ experimental domain DOMSnapshot
       # represented as a surrogate pair in UTF-16 have length 2.
       array of integer length
 
-  # Disables CnDOM.snapshot agent for the given page.
+  # Disables DOM snapshot agent for the given page.
   command disable
 
-  # Enables CnDOM.snapshot agent for the given page.
+  # Enables DOM snapshot agent for the given page.
   command enable
 
-  # Returns a document snapshot, including the full CnDOM.tree of the root node (including iframes,
+  # Returns a document snapshot, including the full DOM tree of the root node (including iframes,
   # template contents, and imported documents) in a flattened array, as well as layout and
-  # white-listed computed style information for the nodes. Shadow CnDOM.in the returned CnDOM.tree is
+  # white-listed computed style information for the nodes. Shadow DOM in the returned DOM tree is
   # flattened.
   deprecated command getSnapshot
     parameters
       # Whitelist of computed styles to return.
       array of string computedStyleWhitelist
-      # Whether or not to retrieve details of CnDOM.listeners (default false).
+      # Whether or not to retrieve details of DOM listeners (default false).
       optional boolean includeEventListeners
       # Whether to determine and include the paint order index of LayoutTreeNodes (default false).
       optional boolean includePaintOrder
       # Whether to include UA shadow tree in the snapshot (default false).
       optional boolean includeUserAgentShadowTree
     returns
-      # The nodes in the CnDOM.tree. The DOMNode at index 0 corresponds to the root document.
+      # The nodes in the DOM tree. The DOMNode at index 0 corresponds to the root document.
       array of DOMNode domNodes
       # The nodes in the layout tree.
       array of LayoutTreeNode layoutTreeNodes
       # Whitelisted ComputedStyle properties for each node in the layout tree.
       array of ComputedStyle computedStyles
 
-  # Returns a document snapshot, including the full CnDOM.tree of the root node (including iframes,
+  # Returns a document snapshot, including the full DOM tree of the root node (including iframes,
   # template contents, and imported documents) in a flattened array, as well as layout and
-  # white-listed computed style information for the nodes. Shadow CnDOM.in the returned CnDOM.tree is
+  # white-listed computed style information for the nodes. Shadow DOM in the returned DOM tree is
   # flattened.
   command captureSnapshot
     parameters
@@ -3737,7 +3739,7 @@ experimental domain DOMSnapshot
       array of string computedStyles
       # Whether to include layout object paint orders into the snapshot.
       optional boolean includePaintOrder
-      # Whether to include CnDOM.rectangles (offsetRects, clientRects, scrollRects) into the snapshot
+      # Whether to include DOM rectangles (offsetRects, clientRects, scrollRects) into the snapshot
       optional boolean includeDOMRects
       # Whether to include blended background colors in the snapshot (default: false).
       # Blended background color is achieved by blending background colors of all elements
@@ -3748,27 +3750,27 @@ experimental domain DOMSnapshot
       # The final text color opacity is computed based on the opacity of all overlapping elements.
       experimental optional boolean includeTextColorOpacities
     returns
-      # The nodes in the CnDOM.tree. The DOMNode at index 0 corresponds to the root document.
+      # The nodes in the DOM tree. The DOMNode at index 0 corresponds to the root document.
       array of DocumentSnapshot documents
       # Shared string table that all string properties refer to with indexes.
       array of string strings
 
-# Query and modify CnDOM.storage.
+# Query and modify DOM storage.
 experimental domain DOMStorage
 
   type SerializedStorageKey extends string
 
-  # CnDOM.CnStorage identifier.
+  # DOM Storage identifier.
   type StorageId extends object
     properties
-      # CnSecurity.origin for the storage.
+      # Security origin for the storage.
       optional string securityOrigin
-      # Represents a key by which CnDOM.CnStorage keys its CachedStorageAreas
+      # Represents a key by which DOM Storage keys its CachedStorageAreas
       optional SerializedStorageKey storageKey
       # Whether the storage is local storage (not session storage).
       boolean isLocalStorage
 
-  # CnDOM.CnStorage item.
+  # DOM Storage item.
   type Item extends array of string
 
   command clear
@@ -3887,9 +3889,9 @@ experimental domain DeviceOrientation
 
 # This domain emulates different environments for the page.
 domain Emulation
-  depends on CnDOM
-  depends on CnPage
-  depends on CnRuntime
+  depends on DOM
+  depends on Page
+  depends on Runtime
 
   # Screen orientation.
   type ScreenOrientation extends object
@@ -4045,7 +4047,7 @@ domain Emulation
     parameters
       # RGBA of the default background color. If not specified, any existing override will be
       # cleared.
-      optional CnDOM.RGBA color
+      optional DOM.RGBA color
 
   # Overrides the values of device screen dimensions (window.screen.width, window.screen.height,
   # window.innerWidth, window.innerHeight, and "device-width"/"device-height"-related CSS media
@@ -4077,7 +4079,7 @@ domain Emulation
       optional ScreenOrientation screenOrientation
       # If set, the visible area of the page will be overridden to this viewport. This viewport
       # change is not observed by the page, e.g. viewport-relative elements do not change positions.
-      experimental optional CnPage.Viewport viewport
+      experimental optional Page.Viewport viewport
       # If set, the display feature of a multi-segment screen. If not set, multi-segment support
       # is turned-off.
       experimental optional DisplayFeature displayFeature
@@ -4181,7 +4183,7 @@ domain Emulation
   # Sets a specified page scale factor.
   experimental command setPageScaleFactor
     parameters
-      # CnPage scale factor.
+      # Page scale factor.
       number pageScaleFactor
 
   # Switches script execution in the page.
@@ -4210,7 +4212,7 @@ domain Emulation
       # forwards to prevent deadlock.
       optional integer maxVirtualTimeTaskStarvationCount
       # If set, base::Time::Now will be overridden to initially return this value.
-      optional CnTarget.TargetID initialVirtualTime
+      optional Network.TimeSinceEpoch initialVirtualTime
     returns
       # Absolute timestamp at which virtual time was first enabled (up time in milliseconds).
       number virtualTimeTicksBase
@@ -4263,7 +4265,7 @@ domain Emulation
     parameters
       # User agent to use.
       string userAgent
-      # CnBrowser language to emulate.
+      # Browser language to emulate.
       optional string acceptLanguage
       # The platform navigator.platform should return.
       optional string platform
@@ -4278,8 +4280,8 @@ domain Emulation
 
 # This domain provides experimental commands only supported in headless mode.
 experimental domain HeadlessExperimental
-  depends on CnPage
-  depends on CnRuntime
+  depends on Page
+  depends on Runtime
 
   # Encoding options for a screenshot.
   type ScreenshotParams extends object
@@ -4362,14 +4364,14 @@ domain IO
   command resolveBlob
     parameters
       # Object id of a Blob object wrapper.
-      CnRuntime.RemoteObjectId objectId
+      Runtime.RemoteObjectId objectId
     returns
       # UUID of the specified Blob.
       string uuid
 
 experimental domain IndexedDB
-  depends on CnRuntime
-  depends on CnStorage
+  depends on Runtime
+  depends on Storage
 
   # Database with an array of object stores.
   type DatabaseWithObjectStores extends object
@@ -4440,11 +4442,11 @@ experimental domain IndexedDB
   type DataEntry extends object
     properties
       # Key object.
-      CnRuntime.RemoteObject key
+      Runtime.RemoteObject key
       # Primary key object.
-      CnRuntime.RemoteObject primaryKey
+      Runtime.RemoteObject primaryKey
       # Value object.
-      CnRuntime.RemoteObject value
+      Runtime.RemoteObject value
 
   # Key path.
   type KeyPath extends object
@@ -4463,12 +4465,12 @@ experimental domain IndexedDB
   command clearObjectStore
     parameters
       # At least and at most one of securityOrigin, storageKey, or storageBucket must be specified.
-      # CnSecurity.origin.
+      # Security origin.
       optional string securityOrigin
-      # CnStorage key.
+      # Storage key.
       optional string storageKey
-      # CnStorage bucket. If not specified, it uses the default bucket.
-      optional CnStorage.StorageBucket storageBucket
+      # Storage bucket. If not specified, it uses the default bucket.
+      optional Storage.StorageBucket storageBucket
       # Database name.
       string databaseName
       # Object store name.
@@ -4478,12 +4480,12 @@ experimental domain IndexedDB
   command deleteDatabase
     parameters
       # At least and at most one of securityOrigin, storageKey, or storageBucket must be specified.
-      # CnSecurity.origin.
+      # Security origin.
       optional string securityOrigin
-      # CnStorage key.
+      # Storage key.
       optional string storageKey
-      # CnStorage bucket. If not specified, it uses the default bucket.
-      optional CnStorage.StorageBucket storageBucket
+      # Storage bucket. If not specified, it uses the default bucket.
+      optional Storage.StorageBucket storageBucket
       # Database name.
       string databaseName
 
@@ -4491,12 +4493,12 @@ experimental domain IndexedDB
   command deleteObjectStoreEntries
     parameters
       # At least and at most one of securityOrigin, storageKey, or storageBucket must be specified.
-      # CnSecurity.origin.
+      # Security origin.
       optional string securityOrigin
-      # CnStorage key.
+      # Storage key.
       optional string storageKey
-      # CnStorage bucket. If not specified, it uses the default bucket.
-      optional CnStorage.StorageBucket storageBucket
+      # Storage bucket. If not specified, it uses the default bucket.
+      optional Storage.StorageBucket storageBucket
       string databaseName
       string objectStoreName
       # Range of entry keys to delete
@@ -4512,12 +4514,12 @@ experimental domain IndexedDB
   command requestData
     parameters
       # At least and at most one of securityOrigin, storageKey, or storageBucket must be specified.
-      # CnSecurity.origin.
+      # Security origin.
       optional string securityOrigin
-      # CnStorage key.
+      # Storage key.
       optional string storageKey
-      # CnStorage bucket. If not specified, it uses the default bucket.
-      optional CnStorage.StorageBucket storageBucket
+      # Storage bucket. If not specified, it uses the default bucket.
+      optional Storage.StorageBucket storageBucket
       # Database name.
       string databaseName
       # Object store name.
@@ -4540,12 +4542,12 @@ experimental domain IndexedDB
   command getMetadata
     parameters
       # At least and at most one of securityOrigin, storageKey, or storageBucket must be specified.
-      # CnSecurity.origin.
+      # Security origin.
       optional string securityOrigin
-      # CnStorage key.
+      # Storage key.
       optional string storageKey
-      # CnStorage bucket. If not specified, it uses the default bucket.
-      optional CnStorage.StorageBucket storageBucket
+      # Storage bucket. If not specified, it uses the default bucket.
+      optional Storage.StorageBucket storageBucket
       # Database name.
       string databaseName
       # Object store name.
@@ -4562,28 +4564,28 @@ experimental domain IndexedDB
   command requestDatabase
     parameters
       # At least and at most one of securityOrigin, storageKey, or storageBucket must be specified.
-      # CnSecurity.origin.
+      # Security origin.
       optional string securityOrigin
-      # CnStorage key.
+      # Storage key.
       optional string storageKey
-      # CnStorage bucket. If not specified, it uses the default bucket.
-      optional CnStorage.StorageBucket storageBucket
+      # Storage bucket. If not specified, it uses the default bucket.
+      optional Storage.StorageBucket storageBucket
       # Database name.
       string databaseName
     returns
       # Database with an array of object stores.
       DatabaseWithObjectStores databaseWithObjectStores
 
-  # Requests database names for given CnSecurity.origin.
+  # Requests database names for given security origin.
   command requestDatabaseNames
     parameters
       # At least and at most one of securityOrigin, storageKey, or storageBucket must be specified.
-      # CnSecurity.origin.
+      # Security origin.
       optional string securityOrigin
-      # CnStorage key.
+      # Storage key.
       optional string storageKey
-      # CnStorage bucket. If not specified, it uses the default bucket.
-      optional CnStorage.StorageBucket storageBucket
+      # Storage bucket. If not specified, it uses the default bucket.
+      optional Storage.StorageBucket storageBucket
     returns
       # Database names for origin.
       array of string databaseNames
@@ -4699,9 +4701,9 @@ domain Input
       optional string unmodifiedText
       # Unique key identifier (e.g., 'U+0041') (default: "").
       optional string keyIdentifier
-      # Unique CnDOM.defined string value for each physical key (e.g., 'KeyA') (default: "").
+      # Unique DOM defined string value for each physical key (e.g., 'KeyA') (default: "").
       optional string code
-      # Unique CnDOM.defined string value describing the meaning of the key in the context of active
+      # Unique DOM defined string value describing the meaning of the key in the context of active
       # modifiers, keyboard layout, etc (e.g., 'AltGr') (default: "").
       optional string key
       # Windows virtual key code (default: 0).
@@ -4940,7 +4942,7 @@ experimental domain Inspector
   event targetReloadedAfterCrash
 
 experimental domain LayerTree
-  depends on CnDOM
+  depends on DOM
 
   # Unique Layer identifier.
   type LayerId extends string
@@ -4952,7 +4954,7 @@ experimental domain LayerTree
   type ScrollRect extends object
     properties
       # Rectangle itself.
-      CnDOM.Rect rect
+      DOM.Rect rect
       # Reason for rectangle to force scrolling on the main thread
       enum type
         RepaintsOnScroll
@@ -4963,9 +4965,9 @@ experimental domain LayerTree
   type StickyPositionConstraint extends object
     properties
       # Layout rectangle of the sticky element before being shifted
-      CnDOM.Rect stickyBoxRect
+      DOM.Rect stickyBoxRect
       # Layout rectangle of the containing block of the sticky element
-      CnDOM.Rect containingBlockRect
+      DOM.Rect containingBlockRect
       # The nearest sticky layer that shifts the sticky box
       optional LayerId nearestLayerShiftingStickyBox
       # The nearest sticky layer that shifts the containing block
@@ -4989,7 +4991,7 @@ experimental domain LayerTree
       # The id of parent (not present for root).
       optional LayerId parentLayerId
       # The backend id for the node associated with this layer.
-      optional CnDOM.BackendNodeId backendNodeId
+      optional DOM.BackendNodeId backendNodeId
       # Offset from parent layer, X coordinate.
       number offsetX
       # Offset from parent layer, Y coordinate.
@@ -5065,7 +5067,7 @@ experimental domain LayerTree
       # The minimum duration (in seconds) to replay the snapshot.
       optional number minDuration
       # The clip rectangle to apply when replaying the snapshot.
-      optional CnDOM.Rect clipRect
+      optional DOM.Rect clipRect
     returns
       # The array of paint profiles, one per run.
       array of PaintProfile timings
@@ -5105,7 +5107,7 @@ experimental domain LayerTree
       # The id of the painted layer.
       LayerId layerId
       # Clip rectangle.
-      CnDOM.Rect clip
+      DOM.Rect clip
 
   event layerTreeDidChange
     parameters
@@ -5114,13 +5116,13 @@ experimental domain LayerTree
 
 # Provides access to log entries.
 domain Log
-  depends on CnRuntime
-  depends on CnNetwork
+  depends on Runtime
+  depends on Network
 
-  # CnLog entry.
+  # Log entry.
   type LogEntry extends object
     properties
-      # CnLog entry source.
+      # Log entry source.
       enum source
         xml
         javascript
@@ -5135,7 +5137,7 @@ domain Log
         intervention
         recommendation
         other
-      # CnLog entry severity.
+      # Log entry severity.
       enum level
         verbose
         info
@@ -5146,19 +5148,19 @@ domain Log
       optional enum category
         cors
       # Timestamp when this entry was added.
-      CnRuntime.Timestamp timestamp
+      Runtime.Timestamp timestamp
       # URL of the resource if known.
       optional string url
       # Line number in the resource.
       optional integer lineNumber
       # JavaScript stack trace.
-      optional CnRuntime.StackTrace stackTrace
+      optional Runtime.StackTrace stackTrace
       # Identifier of the network request associated with this entry.
-      optional CnNetwork.RequestId networkRequestId
+      optional Network.RequestId networkRequestId
       # Identifier of the worker associated with this entry.
       optional string workerId
       # Call arguments.
-      optional array of CnRuntime.RemoteObject args
+      optional array of Runtime.RemoteObject args
 
   # Violation configuration setting.
   type ViolationSetting extends object
@@ -5289,12 +5291,12 @@ experimental domain Memory
       # Size of the module in bytes.
       number size
 
-# CnNetwork.domain allows tracking network activities of the page. It exposes information about http,
+# Network domain allows tracking network activities of the page. It exposes information about http,
 # file, data and other requests and responses, their headers, bodies, timing, etc.
 domain Network
-  depends on CnDebugger
-  depends on CnRuntime
-  depends on CnSecurity
+  depends on Debugger
+  depends on Runtime
+  depends on Security
 
   # Resource type as it was perceived by the rendering engine.
   type ResourceType extends string
@@ -5327,7 +5329,7 @@ domain Network
   # Unique intercepted request identifier.
   type InterceptionId extends string
 
-  # CnNetwork.level fetch failure reason.
+  # Network level fetch failure reason.
   type ErrorReason extends string
     enum
       Failed
@@ -5414,9 +5416,9 @@ domain Network
       number sslStart
       # Finished SSL handshake.
       number sslEnd
-      # Started running CnServiceWorker.
+      # Started running ServiceWorker.
       experimental number workerStart
-      # Finished Starting CnServiceWorker.
+      # Finished Starting ServiceWorker.
       experimental number workerReady
       # Started fetch event.
       experimental number workerFetchStart
@@ -5467,7 +5469,7 @@ domain Network
       # Request body elements. This will be converted from base64 to binary
       experimental optional array of PostDataEntry postDataEntries
       # The mixed content type of the request.
-      optional CnSecurity.MixedContentType mixedContentType
+      optional Security.MixedContentType mixedContentType
       # Priority of the resource request at the time request is sent.
       ResourcePriority initialPriority
       # The referrer policy of the request, as defined in https://www.w3.org/TR/referrer-policy/
@@ -5496,9 +5498,9 @@ domain Network
       string status
       # Origin.
       string origin
-      # CnLog name / description.
+      # Log name / description.
       string logDescription
-      # CnLog ID.
+      # Log ID.
       string logId
       # Issuance date. Unlike TimeSinceEpoch, this contains the number of
       # milliseconds since January 1, 1970, UTC, not the number of seconds.
@@ -5510,7 +5512,7 @@ domain Network
       # Signature data.
       string signatureData
 
-  # CnSecurity.details about a request.
+  # Security details about a request.
   type SecurityDetails extends object
     properties
       # Protocol name (e.g. "TLS 1.2" or "QUIC").
@@ -5524,7 +5526,7 @@ domain Network
       # TLS MAC. Note that AEAD ciphers do not have separate MACs.
       optional string mac
       # Certificate ID value.
-      CnSecurity.CertificateId certificateId
+      Security.CertificateId certificateId
       # Certificate subject name.
       string subjectName
       # Subject Alternative Name (SAN) DNS names and IP addresses.
@@ -5612,11 +5614,11 @@ domain Network
       UnexpectedPrivateNetworkAccess
       NoCorsRedirectModeNotFollow
       # Request was a private network request and needed user permission yet did
-      # not carry `Private-CnNetwork.Access-Id` in the preflight response.
+      # not carry `Private-Network-Access-Id` in the preflight response.
       # https://github.com/WICG/private-network-access/blob/main/permission_prompt/explainer.md
       PreflightMissingPrivateNetworkAccessId
       # Request was a private network request and needed user permission yet did
-      # not carry `Private-CnNetwork.Access-Name` in the preflight response.
+      # not carry `Private-Network-Access-Name` in the preflight response.
       # https://github.com/WICG/private-network-access/blob/main/permission_prompt/explainer.md
       PreflightMissingPrivateNetworkAccessName
       # Request was a private network request and needed user permission yet not
@@ -5632,7 +5634,7 @@ domain Network
       CorsError corsError
       string failedParameter
 
-  # Source of CnServiceWorker response.
+  # Source of serviceworker response.
   type ServiceWorkerResponseSource extends string
     enum
       cache-storage
@@ -5705,13 +5707,13 @@ domain Network
       string statusText
       # HTTP response headers.
       Headers headers
-      # HTTP response headers text. This has been replaced by the headers in CnNetwork.responseReceivedExtraInfo.
+      # HTTP response headers text. This has been replaced by the headers in Network.responseReceivedExtraInfo.
       deprecated optional string headersText
       # Resource mimeType as determined by the browser.
       string mimeType
       # Refined HTTP request headers that were actually transmitted over the network.
       optional Headers requestHeaders
-      # HTTP request headers text. This has been replaced by the headers in CnNetwork.requestWillBeSentExtraInfo.
+      # HTTP request headers text. This has been replaced by the headers in Network.requestWillBeSentExtraInfo.
       deprecated optional string requestHeadersText
       # Specifies whether physical connection was actually reused for this request.
       boolean connectionReused
@@ -5723,7 +5725,7 @@ domain Network
       optional integer remotePort
       # Specifies that the request was served from the disk cache.
       optional boolean fromDiskCache
-      # Specifies that the request was served from the CnServiceWorker.
+      # Specifies that the request was served from the ServiceWorker.
       optional boolean fromServiceWorker
       # Specifies that the request was served from the prefetch cache.
       optional boolean fromPrefetchCache
@@ -5733,19 +5735,19 @@ domain Network
       number encodedDataLength
       # Timing information for the given request.
       optional ResourceTiming timing
-      # Response source of response from CnServiceWorker.
+      # Response source of response from ServiceWorker.
       optional ServiceWorkerResponseSource serviceWorkerResponseSource
       # The time at which the returned response was generated.
       optional TimeSinceEpoch responseTime
-      # Cache CnStorage Cache Name.
+      # Cache Storage Cache Name.
       optional string cacheStorageCacheName
       # Protocol used to fetch this request.
       optional string protocol
       # The reason why Chrome uses a specific transport protocol for HTTP semantics.
       experimental optional AlternateProtocolUsage alternateProtocolUsage
-      # CnSecurity.state of the request resource.
-      CnSecurity.SecurityState securityState
-      # CnSecurity.details for the request.
+      # Security state of the request resource.
+      Security.SecurityState securityState
+      # Security details for the request.
       optional SecurityDetails securityDetails
 
   # WebSocket request data.
@@ -5806,7 +5808,7 @@ domain Network
         preflight
         other
       # Initiator JavaScript stack trace, set for Script only.
-      optional CnRuntime.StackTrace stack
+      optional Runtime.StackTrace stack
       # Initiator URL, set for Parser type or for Script type (when script is importing module) or for SignedExchange type.
       optional string url
       # Initiator line number, set for Parser type or for Script type (when script is importing
@@ -6149,7 +6151,7 @@ domain Network
       Response outerResponse
       # Information about the signed exchange header.
       optional SignedExchangeHeader header
-      # CnSecurity.details for the signed exchange header.
+      # Security details for the signed exchange header.
       optional SecurityDetails securityDetails
       # Errors occurred while handling the signed exchagne.
       optional array of SignedExchangeError errors
@@ -6195,11 +6197,11 @@ domain Network
   # Clears browser cookies.
   command clearBrowserCookies
 
-  # Response to CnNetwork.requestIntercepted which either modifies the request to continue with any
+  # Response to Network.requestIntercepted which either modifies the request to continue with any
   # modifications, or blocks it, or completes it with the provided response bytes. If a network
-  # fetch occurs as a result which encounters a redirect an additional CnNetwork.requestIntercepted
+  # fetch occurs as a result which encounters a redirect an additional Network.requestIntercepted
   # event will be sent with the same InterceptionId.
-  # Deprecated, use CnFetch.continueRequest, CnFetch.fulfillRequest and CnFetch.failRequest instead.
+  # Deprecated, use Fetch.continueRequest, Fetch.fulfillRequest and Fetch.failRequest instead.
   experimental deprecated command continueInterceptedRequest
     parameters
       InterceptionId interceptionId
@@ -6266,7 +6268,7 @@ domain Network
 
   # Returns all browser cookies. Depending on the backend support, will return detailed cookie
   # information in the `cookies` field.
-  # Deprecated. Use CnStorage.getCookies instead.
+  # Deprecated. Use Storage.getCookies instead.
   deprecated command getAllCookies
     returns
       # Array of cookie objects.
@@ -6331,7 +6333,7 @@ domain Network
     parameters
       InterceptionId interceptionId
     returns
-      CnIO.StreamHandle stream
+      IO.StreamHandle stream
 
   # This method sends a new XMLHttpRequest which is identical to the original one. The following
   # parameters should be identical: method, url, async, request body, extra headers, withCredentials
@@ -6433,7 +6435,7 @@ domain Network
       boolean enabled
 
   # Sets the requests to intercept that match the provided patterns and optionally resource types.
-  # Deprecated, please use CnFetch.enable instead.
+  # Deprecated, please use Fetch.enable instead.
   experimental deprecated command setRequestInterception
     parameters
       # Requests matching any of these patterns will be forwarded and wait for the corresponding
@@ -6442,16 +6444,16 @@ domain Network
 
   # Allows overriding user agent with the given string.
   command setUserAgentOverride
-    redirect CnEmulation
+    redirect Emulation
     parameters
       # User agent to use.
       string userAgent
-      # CnBrowser language to emulate.
+      # Browser language to emulate.
       optional string acceptLanguage
       # The platform navigator.platform should return.
       optional string platform
       # To be sent in Sec-CH-UA-* headers and returned in navigator.userAgentData
-      experimental optional CnEmulation.UserAgentMetadata userAgentMetadata
+      experimental optional Emulation.UserAgentMetadata userAgentMetadata
 
 
   # Fired when data chunk was received over the network.
@@ -6465,6 +6467,18 @@ domain Network
       integer dataLength
       # Actual bytes received (might be less than dataLength for compressed encodings).
       integer encodedDataLength
+      # Data that was received.
+      experimental optional binary data
+
+  # Enables streaming of the response for the given requestId.
+  # If enabled, the dataReceived event contains the data that was received during streaming.
+  experimental command streamResourceContent
+    parameters
+      # Identifier of the request to stream.
+      RequestId requestId
+    returns
+      # Data that has been buffered until streaming is enabled.
+      binary bufferedData
 
   # Fired when EventSource message is received.
   event eventSourceMessageReceived
@@ -6510,7 +6524,7 @@ domain Network
 
   # Details of an intercepted HTTP request, which must be either allowed, blocked, modified or
   # mocked.
-  # Deprecated, use CnFetch.requestPaused instead.
+  # Deprecated, use Fetch.requestPaused instead.
   experimental deprecated event requestIntercepted
     parameters
       # Each request the page makes will have a unique id, however if any redirects are encountered
@@ -6519,7 +6533,7 @@ domain Network
       InterceptionId interceptionId
       Request request
       # The id of the frame that initiated the request.
-      CnPage.FrameId frameId
+      Page.FrameId frameId
       # How the requested resource will be used.
       ResourceType resourceType
       # Whether this is a navigation request, which can abort the navigation completely.
@@ -6577,7 +6591,7 @@ domain Network
       # Type of this resource.
       optional ResourceType type
       # Frame identifier.
-      optional CnPage.FrameId frameId
+      optional Page.FrameId frameId
       # Whether the request is initiated by a user gesture. Defaults to false.
       optional boolean hasUserGesture
 
@@ -6616,7 +6630,7 @@ domain Network
       # or were emitted for this request.
       experimental boolean hasExtraInfo
       # Frame identifier.
-      optional CnPage.FrameId frameId
+      optional Page.FrameId frameId
 
   # Fired when WebSocket is closed.
   event webSocketClosed
@@ -6759,7 +6773,7 @@ domain Network
       Headers headers
       # Connection timing information for the request.
       experimental ConnectTiming connectTiming
-      # The client CnSecurity.state set for the request.
+      # The client security state set for the request.
       optional ClientSecurityState clientSecurityState
       # Whether the site has partitioned cookies stored in a partition different than the current one.
       optional boolean siteHasCookieInOtherPartition
@@ -6919,7 +6933,7 @@ domain Network
   experimental command getSecurityIsolationStatus
     parameters
       # If no frameId is provided, the status of the target is provided.
-      optional CnPage.FrameId frameId
+      optional Page.FrameId frameId
     returns
       SecurityIsolationStatus status
 
@@ -6958,7 +6972,7 @@ domain Network
       # The type of the report (specifies the set of data that is contained in the report body).
       string type
       # When the report was generated.
-      CnTarget.TargetID timestamp
+      Network.TimeSinceEpoch timestamp
       # How many uploads deep the related request was.
       integer depth
       # The number of delivery attempts made so far, not including an active attempt.
@@ -6998,9 +7012,9 @@ domain Network
       optional string netErrorName
       optional number httpStatusCode
       # If successful, one of the following two fields holds the result.
-      optional CnIO.StreamHandle stream
+      optional IO.StreamHandle stream
       # Response headers.
-      optional CnNetwork.Headers headers
+      optional Network.Headers headers
 
   # An options object that may be extended later to better support CORS,
   # CORB and streaming.
@@ -7014,7 +7028,7 @@ domain Network
     parameters
       # Frame id to get the resource for. Mandatory for frame targets, and
       # should be omitted for worker targets.
-      optional CnPage.FrameId frameId
+      optional Page.FrameId frameId
       # URL of the resource to get content for.
       string url
       # Options for the request.
@@ -7024,17 +7038,17 @@ domain Network
 
 # This domain provides various functionality related to drawing atop the inspected page.
 experimental domain Overlay
-  depends on CnDOM
-  depends on CnPage
-  depends on CnRuntime
+  depends on DOM
+  depends on Page
+  depends on Runtime
 
   # Configuration data for drawing the source order of an elements children.
   type SourceOrderConfig extends object
     properties
       # the color to outline the givent element in.
-      CnDOM.RGBA parentOutlineColor
+      DOM.RGBA parentOutlineColor
       # the color to outline the child elements in.
-      CnDOM.RGBA childOutlineColor
+      DOM.RGBA childOutlineColor
 
   # Configuration data for the highlighting of Grid elements.
   type GridHighlightConfig extends object
@@ -7052,13 +7066,13 @@ experimental domain Overlay
       # Show track size labels (default: false).
       optional boolean showTrackSizes
       # The grid container border highlight color (default: transparent).
-      optional CnDOM.RGBA gridBorderColor
+      optional DOM.RGBA gridBorderColor
       # The cell border color (default: transparent). Deprecated, please use rowLineColor and columnLineColor instead.
-      deprecated optional CnDOM.RGBA cellBorderColor
+      deprecated optional DOM.RGBA cellBorderColor
       # The row line color (default: transparent).
-      optional CnDOM.RGBA rowLineColor
+      optional DOM.RGBA rowLineColor
       # The column line color (default: transparent).
-      optional CnDOM.RGBA columnLineColor
+      optional DOM.RGBA columnLineColor
       # Whether the grid border is dashed (default: false).
       optional boolean gridBorderDash
       # Whether the cell border is dashed (default: false). Deprecated, please us rowLineDash and columnLineDash instead.
@@ -7068,17 +7082,17 @@ experimental domain Overlay
       # Whether column lines are dashed (default: false).
       optional boolean columnLineDash
       # The row gap highlight fill color (default: transparent).
-      optional CnDOM.RGBA rowGapColor
+      optional DOM.RGBA rowGapColor
       # The row gap hatching fill color (default: transparent).
-      optional CnDOM.RGBA rowHatchColor
+      optional DOM.RGBA rowHatchColor
       # The column gap highlight fill color (default: transparent).
-      optional CnDOM.RGBA columnGapColor
+      optional DOM.RGBA columnGapColor
       # The column gap hatching fill color (default: transparent).
-      optional CnDOM.RGBA columnHatchColor
+      optional DOM.RGBA columnHatchColor
       # The named grid areas border color (Default: transparent).
-      optional CnDOM.RGBA areaBorderColor
+      optional DOM.RGBA areaBorderColor
       # The grid container background color (Default: transparent).
-      optional CnDOM.RGBA gridBackgroundColor
+      optional DOM.RGBA gridBackgroundColor
 
   # Configuration data for the highlighting of Flex container elements.
   type FlexContainerHighlightConfig extends object
@@ -7114,7 +7128,7 @@ experimental domain Overlay
   type LineStyle extends object
     properties
       # The color of the line (default: transparent)
-      optional CnDOM.RGBA color
+      optional DOM.RGBA color
       # The line pattern (default: solid)
       optional enum pattern
         dashed
@@ -7124,9 +7138,9 @@ experimental domain Overlay
   type BoxStyle extends object
     properties
       # The background color for the box (default: transparent)
-      optional CnDOM.RGBA fillColor
+      optional DOM.RGBA fillColor
       # The hatching color for the box (default: transparent)
-      optional CnDOM.RGBA hatchColor
+      optional DOM.RGBA hatchColor
 
   type ContrastAlgorithm extends string
     enum
@@ -7148,21 +7162,21 @@ experimental domain Overlay
       # Whether the extension lines from node to the rulers should be shown (default: false).
       optional boolean showExtensionLines
       # The content box highlight fill color (default: transparent).
-      optional CnDOM.RGBA contentColor
+      optional DOM.RGBA contentColor
       # The padding highlight fill color (default: transparent).
-      optional CnDOM.RGBA paddingColor
+      optional DOM.RGBA paddingColor
       # The border highlight fill color (default: transparent).
-      optional CnDOM.RGBA borderColor
+      optional DOM.RGBA borderColor
       # The margin highlight fill color (default: transparent).
-      optional CnDOM.RGBA marginColor
+      optional DOM.RGBA marginColor
       # The event target element highlight fill color (default: transparent).
-      optional CnDOM.RGBA eventTargetColor
+      optional DOM.RGBA eventTargetColor
       # The shape outside fill color (default: transparent).
-      optional CnDOM.RGBA shapeColor
+      optional DOM.RGBA shapeColor
       # The shape margin fill color (default: transparent).
-      optional CnDOM.RGBA shapeMarginColor
+      optional DOM.RGBA shapeMarginColor
       # The grid layout color (default: transparent).
-      optional CnDOM.RGBA cssGridColor
+      optional DOM.RGBA cssGridColor
       # The color format used to format color styles (default: hex).
       optional ColorFormat colorFormat
       # The grid layout highlight configuration (default: all transparent).
@@ -7189,14 +7203,14 @@ experimental domain Overlay
       # A descriptor for the highlight appearance.
       GridHighlightConfig gridHighlightConfig
       # Identifier of the node to highlight.
-      CnDOM.NodeId nodeId
+      DOM.NodeId nodeId
 
   type FlexNodeHighlightConfig extends object
     properties
       # A descriptor for the highlight appearance of flex containers.
       FlexContainerHighlightConfig flexContainerHighlightConfig
       # Identifier of the node to highlight.
-      CnDOM.NodeId nodeId
+      DOM.NodeId nodeId
 
   type ScrollSnapContainerHighlightConfig extends object
     properties
@@ -7205,31 +7219,31 @@ experimental domain Overlay
       # The style of the snap area border (default: transparent)
       optional LineStyle snapAreaBorder
       # The margin highlight fill color (default: transparent).
-      optional CnDOM.RGBA scrollMarginColor
+      optional DOM.RGBA scrollMarginColor
       # The padding highlight fill color (default: transparent).
-      optional CnDOM.RGBA scrollPaddingColor
+      optional DOM.RGBA scrollPaddingColor
 
   type ScrollSnapHighlightConfig extends object
     properties
       # A descriptor for the highlight appearance of scroll snap containers.
       ScrollSnapContainerHighlightConfig scrollSnapContainerHighlightConfig
       # Identifier of the node to highlight.
-      CnDOM.NodeId nodeId
+      DOM.NodeId nodeId
 
   # Configuration for dual screen hinge
   type HingeConfig extends object
     properties
       # A rectangle represent hinge
-      CnDOM.Rect rect
+      DOM.Rect rect
       # The content box highlight fill color (default: a dark color).
-      optional CnDOM.RGBA contentColor
+      optional DOM.RGBA contentColor
       # The content box highlight outline color (default: transparent).
-      optional CnDOM.RGBA outlineColor
+      optional DOM.RGBA outlineColor
 
-  # Configuration for Window Controls CnOverlay
+  # Configuration for Window Controls Overlay
   type WindowControlsOverlayConfig extends object
     properties
-      # Whether the title bar CSS should be shown when emulating the Window Controls CnOverlay.
+      # Whether the title bar CSS should be shown when emulating the Window Controls Overlay.
       boolean showCSS
       # Seleted platforms to show the overlay.
       string selectedPlatform
@@ -7241,7 +7255,7 @@ experimental domain Overlay
       # A descriptor for the highlight appearance of container query containers.
       ContainerQueryContainerHighlightConfig containerQueryContainerHighlightConfig
       # Identifier of the container node to highlight.
-      CnDOM.NodeId nodeId
+      DOM.NodeId nodeId
 
   type ContainerQueryContainerHighlightConfig extends object
     properties
@@ -7255,16 +7269,16 @@ experimental domain Overlay
       # A descriptor for the highlight appearance of an element in isolation mode.
       IsolationModeHighlightConfig isolationModeHighlightConfig
       # Identifier of the isolated element to highlight.
-      CnDOM.NodeId nodeId
+      DOM.NodeId nodeId
 
   type IsolationModeHighlightConfig extends object
     properties
       # The fill color of the resizers (default: transparent).
-      optional CnDOM.RGBA resizerColor
+      optional DOM.RGBA resizerColor
       # The fill color for resizer handles (default: transparent).
-      optional CnDOM.RGBA resizerHandleColor
+      optional DOM.RGBA resizerHandleColor
       # The fill color for the mask covering non-isolated elements (default: transparent).
-      optional CnDOM.RGBA maskColor
+      optional DOM.RGBA maskColor
 
   type InspectMode extends string
     enum
@@ -7284,7 +7298,7 @@ experimental domain Overlay
   command getHighlightObjectForTest
     parameters
       # Id of the node to get highlight object for.
-      CnDOM.NodeId nodeId
+      DOM.NodeId nodeId
       # Whether to include distance info.
       optional boolean includeDistance
       # Whether to include style info.
@@ -7301,7 +7315,7 @@ experimental domain Overlay
   command getGridHighlightObjectsForTest
     parameters
       # Ids of the node to get highlight object for.
-      array of CnDOM.NodeId nodeIds
+      array of DOM.NodeId nodeIds
     returns
       # Grid Highlight data for the node ids provided.
       object highlights
@@ -7310,7 +7324,7 @@ experimental domain Overlay
   command getSourceOrderHighlightObjectForTest
     parameters
       # Id of the node to highlight.
-      CnDOM.NodeId nodeId
+      DOM.NodeId nodeId
     returns
       # Source order highlight data for the node id provided.
       object highlight
@@ -7325,24 +7339,24 @@ experimental domain Overlay
   deprecated command highlightFrame
     parameters
       # Identifier of the frame to highlight.
-      CnPage.FrameId frameId
+      Page.FrameId frameId
       # The content box highlight fill color (default: transparent).
-      optional CnDOM.RGBA contentColor
+      optional DOM.RGBA contentColor
       # The content box highlight outline color (default: transparent).
-      optional CnDOM.RGBA contentOutlineColor
+      optional DOM.RGBA contentOutlineColor
 
-  # Highlights CnDOM.node with given id or with the given JavaScript object wrapper. Either nodeId or
+  # Highlights DOM node with given id or with the given JavaScript object wrapper. Either nodeId or
   # objectId must be specified.
   command highlightNode
     parameters
       # A descriptor for the highlight appearance.
       HighlightConfig highlightConfig
       # Identifier of the node to highlight.
-      optional CnDOM.NodeId nodeId
+      optional DOM.NodeId nodeId
       # Identifier of the backend node to highlight.
-      optional CnDOM.BackendNodeId backendNodeId
+      optional DOM.BackendNodeId backendNodeId
       # JavaScript object id of the node to be highlighted.
-      optional CnRuntime.RemoteObjectId objectId
+      optional Runtime.RemoteObjectId objectId
       # Selectors to highlight relevant nodes.
       optional string selector
 
@@ -7350,11 +7364,11 @@ experimental domain Overlay
   command highlightQuad
     parameters
       # Quad to highlight
-      CnDOM.Quad quad
+      DOM.Quad quad
       # The highlight fill color (default: transparent).
-      optional CnDOM.RGBA color
+      optional DOM.RGBA color
       # The highlight outline color (default: transparent).
-      optional CnDOM.RGBA outlineColor
+      optional DOM.RGBA outlineColor
 
   # Highlights given rectangle. Coordinates are absolute with respect to the main frame viewport.
   command highlightRect
@@ -7368,22 +7382,22 @@ experimental domain Overlay
       # Rectangle height
       integer height
       # The highlight fill color (default: transparent).
-      optional CnDOM.RGBA color
+      optional DOM.RGBA color
       # The highlight outline color (default: transparent).
-      optional CnDOM.RGBA outlineColor
+      optional DOM.RGBA outlineColor
 
-  # Highlights the source order of the children of the CnDOM.node with given id or with the given
+  # Highlights the source order of the children of the DOM node with given id or with the given
   # JavaScript object wrapper. Either nodeId or objectId must be specified.
   command highlightSourceOrder
     parameters
       # A descriptor for the appearance of the overlay drawing.
       SourceOrderConfig sourceOrderConfig
       # Identifier of the node to highlight.
-      optional CnDOM.NodeId nodeId
+      optional DOM.NodeId nodeId
       # Identifier of the backend node to highlight.
-      optional CnDOM.BackendNodeId backendNodeId
+      optional DOM.BackendNodeId backendNodeId
       # JavaScript object id of the node to be highlighted.
-      optional CnRuntime.RemoteObjectId objectId
+      optional Runtime.RemoteObjectId objectId
 
   # Enters the 'inspect' mode. In this mode, elements that user is hovering over are highlighted.
   # Backend then generates 'inspectNodeRequested' event upon element selection.
@@ -7486,10 +7500,10 @@ experimental domain Overlay
       # An array of node identifiers and descriptors for the highlight appearance.
       array of IsolatedElementHighlightConfig isolatedElementHighlightConfigs
 
-  # Show Window Controls CnOverlay for PWA
+  # Show Window Controls Overlay for PWA
   command setShowWindowControlsOverlay
     parameters
-      # Window Controls CnOverlay data, null means hide Window Controls CnOverlay
+      # Window Controls Overlay data, null means hide Window Controls Overlay
       optional WindowControlsOverlayConfig windowControlsOverlayConfig
 
   # Fired when the node should be inspected. This happens after call to `setInspectMode` or when
@@ -7497,29 +7511,29 @@ experimental domain Overlay
   event inspectNodeRequested
     parameters
       # Id of the node to inspect.
-      CnDOM.BackendNodeId backendNodeId
+      DOM.BackendNodeId backendNodeId
 
   # Fired when the node should be highlighted. This happens after call to `setInspectMode`.
   event nodeHighlightRequested
     parameters
-      CnDOM.NodeId nodeId
+      DOM.NodeId nodeId
 
   # Fired when user asks to capture screenshot of some area on the page.
   event screenshotRequested
     parameters
       # Viewport to capture, in device independent pixels (dip).
-      CnPage.Viewport viewport
+      Page.Viewport viewport
 
   # Fired when user cancels the inspect mode.
   event inspectModeCanceled
 
 # Actions and events related to the inspected page belong to the page domain.
 domain Page
-  depends on CnDebugger
-  depends on CnDOM
-  depends on CnIO
-  depends on CnNetwork
-  depends on CnRuntime
+  depends on Debugger
+  depends on DOM
+  depends on IO
+  depends on Network
+  depends on Runtime
 
   # Unique frame identifier.
   type FrameId extends string
@@ -7551,9 +7565,9 @@ domain Page
     properties
       # Script Id of the bottom-most script which caused the frame to be labelled
       # as an ad.
-      CnRuntime.ScriptId scriptId
+      Runtime.ScriptId scriptId
       # Id of adScriptId's debugger.
-      CnRuntime.UniqueDebuggerId debuggerId
+      Runtime.UniqueDebuggerId debuggerId
 
   # Indicates whether the frame is a secure context and why it is the case.
   experimental type SecureContextType extends string
@@ -7729,7 +7743,7 @@ domain Page
       string origin
       boolean matchSubDomains
       string trialName
-      CnTarget.TargetID expiryTime
+      Network.TimeSinceEpoch expiryTime
       boolean isThirdParty
       OriginTrialUsageRestriction usageRestriction
 
@@ -7755,7 +7769,7 @@ domain Page
       # Parent frame identifier.
       optional FrameId parentId
       # Identifier of the loader associated with this frame.
-      CnNetwork.LoaderId loaderId
+      Network.LoaderId loaderId
       # Frame's name as specified in the tag.
       optional string name
       # Frame document's URL without fragment.
@@ -7767,7 +7781,7 @@ domain Page
       # Example URLs: http://www.google.com/file.html -> "google.com"
       #               http://a.b.co.uk/file.html      -> "b.co.uk"
       experimental string domainAndRegistry
-      # Frame document's CnSecurity.origin.
+      # Frame document's security origin.
       string securityOrigin
       # Frame document's mimeType as determined by the browser.
       string mimeType
@@ -7788,11 +7802,11 @@ domain Page
       # Resource URL.
       string url
       # Type of this resource.
-      CnNetwork.ResourceType type
+      Network.ResourceType type
       # Resource mimeType as determined by the browser.
       string mimeType
       # last-modified timestamp as reported by server.
-      optional CnTarget.TargetID lastModified
+      optional Network.TimeSinceEpoch lastModified
       # Resource content size.
       optional number contentSize
       # True if the resource failed to load.
@@ -7857,7 +7871,7 @@ domain Page
     properties
       # Top offset in DIP.
       number offsetTop
-      # CnPage scale factor.
+      # Page scale factor.
       number pageScaleFactor
       # Device screen width in DIP.
       number deviceWidth
@@ -7868,7 +7882,7 @@ domain Page
       # Position of vertical scroll in CSS pixels.
       number scrollOffsetY
       # Frame swap timestamp.
-      optional CnTarget.TargetID timestamp
+      optional Network.TimeSinceEpoch timestamp
 
   # Javascript dialog type.
   type DialogType extends string
@@ -7925,7 +7939,7 @@ domain Page
       number clientHeight
       # Scale relative to the ideal viewport (size at width=device-width).
       number scale
-      # CnPage zoom factor (CSS to device independent pixels ratio).
+      # Page zoom factor (CSS to device independent pixels ratio).
       optional number zoom
 
   # Viewport for capturing screenshot.
@@ -7939,7 +7953,7 @@ domain Page
       number width
       # Rectangle height in device independent pixels (dip).
       number height
-      # CnPage scale factor.
+      # Page scale factor.
       number scale
 
   # Generic font families collection.
@@ -8021,7 +8035,7 @@ domain Page
       strictOriginWhenCrossOrigin
       unsafeUrl
 
-  # Per-script compilation cache parameters for `CnPage.produceCompilationCache`
+  # Per-script compilation cache parameters for `Page.produceCompilationCache`
   experimental type CompilationCacheParams extends object
     properties
       # The URL of the script to produce a compilation cache entry for.
@@ -8082,7 +8096,7 @@ domain Page
       binary data
 
   # Returns a snapshot of the page as a string. For MHTML format, the serialization includes
-  # iframes, shadow CnDOM, external resources, and element-inline styles.
+  # iframes, shadow DOM, external resources, and element-inline styles.
   experimental command captureSnapshot
     parameters
       # Format (defaults to mhtml).
@@ -8094,8 +8108,8 @@ domain Page
 
   # Clears the overridden device metrics.
   experimental deprecated command clearDeviceMetricsOverride
-    # Use 'CnEmulation.clearDeviceMetricsOverride' instead
-    redirect CnEmulation
+    # Use 'Emulation.clearDeviceMetricsOverride' instead
+    redirect Emulation
 
   # Clears the overridden Device Orientation.
   experimental deprecated command clearDeviceOrientationOverride
@@ -8104,8 +8118,8 @@ domain Page
 
   # Clears the overridden Geolocation Position and Error.
   deprecated command clearGeolocationOverride
-    # Use 'CnEmulation.clearGeolocationOverride' instead
-    redirect CnEmulation
+    # Use 'Emulation.clearGeolocationOverride' instead
+    redirect Emulation
 
   # Creates an isolated world for the given frame.
   command createIsolatedWorld
@@ -8119,12 +8133,12 @@ domain Page
       optional boolean grantUniveralAccess
     returns
       # Execution context of the isolated world.
-      CnRuntime.ExecutionContextId executionContextId
+      Runtime.ExecutionContextId executionContextId
 
   # Deletes browser cookie with given name, domain and path.
   experimental deprecated command deleteCookie
-    # Use 'CnNetwork.deleteCookie' instead
-    redirect CnNetork
+    # Use 'Network.deleteCookie' instead
+    redirect Network
     parameters
       # Name of the cookie to remove.
       string cookieName
@@ -8187,13 +8201,13 @@ domain Page
       # Deprecated metrics relating to the visual viewport. Is in device pixels. Use `cssVisualViewport` instead.
       deprecated VisualViewport visualViewport
       # Deprecated size of scrollable area. Is in DP. Use `cssContentSize` instead.
-      deprecated CnDOM.Rect contentSize
+      deprecated DOM.Rect contentSize
       # Metrics relating to the layout viewport in CSS pixels.
       LayoutViewport cssLayoutViewport
       # Metrics relating to the visual viewport in CSS pixels.
       VisualViewport cssVisualViewport
       # Size of scrollable area in CSS pixels.
-      CnDOM.Rect cssContentSize
+      DOM.Rect cssContentSize
 
   # Returns navigation history for the current page.
   command getNavigationHistory
@@ -8252,7 +8266,7 @@ domain Page
       FrameId frameId
       # Loader identifier. This is omitted in case of same-document navigation,
       # as the previously committed loaderId would not change.
-      optional CnNetwork.LoaderId loaderId
+      optional Network.LoaderId loaderId
       # User friendly error message, present if and only if navigation has failed.
       optional string errorText
 
@@ -8321,7 +8335,7 @@ domain Page
       # Base64-encoded pdf data. Empty if |returnAsStream| is specified.
       binary data
       # A handle of the stream that holds resulting PDF data.
-      experimental optional CnIO.StreamHandle stream
+      experimental optional IO.StreamHandle stream
 
   # Reloads given page optionally ignoring the cache.
   command reload
@@ -8371,7 +8385,7 @@ domain Page
       # Whether to block ads.
       boolean enabled
 
-  # Enable page Content CnSecurity.Policy by-passing.
+  # Enable page Content Security Policy by-passing.
   experimental command setBypassCSP
     parameters
       # Whether to bypass page CSP.
@@ -8395,8 +8409,8 @@ domain Page
   # window.innerWidth, window.innerHeight, and "device-width"/"device-height"-related CSS media
   # query results).
   experimental deprecated command setDeviceMetricsOverride
-    # Use 'CnEmulation.setDeviceMetricsOverride' instead
-    redirect CnEmulation
+    # Use 'Emulation.setDeviceMetricsOverride' instead
+    redirect Emulation
     parameters
       # Overriding width value in pixels (minimum 0, maximum 10000000). 0 disables the override.
       integer width
@@ -8420,7 +8434,7 @@ domain Page
       # Do not set visible view size, rely upon explicit setVisibleSize call.
       optional boolean dontSetVisibleSize
       # Screen orientation override.
-      optional CnEmulation.ScreenOrientation screenOrientation
+      optional Emulation.ScreenOrientation screenOrientation
       # The viewport dimensions and scale. If not set, the override is cleared.
       optional Viewport viewport
 
@@ -8473,8 +8487,8 @@ domain Page
   # Overrides the Geolocation Position or Error. Omitting any of the parameters emulates position
   # unavailable.
   deprecated command setGeolocationOverride
-    # Use 'CnEmulation.setGeolocationOverride' instead
-    redirect CnEmulation
+    # Use 'Emulation.setGeolocationOverride' instead
+    redirect Emulation
     parameters
       # Mock latitude
       optional number latitude
@@ -8491,8 +8505,8 @@ domain Page
 
   # Toggles mouse event-based touch event emulation.
   experimental deprecated command setTouchEmulationEnabled
-    # Use 'CnEmulation.setTouchEmulationEnabled' instead
-    redirect CnEmulation
+    # Use 'Emulation.setTouchEmulationEnabled' instead
+    redirect Emulation
     parameters
       # Whether the touch event emulation should be enabled.
       boolean enabled
@@ -8531,7 +8545,7 @@ domain Page
   # https://github.com/WICG/web-lifecycle/
   experimental command setWebLifecycleState
     parameters
-      # CnTarget lifecycle state
+      # Target lifecycle state
       enum state
         frozen
         active
@@ -8544,7 +8558,7 @@ domain Page
   # would be produced. The list may be reset during page navigation.
   # When script with a matching URL is encountered, the cache is optionally
   # produced upon backend discretion, based on internal heuristics.
-  # See also: `CnPage.compilationCacheProduced`.
+  # See also: `Page.compilationCacheProduced`.
   experimental command produceCompilationCache
     parameters
       array of CompilationCacheParams scripts
@@ -8588,19 +8602,19 @@ domain Page
       # Specifies the endpoint group to deliver the report to.
       optional string group
 
-  # Pauses page execution. Can be resumed using generic CnRuntime.runIfWaitingForDebugger.
+  # Pauses page execution. Can be resumed using generic Runtime.runIfWaitingForDebugger.
   experimental command waitForDebugger
 
   # Intercept file chooser requests and transfer control to protocol clients.
   # When file chooser interception is enabled, native file chooser dialog is not shown.
-  # Instead, a protocol event `CnPage.fileChooserOpened` is emitted.
+  # Instead, a protocol event `Page.fileChooserOpened` is emitted.
   experimental command setInterceptFileChooserDialog
     parameters
       boolean enabled
 
   event domContentEventFired
     parameters
-      CnNetwork.MonotonicTime timestamp
+      Network.MonotonicTime timestamp
 
   # Emitted only when `page.interceptFileChooser` is enabled.
   event fileChooserOpened
@@ -8612,7 +8626,7 @@ domain Page
         selectSingle
         selectMultiple
       # Input node id. Only present for file choosers opened via an `<input type="file">` element.
-      experimental optional CnDOM.BackendNodeId backendNodeId
+      experimental optional DOM.BackendNodeId backendNodeId
 
   # Fired when frame has been attached to its parent.
   event frameAttached
@@ -8622,7 +8636,7 @@ domain Page
       # Parent frame identifier.
       FrameId parentFrameId
       # JavaScript stack trace of when frame was attached, only set if frame initiated from script.
-      optional CnRuntime.StackTrace stack
+      optional Runtime.StackTrace stack
 
   # Fired when frame no longer has a scheduled navigation.
   deprecated event frameClearedScheduledNavigation
@@ -8636,10 +8650,10 @@ domain Page
       # Id of the frame that has been detached.
       FrameId frameId
       experimental enum reason
-        # The frame is removed from the CnDOM.
+        # The frame is removed from the DOM.
         remove
         # The frame is being swapped out in favor of an out-of-process iframe.
-        # A new frame target will be created (see CnTarget.attachedToTarget).
+        # A new frame target will be created (see Target.attachedToTarget).
         swap
 
   # The type of a frameNavigated event.
@@ -8702,7 +8716,7 @@ domain Page
       FrameId frameId
 
   # Fired when page is about to start a download.
-  # Deprecated. Use CnBrowser.downloadWillBegin instead.
+  # Deprecated. Use Browser.downloadWillBegin instead.
   experimental deprecated event downloadWillBegin
     parameters
       # Id of the frame that caused download to begin.
@@ -8715,7 +8729,7 @@ domain Page
       string suggestedFilename
 
   # Fired when download makes progress. Last call has |done| == true.
-  # Deprecated. Use CnBrowser.downloadProgress instead.
+  # Deprecated. Use Browser.downloadProgress instead.
   experimental deprecated event downloadProgress
     parameters
       # Global unique identifier of the download.
@@ -8756,8 +8770,8 @@ domain Page
       # Dialog type.
       DialogType type
       # True iff browser is capable showing or acting on the given dialog. When browser has no
-      # dialog handler for given target, calling alert while CnPage domain is engaged will stall
-      # the page execution. Execution can be resumed via calling CnPage.handleJavaScriptDialog.
+      # dialog handler for given target, calling alert while Page domain is engaged will stall
+      # the page execution. Execution can be resumed via calling Page.handleJavaScriptDialog.
       boolean hasBrowserHandler
       # Default dialog prompt.
       optional string defaultPrompt
@@ -8768,9 +8782,9 @@ domain Page
       # Id of the frame.
       FrameId frameId
       # Loader identifier. Empty string if the request is fetched from worker.
-      CnNetwork.LoaderId loaderId
+      Network.LoaderId loaderId
       string name
-      CnNetwork.MonotonicTime timestamp
+      Network.MonotonicTime timestamp
 
   # List of not restored reasons for back-forward cache.
   experimental type BackForwardCacheNotRestoredReason extends string
@@ -8950,13 +8964,13 @@ domain Page
       array of BackForwardCacheNotRestoredExplanationTree children
 
   # Fired for failed bfcache history navigations if BackForwardCache feature is enabled. Do
-  # not assume any ordering with the CnPage.frameNavigated event. This event is fired only for
+  # not assume any ordering with the Page.frameNavigated event. This event is fired only for
   # main-frame history navigation where the document changes (non-same-document navigations),
   # when bfcache navigation fails.
   experimental event backForwardCacheNotUsed
     parameters
       # The loader id for the associated navgation.
-      CnNetwork.LoaderId loaderId
+      Network.LoaderId loaderId
       # The frame id of the associated frame.
       FrameId frameId
       # Array of reasons why the page could not be cached. This must not be empty.
@@ -8966,7 +8980,7 @@ domain Page
 
   event loadEventFired
     parameters
-      CnNetwork.MonotonicTime timestamp
+      Network.MonotonicTime timestamp
 
   # Fired when same-document navigation happens, e.g. due to history API usage or anchor navigation.
   experimental event navigatedWithinDocument
@@ -9006,7 +9020,7 @@ domain Page
       boolean userGesture
 
   # Issued for every compilation cache generated. Is only available
-  # if CnPage.setGenerateCompilationCache is enabled.
+  # if Page.setGenerateCompilationCache is enabled.
   experimental event compilationCacheProduced
     parameters
       string url
@@ -9076,27 +9090,27 @@ domain Performance
 # Reporting of performance timeline events, as specified in
 # https://w3c.github.io/performance-timeline/#dom-performanceobserver.
 experimental domain PerformanceTimeline
-  depends on CnDOM
-  depends on CnNetwork
+  depends on DOM
+  depends on Network
 
   # See https://github.com/WICG/LargestContentfulPaint and largest_contentful_paint.idl
   type LargestContentfulPaint extends object
     properties
-      CnTarget.TargetID renderTime
-      CnTarget.TargetID loadTime
+      Network.TimeSinceEpoch renderTime
+      Network.TimeSinceEpoch loadTime
       # The number of pixels being painted.
       number size
       # The id attribute of the element, if available.
       optional string elementId
       # The URL of the image (may be trimmed).
       optional string url
-      optional CnDOM.BackendNodeId nodeId
+      optional DOM.BackendNodeId nodeId
 
   type LayoutShiftAttribution extends object
     properties
-      CnDOM.Rect previousRect
-      CnDOM.Rect currentRect
-      optional CnDOM.BackendNodeId nodeId
+      DOM.Rect previousRect
+      DOM.Rect currentRect
+      optional DOM.BackendNodeId nodeId
 
   # See https://wicg.github.io/layout-instability/#sec-layout-shift and layout_shift.idl
   type LayoutShift extends object
@@ -9104,20 +9118,20 @@ experimental domain PerformanceTimeline
       # Score increment produced by this event.
       number value
       boolean hadRecentInput
-      CnTarget.TargetID lastInputTime
+      Network.TimeSinceEpoch lastInputTime
       array of LayoutShiftAttribution sources
 
   type TimelineEvent extends object
     properties
       # Identifies the frame that this event is related to. Empty for non-frame targets.
-      CnPage.FrameId frameId
+      Page.FrameId frameId
       # The event type, as specified in https://w3c.github.io/performance-timeline/#dom-performanceentry-entrytype
       # This determines which of the optional "details" fiedls is present.
       string type
       # Name may be empty depending on the type.
       string name
       # Time in seconds since Epoch, monotonically increasing within document lifetime.
-      CnTarget.TargetID time
+      Network.TimeSinceEpoch time
       # Event duration, if applicable.
       optional number duration
       optional LargestContentfulPaint lcpDetails
@@ -9139,7 +9153,7 @@ experimental domain PerformanceTimeline
     parameters
       TimelineEvent event
 
-# CnSecurity
+# Security
 domain Security
 
   # An internal certificate ID value.
@@ -9153,7 +9167,7 @@ domain Security
       optionally-blockable
       none
 
-  # The CnSecurity.level of a page or resource.
+  # The security level of a page or resource.
   type SecurityState extends string
     enum
       unknown
@@ -9163,7 +9177,7 @@ domain Security
       info
       insecure-broken
 
-  # Details about the CnSecurity.state of the page certificate.
+  # Details about the security state of the page certificate.
   experimental type CertificateSecurityState extends object
     properties
       # Protocol name (e.g. "TLS 1.2" or "QUIC").
@@ -9176,16 +9190,16 @@ domain Security
       string cipher
       # TLS MAC. Note that AEAD ciphers do not have separate MACs.
       optional string mac
-      # CnPage certificate.
+      # Page certificate.
       array of string certificate
       # Certificate subject name.
       string subjectName
       # Name of the issuing CA.
       string issuer
       # Certificate valid from date.
-      CnTarget.TargetID validFrom
+      Network.TimeSinceEpoch validFrom
       # Certificate valid to (expiration) date
-      CnTarget.TargetID validTo
+      Network.TimeSinceEpoch validTo
       # The highest priority network error code, if the certificate has an error.
       optional string certificateNetworkError
       # True if the certificate uses a weak signature aglorithm.
@@ -9215,22 +9229,22 @@ domain Security
       # The URL the safety tip suggested ("Did you mean?"). Only filled in for lookalike matches.
       optional string safeUrl
 
-  # CnSecurity.state information about the page.
+  # Security state information about the page.
   experimental type VisibleSecurityState extends object
     properties
-      # The CnSecurity.level of the page.
+      # The security level of the page.
       SecurityState securityState
-      # CnSecurity.state details about the page certificate.
+      # Security state details about the page certificate.
       optional CertificateSecurityState certificateSecurityState
       # The type of Safety Tip triggered on the page. Note that this field will be set even if the Safety Tip UI was not actually shown.
       optional SafetyTipInfo safetyTipInfo
-      # Array of CnSecurity.state issues ids.
+      # Array of security state issues ids.
       array of string securityStateIssueIds
 
-  # An explanation of an factor contributing to the CnSecurity.state.
+  # An explanation of an factor contributing to the security state.
   type SecurityStateExplanation extends object
     properties
-      # CnSecurity.state representing the severity of the factor being explained.
+      # Security state representing the severity of the factor being explained.
       SecurityState securityState
       # Title describing the type of factor.
       string title
@@ -9240,7 +9254,7 @@ domain Security
       string description
       # The type of mixed content described by the explanation.
       MixedContentType mixedContentType
-      # CnPage certificate.
+      # Page certificate.
       array of string certificate
       # Recommendations to fix any issues.
       optional array of string recommendations
@@ -9270,10 +9284,10 @@ domain Security
       continue
       cancel
 
-  # Disables tracking CnSecurity.state changes.
+  # Disables tracking security state changes.
   command disable
 
-  # Enables tracking CnSecurity.state changes.
+  # Enables tracking security state changes.
   command enable
 
   # Enable/disable whether all certificate errors should be ignored.
@@ -9310,20 +9324,20 @@ domain Security
       # The url that was requested.
       string requestURL
 
-  # The CnSecurity.state of the page changed.
+  # The security state of the page changed.
   experimental event visibleSecurityStateChanged
     parameters
-      # CnSecurity.state information about the page.
+      # Security state information about the page.
       VisibleSecurityState visibleSecurityState
 
-  # The CnSecurity.state of the page changed. No longer being sent.
+  # The security state of the page changed. No longer being sent.
   deprecated event securityStateChanged
     parameters
-      # CnSecurity.state.
+      # Security state.
       SecurityState securityState
       # True if the page was loaded over cryptographic transport such as HTTPS.
       deprecated boolean schemeIsCryptographic
-      # Previously a list of explanations for the CnSecurity.state. Now always
+      # Previously a list of explanations for the security state. Now always
       # empty.
       deprecated array of SecurityStateExplanation explanations
       # Information about insecure content on the page.
@@ -9332,11 +9346,11 @@ domain Security
       deprecated optional string summary
 
 experimental domain ServiceWorker
-  depends on CnTarget
+  depends on Target
 
   type RegistrationID extends string
 
-  # CnServiceWorker registration.
+  # ServiceWorker registration.
   type ServiceWorkerRegistration extends object
     properties
       RegistrationID registrationId
@@ -9359,7 +9373,7 @@ experimental domain ServiceWorker
       activated
       redundant
 
-  # CnServiceWorker version.
+  # ServiceWorker version.
   type ServiceWorkerVersion extends object
     properties
       string versionId
@@ -9372,11 +9386,11 @@ experimental domain ServiceWorker
       # The time at which the response headers of the main script were received from the server.
       # For cached script it is the last time the cache entry was validated.
       optional number scriptResponseTime
-      optional array of CnTarget.TargetID controlledClients
-      optional CnTarget.TargetID targetId
+      optional array of Target.TargetID controlledClients
+      optional Target.TargetID targetId
       optional string routerRules
 
-  # CnServiceWorker error message.
+  # ServiceWorker error message.
   type ServiceWorkerErrorMessage extends object
     properties
       string errorMessage
@@ -9452,8 +9466,8 @@ experimental domain ServiceWorker
       array of ServiceWorkerVersion versions
 
 experimental domain Storage
-  depends on CnBrowser
-  depends on CnNetwork
+  depends on Browser
+  depends on Network
 
   type SerializedStorageKey extends string
 
@@ -9480,7 +9494,7 @@ experimental domain Storage
     properties
       # Name of storage type.
       StorageType storageType
-      # CnStorage usage (bytes).
+      # Storage usage (bytes).
       number usage
 
   # Pair of issuer origin and number of available (signed, but not used) Trust
@@ -9514,7 +9528,7 @@ experimental domain Storage
     properties
       string ownerOrigin
       string name
-      CnTarget.TargetID expirationTime
+      Network.TimeSinceEpoch expirationTime
       string joiningOrigin
       optional string biddingLogicURL
       optional string biddingWasmHelperURL
@@ -9554,7 +9568,7 @@ experimental domain Storage
   # Details for an origin's shared storage.
   type SharedStorageMetadata extends object
     properties
-      CnTarget.TargetID creationTime
+      Network.TimeSinceEpoch creationTime
       integer length
       number remainingBudget
 
@@ -9625,8 +9639,8 @@ experimental domain Storage
     properties
       StorageBucket bucket
       string id
-      CnTarget.TargetID expiration
-      # CnStorage quota (bytes).
+      Network.TimeSinceEpoch expiration
+      # Storage quota (bytes).
       number quota
       boolean persistent
       StorageBucketsDurability durability
@@ -9634,14 +9648,14 @@ experimental domain Storage
   # Returns a storage key given a frame id.
   command getStorageKeyForFrame
     parameters
-      CnPage.FrameId frameId
+      Page.FrameId frameId
     returns
       SerializedStorageKey storageKey
 
   # Clears storage for origin.
   command clearDataForOrigin
     parameters
-      # CnSecurity.origin.
+      # Security origin.
       string origin
       # Comma separated list of StorageType to clear.
       string storageTypes
@@ -9649,7 +9663,7 @@ experimental domain Storage
   # Clears storage for storage key.
   command clearDataForStorageKey
     parameters
-      # CnStorage key.
+      # Storage key.
       string storageKey
       # Comma separated list of StorageType to clear.
       string storageTypes
@@ -9657,45 +9671,45 @@ experimental domain Storage
   # Returns all browser cookies.
   command getCookies
     parameters
-      # CnBrowser context to use when called on the browser endpoint.
-      optional CnBrowser.BrowserContextID browserContextId
+      # Browser context to use when called on the browser endpoint.
+      optional Browser.BrowserContextID browserContextId
     returns
       # Array of cookie objects.
-      array of CnNetwork.Cookie cookies
+      array of Network.Cookie cookies
 
   # Sets given cookies.
   command setCookies
     parameters
       # Cookies to be set.
-      array of CnNetwork.CookieParam cookies
-      # CnBrowser context to use when called on the browser endpoint.
-      optional CnBrowser.BrowserContextID browserContextId
+      array of Network.CookieParam cookies
+      # Browser context to use when called on the browser endpoint.
+      optional Browser.BrowserContextID browserContextId
 
   # Clears cookies.
   command clearCookies
     parameters
-      # CnBrowser context to use when called on the browser endpoint.
-      optional CnBrowser.BrowserContextID browserContextId
+      # Browser context to use when called on the browser endpoint.
+      optional Browser.BrowserContextID browserContextId
 
   # Returns usage and quota in bytes.
   command getUsageAndQuota
     parameters
-      # CnSecurity.origin.
+      # Security origin.
       string origin
     returns
-      # CnStorage usage (bytes).
+      # Storage usage (bytes).
       number usage
-      # CnStorage quota (bytes).
+      # Storage quota (bytes).
       number quota
       # Whether or not the origin has an active storage quota override
       boolean overrideActive
-      # CnStorage usage per type (bytes).
+      # Storage usage per type (bytes).
       array of UsageForType usageBreakdown
 
   # Override quota for the specified origin
   experimental command overrideQuotaForOrigin
     parameters
-      # CnSecurity.origin.
+      # Security origin.
       string origin
       # The quota size (in bytes) to override the original quota with.
       # If this is called multiple times, the overridden quota will be equal to
@@ -9709,49 +9723,49 @@ experimental domain Storage
   # Registers origin to be notified when an update occurs to its cache storage list.
   command trackCacheStorageForOrigin
     parameters
-      # CnSecurity.origin.
+      # Security origin.
       string origin
 
   # Registers storage key to be notified when an update occurs to its cache storage list.
   command trackCacheStorageForStorageKey
     parameters
-      # CnStorage key.
+      # Storage key.
       string storageKey
 
   # Registers origin to be notified when an update occurs to its IndexedDB.
   command trackIndexedDBForOrigin
     parameters
-      # CnSecurity.origin.
+      # Security origin.
       string origin
 
   # Registers storage key to be notified when an update occurs to its IndexedDB.
   command trackIndexedDBForStorageKey
     parameters
-      # CnStorage key.
+      # Storage key.
       string storageKey
 
   # Unregisters origin from receiving notifications for cache storage.
   command untrackCacheStorageForOrigin
     parameters
-      # CnSecurity.origin.
+      # Security origin.
       string origin
 
   # Unregisters storage key from receiving notifications for cache storage.
   command untrackCacheStorageForStorageKey
     parameters
-      # CnStorage key.
+      # Storage key.
       string storageKey
 
   # Unregisters origin from receiving notifications for IndexedDB.
   command untrackIndexedDBForOrigin
     parameters
-      # CnSecurity.origin.
+      # Security origin.
       string origin
 
   # Unregisters storage key from receiving notifications for IndexedDB.
   command untrackIndexedDBForStorageKey
     parameters
-      # CnStorage key.
+      # Storage key.
       string storageKey
 
   # Returns the number of stored Trust Tokens per issuer for the
@@ -9833,7 +9847,7 @@ experimental domain Storage
       string storageKey
       boolean enable
 
-  # Deletes the CnStorage Bucket with the given storage key and bucket name.
+  # Deletes the Storage Bucket with the given storage key and bucket name.
   experimental command deleteStorageBucket
     parameters
       StorageBucket bucket
@@ -9848,9 +9862,9 @@ experimental domain Storage
     parameters
       # Origin to update.
       string origin
-      # CnStorage key to update.
+      # Storage key to update.
       string storageKey
-      # CnStorage bucket to update.
+      # Storage bucket to update.
       string bucketId
       # Name of cache in origin.
       string cacheName
@@ -9860,9 +9874,9 @@ experimental domain Storage
     parameters
       # Origin to update.
       string origin
-      # CnStorage key to update.
+      # Storage key to update.
       string storageKey
-      # CnStorage bucket to update.
+      # Storage bucket to update.
       string bucketId
 
   # The origin's IndexedDB object store has been modified.
@@ -9870,9 +9884,9 @@ experimental domain Storage
     parameters
       # Origin to update.
       string origin
-      # CnStorage key to update.
+      # Storage key to update.
       string storageKey
-      # CnStorage bucket to update.
+      # Storage bucket to update.
       string bucketId
       # Database to update.
       string databaseName
@@ -9884,15 +9898,15 @@ experimental domain Storage
     parameters
       # Origin to update.
       string origin
-      # CnStorage key to update.
+      # Storage key to update.
       string storageKey
-      # CnStorage bucket to update.
+      # Storage bucket to update.
       string bucketId
 
   # One of the interest groups was accessed by the associated page.
   event interestGroupAccessed
     parameters
-      CnTarget.TargetID accessTime
+      Network.TimeSinceEpoch accessTime
       InterestGroupAccessType type
       string ownerOrigin
       string name
@@ -9902,15 +9916,15 @@ experimental domain Storage
   event sharedStorageAccessed
     parameters
       # Time of the access.
-      CnTarget.TargetID accessTime
-      # Enum value indicating the Shared CnStorage API method invoked.
+      Network.TimeSinceEpoch accessTime
+      # Enum value indicating the Shared Storage API method invoked.
       SharedStorageAccessType type
       # CitizenNotes Frame Token for the primary frame tree's root.
-      CnPage.FrameId mainFrameId
-      # Serialized origin for the context that invoked the Shared CnStorage API.
+      Page.FrameId mainFrameId
+      # Serialized origin for the context that invoked the Shared Storage API.
       string ownerOrigin
       # The sub-parameters warapped by `params` are all optional and their
-      # presence/absence depends on Cn`type`.
+      # presence/absence depends on `type`.
       SharedStorageAccessParams params
 
   event storageBucketCreatedOrUpdated
@@ -9972,7 +9986,7 @@ experimental domain Storage
 
   experimental type AttributionReportingSourceRegistration extends object
     properties
-      CnTarget.TargetID time
+      Network.TimeSinceEpoch time
       # duration in seconds
       integer expiry
       array of AttributionReportingTriggerSpec triggerSpecs
@@ -10011,7 +10025,7 @@ experimental domain Storage
       AttributionReportingSourceRegistration registration
       AttributionReportingSourceRegistrationResult result
 
-# The CnSystemInfo domain defines methods and events for querying low-level system information.
+# The SystemInfo domain defines methods and events for querying low-level system information.
 experimental domain SystemInfo
 
   # Describes a single graphics processor (GPU).
@@ -10172,8 +10186,8 @@ domain Target
       # Whether the target has access to the originating window.
       experimental boolean canAccessOpener
       # Frame id of originating window (is only set if target has an opener).
-      experimental optional CnPage.FrameId openerFrameId
-      experimental optional CnBrowser.BrowserContextID browserContextId
+      experimental optional Page.FrameId openerFrameId
+      experimental optional Browser.BrowserContextID browserContextId
       # Provides additional details for specific target types. For example, for
       # the type of "page", this may be set to "portal" or "prerender".
       experimental optional string subtype
@@ -10259,13 +10273,13 @@ domain Target
       optional array of string originsWithUniversalNetworkAccess
     returns
       # The id of the context created.
-      CnBrowser.BrowserContextID browserContextId
+      Browser.BrowserContextID browserContextId
 
-  # Returns all browser contexts created with `CnTarget.createBrowserContext` method.
+  # Returns all browser contexts created with `Target.createBrowserContext` method.
   experimental command getBrowserContexts
     returns
       # An array of browser context ids.
-      array of CnBrowser.BrowserContextID browserContextIds
+      array of Browser.BrowserContextID browserContextIds
 
   # Creates a new page.
   command createTarget
@@ -10277,7 +10291,7 @@ domain Target
       # Frame height in DIP (headless chrome only).
       optional integer height
       # The browser context to create the page in.
-      experimental optional CnBrowser.BrowserContextID browserContextId
+      experimental optional Browser.BrowserContextID browserContextId
       # Whether BeginFrames for this target will be controlled via CitizenNotes (headless chrome only,
       # not supported on MacOS yet, false by default).
       experimental optional boolean enableBeginFrameControl
@@ -10304,7 +10318,7 @@ domain Target
   # beforeunload hooks.
   experimental command disposeBrowserContext
     parameters
-      CnBrowser.BrowserContextID browserContextId
+      Browser.BrowserContextID browserContextId
 
   # Returns information about a target.
   experimental command getTargetInfo
@@ -10344,7 +10358,7 @@ domain Target
     parameters
       # Whether to auto-attach to related targets.
       boolean autoAttach
-      # Whether to pause new targets when attaching to them. Use `CnRuntime.runIfWaitingForDebugger`
+      # Whether to pause new targets when attaching to them. Use `Runtime.runIfWaitingForDebugger`
       # to run paused targets.
       boolean waitForDebuggerOnStart
       # Enables "flat" access to the session via specifying sessionId attribute in the commands.
@@ -10358,11 +10372,11 @@ domain Target
   # creation (such as child frames, child workers and new versions of service worker) and reported
   # through `attachedToTarget`. The specified target is also auto-attached.
   # This cancels the effect of any previous `setAutoAttach` and is also cancelled by subsequent
-  # `setAutoAttach`. Only available at the CnBrowser target.
+  # `setAutoAttach`. Only available at the Browser target.
   experimental command autoAttachRelated
     parameters
       TargetID targetId
-      # Whether to pause new targets when attaching to them. Use `CnRuntime.runIfWaitingForDebugger`
+      # Whether to pause new targets when attaching to them. Use `Runtime.runIfWaitingForDebugger`
       # to run paused targets.
       boolean waitForDebuggerOnStart
       # Only targets matching filter will be attached.
@@ -10437,7 +10451,7 @@ domain Target
     parameters
       TargetInfo targetInfo
 
-# The CnTethering domain defines methods and events for browser port binding.
+# The Tethering domain defines methods and events for browser port binding.
 experimental domain Tethering
 
   # Request browser port binding.
@@ -10461,7 +10475,7 @@ experimental domain Tethering
       string connectionId
 
 experimental domain Tracing
-  depends on CnIO
+  depends on IO
 
   # Configuration for memory dump. Used only when "memory-infra" category is enabled.
   type MemoryDumpConfig extends object
@@ -10517,7 +10531,7 @@ experimental domain Tracing
   # Backend type to use for tracing. `chrome` uses the Chrome-integrated
   # tracing service and is supported on all platforms. `system` is only
   # supported on Chrome OS and uses the Perfetto system tracing service.
-  # `auto` chooses `system` when the perfettoConfig provided to CnTracing.start
+  # `auto` chooses `system` when the perfettoConfig provided to Tracing.start
   # specifies at least one non-Chrome data source; otherwise uses `chrome`.
   type TracingBackend extends string
     enum
@@ -10558,7 +10572,7 @@ experimental domain Tracing
     parameters
       # Category/tag filter
       deprecated optional string categories
-      # CnTracing options
+      # Tracing options
       deprecated optional string options
       # If set, the agent will issue bufferUsage events at this interval, specified in milliseconds
       optional number bufferUsageReportingInterval
@@ -10606,7 +10620,7 @@ experimental domain Tracing
       # buffer wrapped around.
       boolean dataLossOccurred
       # A handle of the stream that holds resulting trace data.
-      optional CnIO.StreamHandle stream
+      optional IO.StreamHandle stream
       # Trace data format of returned stream.
       optional StreamFormat traceFormat
       # Compression format of returned stream.
@@ -10614,9 +10628,9 @@ experimental domain Tracing
 
 # A domain for letting clients substitute browser's network layer with client code.
 domain Fetch
-  depends on CnNetwork
-  depends on CnIO
-  depends on CnPage
+  depends on Network
+  depends on IO
+  depends on Page
 
   # Unique request identifier.
   type RequestId extends string
@@ -10635,7 +10649,7 @@ domain Fetch
       # backslash. Omitting is equivalent to `"*"`.
       optional string urlPattern
       # If set, only requests for matching resource types will be intercepted.
-      optional CnNetwork.ResourceType resourceType
+      optional Network.ResourceType resourceType
       # Stage at which to begin intercepting requests. Default is Request.
       optional RequestStage requestStage
 
@@ -10697,7 +10711,7 @@ domain Fetch
       # An id the client received in requestPaused event.
       RequestId requestId
       # Causes the request to fail with the given reason.
-      CnNetwork.ErrorReason errorReason
+      Network.ErrorReason errorReason
 
   # Provides response to the request.
   command fulfillRequest
@@ -10801,7 +10815,7 @@ domain Fetch
     parameters
       RequestId requestId
     returns
-      CnIO.StreamHandle stream
+      IO.StreamHandle stream
 
   # Issued when the domain is enabled and the request URL matches the
   # specified filter. The request is paused until the client responds
@@ -10819,22 +10833,22 @@ domain Fetch
       # Each request the page makes will have a unique id.
       RequestId requestId
       # The details of the request.
-      CnNetwork.Request request
+      Network.Request request
       # The id of the frame that initiated the request.
-      CnPage.FrameId frameId
+      Page.FrameId frameId
       # How the requested resource will be used.
-      CnNetwork.ResourceType resourceType
+      Network.ResourceType resourceType
       # Response error if intercepted at response stage.
-      optional CnNetwork.ErrorReason responseErrorReason
+      optional Network.ErrorReason responseErrorReason
       # Response code if intercepted at response stage.
       optional integer responseStatusCode
       # Response status text if intercepted at response stage.
       optional string responseStatusText
       # Response headers if intercepted at the response stage.
       optional array of HeaderEntry responseHeaders
-      # If the intercepted request had a corresponding CnNetwork.requestWillBeSent event fired for it,
+      # If the intercepted request had a corresponding Network.requestWillBeSent event fired for it,
       # then this networkId will be the same as the requestId present in the requestWillBeSent event.
-      optional CnNetwork.RequestId networkId
+      optional Network.RequestId networkId
       # If the request is due to a redirect response from the server, the id of the request that
       # has caused the redirect.
       experimental optional RequestId redirectedRequestId
@@ -10846,11 +10860,11 @@ domain Fetch
       # Each request the page makes will have a unique id.
       RequestId requestId
       # The details of the request.
-      CnNetwork.Request request
+      Network.Request request
       # The id of the frame that initiated the request.
-      CnPage.FrameId frameId
+      Page.FrameId frameId
       # How the requested resource will be used.
-      CnNetwork.ResourceType resourceType
+      Network.ResourceType resourceType
       # Details of the Authorization Challenge encountered.
       # If this is set, client should respond with continueRequest that
       # contains AuthChallengeResponse.
@@ -10965,7 +10979,7 @@ experimental domain WebAudio
   # Disables the WebAudio domain.
   command disable
 
-  # CnFetch the realtime data from the registered contexts.
+  # Fetch the realtime data from the registered contexts.
   command getRealtimeData
     parameters
       GraphObjectId contextId
@@ -11055,7 +11069,7 @@ experimental domain WebAudio
       GraphObjectId destinationId
       optional number sourceOutputIndex
 
-# This domain allows configuring virtual authenticators to test the CnWebAuthn
+# This domain allows configuring virtual authenticators to test the WebAuthn
 # API.
 experimental domain WebAuthn
   type AuthenticatorId extends string
@@ -11143,18 +11157,18 @@ experimental domain WebAuthn
       # See https://w3c.github.io/webauthn/#sctn-large-blob-extension
       optional binary largeBlob
 
-  # Enable the CnWebAuthn domain and start intercepting credential storage and
+  # Enable the WebAuthn domain and start intercepting credential storage and
   # retrieval with a virtual authenticator.
   command enable
     parameters
-      # Whether to enable the CnWebAuthn user interface. Enabling the UI is
+      # Whether to enable the WebAuthn user interface. Enabling the UI is
       # recommended for debugging and demo purposes, as it is closer to the real
       # experience. Disabling the UI is recommended for automated testing.
       # Supported at the embedder's discretion if UI is available.
       # Defaults to false.
       optional boolean enableUI
 
-  # Disable the CnWebAuthn domain.
+  # Disable the WebAuthn domain.
   command disable
 
   # Creates and adds a virtual authenticator.
@@ -11363,13 +11377,13 @@ experimental domain DeviceAccess
   # Disable events in this domain.
   command disable
 
-  # Select a device in response to a CnDeviceAccess.deviceRequestPrompted event.
+  # Select a device in response to a DeviceAccess.deviceRequestPrompted event.
   command selectPrompt
     parameters
       RequestId id
       DeviceId deviceId
 
-  # Cancel a prompt in response to a CnDeviceAccess.deviceRequestPrompted event.
+  # Cancel a prompt in response to a DeviceAccess.deviceRequestPrompted event.
   command cancelPrompt
     parameters
       RequestId id
@@ -11390,7 +11404,7 @@ experimental domain Preload
     properties
       RuleSetId id
       # Identifies a document which the rule set is associated with.
-      CnNetwork.LoaderId loaderId
+      Network.LoaderId loaderId
       # Source text of JSON representing the rule set. If it comes from
       # `<script>` tag, it is the textContent of the node. Note that it is
       # a JSON for valid case.
@@ -11404,14 +11418,14 @@ experimental domain Preload
       # 'Speculation-Rules' HTTP header. For the first case, we include
       # the BackendNodeId of the relevant `<script>` tag. For the second
       # case, we include the external URL where the rule set was loaded
-      # from, and also RequestId if CnNetwork.domain is enabled.
+      # from, and also RequestId if Network domain is enabled.
       #
       # See also:
       # - https://wicg.github.io/nav-speculation/speculation-rules.html#speculation-rules-script
       # - https://wicg.github.io/nav-speculation/speculation-rules.html#speculation-rules-header
-      optional CnDOM.BackendNodeId backendNodeId
+      optional DOM.BackendNodeId backendNodeId
       optional string url
-      optional CnNetwork.RequestId requestId
+      optional Network.RequestId requestId
       # Error information
       # `errorMessage` is null iff `errorType` is null.
       optional RuleSetErrorType errorType
@@ -11446,7 +11460,7 @@ experimental domain Preload
   # still keyed with the initial URL.
   type PreloadingAttemptKey extends object
     properties
-      CnNetwork.LoaderId loaderId
+      Network.LoaderId loaderId
       SpeculationAction action
       string url
       optional SpeculationTargetHint targetHint
@@ -11460,7 +11474,7 @@ experimental domain Preload
     properties
       PreloadingAttemptKey key
       array of RuleSetId ruleSetIds
-      array of CnDOM.BackendNodeId nodeIds
+      array of DOM.BackendNodeId nodeIds
 
   command enable
 
@@ -11476,7 +11490,7 @@ experimental domain Preload
       RuleSetId id
 
   # List of FinalStatus reasons for Prerender2.
-  type CNPrerenderFinalStatus extends string
+  type PrerenderFinalStatus extends string
     enum
       Activated
       Destroyed
@@ -11577,7 +11591,8 @@ experimental domain Preload
       PrefetchFailedNetError
       PrefetchFailedNon2XX
       PrefetchFailedPerPageLimitExceeded
-      PrefetchEvicted
+      PrefetchEvictedAfterCandidateRemoved
+      PrefetchEvictedForNewerPrefetch
       PrefetchHeldback
       # A previous prefetch to the origin got a HTTP 503 response with an
       # Retry-After header that has no elapsed yet.
@@ -11611,11 +11626,11 @@ experimental domain Preload
     parameters
       PreloadingAttemptKey key
       # The frame id of the frame initiating prefetch.
-      CnPage.FrameId initiatingFrameId
+      Page.FrameId initiatingFrameId
       string prefetchUrl
       PreloadingStatus status
       PrefetchStatus prefetchStatus
-      CnNetwork.RequestId requestId
+      Network.RequestId requestId
 
   # Information of headers to be displayed when the header mismatch occurred.
   type PrerenderMismatchedHeaders extends object
@@ -11629,7 +11644,7 @@ experimental domain Preload
     parameters
       PreloadingAttemptKey key
       PreloadingStatus status
-      optional CNPrerenderFinalStatus prerenderStatus
+      optional PrerenderFinalStatus prerenderStatus
       # This is used to give users more information about the name of Mojo interface
       # that is incompatible with prerender and has caused the cancellation of the attempt.
       optional string disallowedMojoInterface
@@ -11638,10 +11653,10 @@ experimental domain Preload
   # Send a list of sources for all preloading attempts in a document.
   event preloadingAttemptSourcesUpdated
     parameters
-      CnNetwork.LoaderId loaderId
+      Network.LoaderId loaderId
       array of PreloadingAttemptSource preloadingAttemptSources
 
-# This domain allows interacting with the CnFedCM dialog.
+# This domain allows interacting with the FedCM dialog.
 experimental domain FedCm
   # Whether this is a sign-up or sign-in action for this account, i.e.
   # whether this account has ever been used to sign in to this RP before.
@@ -11650,7 +11665,7 @@ experimental domain FedCm
       SignIn
       SignUp
 
-  # The types of CnFedCM dialogs.
+  # The types of FedCM dialogs.
   type DialogType extends string
     enum
       AccountChooser
@@ -11658,7 +11673,7 @@ experimental domain FedCm
       ConfirmIdpLogin
       Error
 
-  # The buttons on the CnFedCM dialog.
+  # The buttons on the FedCM dialog.
   type DialogButton extends string
     enum
       ConfirmIdpLoginContinue
@@ -11700,7 +11715,7 @@ experimental domain FedCm
     parameters
       # Allows callers to disable the promise rejection delay that would
       # normally happen, if this is unimportant to what's being tested.
-      # (step 4 of https://fedidcg.github.io/CnFedCM/#browser-api-rp-sign-in)
+      # (step 4 of https://fedidcg.github.io/FedCM/#browser-api-rp-sign-in)
       optional boolean disableRejectionDelay
 
   command disable
@@ -11720,6 +11735,6 @@ experimental domain FedCm
       string dialogId
       optional boolean triggerCooldown
 
-  # Resets the cooldown time, if any, to allow the next CnFedCM call to show
+  # Resets the cooldown time, if any, to allow the next FedCM call to show
   # a dialog even if one was recently dismissed by the user.
   command resetCooldown

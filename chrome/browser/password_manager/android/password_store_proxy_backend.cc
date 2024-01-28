@@ -129,7 +129,7 @@ void PasswordStoreProxyBackend::GetAutofillableLoginsAsync(
 }
 
 void PasswordStoreProxyBackend::GetAllLoginsForAccountAsync(
-    std::optional<std::string> account,
+    std::string account,
     LoginsOrErrorReply callback) {
   NOTREACHED();
 }
@@ -296,6 +296,10 @@ void PasswordStoreProxyBackend::OnSyncServiceInitialized(
     syncer::SyncService* sync_service) {
   sync_service_ = sync_service;
   android_backend_->OnSyncServiceInitialized(sync_service);
+}
+
+base::WeakPtr<PasswordStoreBackend> PasswordStoreProxyBackend::AsWeakPtr() {
+  return weak_ptr_factory_.GetWeakPtr();
 }
 
 template <typename ResultT>

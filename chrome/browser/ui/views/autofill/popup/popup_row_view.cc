@@ -27,7 +27,6 @@
 #include "components/autofill/core/common/autofill_features.h"
 #include "components/strings/grit/components_strings.h"
 #include "components/vector_icons/vector_icons.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/events/event_handler.h"
@@ -70,8 +69,10 @@ class EnterExitHandler : public ui::EventHandler {
   base::RepeatingClosure exit_callback_;
 };
 
-constexpr int kExpandableControlCellInsetPadding = 16;
-constexpr int kExpandableControlCellIconSize = 6;
+constexpr int kExpandChildSuggestionsViewWidth = 24;
+constexpr int kExpandChildSuggestionsIconWidth = 16;
+constexpr int kExpandChildSuggestionsViewHorizontalPadding =
+    (kExpandChildSuggestionsViewWidth - kExpandChildSuggestionsIconWidth) / 2;
 
 // Computes the position and set size of the suggestion at `suggestion_index` in
 // `controller`'s suggestions ignoring `PopupItemId::kSeparator`s.
@@ -128,9 +129,10 @@ PopupRowView::ExpandChildSuggestionsView::ExpandChildSuggestionsView() {
   SetNotifyEnterExitOnChild(true);
   SetLayoutManager(std::make_unique<views::BoxLayout>(
       views::BoxLayout::Orientation::kHorizontal,
-      gfx::Insets(kExpandableControlCellInsetPadding)));
+      gfx::Insets(kExpandChildSuggestionsViewHorizontalPadding)));
   AddChildView(popup_cell_utils::ImageViewFromVectorIcon(
-      vector_icons::kSubmenuArrowIcon, kExpandableControlCellIconSize));
+      vector_icons::kSubmenuArrowChromeRefreshIcon,
+      kExpandChildSuggestionsIconWidth));
 }
 
 void PopupRowView::ExpandChildSuggestionsView::GetAccessibleNodeData(
@@ -191,7 +193,10 @@ PopupRowView::PopupRowView(
       line_number_(line_number),
       should_ignore_mouse_observed_outside_item_bounds_check_(
           controller &&
-          controller->ShouldIgnoreMouseObservedOutsideItemBoundsCheck()) {
+          controller->ShouldIgnoreMouseObservedOutsideItemBoundsCheck()),
+      suggestion_is_acceptable_(
+          controller && line_number < controller->GetLineCount() &&
+          controller->GetSuggestionAt(line_number).is_acceptable) {
   CHECK(content_view);
   CHECK(controller_);
   CHECK_LT(line_number_, controller_->GetLineCount());
@@ -227,7 +232,7 @@ PopupRowView::PopupRowView(
             this, type),
         /*exit_callback=*/base::BindRepeating(
             &SelectionDelegate::SetSelectedCell,
-            base::Unretained(&selection_delegate), absl::nullopt,
+            base::Unretained(&selection_delegate), std::nullopt,
             PopupCellSelectionSource::kMouse));
     // Setting this handler on the cell view removes its original event handler
     // (i.e. overridden methods like OnMouse*). Make sure the root view doesn't
@@ -329,7 +334,7 @@ void PopupRowView::OnViewFocused(views::View* view) {
       PopupCellSelectionSource::kKeyboard);
 }
 
-void PopupRowView::SetSelectedCell(absl::optional<CellType> new_cell) {
+void PopupRowView::SetSelectedCell(std::optional<CellType> new_cell) {
   if (new_cell == selected_cell_) {
     return;
   }
@@ -339,7 +344,7 @@ void PopupRowView::SetSelectedCell(absl::optional<CellType> new_cell) {
     content_view_->UpdateStyle(/*selected=*/false);
     content_view_->GetViewAccessibility().OverrideIsSelected(false);
     if (controller_) {
-      controller_->SelectSuggestion(absl::nullopt);
+      controller_->UnselectSuggestion();
     }
   }
 
@@ -361,8 +366,8 @@ void PopupRowView::SetSelectedCell(absl::optional<CellType> new_cell) {
   } else {
     // Set the selected cell to none in case an invalid choice was made (e.g.
     // selecting a control cell when none exists) or the cell was reset
-    // explicitly with `absl::nullopt`.
-    selected_cell_ = absl::nullopt;
+    // explicitly with `std::nullopt`.
+    selected_cell_ = std::nullopt;
   }
 
   UpdateBackground();
@@ -436,9 +441,12 @@ void PopupRowView::RunOnAcceptedForEvent(const ui::Event& event) {
 void PopupRowView::UpdateBackground() {
   // The whole row is highlighted when:
   // * The subpopup is open, or
-  // * The expanding control view is being hovered.
+  // * The expanding control view is being hovered, or
+  // * The suggestion is not acceptable and either the control or content part
+  //   is being hovered.
   ui::ColorId kBackgroundColorId =
-      child_suggestions_displayed_ || (selected_cell_ == CellType::kControl)
+      child_suggestions_displayed_ || (selected_cell_ == CellType::kControl) ||
+              (!suggestion_is_acceptable_ && selected_cell_)
           ? ui::kColorDropdownBackgroundSelected
           : ui::kColorDropdownBackground;
   SetBackground(views::CreateThemedRoundedRectBackground(
@@ -447,7 +455,7 @@ void PopupRowView::UpdateBackground() {
 }
 
 BEGIN_METADATA(PopupRowView)
-ADD_PROPERTY_METADATA(absl::optional<PopupRowView::CellType>, SelectedCell)
+ADD_PROPERTY_METADATA(std::optional<PopupRowView::CellType>, SelectedCell)
 END_METADATA
 
 }  // namespace autofill

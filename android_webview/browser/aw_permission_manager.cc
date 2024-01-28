@@ -343,6 +343,9 @@ void AwPermissionManager::RequestPermissions(
       case PermissionType::WINDOW_MANAGEMENT:
       case PermissionType::LOCAL_FONTS:
       case PermissionType::DISPLAY_CAPTURE:
+      case PermissionType::CAPTURED_SURFACE_CONTROL:
+      case PermissionType::SMART_CARD:
+      case PermissionType::WEB_PRINTING:
         NOTIMPLEMENTED() << "RequestPermissions is not implemented for "
                          << static_cast<int>(permissions[i]);
         pending_request_raw->SetPermissionStatus(permissions[i],
@@ -507,7 +510,7 @@ PermissionStatus AwPermissionManager::GetPermissionStatusForEmbeddedRequester(
 }
 
 AwPermissionManager::SubscriptionId
-AwPermissionManager::SubscribePermissionStatusChange(
+AwPermissionManager::SubscribeToPermissionStatusChange(
     PermissionType permission,
     content::RenderProcessHost* render_process_host,
     content::RenderFrameHost* render_frame_host,
@@ -516,7 +519,7 @@ AwPermissionManager::SubscribePermissionStatusChange(
   return SubscriptionId();
 }
 
-void AwPermissionManager::UnsubscribePermissionStatusChange(
+void AwPermissionManager::UnsubscribeFromPermissionStatusChange(
     SubscriptionId subscription_id) {}
 
 void AwPermissionManager::CancelPermissionRequest(int request_id) {
@@ -589,6 +592,9 @@ void AwPermissionManager::CancelPermissionRequest(int request_id) {
       case PermissionType::WINDOW_MANAGEMENT:
       case PermissionType::LOCAL_FONTS:
       case PermissionType::DISPLAY_CAPTURE:
+      case PermissionType::CAPTURED_SURFACE_CONTROL:
+      case PermissionType::SMART_CARD:
+      case PermissionType::WEB_PRINTING:
         NOTIMPLEMENTED() << "CancelPermission not implemented for "
                          << static_cast<int>(permission);
         break;
@@ -624,10 +630,8 @@ void AwPermissionManager::CancelPermissionRequests() {
 }
 
 void AwPermissionManager::SetOriginCanReadEnumerateDevicesAudioLabels(
-    const GURL& origin,
+    const url::Origin& origin,
     bool audio) {
-  if (origin.spec().empty() || origin.SchemeIsFile())
-    return;
   auto it = enumerate_devices_labels_cache_.find(origin);
   if (it == enumerate_devices_labels_cache_.end()) {
     enumerate_devices_labels_cache_[origin] = std::make_pair(audio, false);
@@ -637,10 +641,8 @@ void AwPermissionManager::SetOriginCanReadEnumerateDevicesAudioLabels(
 }
 
 void AwPermissionManager::SetOriginCanReadEnumerateDevicesVideoLabels(
-    const GURL& origin,
+    const url::Origin& origin,
     bool video) {
-  if (origin.spec().empty() || origin.SchemeIsFile())
-    return;
   auto it = enumerate_devices_labels_cache_.find(origin);
   if (it == enumerate_devices_labels_cache_.end())
     enumerate_devices_labels_cache_[origin] = std::make_pair(false, video);
@@ -649,7 +651,7 @@ void AwPermissionManager::SetOriginCanReadEnumerateDevicesVideoLabels(
 }
 
 bool AwPermissionManager::ShouldShowEnumerateDevicesAudioLabels(
-    const GURL& origin) {
+    const url::Origin& origin) {
   auto it = enumerate_devices_labels_cache_.find(origin);
   if (it == enumerate_devices_labels_cache_.end())
     return false;
@@ -657,7 +659,7 @@ bool AwPermissionManager::ShouldShowEnumerateDevicesAudioLabels(
 }
 
 bool AwPermissionManager::ShouldShowEnumerateDevicesVideoLabels(
-    const GURL& origin) {
+    const url::Origin& origin) {
   auto it = enumerate_devices_labels_cache_.find(origin);
   if (it == enumerate_devices_labels_cache_.end())
     return false;
@@ -665,11 +667,9 @@ bool AwPermissionManager::ShouldShowEnumerateDevicesVideoLabels(
 }
 
 void AwPermissionManager::ClearEnumerateDevicesCachedPermission(
-    const GURL& origin,
+    const url::Origin& origin,
     bool remove_audio,
     bool remove_video) {
-  if (origin.spec().empty())
-    return;
   auto it = enumerate_devices_labels_cache_.find(origin);
   if (it == enumerate_devices_labels_cache_.end())
     return;

@@ -90,7 +90,7 @@ BASE_FEATURE(kEnableOopPrintDrivers,
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 const base::FeatureParam<bool> kEnableOopPrintDriversJobPrint{
-    &kEnableOopPrintDrivers, "JobPrint", false};
+    &kEnableOopPrintDrivers, "JobPrint", true};
 
 const base::FeatureParam<bool> kEnableOopPrintDriversSandbox{
     &kEnableOopPrintDrivers, "Sandbox", false};
@@ -100,12 +100,6 @@ const base::FeatureParam<bool> kEnableOopPrintDriversSingleProcess{
     &kEnableOopPrintDrivers, "SingleProcess", true};
 #endif
 #endif  // BUILDFLAG(ENABLE_OOP_PRINTING)
-
-#if BUILDFLAG(ENABLE_PRINT_CONTENT_ANALYSIS)
-BASE_FEATURE(kEnableCloudScanAfterPreview,
-             "EnableCloudScanAfterPreview",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-#endif  // BUILDFLAG(ENABLE_PRINT_CONTENT_ANALYSIS)
 
 }  // namespace features
 }  // namespace printing

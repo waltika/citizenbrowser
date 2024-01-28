@@ -9,7 +9,9 @@
 #import "components/strings/grit/components_strings.h"
 #import "ios/chrome/browser/shared/ui/symbols/symbols.h"
 #import "ios/chrome/browser/shared/ui/util/uikit_ui_util.h"
+#import "ios/chrome/browser/ui/search_engine_choice/fake_omnibox/fake_omnibox_view.h"
 #import "ios/chrome/browser/ui/search_engine_choice/search_engine_choice_constants.h"
+#import "ios/chrome/browser/ui/search_engine_choice/search_engine_choice_table/cells/snippet_search_engine_item.h"
 #import "ios/chrome/browser/ui/search_engine_choice/search_engine_choice_table/search_engine_choice_table_view_controller.h"
 #import "ios/chrome/browser/ui/search_engine_choice/search_engine_choice_ui_util.h"
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
@@ -23,12 +25,6 @@
 
 namespace {
 
-// Accessibility Identifier.
-NSString* const kSearchEngineChoiceTitleAccessibilityIdentifier =
-    @"SearchEngineChoiceTitleAccessibilityIdentifier";
-// Parameters for the fake omnibox.
-constexpr CGFloat kFakeOmniboxWidth = 226.;
-constexpr CGFloat kFakeOmniboxHeight = 48.;
 // Line width for the bottom separator.
 constexpr CGFloat kLineWidth = 1.;
 // The horizontal space between the safe area edges and the view elements.
@@ -71,9 +67,9 @@ const char* const kLearnMoreURL = "internal://choice-screen-learn-more";
   UIStackView* _topZoneStackView;
   // A fake empty omnibox illustration, shown before the user has made any
   // selection.
-  UIView* _fakeEmptyOmniboxView;
+  FakeOmniboxView* _fakeEmptyOmniboxView;
   // A fake empty omnibox illustration, with the user's selection.
-  UIView* _fakeOmniboxView;
+  FakeOmniboxView* _fakeOmniboxView;
   // The chrome logo.
   UIImageView* _logoView;
   // The view title.
@@ -89,8 +85,7 @@ const char* const kLearnMoreURL = "internal://choice-screen-learn-more";
 
 - (instancetype)initWithSearchEngineTableViewController:
     (SearchEngineChoiceTableViewController*)tableViewController {
-  DCHECK(tableViewController);
-
+  CHECK(tableViewController);
   self = [super initWithNibName:nil bundle:nil];
   if (self) {
     _searchEngineTableViewController = tableViewController;
@@ -140,6 +135,10 @@ const char* const kLearnMoreURL = "internal://choice-screen-learn-more";
   _logoView.translatesAutoresizingMaskIntoConstraints = NO;
 
   _titleLabel = [[UILabel alloc] init];
+  // Add semantic group to have a coherent behaviour with the table view and
+  // the primary button, this is related to VoiceOver.
+  _titleLabel.accessibilityContainerType =
+      UIAccessibilityContainerTypeSemanticGroup;
   [_topZoneStackView addArrangedSubview:_titleLabel];
   [_titleLabel
       setText:l10n_util::GetNSString(IDS_SEARCH_ENGINE_CHOICE_PAGE_TITLE)];
@@ -153,12 +152,14 @@ const char* const kLearnMoreURL = "internal://choice-screen-learn-more";
   _titleLabel.accessibilityTraits |= UIAccessibilityTraitHeader;
   _titleLabel.translatesAutoresizingMaskIntoConstraints = NO;
 
-  _fakeEmptyOmniboxView = CreateFakeEmptyOmnibox();
+  _fakeEmptyOmniboxView =
+      [[FakeOmniboxView alloc] initWithSearchEngineName:nil faviconImage:nil];
   [_topZoneStackView addArrangedSubview:_fakeEmptyOmniboxView];
   if (self.traitCollection.verticalSizeClass ==
       UIUserInterfaceSizeClassCompact) {
     _fakeEmptyOmniboxView.hidden = YES;
   }
+  _fakeEmptyOmniboxView.translatesAutoresizingMaskIntoConstraints = NO;
 
   NSMutableAttributedString* subtitleText = [[NSMutableAttributedString alloc]
       initWithString:[l10n_util::GetNSString(
@@ -218,6 +219,11 @@ const char* const kLearnMoreURL = "internal://choice-screen-learn-more";
   [_primaryButton addTarget:self
                      action:@selector(primaryButtonAction)
            forControlEvents:UIControlEventTouchUpInside];
+  // Add semantic group, so the user can skip all the table view cells, and
+  // jump to the primary button, using VoiceOver. This requires to set
+  // `semantic group` to the button too.
+  _primaryButton.accessibilityContainerType =
+      UIAccessibilityContainerTypeSemanticGroup;
 
   [NSLayoutConstraint activateConstraints:@[
     // Scroll view constraints.
@@ -288,53 +294,70 @@ const char* const kLearnMoreURL = "internal://choice-screen-learn-more";
   ]];
 }
 
+#pragma mark - UITraitEnvironment
+
+- (void)traitCollectionDidChange:(UITraitCollection*)previousTraitCollection {
+  [super traitCollectionDidChange:previousTraitCollection];
+  // Reset the title font to make sure that it is
+  // properly scaled.
+  _titleLabel.font = GetTitleFontWithTraitCollection(self.traitCollection);
+}
+
 #pragma mark - SearchEngineChoiceConsumer
 
-- (void)updateFakeOmniboxWithFavicon:(UIImageView*)icon
-                    SearchEngineName:(NSString*)name {
-  CGRect startingFrame = _fakeEmptyOmniboxView.frame;
-  startingFrame.origin.y += kTravelDistance;
-  CGRect endFrame = _fakeEmptyOmniboxView.frame;
-  UIView* existingFakeOmniboxView = _fakeOmniboxView;
-  if (existingFakeOmniboxView) {
+- (void)updateFakeOmniboxWithFaviconImage:(UIImage*)icon
+                         searchEngineName:(NSString*)name {
+  UIView* exitingFakeOmniboxView = _fakeOmniboxView;
+  _fakeOmniboxView = [[FakeOmniboxView alloc] initWithSearchEngineName:name
+                                                          faviconImage:icon];
+  _fakeOmniboxView.translatesAutoresizingMaskIntoConstraints = NO;
+  [_topZoneStackView addSubview:_fakeOmniboxView];
+  AddSameConstraints(_fakeOmniboxView, _fakeEmptyOmniboxView);
+  if (self.traitCollection.verticalSizeClass ==
+      UIUserInterfaceSizeClassCompact) {
+    // If the vertical size is compact, the new fake omnibox should be added but
+    // hidden (just in case the user rotate the device in portrait mode).
+    // And the previous fake omnibox should be removed.
+    [exitingFakeOmniboxView removeFromSuperview];
+    _fakeOmniboxView.hidden = YES;
+    return;
+  }
+  if (exitingFakeOmniboxView) {
+    // Animate the exiting fake omnibox view.
     [UIView animateWithDuration:kExitAnimationDuration
         delay:0
         usingSpringWithDamping:1
         initialSpringVelocity:0
         options:UIViewAnimationCurveEaseIn
         animations:^{
-          existingFakeOmniboxView.alpha = 0;
-          existingFakeOmniboxView.transform =
+          exitingFakeOmniboxView.alpha = 0;
+          CGAffineTransform rotate =
               CGAffineTransformMakeRotation(kRotationAngle);
-          existingFakeOmniboxView.frame = startingFrame;
+          CGAffineTransform translate =
+              CGAffineTransformMakeTranslation(0, kTravelDistance);
+          exitingFakeOmniboxView.transform =
+              CGAffineTransformConcat(rotate, translate);
         }
         completion:^(BOOL finished) {
-          [existingFakeOmniboxView removeFromSuperview];
+          [exitingFakeOmniboxView removeFromSuperview];
         }];
   }
-  // No need to add a new fake omnibox when it is hidden.
-  if (self.traitCollection.verticalSizeClass ==
-      UIUserInterfaceSizeClassCompact) {
-    return;
-  }
-
-  UIView* newFakeOmniboxView = CreateFakeOmnibox(icon, name);
-  [_topZoneStackView addSubview:newFakeOmniboxView];
-  newFakeOmniboxView.frame = startingFrame;
-  newFakeOmniboxView.transform = CGAffineTransformMakeRotation(kRotationAngle);
-
+  // Animate the entering fake omnibox view.
+  CGAffineTransform rotate = CGAffineTransformMakeRotation(kRotationAngle);
+  CGAffineTransform translate =
+      CGAffineTransformMakeTranslation(0, kTravelDistance);
+  _fakeOmniboxView.transform = CGAffineTransformConcat(rotate, translate);
+  FakeOmniboxView* enteringFakeOmniboxView = _fakeOmniboxView;
   [UIView animateWithDuration:kEntranceAnimationDuration
-      delay:0
-      usingSpringWithDamping:kSpringDamping
-      initialSpringVelocity:0
-      options:UIViewAnimationCurveEaseOut
-      animations:^{
-        newFakeOmniboxView.transform = CGAffineTransformIdentity;
-        newFakeOmniboxView.frame = endFrame;
-      }
-      completion:^(BOOL finished) {
-        self->_fakeOmniboxView = newFakeOmniboxView;
-      }];
+                        delay:0
+       usingSpringWithDamping:kSpringDamping
+        initialSpringVelocity:0
+                      options:UIViewAnimationCurveEaseOut
+                   animations:^{
+                     enteringFakeOmniboxView.transform =
+                         CGAffineTransformIdentity;
+                   }
+                   completion:nil];
 }
 
 #pragma mark - Private

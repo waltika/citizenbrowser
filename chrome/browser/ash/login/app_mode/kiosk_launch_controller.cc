@@ -146,7 +146,7 @@ class ArcKioskAppServiceWrapper : public KioskAppLauncher {
  private:
   // `service_` is externally owned and it's the caller's responsibility to
   // ensure that it outlives this wrapper.
-  const raw_ptr<ArcKioskAppService, ExperimentalAsh> service_;
+  const raw_ptr<ArcKioskAppService> service_;
 };
 
 std::unique_ptr<KioskAppLauncher> BuildKioskAppLauncher(
@@ -460,7 +460,7 @@ void KioskLaunchController::OnCancelAppLaunch() {
 
 AppLaunchSplashScreenView::Data
 KioskLaunchController::GetSplashScreenAppData() {
-  absl::optional<KioskApp> app =
+  std::optional<KioskApp> app =
       KioskController::Get().GetAppById(kiosk_app_id_);
   // TODO(b/306117645) upgrade to CHECK.
   DUMP_WILL_BE_CHECK(app.has_value());
@@ -623,7 +623,7 @@ void KioskLaunchController::OnAppLaunched() {
 }
 
 void KioskLaunchController::OnAppWindowCreated(
-    const absl::optional<std::string>& app_name) {
+    const std::optional<std::string>& app_name) {
   SYSLOG(INFO) << "App window created, closing splash screen.";
 
   SetKioskLaunchStateCrashKey(KioskLaunchState::kAppWindowCreated);

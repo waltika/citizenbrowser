@@ -165,7 +165,6 @@ WorkerThread::~WorkerThread() {
 
   DCHECK(child_threads_.empty());
   DCHECK_NE(ExitCode::kNotTerminated, exit_code_);
-  base::UmaHistogramEnumeration("WorkerThread.ExitCode", exit_code_);
 }
 
 void WorkerThread::Start(

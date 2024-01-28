@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "chrome/browser/ui/views/extensions/extensions_toolbar_controls.h"
-
 #include "base/strings/strcat.h"
 #include "base/test/metrics/user_action_tester.h"
 #include "chrome/browser/extensions/extension_action_runner.h"
@@ -31,6 +29,8 @@ base::TimeDelta kConfirmationDisplayDuration = base::Seconds(4);
 
 }  // namespace
 
+// TODO(crbug.com/1416603): Move tests to extension toolbar container unit test
+// class, since controls were removed.
 class ExtensionsToolbarControlsUnitTest : public ExtensionsToolbarUnitTest {
  public:
   ExtensionsToolbarControlsUnitTest();
@@ -71,9 +71,7 @@ void ExtensionsToolbarControlsUnitTest::NavigateAndCommit(const GURL& url) {
 
 ExtensionsRequestAccessButton*
 ExtensionsToolbarControlsUnitTest::request_access_button() {
-  return extensions_container()
-      ->GetExtensionsToolbarControls()
-      ->request_access_button();
+  return extensions_container()->GetRequestAccessButton();
 }
 
 ExtensionsToolbarButton*
@@ -159,17 +157,31 @@ TEST_F(ExtensionsToolbarControlsUnitTest,
   auto extension_a =
       InstallExtensionWithHostPermissions("Extension A", {url_a.spec()});
   WithholdHostPermissions(extension_a.get());
+
+  // Verify only extensions button is visible and has no flat edge.
+  EXPECT_TRUE(extensions_button()->GetVisible());
+  EXPECT_EQ(extensions_button()->GetFlatEdge(), std::nullopt);
   EXPECT_FALSE(IsRequestAccessButtonVisible());
 
   // Navigate to an url the extension requests access to.
   NavigateAndCommit(url_a);
+
+  // Verify both buttons are visible and have the correct flat edges.
+  EXPECT_TRUE(extensions_button()->GetVisible());
+  EXPECT_EQ(extensions_button()->GetFlatEdge(), ToolbarButton::Edge::kLeft);
   EXPECT_TRUE(IsRequestAccessButtonVisible());
+  EXPECT_EQ(request_access_button()->GetFlatEdge(),
+            ToolbarButton::Edge::kRight);
   EXPECT_EQ(
       request_access_button()->GetText(),
       l10n_util::GetStringFUTF16Int(IDS_EXTENSIONS_REQUEST_ACCESS_BUTTON, 1));
 
   // Navigate to an url the extension does not request access to.
   NavigateAndCommit(url_b);
+
+  // Verify only extensions button is visible and has no flat edge.
+  EXPECT_TRUE(extensions_button()->GetVisible());
+  EXPECT_EQ(extensions_button()->GetFlatEdge(), std::nullopt);
   EXPECT_FALSE(IsRequestAccessButtonVisible());
 }
 
@@ -280,6 +292,7 @@ TEST_F(ExtensionsToolbarControlsUnitTest,
   // Remove the only extension that requests access to the current site.
   UninstallExtension(extension_all_urls->id());
   LayoutContainerIfNecessary();
+  WaitForAnimation();
   EXPECT_FALSE(IsRequestAccessButtonVisible());
 }
 
@@ -485,6 +498,7 @@ TEST_F(ExtensionsToolbarControlsUnitTest,
   // Force the confirmation to be collapsed.
   task_environment()->AdvanceClock(kConfirmationDisplayDuration);
   base::RunLoop().RunUntilIdle();
+  WaitForAnimation();
 
   // Verify the request access button is hidden.
   ASSERT_FALSE(request_access_button()->GetVisible());

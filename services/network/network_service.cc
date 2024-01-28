@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <map>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -111,7 +112,6 @@
 #endif
 
 #if BUILDFLAG(IS_CT_SUPPORTED)
-#include "services/network/ct_log_list_distributor.h"
 #include "services/network/sct_auditing/sct_auditing_cache.h"
 #endif
 
@@ -459,10 +459,6 @@ void NetworkService::Initialize(mojom::NetworkServiceParamsPtr params,
 
   http_auth_cache_copier_ = std::make_unique<HttpAuthCacheCopier>();
 
-#if BUILDFLAG(IS_CT_SUPPORTED)
-  ct_log_list_distributor_ = std::make_unique<CtLogListDistributor>();
-#endif
-
   doh_probe_activator_ = std::make_unique<DelayedDohProbeActivator>(this);
 
   trust_token_key_commitments_ = std::make_unique<TrustTokenKeyCommitments>();
@@ -658,15 +654,6 @@ void NetworkService::SetSSLKeyLogFile(base::File file) {
 void NetworkService::CreateNetworkContext(
     mojo::PendingReceiver<mojom::NetworkContext> receiver,
     mojom::NetworkContextParamsPtr params) {
-  // If a custom proxy config is already set, the Masked Domain List proxy
-  // configs should not be used.
-  if (network_service_proxy_allow_list_->IsEnabled() &&
-      params->initial_custom_proxy_config.is_null() &&
-      !params->custom_proxy_config_client_receiver.is_valid()) {
-    params->initial_custom_proxy_config =
-        network_service_proxy_allow_list_->MakeIpProtectionCustomProxyConfig();
-  }
-
   owned_network_contexts_.emplace(std::make_unique<NetworkContext>(
       this, std::move(receiver), std::move(params),
       base::BindOnce(&NetworkService::OnNetworkContextConnectionClosed,
@@ -875,15 +862,9 @@ void NetworkService::ConfigureSCTAuditing(
 }
 
 void NetworkService::UpdateCtLogList(std::vector<mojom::CTLogInfoPtr> log_list,
-                                     base::Time update_time,
                                      UpdateCtLogListCallback callback) {
   log_list_ = std::move(log_list);
-  ct_log_list_update_time_ = update_time;
 
-  ct_log_list_distributor_->OnNewCtConfig(log_list_);
-  for (auto* context : network_contexts_) {
-    context->OnCTLogListUpdated(log_list_, update_time);
-  }
   std::move(callback).Run();
 }
 
@@ -916,7 +897,7 @@ void NetworkService::UpdateKeyPinsList(mojom::PinListPtr pin_list,
   pins_list_update_time_ = update_time;
   for (const auto& pinset : pin_list->pinsets) {
     pinsets_.emplace_back(pinset->name, pinset->static_spki_hashes,
-                          pinset->bad_static_spki_hashes, pinset->report_uri);
+                          pinset->bad_static_spki_hashes);
   }
   for (const auto& info : pin_list->host_pins) {
     host_pins_.emplace_back(info->hostname, info->pinset_name,

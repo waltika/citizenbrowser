@@ -77,6 +77,7 @@
 <translation id="2258103955319320201">如需在您的所有设备上访问自己的 Chrome 浏览器信息，请登录您的账号，然后开启同步功能</translation>
 <translation id="2290014774651636340">缺少 Google API 密钥，因此 Google Chrome 的部分功能将无法使用。</translation>
 <translation id="2290095356545025170">确定要卸载 Google Chrome 浏览器吗？</translation>
+<translation id="2298849085402457754">要想仅清除此设备中的浏览数据而保留您的 Google 账号中的浏览数据，请<ph name="BEGIN_LINK" />退出 Chrome<ph name="END_LINK" />。</translation>
 <translation id="2309047409763057870">这是 Google Chrome 的并行安装，您无法将此浏览器设为默认浏览器。</translation>
 <translation id="2345992953227471816">Chrome 发现这些扩展程序包含恶意软件：</translation>
 <translation id="2348335408836342058">Chrome 需要获得相应权限，才能允许此网站使用您的摄像头和麦克风</translation>
@@ -197,6 +198,7 @@
 <translation id="4148957013307229264">正在安装...</translation>
 <translation id="4149882025268051530">安装程序无法解压缩存档文件。请重新下载 Google Chrome。</translation>
 <translation id="4153934450158521343">Chrome 即将关闭并删除数据</translation>
+<translation id="4173512894976930765">网站很可能会按预期运行。关闭所有 Chrome 窗口后，您将会从大多数网站退出账号；但如果您已登录 Chrome，则您的 Google 账号不会退出。</translation>
 <translation id="4175922240926474352">Chrome 阻止了此项下载操作，因为网站未使用安全连接，该文件可能已被篡改</translation>
 <translation id="4191857738314598978">{0,plural, =1{请于 1 天内重新启动 Chrome}other{请于 # 天内重新启动 Chrome}}</translation>
 <translation id="4205939740494406371">Chrome 无法检查您的密码。请过 24 小时再试，或者<ph name="BEGIN_LINK" />检查您的 Google 账号中的密码<ph name="END_LINK" />。</translation>
@@ -214,7 +216,6 @@
 <translation id="4343195214584226067">“<ph name="EXTENSION_NAME" />”已添加到 Chrome</translation>
 <translation id="4384570495110188418">Chrome 无法检查您的密码，因为您未登录</translation>
 <translation id="4389991535395284064">当您在无痕模式下浏览内容时，Chrome 会在使用不安全的连接加载网站前向您发出警告</translation>
-<translation id="4393248995085527349">若要接收后续 Google Chrome 更新，您需使用 macOS 10.15 或更高版本。该计算机目前使用的是 macOS 10.13。</translation>
 <translation id="4427306783828095590">“增强型保护”选项在防范网上诱骗和恶意软件方面更高一筹</translation>
 <translation id="4450664632294415862">Chrome - 网络登录 - <ph name="PAGE_TITLE" /></translation>
 <translation id="4458462641685292929">Google Chrome 正在执行另一项操作，请稍后重试。</translation>
@@ -298,7 +299,6 @@
 <translation id="5941711191222866238">最小化</translation>
 <translation id="5941830788786076944">将 Google Chrome 浏览器设为默认浏览器</translation>
 <translation id="6003112304606738118">正在下载…还需 <ph name="HOURS" /> 小时</translation>
-<translation id="6010556343189461180">若要接收后续 Google Chrome 更新，您需使用 macOS 10.15 或更高版本。该计算机目前使用的是 macOS 10.14。</translation>
 <translation id="6014316319780893079">借助 <ph name="BEGIN_LINK" />Chrome 中的工具<ph name="END_LINK" />，您可以安全地浏览并掌控个人数据的安全</translation>
 <translation id="6022659036123304283">定制您的专属 Chrome</translation>
 <translation id="6025087594896450715">Google Chrome 将在 <ph name="REMAINING_TIME" />后重启</translation>

@@ -43,9 +43,6 @@ constexpr base::TimeDelta kNudgeTimeBetweenShown = base::Hours(24);
 
 constexpr char kCaptureModeNudgeId[] = "kCaptureModeNudge";
 
-// Nudge styling values.
-constexpr int kShortcutIconSize = 60;
-
 // Tutorial styling values.
 constexpr int kRowSpacing = 30;
 constexpr int kTitleShortcutSpacing = 8;
@@ -69,8 +66,10 @@ AnchoredNudgeData CreateBaseNudgeData(NudgeCatalogName catalog_name) {
       kCaptureModeNudgeId, catalog_name,
       l10n_util::GetStringUTF16(IDS_ASH_SCREEN_CAPTURE_EDUCATION_NUDGE_LABEL));
 
-  nudge_data.image_model = ui::ImageModel::FromVectorIcon(
-      kCaptureModeIcon, kColorAshIconColorPrimary, kShortcutIconSize);
+  nudge_data.image_model =
+      ui::ResourceBundle::GetSharedInstance().GetThemedLottieImageNamed(
+          IDR_SCREEN_CAPTURE_EDUCATION_NUDGE_IMAGE);
+  nudge_data.fill_image_size = true;
   nudge_data.keyboard_codes = {ui::VKEY_CONTROL, ui::VKEY_SHIFT,
                                ui::VKEY_MEDIA_LAUNCH_APP1};
 
@@ -137,6 +136,8 @@ std::unique_ptr<SystemDialogDelegateView> CreateDialogView() {
   auto dialog = std::make_unique<SystemDialogDelegateView>();
   dialog->SetTitleText(l10n_util::GetStringUTF16(
       IDS_ASH_SCREEN_CAPTURE_EDUCATION_TUTORIAL_TITLE));
+  dialog->SetAccessibleTitle(l10n_util::GetStringUTF16(
+      IDS_ASH_SCREEN_CAPTURE_EDUCATION_TUTORIAL_ACCESSIBLE_TITLE));
   dialog->SetMiddleContentView(CreateContentView());
   dialog->SetMiddleContentAlignment(views::LayoutAlignment::kStretch);
   // Override the title margins to be zero, as the space between the title and
@@ -267,8 +268,10 @@ void CaptureModeEducationController::ShowQuickSettingsNudge() {
       l10n_util::GetStringUTF16(
           IDS_ASH_SCREEN_CAPTURE_EDUCATION_SETTINGS_NUDGE_LABEL));
 
-  nudge_data.image_model = ui::ImageModel::FromVectorIcon(
-      kCaptureModeIcon, kColorAshIconColorPrimary, kShortcutIconSize);
+  nudge_data.image_model =
+      ui::ResourceBundle::GetSharedInstance().GetThemedLottieImageNamed(
+          IDR_SCREEN_CAPTURE_EDUCATION_NUDGE_IMAGE);
+  nudge_data.fill_image_size = true;
   nudge_data.SetAnchorView(
       RootWindowController::ForWindow(Shell::GetRootWindowForNewWindows())
           ->shelf()
@@ -284,6 +287,7 @@ void CaptureModeEducationController::CreateAndShowTutorialDialog() {
   views::Widget::InitParams params(views::Widget::InitParams::TYPE_POPUP);
   params.delegate = CreateDialogView().release();
   params.name = "CaptureModeEducationTutorialWidget";
+  params.activatable = views::Widget::InitParams::Activatable::kYes;
   tutorial_widget_ = std::make_unique<views::Widget>();
   tutorial_widget_->Init(std::move(params));
   tutorial_widget_->Show();

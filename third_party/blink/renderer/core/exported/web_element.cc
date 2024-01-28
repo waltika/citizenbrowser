@@ -119,6 +119,9 @@ void WebElement::SetAttribute(const WebString& attr_name,
 WebString WebElement::TextContent() const {
   return ConstUnwrap<Element>()->textContent();
 }
+WebString WebElement::TextContentAbridged(const unsigned int max_length) const {
+  return ConstUnwrap<Element>()->textContent(false, nullptr, max_length);
+}
 
 WebString WebElement::InnerHTML() const {
   return ConstUnwrap<Element>()->innerHTML();
@@ -142,6 +145,9 @@ bool WebElement::ContainsFrameSelection() const {
                    .GetFrame()
                    ->Selection()
                    .RootEditableElementOrDocumentElement();
+  if (!root) {
+    return false;
+  }
   // For form controls, the selection's root editable is a contenteditable in
   // a shadow DOM tree.
   return (e.IsFormControlElement() ? root->OwnerShadowHost() : root) == e;

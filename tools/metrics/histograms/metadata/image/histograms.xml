@@ -75,6 +75,15 @@ chromium-metrics-reviews@google.com.
       summary="Showing cache patterns only for OfflinePages."/>
   <variant name=".Omnibox"
       summary="Showing cache patterns only for Omnibox (valid since M117)."/>
+  <variant name=".PasswordBottomSheet"
+      summary="Profile image fetcher for Password Manager sign-in bottom
+               sheet."/>
+  <variant name=".PasswordSharing"
+      summary="Profile image fetcher of potential password recipients in the
+               Password Sharing flow."/>
+  <variant name=".PriceChangeModule"
+      summary="Images fetched and used to render price change module on NTP
+               or StartSurface."/>
   <variant name=".PriceDropNotification"
       summary="Images fetched for the icon of price drop notification."/>
   <variant name=".QueryTiles" summary="Showing Query tiles images."/>
@@ -396,7 +405,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="ImageDecoder.Png.UiGfxIntoSkBitmap" units="microseconds"
-    expires_after="2024-05-12">
+    expires_after="2024-07-14">
   <owner>lukasza@chromium.org</owner>
   <owner>chrome-rust-experiments@google.com</owner>
   <summary>
@@ -414,7 +423,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="ImageDecoder.Png.UiGfxIntoVector" units="microseconds"
-    expires_after="2024-05-12">
+    expires_after="2024-07-14">
   <owner>lukasza@chromium.org</owner>
   <owner>chrome-rust-experiments@google.com</owner>
   <summary>
@@ -545,7 +554,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="ImageFetcher.RequestStatusCode{ImageFetcherClients}"
-    enum="CombinedHttpResponseAndNetErrorCode" expires_after="2024-04-28">
+    enum="CombinedHttpResponseAndNetErrorCode" expires_after="2024-06-30">
   <owner>fgorski@chromium.org</owner>
   <owner>wylieb@chromium.org</owner>
   <summary>

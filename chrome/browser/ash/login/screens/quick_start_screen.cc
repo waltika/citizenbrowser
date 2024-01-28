@@ -17,6 +17,7 @@ namespace ash {
 namespace {
 
 constexpr const char kUserActionCancelClicked[] = "cancel";
+constexpr const char kUserActionNextClicked[] = "next";
 
 base::Value::List ConvertQrCode(quick_start::QRCode::PixelData qr_code) {
   base::Value::List qr_code_list;
@@ -39,6 +40,8 @@ std::string QuickStartScreen::GetResultString(Result result) {
       return "CancelAndReturnToGaiaInfo";
     case Result::CANCEL_AND_RETURN_TO_SIGNIN:
       return "CancelAndReturnToSignin";
+    case Result::SETUP_COMPLETE_NEXT_BUTTON:
+      return "SetupCompleteNextButton";
     case Result::WIFI_CREDENTIALS_RECEIVED:
       return "WifiCredentialsReceived";
   }
@@ -71,6 +74,10 @@ void QuickStartScreen::ShowImpl() {
   if (!view_) {
     return;
   }
+
+  // Show the initial UI step which is just blank. The controller
+  // then updates the UI via the local observer 'OnUiUpdateRequested'.
+  view_->ShowInitialUiStep();
   view_->Show();
 }
 
@@ -86,6 +93,9 @@ void QuickStartScreen::OnUserAction(const base::Value::List& args) {
     controller_->AbortFlow(quick_start::QuickStartController::AbortFlowReason::
                                USER_CLICKED_CANCEL);
     ExitScreen();
+  } else if (action_id == kUserActionNextClicked) {
+    controller_->DetachFrontend(this);
+    exit_callback_.Run(Result::SETUP_COMPLETE_NEXT_BUTTON);
   } else {
     BaseScreen::OnUserAction(args);
   }
@@ -104,9 +114,6 @@ void QuickStartScreen::OnUiUpdateRequested(
     case ash::quick_start::QuickStartController::UiState::SHOWING_QR:
       view_->SetQRCode(ConvertQrCode(controller_->GetQrCode()));
       break;
-    case quick_start::QuickStartController::UiState::SHOWING_FIDO:
-      view_->ShowFidoAssertionReceived(controller_->GetFidoAssertion().email);
-      break;
     case quick_start::QuickStartController::UiState::SHOWING_PIN:
       view_->SetPIN(controller_->GetPin());
       break;
@@ -116,12 +123,23 @@ void QuickStartScreen::OnUiUpdateRequested(
     case quick_start::QuickStartController::UiState::WIFI_CREDENTIALS_RECEIVED:
       exit_callback_.Run(Result::WIFI_CREDENTIALS_RECEIVED);
       break;
-    case ash::quick_start::QuickStartController::UiState::
-        TRANSFERRING_GAIA_CREDENTIALS:
-      view_->ShowTransferringGaiaCredentials();
+    case quick_start::QuickStartController::UiState::CONFIRM_GOOGLE_ACCOUNT:
+      view_->ShowConfirmGoogleAccount();
       break;
-    case ash::quick_start::QuickStartController::UiState::LOADING:
-      // TODO(b:283724988) - Add method to view to show the loading spinner.
+    case ash::quick_start::QuickStartController::UiState::SIGNING_IN:
+      view_->ShowSigningInStep();
+      view_->SetUserEmail(controller_->GetUserInfo().email);
+      view_->SetUserFullName(controller_->GetUserInfo().full_name);
+      view_->SetUserAvatar(controller_->GetUserInfo().avatar_url);
+      break;
+    case ash::quick_start::QuickStartController::UiState::CREATING_ACCOUNT:
+      view_->ShowCreatingAccountStep();
+      break;
+    case ash::quick_start::QuickStartController::UiState::SETUP_COMPLETE:
+      view_->ShowSetupCompleteStep();
+      break;
+    case ash::quick_start::QuickStartController::UiState::CONNECTING_TO_PHONE:
+      view_->ShowConnectingToPhoneStep();
       break;
     case ash::quick_start::QuickStartController::UiState::EXIT_SCREEN:
       // Controller requested the flow to be aborted.

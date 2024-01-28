@@ -78,6 +78,7 @@
 <translation id="2258103955319320201">Jos haluat pääsyn Chromen selainsisältöön kaikilla laitteilla, kirjaudu sisään ja laita sitten synkronointi päälle.</translation>
 <translation id="2290014774651636340">Googlen sovellusliittymän avaimet puuttuvat. Jotkin Google Chromen toiminnoista poistetaan käytöstä.</translation>
 <translation id="2290095356545025170">Haluatko varmasti poistaa Google Chromen?</translation>
+<translation id="2298849085402457754">Jos haluat tyhjentää selausdatan vain tältä laitteelta, mutta säilyttää sen Google-tililläsi, <ph name="BEGIN_LINK" />kirjaudu ulos Chromesta<ph name="END_LINK" />.</translation>
 <translation id="2309047409763057870">Tämä on Google Chromen toissijainen asennus, eikä sitä voi asettaa oletusselaimeksi.</translation>
 <translation id="2345992953227471816">Chrome havaitsi, että näissä laajennuksissa on haittaohjelmia:</translation>
 <translation id="2348335408836342058">Chrome tarvitsee oikeuden käyttää kameraasi ja mikrofoniasi tällä sivustolla.</translation>
@@ -198,6 +199,7 @@
 <translation id="4148957013307229264">Asennetaan...</translation>
 <translation id="4149882025268051530">Asennusohjelma ei pystynyt purkamaan arkistotiedostoa. Lataa Google Chrome uudelleen.</translation>
 <translation id="4153934450158521343">Chrome suljetaan ja data poistetaan pian</translation>
+<translation id="4173512894976930765">Sivustot toimivat todennäköisesti odotetulla tavalla. Sinut kirjataan ulos useimmilta sivustoilta, kun suljet kaikki Chrome-ikkunat. Tämä ei kuitenkaan koske Google-tiliäsi, jos olet kirjautuneena Chromeen.</translation>
 <translation id="4175922240926474352">Chrome on estänyt tämän latauksen, koska sivusto ei käytä suojattua yhteyttä ja tiedostoa on ehkä peukaloitu</translation>
 <translation id="4191857738314598978">{0,plural, =1{Käynnistä Chrome uudelleen vuorokauden kuluessa}other{Käynnistä Chrome uudelleen # vuorokauden kuluessa}}</translation>
 <translation id="4205939740494406371">Chrome ei voi tarkistaa salasanojasi. Yritä uudelleen 24 tunnin kuluttua tai <ph name="BEGIN_LINK" />tarkista salasanat Google-tililtä<ph name="END_LINK" />.</translation>
@@ -215,7 +217,6 @@
 <translation id="4343195214584226067"><ph name="EXTENSION_NAME" /> on lisätty Chromeen</translation>
 <translation id="4384570495110188418">Chrome ei voi tarkistaa salasanojasi, koska et ole kirjautuneena sisään</translation>
 <translation id="4389991535395284064">Kun selaat incognito-tilassa, Chrome varoittaa sinua ennen kuin sivusto ladataan suojaamattomalla yhteydellä</translation>
-<translation id="4393248995085527349">Sinulla on oltava macOS 10.15 tai uudempi, jotta saat tulevia Google Chromen päivityksiä. Tällä tietokoneella on macOS 10.13.</translation>
 <translation id="4427306783828095590">Parannettu suojaus torjuu tietojenkalastelua ja haittaohjelmia entistä tehokkaammin</translation>
 <translation id="4450664632294415862">Chrome – Kirjautuminen verkkoon – <ph name="PAGE_TITLE" /></translation>
 <translation id="4458462641685292929">Toinen Google Chrome ‑prosessi on jo käynnissä. Yritä myöhemmin uudelleen.</translation>
@@ -299,7 +300,6 @@
 <translation id="5941711191222866238">Pienennä</translation>
 <translation id="5941830788786076944">Tee Google Chromesta oletusselain</translation>
 <translation id="6003112304606738118">Ladataan… <ph name="HOURS" /> tuntia jäljellä</translation>
-<translation id="6010556343189461180">Sinulla on oltava macOS 10.15 tai uudempi, jotta saat tulevia Google Chromen päivityksiä. Tällä tietokoneella on macOS 10.14.</translation>
 <translation id="6014316319780893079"><ph name="BEGIN_LINK" />Chromen työkaluilla<ph name="END_LINK" /> voit selata turvallisesti ja pitää ohjat omissa käsissäsi</translation>
 <translation id="6022659036123304283">Tee Chromesta näköisesi</translation>
 <translation id="6025087594896450715">Google Chrome käynnistyy uudelleen, kun <ph name="REMAINING_TIME" /> on kulunut</translation>

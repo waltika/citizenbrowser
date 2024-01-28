@@ -172,6 +172,26 @@ class SegmentationPlatformTest : public PlatformBrowserTest {
     wait.Run();
   }
 
+  void RunProcessFeaturesAndCallback(
+      const proto::SegmentationModelMetadata& metadata,
+      DatabaseClient::FeaturesCallback callback) {
+    DatabaseClient* client = GetService()->GetDatabaseClient();
+    ASSERT_TRUE(client);
+
+    base::RunLoop wait;
+    client->ProcessFeatures(metadata, base::Time::Now() + base::Minutes(1),
+                            base::BindOnce(
+                                [](base::OnceClosure quit,
+                                   DatabaseClient::FeaturesCallback callback,
+                                   DatabaseClient::ResultStatus status,
+                                   const ModelProvider::Request& result) {
+                                  std::move(callback).Run(status, result);
+                                  std::move(quit).Run();
+                                },
+                                wait.QuitClosure(), std::move(callback)));
+    wait.Run();
+  }
+
   void WaitForSegmentInfoDatabaseUpdate(
       SegmentId segment_id,
       const base::HistogramTester& histogram_tester) {
@@ -212,7 +232,7 @@ class SegmentationPlatformTest : public PlatformBrowserTest {
 
   std::unique_ptr<optimization_guide::ModelInfo>
   CreateOptimizationGuideModelInfo(
-      absl::optional<proto::SegmentationModelMetadata>
+      std::optional<proto::SegmentationModelMetadata>
           segmentation_model_metadata) {
     auto model_info_builder = optimization_guide::TestModelInfoBuilder();
     if (segmentation_model_metadata.has_value()) {
@@ -220,7 +240,7 @@ class SegmentationPlatformTest : public PlatformBrowserTest {
       segmentation_model_metadata.value().SerializeToString(
           &serialized_metadata);
       optimization_guide::proto::Any any_proto;
-      auto any = absl::make_optional(any_proto);
+      auto any = std::make_optional(any_proto);
       any->set_value(serialized_metadata);
       any->set_type_url(
           "type.googleapis.com/"
@@ -531,7 +551,7 @@ class SegmentationPlatformUkmModelTest : public SegmentationPlatformTest {
  protected:
   ukm::TestUkmRecorder ukm_recorder_;
   UkmDataManagerTestUtils utils_;
-  absl::optional<ModelProvider::Request> input_feature_in_last_execution_;
+  std::optional<ModelProvider::Request> input_feature_in_last_execution_;
 };
 
 // This test is disabled in CrOS because CrOS creates a signin profile that uses
@@ -613,6 +633,36 @@ IN_PROC_BROWSER_TEST_F(SegmentationPlatformUkmModelTest, DatabaseApi) {
   ExpectDatabaseQuery({}, {});
   ExpectDatabaseQuery({"test1"}, {11});
   ExpectDatabaseQuery({"test1", "test2"}, {11, 22});
+}
+
+IN_PROC_BROWSER_TEST_F(SegmentationPlatformUkmModelTest, SumGroupDatabaseApi) {
+  WaitForPlatformInit();
+
+  constexpr char kSampleEventName[] = "TestEvent";
+  constexpr char kSampleTestMetric1[] = "test1";
+  constexpr char kSampleTestMetric2[] = "test2";
+  SegmentationPlatformService* service = GetService();
+  DatabaseClient* client = service->GetDatabaseClient();
+  client->AddEvent(
+      {kSampleEventName, {{kSampleTestMetric1, 1}, {kSampleTestMetric2, 2}}});
+  client->AddEvent(
+      {kSampleEventName, {{kSampleTestMetric1, 10}, {kSampleTestMetric2, 20}}});
+
+  constexpr char kSampleTestMetric0[] = "test0";
+  proto::SegmentationModelMetadata metadata;
+  MetadataWriter writer(&metadata);
+  writer.SetDefaultSegmentationMetadataConfig();
+  DatabaseApiClients::AddSumGroupQuery(
+      writer, kSampleEventName,
+      {kSampleTestMetric0, kSampleTestMetric1, kSampleTestMetric2},
+      /*days=*/1);
+  RunProcessFeaturesAndCallback(
+      metadata, base::BindOnce([](DatabaseClient::ResultStatus status,
+                                  const ModelProvider::Request& result) {
+        EXPECT_EQ(status, DatabaseClient::ResultStatus::kSuccess);
+        const std::vector<float> kExpectedResults = {0, 11, 22};
+        EXPECT_EQ(result, kExpectedResults);
+      }));
 }
 
 }  // namespace segmentation_platform

@@ -91,8 +91,8 @@ bool To53(sql::Database& db) {
       "source_id,source_event_id,source_origin,"
       "reporting_origin,source_time,"
       "expiry_time,event_report_window_time,aggregatable_report_window_time,"
-      "source_type,attribution_logic,priority,source_site,"
-      "num_attributions,event_level_active,aggregatable_active,debug_key,"
+      "num_attributions,event_level_active,aggregatable_active,"
+      "source_type,attribution_logic,priority,source_site,debug_key,"
       "aggregatable_budget_consumed,"
       "IIF(aggregatable_budget_consumed>0,1,0),"
       "aggregatable_source,filter_data FROM sources";
@@ -368,9 +368,33 @@ bool To56(sql::Database& db) {
   return true;
 }
 
+[[nodiscard]] bool MaybeMigrateTo57(AttributionStorageSql& storage,
+                                    sql::Database& db,
+                                    sql::MetaTable& meta_table,
+                                    int old_version) {
+  if (meta_table.GetVersionNumber() != old_version) {
+    return true;
+  }
+
+  AttributionStorageSql::DeletionCounts counts;
+  // Performs its own per item transaction when deleting.
+  storage.VerifyReports(&counts);
+  base::UmaHistogramCounts100000("Conversions.CorruptSourcesDeletedOnMigration",
+                                 counts.sources);
+  base::UmaHistogramCounts100000("Conversions.CorruptReportsDeletedOnMigration",
+                                 counts.reports);
+
+  sql::Transaction transaction(&db);
+
+  return transaction.Begin() &&                             //
+         SetVersionNumbers(meta_table, old_version + 1) &&  //
+         transaction.Commit();
+}
+
 }  // namespace
 
-bool UpgradeAttributionStorageSqlSchema(sql::Database& db,
+bool UpgradeAttributionStorageSqlSchema(AttributionStorageSql& storage,
+                                        sql::Database& db,
                                         sql::MetaTable& meta_table) {
   base::ThreadTicks start_timestamp;
   if (base::ThreadTicks::IsSupported()) {
@@ -383,12 +407,13 @@ bool UpgradeAttributionStorageSqlSchema(sql::Database& db,
   bool ok = MaybeMigrate(db, meta_table, 52, &To53) &&  //
             MaybeMigrate(db, meta_table, 53, &To54) &&  //
             MaybeMigrate(db, meta_table, 54, &To55) &&  //
-            MaybeMigrate(db, meta_table, 55, &To56);
+            MaybeMigrate(db, meta_table, 55, &To56) &&  //
+            MaybeMigrateTo57(storage, db, meta_table, 56);
   if (!ok) {
     return false;
   }
 
-  static_assert(AttributionStorageSql::kCurrentVersionNumber == 56,
+  static_assert(AttributionStorageSql::kCurrentVersionNumber == 57,
                 "Add migration(s) above.");
 
   if (base::ThreadTicks::IsSupported()) {

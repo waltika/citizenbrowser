@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include "ash/wm/snap_group/snap_group.h"
+
 #include <memory>
 #include <vector>
 
@@ -34,7 +36,6 @@
 #include "ash/wm/overview/overview_utils.h"
 #include "ash/wm/overview/overview_window_drag_controller.h"
 #include "ash/wm/overview/scoped_overview_transform_window.h"
-#include "ash/wm/snap_group/snap_group.h"
 #include "ash/wm/snap_group/snap_group_controller.h"
 #include "ash/wm/splitview/split_view_constants.h"
 #include "ash/wm/splitview/split_view_controller.h"
@@ -51,6 +52,7 @@
 #include "ash/wm/window_resizer.h"
 #include "ash/wm/window_state.h"
 #include "ash/wm/window_util.h"
+#include "ash/wm/wm_constants.h"
 #include "ash/wm/wm_event.h"
 #include "ash/wm/wm_metrics.h"
 #include "ash/wm/workspace/multi_window_resize_controller.h"
@@ -86,8 +88,6 @@ namespace {
 using ui::mojom::CursorType;
 
 using WindowCyclingDirection = WindowCycleController::WindowCyclingDirection;
-
-constexpr int kWindowMiniViewCornerRadius = 16;
 
 SplitViewController* split_view_controller() {
   return SplitViewController::Get(Shell::GetPrimaryRootWindow());
@@ -125,10 +125,10 @@ gfx::Rect GetOverviewGridBounds() {
   return overview_session->grid_list()[0]->bounds_for_testing();
 }
 
-void SnapOneTestWindow(aura::Window* window,
-                       chromeos::WindowStateType state_type,
-                       WindowSnapActionSource snap_action_source =
-                           WindowSnapActionSource::kNotSpecified) {
+void SnapOneTestWindow(
+    aura::Window* window,
+    chromeos::WindowStateType state_type,
+    WindowSnapActionSource snap_action_source = WindowSnapActionSource::kTest) {
   WindowState* window_state = WindowState::Get(window);
   const WindowSnapWMEvent snap_event(
       state_type == chromeos::WindowStateType::kPrimarySnapped
@@ -320,21 +320,13 @@ TEST_F(FasterSplitScreenTest, CycleSnap) {
   // Cycle snap to the left.
   const WindowSnapWMEvent cycle_snap_primary(WM_EVENT_CYCLE_SNAP_PRIMARY);
   window_state->OnWMEvent(&cycle_snap_primary);
-  VerifySplitViewOverviewSession(w1.get());
+  auto* overview_controller = Shell::Get()->overview_controller();
+  EXPECT_FALSE(overview_controller->InOverviewSession());
 
   // Cycle snap to the right.
   const WindowSnapWMEvent cycle_snap_secondary(WM_EVENT_CYCLE_SNAP_SECONDARY);
   window_state->OnWMEvent(&cycle_snap_secondary);
-  VerifySplitViewOverviewSession(w1.get());
-
-  // Cycle snap to the right again. Test it ends overview.
-  window_state->OnWMEvent(&cycle_snap_secondary);
-  EXPECT_FALSE(window_state->IsSnapped());
-  EXPECT_FALSE(Shell::Get()->overview_controller()->InOverviewSession());
-
-  // Cycle snap to the right again.
-  window_state->OnWMEvent(&cycle_snap_secondary);
-  VerifySplitViewOverviewSession(w1.get());
+  EXPECT_FALSE(overview_controller->InOverviewSession());
 }
 
 TEST_F(FasterSplitScreenTest, EndSplitViewOverviewSession) {
@@ -456,7 +448,7 @@ TEST_F(FasterSplitScreenTest, DragToPartialOverview) {
   EXPECT_FALSE(OverviewController::Get()->InOverviewSession());
 }
 
-TEST_F(FasterSplitScreenTest, SkipPairingInOverviewWhenClickingEmptyArea) {
+TEST_F(FasterSplitScreenTest, SkipPairingInOverviewOnMouseEvent) {
   std::unique_ptr<aura::Window> w1(CreateTestWindow());
   std::unique_ptr<aura::Window> w2(CreateTestWindow());
 
@@ -479,6 +471,18 @@ TEST_F(FasterSplitScreenTest, SkipPairingInOverviewWhenClickingEmptyArea) {
   EXPECT_FALSE(overview_controller->InOverviewSession());
   EXPECT_EQ(WindowState::Get(w1.get())->GetStateType(),
             chromeos::WindowStateType::kPrimarySnapped);
+
+  // Snap `w1`. Test that clicking on `w1` again exits overview.
+  SnapOneTestWindow(w1.get(), chromeos::WindowStateType::kPrimarySnapped);
+  VerifySplitViewOverviewSession(w1.get());
+
+  // Moving the mouse around won't end overview.
+  event_generator->MoveMouseTo(w1->GetBoundsInScreen().CenterPoint());
+  EXPECT_TRUE(overview_controller->InOverviewSession());
+
+  // Clicking on `w1` again exits overview.
+  event_generator->ClickLeftButton();
+  EXPECT_FALSE(overview_controller->InOverviewSession());
 }
 
 TEST_F(FasterSplitScreenTest, SkipPairingInOverviewOnKeyEvent) {
@@ -589,7 +593,6 @@ TEST_F(FasterSplitScreenTest, NoCrashWhenDoubleTapAfterTransition) {
   GetEventGenerator()->GestureTapAt(divider_center);
   GetEventGenerator()->GestureTapAt(divider_center);
 }
-
 // Tests the histograms for the split view overview session exit points are
 // recorded correctly in clamshell.
 TEST_F(FasterSplitScreenTest,
@@ -903,61 +906,6 @@ TEST_F(FasterSplitScreenTest, KeyMetricsIntegrationTest_WindowSizeButton) {
   }
 }
 
-// Integration test of the `SplitViewOverviewSession` exit point with the
-// accelerator as the snap action source. Verify that the end-to-end metric is
-// recorded correctly.
-TEST_F(FasterSplitScreenTest, KeyMetricsIntegrationTest_AcceleratorToSnap) {
-  UpdateDisplay("800x600");
-
-  std::unique_ptr<aura::Window> w2(CreateAppWindow());
-  std::unique_ptr<aura::Window> w1(CreateAppWindow());
-
-  const auto kSplitViewOverviewSessionExitPoint =
-      BuildSplitViewOverviewExitPointHistogramName(
-          WindowSnapActionSource::kKeyboardShortcutToSnap);
-  histogram_tester_.ExpectBucketCount(
-      kSplitViewOverviewSessionExitPoint,
-      SplitViewOverviewSessionExitPoint::kCompleteByActivating,
-      /*expected_count=*/0);
-
-  // `w1` is the mru window, use the keyboard shortcut to snap `w1` and verify
-  // the metrics.
-  AcceleratorController::Get()->PerformActionIfEnabled(
-      AcceleratorAction::kWindowCycleSnapLeft, {});
-  SplitViewOverviewSession* split_view_overview_session =
-      VerifySplitViewOverviewSession(w1.get());
-  EXPECT_EQ(split_view_overview_session->snap_action_source_for_testing(),
-            WindowSnapActionSource::kKeyboardShortcutToSnap);
-
-  auto* event_generator = GetEventGenerator();
-  auto* item2 = GetOverviewItemForWindow(w2.get());
-  event_generator->MoveMouseTo(
-      gfx::ToRoundedPoint(item2->target_bounds().CenterPoint()));
-  event_generator->ClickLeftButton();
-  histogram_tester_.ExpectBucketCount(
-      kSplitViewOverviewSessionExitPoint,
-      SplitViewOverviewSessionExitPoint::kCompleteByActivating,
-      /*expected_count=*/1);
-
-  // Now `w2` becomes the mru window, use the keyboard shortcut to snap `w2` and
-  // verify the metrics.
-  AcceleratorController::Get()->PerformActionIfEnabled(
-      AcceleratorAction::kWindowCycleSnapLeft, {});
-  split_view_overview_session = VerifySplitViewOverviewSession(w2.get());
-  EXPECT_EQ(split_view_overview_session->snap_action_source_for_testing(),
-            WindowSnapActionSource::kKeyboardShortcutToSnap);
-
-  auto* item1 = GetOverviewItemForWindow(w1.get());
-  gfx::Point outside_point =
-      gfx::ToRoundedPoint(item1->target_bounds().bottom_right());
-  outside_point.Offset(/*delta_x=*/5, /*delta_y=*/5);
-  event_generator->MoveMouseTo(outside_point);
-  event_generator->ClickLeftButton();
-  histogram_tester_.ExpectBucketCount(kSplitViewOverviewSessionExitPoint,
-                                      SplitViewOverviewSessionExitPoint::kSkip,
-                                      /*expected_count=*/1);
-}
-
 // Tests that the `OverviewStartAction` will be recorded correctly in uma for
 // the faster split screen setup.
 TEST_F(FasterSplitScreenTest, OverviewStartActionHistogramTest) {
@@ -1181,7 +1129,8 @@ TEST_F(SnapGroupTest, WindowStackingOrderTest) {
 
   MruWindowTracker::WindowList window_list =
       Shell::Get()->mru_window_tracker()->BuildMruWindowList(kActiveDesk);
-  EXPECT_EQ(std::vector<aura::Window*>({w1.get(), w3.get(), w2.get()}),
+  EXPECT_EQ(std::vector<vector_experimental_raw_ptr<aura::Window>>(
+                {w1.get(), w3.get(), w2.get()}),
             window_list);
 
   // `w3` is stacked below `w2` even though the activation order of `w3` is
@@ -1982,7 +1931,7 @@ TEST_F(SnapGroupTest, OverviewItemBoundsTest) {
       overview_session->GetOverviewItemForWindow(w1.get());
   const gfx::RectF& group_item_bounds = overview_group_item->target_bounds();
   gfx::RectF cumulative_bounds;
-  for (auto* window : overview_group_item->GetWindows()) {
+  for (aura::Window* window : overview_group_item->GetWindows()) {
     auto* overview_item = overview_session->GetOverviewItemForWindow(window);
     cumulative_bounds.Union(overview_item->target_bounds());
     EXPECT_GT(cumulative_bounds.width(), 0u);
@@ -2789,7 +2738,7 @@ TEST_F(SnapGroupTest, WindowCycleItemRoundedCorners) {
   const auto* cycle_view = window_cycle_list->cycle_view();
   auto& cycle_item_views = cycle_view->cycle_views_for_testing();
   ASSERT_EQ(cycle_item_views.size(), 2u);
-  for (auto* cycle_item_view : cycle_item_views) {
+  for (ash::WindowMiniViewBase* cycle_item_view : cycle_item_views) {
     EXPECT_EQ(cycle_item_view->GetRoundedCorners(),
               gfx::RoundedCornersF(kWindowMiniViewCornerRadius));
   }
@@ -2801,7 +2750,7 @@ TEST_F(SnapGroupTest, WindowCycleItemRoundedCorners) {
 
   // Verify that the visuals of the cycling items will be refreshed so that the
   // exposed corners will be rounded corners.
-  for (auto* cycle_item_view : new_cycle_item_views) {
+  for (ash::WindowMiniViewBase* cycle_item_view : new_cycle_item_views) {
     EXPECT_EQ(cycle_item_view->GetRoundedCorners(),
               gfx::RoundedCornersF(kWindowMiniViewCornerRadius));
   }

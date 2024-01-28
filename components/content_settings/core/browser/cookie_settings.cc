@@ -5,8 +5,10 @@
 #include "components/content_settings/core/browser/cookie_settings.h"
 
 #include "base/check.h"
+#include "base/containers/contains.h"
 #include "base/feature_list.h"
 #include "base/functional/bind.h"
+#include "base/metrics/histogram_macros.h"
 #include "base/synchronization/lock.h"
 #include "build/blink_buildflags.h"
 #include "build/build_config.h"
@@ -21,6 +23,7 @@
 #include "components/content_settings/core/common/content_settings_utils.h"
 #include "components/content_settings/core/common/cookie_settings_base.h"
 #include "components/content_settings/core/common/features.h"
+#include "components/content_settings/core/common/host_indexed_content_settings.h"
 #include "components/content_settings/core/common/pref_names.h"
 #include "components/permissions/features.h"
 #include "components/pref_registry/pref_registry_syncable.h"
@@ -33,10 +36,6 @@
 #include "net/cookies/site_for_cookies.h"
 #include "url/gurl.h"
 #include "url/origin.h"
-
-#if BUILDFLAG(USE_BLINK)
-#include "third_party/blink/public/common/features_generated.h"
-#endif
 
 namespace content_settings {
 
@@ -109,17 +108,33 @@ bool CookieSettings::IsAllowedByTpcdMetadataGrant(
           net::CookieSettingOverrides())) {
     return false;
   }
-
+  SCOPED_UMA_HISTOGRAM_TIMER_MICROS(
+      "ContentSettings.IsAllowedByTpcdMetadataGrant.Duration");
   base::AutoLock lock(tpcd_lock_);
-  const auto& entry = base::ranges::find_if(
-      settings_for_3pcd_metadata_grants_,
-      [&](const ContentSettingPatternSource& entry) {
-        CHECK(IsAllowed(
-            content_settings::ValueToContentSetting(entry.setting_value)));
-        return entry.primary_pattern.Matches(url) &&
-               entry.secondary_pattern.Matches(first_party_url);
-      });
-  return entry != settings_for_3pcd_metadata_grants_.end();
+  ContentSetting result = CONTENT_SETTING_DEFAULT;
+  if (base::FeatureList::IsEnabled(features::kHostIndexedMetadataGrants) &&
+      std::cmp_greater_equal(settings_for_3pcd_metadata_grants_.size(),
+                             features::kMetadataGrantsThreshold.Get())) {
+#if DCHECK_IS_ON()
+    DCHECK(
+        indexed_settings_for_3pcd_metadata_grants_.IsSameResultAsLinearLookup(
+            url, first_party_url, settings_for_3pcd_metadata_grants_))
+        << "Different result in index lookup: " << url.spec() << " "
+        << first_party_url.spec();
+#endif
+    auto* found =
+        indexed_settings_for_3pcd_metadata_grants_.Find(url, first_party_url);
+    if (found) {
+      result = ValueToContentSetting(found->second.value);
+    }
+  } else {
+    auto* found = FindContentSetting(url, first_party_url,
+                                     settings_for_3pcd_metadata_grants_);
+    if (found) {
+      result = found->GetContentSetting();
+    }
+  }
+  return result == CONTENT_SETTING_ALLOW;
 }
 
 void CookieSettings::SetTemporaryCookieGrantForHeuristic(
@@ -299,7 +314,7 @@ void CookieSettings::ShutdownOnUIThread() {
 //  - Allow cookies if the |site_for_cookies| is a chrome:// scheme URL, and
 //    the |url| has a secure scheme.
 //  - Allow cookies if the |site_for_cookies| and the |url| match in scheme
-//    and both have the Chrome extensions scheme.
+//    and both have the Chrome extensions scheme.add
 bool CookieSettings::ShouldAlwaysAllowCookies(
     const GURL& url,
     const GURL& first_party_url) const {
@@ -340,19 +355,15 @@ bool CookieSettings::IsThirdPartyCookiesAllowedScheme(
           ContentSettingsType::COOKIES);
   const std::vector<std::string> allowed_schemes =
       content_settings_info->third_party_cookie_allowed_secondary_schemes();
-  const auto it =
-      std::find(allowed_schemes.begin(), allowed_schemes.end(), scheme);
-  return it != allowed_schemes.end();
+  return base::Contains(allowed_schemes, scheme);
 }
 
 bool CookieSettings::IsStorageAccessApiEnabled() const {
-  // TODO(https://crbug.com/1411765): instead of using a BUILDFLAG and checking
-  // the feature here, we should rely on CookieSettingsFactory to plumb in this
-  // boolean instead.
+  // TODO(https://crbug.com/1411765): instead of explicitly checking for
+  // USE_BLINK throughout the core code of this component, we should rely on
+  // CookieSettingsFactory to plumb in the necessary configuration instead.
 #if BUILDFLAG(USE_BLINK)
-  return base::FeatureList::IsEnabled(blink::features::kStorageAccessAPI) ||
-         base::FeatureList::IsEnabled(
-             permissions::features::kPermissionStorageAccessAPI);
+  return true;
 #else
   return false;
 #endif

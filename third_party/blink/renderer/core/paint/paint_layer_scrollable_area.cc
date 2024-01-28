@@ -1898,6 +1898,16 @@ PaintLayerScrollableArea::GetSnapChangingTargetData() const {
              : nullptr;
 }
 
+const cc::SnapSelectionStrategy* PaintLayerScrollableArea::GetImplSnapStrategy()
+    const {
+  return RareData() ? RareData()->impl_snap_strategy_.get() : nullptr;
+}
+
+void PaintLayerScrollableArea::SetImplSnapStrategy(
+    std::unique_ptr<cc::SnapSelectionStrategy> strategy) {
+  EnsureRareData().impl_snap_strategy_ = std::move(strategy);
+}
+
 absl::optional<gfx::PointF>
 PaintLayerScrollableArea::GetSnapPositionAndSetTarget(
     const cc::SnapSelectionStrategy& strategy) {
@@ -2088,9 +2098,10 @@ bool PaintLayerScrollableArea::HitTestOverflowControls(
     }
   }
 
-  // FIXME: We should hit test the m_scrollCorner and pass it back through the
-  // result.
-
+  if (scroll_corner_ && ScrollCornerRect().Contains(local_point)) {
+    result.SetIsOverScrollCorner(true);
+    return true;
+  }
   return false;
 }
 
@@ -2673,6 +2684,11 @@ void PaintLayerScrollableArea::ScrollbarManager::DestroyScrollbar(
   ScrollableArea()->GetLayoutBox()->GetDocument().View()->RemoveScrollbar(
       scrollbar);
   scrollbar->DisconnectFromScrollableArea();
+  ScrollableArea()
+      ->GetLayoutBox()
+      ->GetFrame()
+      ->GetEventHandler()
+      .OnScrollbarDestroyed(*scrollbar);
   scrollbar = nullptr;
 }
 
@@ -3156,6 +3172,19 @@ void PaintLayerScrollableArea::UpdateSnapChangingTargetsAndEnqueueSnapChanging(
         std::move(new_snapchanging_targets));
     EnqueueSnapChangingEvent();
   }
+}
+
+void PaintLayerScrollableArea::EnqueueSnapChangingEventFromImplIfNeeded() {
+  const cc::SnapContainerData* container_data = GetSnapContainerData();
+  if (!container_data) {
+    return;
+  }
+  const cc::SnapSelectionStrategy* strategy = GetImplSnapStrategy();
+  if (!strategy) {
+    return;
+  }
+  cc::SnapPositionData snap = container_data->FindSnapPosition(*strategy);
+  UpdateSnapChangingTargetsAndEnqueueSnapChanging(snap.position);
 }
 
 }  // namespace blink

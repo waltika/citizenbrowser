@@ -121,7 +121,7 @@ void CitizenXBubbleActionButton::UpdateColors() {
                                   : views::style::STYLE_PRIMARY);
 }
 
-BEGIN_METADATA(CitizenXBubbleActionButton, Button)
+BEGIN_METADATA(CitizenXBubbleActionButton)
 END_METADATA
 
 }  // namespace citizen_x

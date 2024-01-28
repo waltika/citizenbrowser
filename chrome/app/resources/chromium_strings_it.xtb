@@ -72,6 +72,7 @@ A questo account potrebbero essere applicate le autorizzazioni già concesse a s
 <translation id="2329088755516916767">Quando questa impostazione è attiva, Chromium precarica le pagine per velocizzare la navigazione e la ricerca.</translation>
 <translation id="2343156876103232566">Per inviare un numero da questo dispositivo al tuo telefono Android, accedi a Chromium su entrambi i dispositivi.</translation>
 <translation id="2359808026110333948">Continua</translation>
+<translation id="2359920621792549529">Per cancellare i dati di navigazione solo da questo dispositivo e conservarli nel tuo Account Google, <ph name="BEGIN_LINK" />esci da Chromium<ph name="END_LINK" />.</translation>
 <translation id="2384373936468275798">Impossibile sincronizzare i dati in Chromium OS perché i dati di accesso dell'account sono obsoleti.</translation>
 <translation id="2398377054246527950">{NUM_DEVICES,plural, =0{Una o più estensioni di Chromium stavano accedendo a 1 dispositivo HID}=1{Una o più estensioni di Chromium stanno accedendo a 1 dispositivo HID}other{Una o più estensioni di Chromium stanno accedendo a # dispositivi HID}}</translation>
 <translation id="2401032172288869980">Chromium deve avere le autorizzazioni di accesso al microfono e alla fotocamera per questo sito</translation>
@@ -139,7 +140,6 @@ A questo account potrebbero essere applicate le autorizzazioni già concesse a s
 <translation id="3533435340678213462">Per tutelare la tua privacy, eliminiamo automaticamente i tuoi interessi risalenti a più di 4 settimane prima della data corrente. Mentre continui a navigare, un interesse potrebbe essere nuovamente visualizzato nell'elenco. Puoi anche rimuovere gli interessi che non vuoi che Chromium prenda in considerazione.</translation>
 <translation id="3567254597502212821">La cronologia di navigazione, ossia un record dei siti visitati da Chromium sul dispositivo in uso.</translation>
 <translation id="3593091352817399191">Un altro account ha già eseguito l'accesso. Per tenere separata la tua navigazione, Chromium può creare per te il tuo profilo personale.</translation>
-<translation id="363078681319665186">Per ricevere gli aggiornamenti futuri di Chromium, devi avere macOS 10.15 o versioni successive. Su questo computer è installato macOS 10.13.</translation>
 <translation id="3639635944603682591">I dati di navigazione di questa persona verranno eliminati dal dispositivo. Per recuperare i dati, accedi a Chromium con il nome utente <ph name="USER_EMAIL" />.</translation>
 <translation id="364817392622123556">{COUNT,plural, =0{È disponibile un nuovo aggiornamento di Chromium che verrà installato appena eseguirai il riavvio.}=1{È disponibile un nuovo aggiornamento di Chromium che verrà installato appena eseguirai il riavvio. La finestra di navigazione in incognito non verrà riaperta.}other{È disponibile un nuovo aggiornamento di Chromium che verrà installato appena eseguirai il riavvio. Le # finestre di navigazione in incognito non verranno riaperte.}}</translation>
 <translation id="3651803019964686660">Per inviare un numero da <ph name="ORIGIN" /> al tuo telefono Android, accedi a Chromium su entrambi i dispositivi.</translation>
@@ -156,7 +156,6 @@ A questo account potrebbero essere applicate le autorizzazioni già concesse a s
 <translation id="3848258323044014972"><ph name="PAGE_TITLE" /> - Chromium</translation>
 <translation id="386822487697155367">Ricevi assistenza per Chromium OS</translation>
 <translation id="3871664619793219264">Accedi ai tuoi contenuti del browser Chromium da <ph name="ACCOUNT_EMAIL" /></translation>
-<translation id="387966568917439637">Per ricevere gli aggiornamenti futuri di Chromium, devi avere macOS 10.15 o versioni successive. Su questo computer è installato macOS 10.14.</translation>
 <translation id="388648406173476553">Personalizza e controlla Chromium. C'è qualcosa che richiede la tua attenzione. Fai clic per avere informazioni dettagliate.</translation>
 <translation id="3889543394854987837">Fai clic sul tuo nome per aprire Chromium e iniziare a navigare.</translation>
 <translation id="390528597099634151"><ph name="EXISTING_USER" /> ha già eseguito l'accesso a questo profilo Chromium. Per tenere separata la tua navigazione, Chromium può creare per te il tuo profilo personale.</translation>
@@ -373,6 +372,7 @@ Chromium non è in grado di recuperare le impostazioni.</translation>
 <translation id="7461356015007898716">Per ricevere gli aggiornamenti futuri di Chromium, devi avere Windows 10 o versioni successive. Su questo computer è installato Windows 7.</translation>
 <translation id="7467949745582939695">Vuoi riavviare Chromium?</translation>
 <translation id="7483335560992089831">Impossibile installare una versione di Chromium uguale a quella in esecuzione. Chiudi Chromium e riprova.</translation>
+<translation id="751935028865900641">È probabile che i siti funzionino come previsto. Quando chiudi tutte le finestre di Chromium, uscirai dalla maggior parte dei siti, ma se hai eseguito l'accesso a Chromium non uscirai dal tuo Account Google.</translation>
 <translation id="753534427205733210">{0,plural, =1{Chromium verrà riavviato tra 1 minuto}other{Chromium verrà riavviato tra # minuti}}</translation>
 <translation id="7582945390259497898">Chromium può stimare i tuoi interessi. Dopodiché, un sito che visiti può chiedere a Chromium di conoscere i tuoi interessi per personalizzare gli annunci da mostrarti.</translation>
 <translation id="7583399374488819119">Programma di installazione di <ph name="COMPANY_NAME" /></translation>

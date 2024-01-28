@@ -18,19 +18,23 @@ typedef void (^ChevronToggledBlock)(SnippetState snippet_state);
 // engines in a UITableView.
 @interface SnippetSearchEngineCell : TableViewCell
 
-// The imageview that is displayed on the leading edge of the cell.  This
-// contains a favicon composited on top of an off-white background.
-@property(nonatomic, readonly, strong) FaviconView* faviconView;
+// Favicon image to display the search engine icon.
+@property(nonatomic, strong) UIImage* faviconImage;
 // The search engine name.
 @property(nonatomic, readonly, strong) UILabel* nameLabel;
 // The search engine snippet for the description.
 @property(nonatomic, readonly, strong) UILabel* snippetLabel;
-// Snippet state (hidden or closed).
+// Snippet state (hidden or closed). Setting the value using this property
+// will not trigger animation.
 @property(nonatomic, assign) SnippetState snippetState;
 // YES if the search engine has been chosen by the user.
 @property(nonatomic, assign) BOOL checked;
 // Called when the chevron is tapped.
 @property(nonatomic, copy) ChevronToggledBlock chevronToggledBlock;
+
+// Reconfigure the accessibility traits according to the current state of the
+// cell.
+- (void)updateAccessibilityTraits;
 
 @end
 

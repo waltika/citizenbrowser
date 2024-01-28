@@ -15,7 +15,6 @@ const char kImpressionPromoKey[] = "promo";
 const char kImpressionDayKey[] = "day";
 const char kImpressionFeatureEngagementMigrationCompletedKey[] =
     "feature_engagement_migration_completed";
-const int kNumDaysImpressionHistoryStored = 365;
 
 // WARNING - PLEASE READ: Sadly, we cannot switch over strings in C++, so be
 // very careful when updating this method to ensure all enums are accounted for.
@@ -41,10 +40,6 @@ std::optional<Promo> PromoForName(base::StringPiece promo) {
   if (promo == "promos_manager::Promo::WhatsNew")
     return promos_manager::Promo::WhatsNew;
 
-  if (promo == "promos_manager::Promo::Choice") {
-    return promos_manager::Promo::Choice;
-  }
-
   if (promo == "promos_manager::Promo::PostRestoreDefaultBrowserAlert") {
     return promos_manager::Promo::PostRestoreDefaultBrowserAlert;
   }
@@ -55,6 +50,14 @@ std::optional<Promo> PromoForName(base::StringPiece promo) {
 
   if (promo == "promos_manager::Promo::OmniboxPosition") {
     return promos_manager::Promo::OmniboxPosition;
+  }
+
+  if (promo == "promos_manager::Promo::DockingPromo") {
+    return promos_manager::Promo::DockingPromo;
+  }
+
+  if (promo == "promos_manager::Promo::DockingPromoRemindMeLater") {
+    return promos_manager::Promo::DockingPromoRemindMeLater;
   }
 
   return std::nullopt;
@@ -80,14 +83,16 @@ base::StringPiece ShortNameForPromo(Promo promo) {
       return "PostRestoreSignInAlert";
     case promos_manager::Promo::WhatsNew:
       return "WhatsNew";
-    case promos_manager::Promo::Choice:
-      return "Choice";
     case promos_manager::Promo::PostRestoreDefaultBrowserAlert:
       return "PostRestoreDefaultBrowserAlert";
     case promos_manager::Promo::DefaultBrowserRemindMeLater:
       return "DefaultBrowserRemindMeLater";
     case promos_manager::Promo::OmniboxPosition:
       return "OmniboxPosition";
+    case promos_manager::Promo::DockingPromo:
+      return "DockingPromo";
+    case promos_manager::Promo::DockingPromoRemindMeLater:
+      return "DockingPromoRemindMeLater";
   }
 }
 

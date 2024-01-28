@@ -69,17 +69,16 @@ class NET_EXPORT_PRIVATE HttpCache::Transaction : public HttpTransaction {
   //    update existing cache entries, but will never create a new entry or
   //    respond using the entry read from the cache.
   enum Mode {
-    NONE            = 0,
-    READ_META       = 1 << 0,
-    READ_DATA       = 1 << 1,
-    READ            = READ_META | READ_DATA,
-    WRITE           = 1 << 2,
-    READ_WRITE      = READ | WRITE,
-    UPDATE          = READ_META | WRITE,  // READ_WRITE & ~READ_DATA
+    NONE = 0,
+    READ_META = 1 << 0,
+    READ_DATA = 1 << 1,
+    READ = READ_META | READ_DATA,
+    WRITE = 1 << 2,
+    READ_WRITE = READ | WRITE,
+    UPDATE = READ_META | WRITE,  // READ_WRITE & ~READ_DATA
   };
 
-  Transaction(RequestPriority priority,
-              HttpCache* cache);
+  Transaction(RequestPriority priority, HttpCache* cache);
 
   Transaction(const Transaction&) = delete;
   Transaction& operator=(const Transaction&) = delete;
@@ -92,8 +91,6 @@ class NET_EXPORT_PRIVATE HttpCache::Transaction : public HttpTransaction {
   const std::string& method() const { return method_; }
 
   const std::string& key() const { return cache_key_; }
-
-  HttpCache::ActiveEntry* entry() { return entry_; }
 
   // Returns the LoadState of the writer transaction of a given ActiveEntry. In
   // other words, returns the LoadState of this transaction without asking the
@@ -119,9 +116,7 @@ class NET_EXPORT_PRIVATE HttpCache::Transaction : public HttpTransaction {
   const NetLogWithSource& net_log() const;
 
   // Bypasses the cache lock whenever there is lock contention.
-  void BypassLockForTest() {
-    bypass_lock_for_test_ = true;
-  }
+  void BypassLockForTest() { bypass_lock_for_test_ = true; }
 
   void BypassLockAfterHeadersForTest() {
     bypass_lock_after_headers_for_test_ = true;
@@ -208,8 +203,9 @@ class NET_EXPORT_PRIVATE HttpCache::Transaction : public HttpTransaction {
     std::string values[kNumValidationHeaders];
     void Reset() {
       initialized = false;
-      for (auto& value : values)
+      for (auto& value : values) {
         value.clear();
+      }
     }
     bool initialized = false;
   };
@@ -631,11 +627,10 @@ class NET_EXPORT_PRIVATE HttpCache::Transaction : public HttpTransaction {
   // |external_validation_| contains the value of those headers.
   ValidationHeaders external_validation_;
   base::WeakPtr<HttpCache> cache_;
-  raw_ptr<HttpCache::ActiveEntry, AcrossTasksDanglingUntriaged> entry_ =
-      nullptr;
+  scoped_refptr<HttpCache::ActiveEntry> entry_;
   // This field is not a raw_ptr<> because it was filtered by the rewriter for:
   // #addr-of
-  RAW_PTR_EXCLUSION HttpCache::ActiveEntry* new_entry_ = nullptr;
+  scoped_refptr<HttpCache::ActiveEntry> new_entry_;
   std::unique_ptr<HttpTransaction> network_trans_;
   CompletionOnceCallback callback_;  // Consumer's callback.
   HttpResponseInfo response_;

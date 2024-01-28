@@ -11,6 +11,7 @@ source_set("cells") {
   ]
   deps = [
     "//base",
+    "//ios/chrome/app/strings",
     "//ios/chrome/browser/shared/public/features",
     "//ios/chrome/browser/shared/ui/symbols",
     "//ios/chrome/browser/shared/ui/table_view:styler",
@@ -19,11 +20,11 @@ source_set("cells") {
     "//ios/chrome/browser/ui/search_engine_choice:constants",
     "//ios/chrome/browser/ui/settings/cells:public",
     "//ios/chrome/common/ui/colors",
-    "//ios/chrome/common/ui/favicon",
     "//ios/chrome/common/ui/table_view",
     "//ios/chrome/common/ui/table_view:cells_constants",
     "//ios/chrome/common/ui/util",
-    "//url",
+    "//ios/chrome/common/ui/util:image_util",
+    "//ui/base",
   ]
   frameworks = [ "UIKit.framework" ]
 }

@@ -7,8 +7,10 @@
 #import "base/test/ios/wait_util.h"
 #import "components/reading_list/features/reading_list_switches.h"
 #import "components/signin/public/base/consent_level.h"
+#import "components/signin/public/base/signin_pref_names.h"
 #import "components/sync/base/features.h"
 #import "ios/chrome/browser/reading_list/model/reading_list_constants.h"
+#import "ios/chrome/browser/shared/public/features/features.h"
 #import "ios/chrome/browser/shared/ui/elements/activity_overlay_egtest_util.h"
 #import "ios/chrome/browser/shared/ui/table_view/table_view_navigation_controller_constants.h"
 #import "ios/chrome/browser/signin/model/fake_system_identity.h"
@@ -18,11 +20,13 @@
 #import "ios/chrome/browser/ui/authentication/signin_earl_grey_ui_test_util.h"
 #import "ios/chrome/browser/ui/authentication/signin_matchers.h"
 #import "ios/chrome/browser/ui/reading_list/reading_list_app_interface.h"
+#import "ios/chrome/browser/ui/reading_list/reading_list_constants.h"
 #import "ios/chrome/browser/ui/reading_list/reading_list_egtest_utils.h"
 #import "ios/chrome/browser/ui/settings/settings_table_view_controller_constants.h"
 #import "ios/chrome/common/ui/table_view/table_view_cells_constants.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "ios/chrome/test/earl_grey/chrome_earl_grey.h"
+#import "ios/chrome/test/earl_grey/chrome_earl_grey_app_interface.h"
 #import "ios/chrome/test/earl_grey/chrome_earl_grey_ui.h"
 #import "ios/chrome/test/earl_grey/chrome_matchers.h"
 #import "ios/chrome/test/earl_grey/web_http_server_chrome_test_case.h"
@@ -40,6 +44,7 @@ using reading_list_test_utils::AddedToLocalReadingListSnackbar;
 using reading_list_test_utils::AddURLToReadingList;
 using reading_list_test_utils::OpenReadingList;
 using reading_list_test_utils::ReadingListItem;
+using reading_list_test_utils::VisibleLocalItemIcon;
 using reading_list_test_utils::VisibleReadingListItem;
 
 namespace {
@@ -76,14 +81,6 @@ id<GREYMatcher> AddedToAccountReadingListSnackbar(NSString* email) {
 
 id<GREYMatcher> AddedToAccountReadingListSnackbarUndoButton() {
   return grey_accessibilityID(kReadingListAddedToAccountSnackbarUndoID);
-}
-
-// The cloud slash icon that appears for Reading List items that are only stored
-// in the local storage. Shown only for signed-in users.
-id<GREYMatcher> VisibleLocalItemIcon(NSString* title) {
-  return grey_allOf(grey_ancestor(ReadingListItem(title)),
-                    grey_accessibilityID(kTableViewURLCellMetadataImageID),
-                    grey_sufficientlyVisible(), nil);
 }
 
 // Provides responses containing a custom title for fake URLs.
@@ -128,6 +125,23 @@ std::unique_ptr<net::test_server::HttpResponse> StandardResponse(
 - (void)tearDown {
   GREYAssertNil([ReadingListAppInterface clearEntries],
                 @"Unable to clear Reading List entries");
+
+  // Close the Reading List if it is open.
+  NSError* error = nil;
+  [[EarlGrey selectElementWithMatcher:grey_accessibilityID(kReadingListViewID)]
+      assertWithMatcher:grey_notNil()
+                  error:&error];
+  if (!error) {
+    [[EarlGrey
+        selectElementWithMatcher:grey_accessibilityID(
+                                     kTableViewNavigationDismissButtonId)]
+        performAction:grey_tap()];
+  }
+
+  // Close tabs before clearing browsing history to prevent unneeded tabs from
+  // reloading.
+  [ChromeEarlGrey closeAllNormalTabs];
+
   [ChromeEarlGrey clearBrowsingHistory];
   // Prevent failure due to clear browsing data spinner. Should be called
   // before [super tearDown] which calls sign-out.
@@ -144,8 +158,6 @@ std::unique_ptr<net::test_server::HttpResponse> StandardResponse(
 
 - (AppLaunchConfiguration)appConfigurationForTestCase {
   AppLaunchConfiguration config;
-  config.features_enabled.push_back(
-      syncer::kReadingListEnableSyncTransportModeUponSignIn);
   if ([self isRunningTest:@selector
             (testSignInWithSecondaryAccountInPromo_WithSnackbar)] ||
       [self isRunningTest:@selector(testAddAccountItemThenUpgradeToFullSync)] ||
@@ -155,6 +167,14 @@ std::unique_ptr<net::test_server::HttpResponse> StandardResponse(
     config.features_disabled.push_back(
         syncer::kReplaceSyncPromosWithSignInPromos);
   }
+  if ([self isRunningTest:@selector(testPromoNotShownWhenSyncDataNotRemoved)]) {
+    config.features_disabled.push_back(kEnableBatchUploadFromBookmarksManager);
+  }
+  if ([self isRunningTest:@selector
+            (testPromoShownWhenSyncDataNotRemovedWithBookmarksUpload)]) {
+    config.features_enabled.push_back(kEnableBatchUploadFromBookmarksManager);
+  }
+
   if ([self isRunningTest:@selector
             (testSignInWithSecondaryAccountInPromo_NoSnackbar)]) {
     config.features_enabled.push_back(
@@ -414,6 +434,21 @@ std::unique_ptr<net::test_server::HttpResponse> StandardResponse(
 
   OpenReadingList();
   [SigninEarlGreyUI verifySigninPromoNotVisible];
+}
+
+// Tests that the signin promo is shown when last syncing user did not remove
+// data during sign-out but the batch upload promo is visible in the bookamrks
+// manager.
+- (void)testPromoShownWhenSyncDataNotRemovedWithBookmarksUpload {
+  // Add last syncing account to mimic signing out without clearing data.
+  [ChromeEarlGreyAppInterface
+      setStringValue:[FakeSystemIdentity fakeIdentity1].gaiaID
+         forUserPref:base::SysUTF8ToNSString(
+                         prefs::kGoogleServicesLastSyncingGaiaId)];
+
+  OpenReadingList();
+  [SigninEarlGreyUI
+      verifySigninPromoVisibleWithMode:SigninPromoViewModeNoAccounts];
 }
 
 // Tests to sign-in in incognito mode with the promo.

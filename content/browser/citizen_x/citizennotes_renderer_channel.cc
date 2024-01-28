@@ -6,11 +6,12 @@
 
 #include "base/functional/bind.h"
 #include "base/functional/callback_helpers.h"
+#include "content/browser/citizen_x/dedicated_worker_citizennotes_agent_host.h"
 #include "content/browser/citizen_x/citizennotes_agent_host_impl.h"
 #include "content/browser/citizen_x/citizennotes_session.h"
 #include "content/browser/citizen_x/protocol/citizennotes_domain_handler.h"
-#include "content/browser/citizen_x/worker_citizennotes_agent_host.h"
 #include "content/browser/citizen_x/worker_citizennotes_manager.h"
+#include "content/browser/citizen_x/worklet_citizennotes_agent_host.h"
 #include "content/public/browser/child_process_host.h"
 #include "content/public/browser/render_process_host.h"
 #include "third_party/blink/public/common/features.h"
@@ -69,8 +70,9 @@ void CitizenNotesRendererChannel::CleanupConnection() {
 }
 
 void CitizenNotesRendererChannel::ForceDetachWorkerSessions() {
-  for (WorkerCitizenNotesAgentHost* host : child_targets_)
+  for (auto* host : child_targets_) {
     host->ForceDetachAllSessions();
+  }
 }
 
 void CitizenNotesRendererChannel::SetRendererInternal(
@@ -182,7 +184,7 @@ void CitizenNotesRendererChannel::ChildTargetCreated(
     // browser process when PlzDedicatedWorker is enabled.
     DCHECK(
         content::CitizenNotesAgentHost::GetForId(citizennotes_worker_token.ToString()));
-    scoped_refptr<WorkerCitizenNotesAgentHost> agent_host =
+    scoped_refptr<DedicatedWorkerCitizenNotesAgentHost> agent_host =
         WorkerCitizenNotesManager::GetInstance().GetCitizenNotesHostFromToken(
             citizennotes_worker_token);
     if (!agent_host) {
@@ -206,17 +208,30 @@ void CitizenNotesRendererChannel::ChildTargetCreated(
     return;
   }
 
-  DCHECK(context_type == blink::mojom::CitizenNotesExecutionContextType::kWorklet ||
-         !base::FeatureList::IsEnabled(blink::features::kPlzDedicatedWorker));
   if (content::CitizenNotesAgentHost::GetForId(citizennotes_worker_token.ToString())) {
     mojo::ReportBadMessage("Workers should have unique tokens.");
     return;
   }
-  auto agent_host = base::MakeRefCounted<WorkerCitizenNotesAgentHost>(
-      process_id_, std::move(worker_citizennotes_agent), std::move(host_receiver),
-      filtered_url, std::move(name), citizennotes_worker_token, owner_->GetId(),
-      base::BindOnce(&CitizenNotesRendererChannel::ChildTargetDestroyed,
-                     weak_factory_.GetWeakPtr()));
+  scoped_refptr<WorkerOrWorkletCitizenNotesAgentHost> agent_host;
+  switch (context_type) {
+    case blink::mojom::CitizenNotesExecutionContextType::kWorklet:
+      agent_host = base::MakeRefCounted<WorkletCitizenNotesAgentHost>(
+          process_id_, filtered_url, std::move(name), citizennotes_worker_token,
+          owner_->GetId(),
+          base::BindOnce(&CitizenNotesRendererChannel::ChildTargetDestroyed,
+                         weak_factory_.GetWeakPtr()));
+      break;
+    case blink::mojom::CitizenNotesExecutionContextType::kDedicatedWorker:
+      CHECK(
+          !base::FeatureList::IsEnabled(blink::features::kPlzDedicatedWorker));
+      agent_host = base::MakeRefCounted<DedicatedWorkerCitizenNotesAgentHost>(
+          process_id_, filtered_url, std::move(name), citizennotes_worker_token,
+          owner_->GetId(),
+          base::BindOnce(&CitizenNotesRendererChannel::ChildTargetDestroyed,
+                         weak_factory_.GetWeakPtr()));
+  }
+  agent_host->SetRenderer(process_id_, std::move(worker_citizennotes_agent),
+                          std::move(host_receiver));
   child_targets_.insert(agent_host.get());
   if (child_target_created_callback_)
     child_target_created_callback_.Run(agent_host.get(), waiting_for_debugger);

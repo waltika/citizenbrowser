@@ -7,12 +7,15 @@
 
 #include "ash/wm/desks/desk.h"
 #include "base/memory/raw_ptr.h"
+#include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/views/controls/button/image_button.h"
 #include "ui/views/controls/image_view.h"
 
 namespace ash {
 
 class DeskProfilesButton : public views::ImageButton, public Desk::Observer {
+  METADATA_HEADER(DeskProfilesButton, views::ImageButton)
+
  public:
   explicit DeskProfilesButton(views::Button::PressedCallback callback,
                               Desk* desk);
@@ -33,7 +36,7 @@ class DeskProfilesButton : public views::ImageButton, public Desk::Observer {
   void OnDeskNameChanged(const std::u16string& new_name) override {}
 
   // views::ImageButton:
-  void OnMouseReleased(const ui::MouseEvent& event) override;
+  bool OnMousePressed(const ui::MouseEvent& event) override;
   void OnGestureEvent(ui::GestureEvent* event) override;
 
  private:
@@ -44,8 +47,8 @@ class DeskProfilesButton : public views::ImageButton, public Desk::Observer {
   void CreateMenu(const ui::LocatedEvent& event);
 
   // The associated desk.
-  raw_ptr<Desk, ExperimentalAsh> desk_;  // Not owned.
-  raw_ptr<views::ImageView, ExperimentalAsh> icon_ = nullptr;
+  raw_ptr<Desk> desk_;  // Not owned.
+  raw_ptr<views::ImageView> icon_ = nullptr;
   gfx::ImageSkia icon_image_;
 
   // The context menu, which will be set as the controller to show the list of

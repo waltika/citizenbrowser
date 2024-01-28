@@ -202,6 +202,7 @@ class CORE_EXPORT LocalFrameClientImpl final : public LocalFrameClient {
       HTMLMediaElement&) override;
   void DidChangeScrollOffset() override;
   void NotifyCurrentHistoryItemChanged() override;
+  void NotifyAutoscrollForSelectionInMainFrame (bool autoscroll_selection) override;
   void DidUpdateCurrentHistoryItem() override;
 
   bool AllowContentInitiatedDataUrlNavigations(const KURL&) override;

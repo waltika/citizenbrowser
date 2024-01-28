@@ -130,6 +130,7 @@ const char CitizenNotesAgentHost::kTypeFrame[] = "iframe";
 const char CitizenNotesAgentHost::kTypeDedicatedWorker[] = "worker";
 const char CitizenNotesAgentHost::kTypeSharedWorker[] = "shared_worker";
 const char CitizenNotesAgentHost::kTypeServiceWorker[] = "service_worker";
+const char CitizenNotesAgentHost::kTypeWorklet[] = "worklet";
 const char CitizenNotesAgentHost::kTypeSharedStorageWorklet[] =
     "shared_storage_worklet";
 const char CitizenNotesAgentHost::kTypeBrowser[] = "browser";

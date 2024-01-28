@@ -5,16 +5,24 @@
 package org.chromium.chrome.browser.tabmodel;
 
 import android.app.Activity;
+import android.app.ActivityManager;
+import android.app.ActivityManager.AppTask;
+import android.content.Context;
+import android.os.Build.VERSION;
+import android.os.Build.VERSION_CODES;
 import android.util.Pair;
 import android.util.SparseArray;
 
 import org.chromium.base.ActivityState;
 import org.chromium.base.ApplicationStatus;
 import org.chromium.base.ApplicationStatus.ActivityStateListener;
+import org.chromium.base.Log;
 import org.chromium.base.supplier.OneshotSupplier;
+import org.chromium.build.BuildConfig;
 import org.chromium.chrome.browser.profiles.ProfileProvider;
 import org.chromium.chrome.browser.tab.Tab;
 import org.chromium.chrome.browser.tabmodel.NextTabPolicy.NextTabPolicySupplier;
+import org.chromium.chrome.browser.util.AndroidTaskUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,6 +35,8 @@ import java.util.Map;
  * Also manages tabs being reparented in AsyncTabParamsManager.
  */
 public class TabWindowManagerImpl implements ActivityStateListener, TabWindowManager {
+
+    public static final String TAG_MULTI_INSTANCE = "MultiInstance";
     private TabModelSelectorFactory mSelectorFactory;
     private final AsyncTabParamsManager mAsyncTabParamsManager;
     private final int mMaxSelectors;
@@ -65,7 +75,15 @@ public class TabWindowManagerImpl implements ActivityStateListener, TabWindowMan
             TabModelSelector assignedSelector = mAssignments.get(activity);
             for (int i = 0; i < mSelectors.size(); i++) {
                 if (mSelectors.get(i) == assignedSelector) {
-                    return Pair.create(i, assignedSelector);
+                    Pair res = Pair.create(i, assignedSelector);
+                    Log.i(
+                            TAG_MULTI_INSTANCE,
+                            "Returning existing selector with index: "
+                                    + res
+                                    + ". Requested index: "
+                                    + index);
+                    assertIndicesMatch(index, i, "Activity already mapped; ", activity);
+                    return res;
                 }
             }
             // The following log statement is used in tools/android/build_speed/benchmark.py. Please
@@ -74,6 +92,7 @@ public class TabWindowManagerImpl implements ActivityStateListener, TabWindowMan
                     "TabModelSelector is assigned to an Activity but has no index.");
         }
 
+        int originalIndex = index;
         if (mSelectors.get(index) != null) {
             for (int i = 0; i < mSelectors.size(); i++) {
                 if (mSelectors.get(i) == null) {
@@ -95,7 +114,79 @@ public class TabWindowManagerImpl implements ActivityStateListener, TabWindowMan
         mSelectors.set(index, selector);
         mAssignments.put(activity, selector);
 
-        return Pair.create(index, selector);
+        Pair res = Pair.create(index, selector);
+        Log.i(TAG_MULTI_INSTANCE, "Returning new selector for " + activity + " with index: " + res);
+        assertIndicesMatch(originalIndex, index, "Index in use; ", activity);
+        return res;
+    }
+
+    private void assertIndicesMatch(
+            int requestedIndex, int returnedIndex, String type, Activity activity) {
+        if (requestedIndex == returnedIndex
+                || !BuildConfig.ENABLE_ASSERTS
+                || BuildConfig.IS_FOR_TEST
+                || VERSION.SDK_INT < VERSION_CODES.Q) {
+            return;
+        }
+
+        TabModelSelector selectorAtRequestedIndex = mSelectors.get(requestedIndex);
+        Activity activityAtRequestedIndex = null;
+        for (Activity mappedActivity : mAssignments.keySet()) {
+            if (mAssignments.get(mappedActivity).equals(selectorAtRequestedIndex)) {
+                activityAtRequestedIndex = mappedActivity;
+                break;
+            }
+        }
+
+        String message =
+                type
+                        + "Requested "
+                        + requestedIndex
+                        + " and returned "
+                        + returnedIndex
+                        + " new activity: "
+                        + activity
+                        + " new activity task id: "
+                        + activity.getTaskId()
+                        + " activity at requested index: "
+                        + activityAtRequestedIndex;
+        if (activityAtRequestedIndex != null) {
+            // Start actively listen to activity status once conflict at index is found.
+            ApplicationStatus.registerStateListenerForActivity(
+                    (activityAtIndex, newState) -> {
+                        final int localTaskId = ApplicationStatus.getTaskId(activityAtIndex);
+                        Log.i(
+                                TAG_MULTI_INSTANCE,
+                                "ActivityAtRequestedIndex "
+                                        + activityAtIndex
+                                        + " taskId "
+                                        + localTaskId
+                                        + " newState "
+                                        + newState);
+                    },
+                    activityAtRequestedIndex);
+
+            message +=
+                    " ApplicationStatus activity state: "
+                            + ApplicationStatus.getStateForActivity(activityAtRequestedIndex)
+                            + " activity task Id: "
+                            + activityAtRequestedIndex.getTaskId()
+                            + " activity is finishing? "
+                            + activityAtRequestedIndex.isFinishing()
+                            + " tasks: [";
+            ActivityManager activityManager =
+                    (ActivityManager)
+                            activityAtRequestedIndex.getSystemService(Context.ACTIVITY_SERVICE);
+            for (AppTask task : activityManager.getAppTasks()) {
+                ActivityManager.RecentTaskInfo info = AndroidTaskUtils.getTaskInfoFromTask(task);
+                message += info + ";\n";
+            }
+
+            message += "]";
+        }
+
+        assert requestedIndex == returnedIndex : message;
+        Log.i(TAG_MULTI_INSTANCE, message);
     }
 
     @Override

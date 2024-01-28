@@ -37,12 +37,16 @@ DEFINE_DEVPROPKEY(DisplayConfigurationProperty,
                   0xf7,
                   2);
 
+// Manufacturer code for monitors created by the driver ("CVD").
+inline constexpr UINT16 kDriverMonitorManufacturer = 0xEC4;
+
 // Holds configuration for a virtual display.
 class MonitorConfig {
  public:
   // List of configs with supported monitor modes.
   static const MonitorConfig k1024x768;
   static const MonitorConfig k1920x1080;
+  static const MonitorConfig k1440x900;
 
   MonitorConfig() = default;
   // Get width (horizontal resolution).

@@ -237,6 +237,8 @@ class BookmarkPermanentNode : public BookmarkNode {
   friend class BookmarkModel;
 
   // Permanent nodes are well-known, it's not allowed to create arbitrary ones.
+  // Note that the same UUID is used for local-or-syncable instances and
+  // account permanent folders (as exposed by BookmarkModel APIs).
   static std::unique_ptr<BookmarkPermanentNode> CreateBookmarkBar(
       int64_t id,
       bool visible_when_empty);

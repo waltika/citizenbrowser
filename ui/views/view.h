@@ -52,7 +52,7 @@
 #include "ui/gfx/geometry/vector2d.h"
 #include "ui/gfx/geometry/vector2d_conversions.h"
 #include "ui/gfx/native_widget_types.h"
-#include "ui/views/action_view_controller.h"
+#include "ui/views/action_view_interface.h"
 #include "ui/views/layout/layout_manager.h"
 #include "ui/views/layout/layout_types.h"
 #include "ui/views/metadata/view_factory.h"
@@ -261,21 +261,19 @@ enum class ViewLayer {
 //   "script".
 //
 //   For each View class in their respective header declaration, place the macro
-//   METADATA_HEADER(<classname>) in the public section.
+//   METADATA_HEADER(<classname>, <view ancestor class>) in the public section.
 //
 //   In the implementing .cc file, add the following macros to the same
 //   namespace in which the class resides.
 //
-//   BEGIN_METADATA(View, ParentView)
+//   BEGIN_METADATA(View)
 //   ADD_PROPERTY_METADATA(bool, Frobble)
 //   END_METADATA
 //
 //   For each property, add a definition using ADD_PROPERTY_METADATA() between
 //   the begin and end macros.
 //
-//   Descendant classes must specify the parent class as a macro parameter.
-//
-//   BEGIN_METADATA(MyView, views::View)
+//   BEGIN_METADATA(MyView)
 //   ADD_PROPERTY_METADATA(int, Bobble)
 //   END_METADATA
 /////////////////////////////////////////////////////////////////////////////
@@ -292,7 +290,7 @@ class VIEWS_EXPORT View : public ui::LayerDelegate,
   ADVANCED_MEMORY_SAFETY_CHECKS();
 
  public:
-  using Views = std::vector<View*>;
+  using Views = std::vector<raw_ptr<View, VectorExperimental>>;
 
   // TODO(crbug.com/1289902): The |event| parameter is being removed. Do not add
   // new callers.
@@ -1011,16 +1009,12 @@ class VIEWS_EXPORT View : public ui::LayerDelegate,
 
   // Returns the NativeTheme to use for this View. This calls through to
   // GetNativeTheme() on the Widget this View is in, or provides a default
-  // theme if there's no widget, or returns |native_theme_| if that's
-  // set. Warning: the default theme might not be correct; you should probably
-  // override OnThemeChanged().
+  // theme if there's no widget. Warning: the default theme might not be
+  // correct; you should probably override OnThemeChanged().
   ui::NativeTheme* GetNativeTheme() {
     return const_cast<ui::NativeTheme*>(std::as_const(*this).GetNativeTheme());
   }
   const ui::NativeTheme* GetNativeTheme() const;
-
-  // Sets the native theme and informs descendants.
-  void SetNativeThemeForTesting(ui::NativeTheme* theme);
 
   // RTL painting --------------------------------------------------------------
 
@@ -1590,6 +1584,8 @@ class VIEWS_EXPORT View : public ui::LayerDelegate,
   void RemoveObserver(ViewObserver* observer);
   bool HasObserver(const ViewObserver* observer) const;
 
+  virtual std::unique_ptr<ActionViewInterface> GetActionViewInterface();
+
   // http://crbug.com/1162949 : Instrumentation that indicates if this is alive.
   // Callers should not depend on this as it is meant to be temporary.
   enum class LifeCycleState : uint32_t {
@@ -2109,8 +2105,9 @@ class VIEWS_EXPORT View : public ui::LayerDelegate,
 
   // Implementation for adding a layer above or beneath the view layer. Called
   // from |AddLayerToRegion()|.
-  void AddLayerToRegionImpl(ui::Layer* new_layer,
-                            std::vector<ui::Layer*>& layer_vector);
+  void AddLayerToRegionImpl(
+      ui::Layer* new_layer,
+      std::vector<raw_ptr<ui::Layer, VectorExperimental>>& layer_vector);
 
   // Sets this view's layer and the layers above and below's parent to the given
   // parent_layer. This will also ensure the layers are added to the given
@@ -2307,14 +2304,6 @@ class VIEWS_EXPORT View : public ui::LayerDelegate,
   // Whether SchedulePaintInRect() was invoked on this View.
   bool needs_paint_ = false;
 
-  // Native theme --------------------------------------------------------------
-
-  // A native theme for this view and its descendants. Typically null, in which
-  // case the native theme is drawn from the parent view (eventually the
-  // widget).
-  raw_ptr<ui::NativeTheme, AcrossTasksDanglingUntriaged> native_theme_ =
-      nullptr;
-
   // RTL painting --------------------------------------------------------------
 
   // Indicates whether or not the gfx::Canvas object passed to Paint() is going
@@ -2340,8 +2329,8 @@ class VIEWS_EXPORT View : public ui::LayerDelegate,
   // Set of layers that should be painted above and beneath this View's layer.
   // These layers are maintained as siblings of this View's layer and are
   // stacked above and beneath, respectively.
-  std::vector<ui::Layer*> layers_above_;
-  std::vector<ui::Layer*> layers_below_;
+  std::vector<raw_ptr<ui::Layer, VectorExperimental>> layers_above_;
+  std::vector<raw_ptr<ui::Layer, VectorExperimental>> layers_below_;
 
   // If painting to a layer |mask_layer_| will mask the current layer and all
   // child layers to within the |clip_path_|.
@@ -2350,8 +2339,7 @@ class VIEWS_EXPORT View : public ui::LayerDelegate,
   // Accelerators --------------------------------------------------------------
 
   // Focus manager accelerators registered on.
-  raw_ptr<FocusManager, AcrossTasksDanglingUntriaged>
-      accelerator_focus_manager_ = nullptr;
+  raw_ptr<FocusManager> accelerator_focus_manager_ = nullptr;
 
   // The list of accelerators. List elements in the range
   // [0, registered_accelerator_count_) are already registered to FocusManager,
@@ -2362,11 +2350,10 @@ class VIEWS_EXPORT View : public ui::LayerDelegate,
   // Focus ---------------------------------------------------------------------
 
   // Next view to be focused when the Tab key is pressed.
-  raw_ptr<View, AcrossTasksDanglingUntriaged> next_focusable_view_ = nullptr;
+  raw_ptr<View> next_focusable_view_ = nullptr;
 
   // Next view to be focused when the Shift-Tab key combination is pressed.
-  raw_ptr<View, AcrossTasksDanglingUntriaged> previous_focusable_view_ =
-      nullptr;
+  raw_ptr<View> previous_focusable_view_ = nullptr;
 
   // The focus behavior of the view in regular and accessibility mode.
   FocusBehavior focus_behavior_ = FocusBehavior::NEVER;
@@ -2384,13 +2371,11 @@ class VIEWS_EXPORT View : public ui::LayerDelegate,
   // Context menus -------------------------------------------------------------
 
   // The menu controller.
-  raw_ptr<ContextMenuController, AcrossTasksDanglingUntriaged>
-      context_menu_controller_ = nullptr;
+  raw_ptr<ContextMenuController> context_menu_controller_ = nullptr;
 
   // Drag and drop -------------------------------------------------------------
 
-  raw_ptr<DragController, AcrossTasksDanglingUntriaged> drag_controller_ =
-      nullptr;
+  raw_ptr<DragController> drag_controller_ = nullptr;
 
   // Input  --------------------------------------------------------------------
 
@@ -2435,14 +2420,15 @@ class VIEWS_EXPORT View : public ui::LayerDelegate,
   LifeCycleState life_cycle_state_ = LifeCycleState::kAlive;
 };
 
-template <>
-struct ActionViewControllerSuperClassT<View> {
-  using SuperClass = ActionViewControllerBase;
-};
+class VIEWS_EXPORT BaseActionViewInterface : public ActionViewInterface {
+ public:
+  explicit BaseActionViewInterface(View* action_view);
+  ~BaseActionViewInterface() override = default;
+  void ActionItemChangedImpl(actions::ActionItem* action_item) override;
 
-template <>
-void ActionViewControllerTemplate<View, ActionViewControllerBase>::
-    ActionItemChangedImpl(View* action_view, actions::ActionItem* action_item);
+ private:
+  raw_ptr<View> action_view_;
+};
 
 BEGIN_VIEW_BUILDER(VIEWS_EXPORT, View, BaseView)
 template <typename LayoutManager>

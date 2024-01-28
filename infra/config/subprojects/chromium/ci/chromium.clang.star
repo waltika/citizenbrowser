@@ -25,8 +25,11 @@ ci.defaults.set(
     # CFI builds will take even longer - around 11h.
     execution_timeout = 14 * time.hour,
     health_spec = health_spec.modified_default({
-        "Unhealthy": struct(
-            fail_rate = None,
+        "Unhealthy": health_spec.unhealthy_thresholds(
+            fail_rate = struct(),
+        ),
+        "Low Value": health_spec.low_value_thresholds(
+            fail_rate = struct(),
         ),
     }),
     properties = {
@@ -124,11 +127,6 @@ ci.builder(
             gs_bucket = "chromium-browser-cfi",
         ),
     ),
-    console_view_entry = consoles.console_view_entry(
-        category = "CFI|Linux",
-        short_name = "CF",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "cfi_full",
@@ -140,6 +138,11 @@ ci.builder(
             "reclient",
         ],
     ),
+    console_view_entry = consoles.console_view_entry(
+        category = "CFI|Linux",
+        short_name = "CF",
+    ),
+    contact_team_email = "lexan@google.com",
     notifies = ["CFI Linux"],
     reclient_instance = reclient.instance.DEFAULT_TRUSTED,
     reclient_jobs = reclient.jobs.DEFAULT,
@@ -160,11 +163,6 @@ ci.builder(
         ),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    console_view_entry = consoles.console_view_entry(
-        category = "CFI|Linux",
-        short_name = "ToT",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "clang_tot",
@@ -176,6 +174,11 @@ ci.builder(
             "dcheck_always_on",
         ],
     ),
+    console_view_entry = consoles.console_view_entry(
+        category = "CFI|Linux",
+        short_name = "ToT",
+    ),
+    contact_team_email = "lexan@google.com",
     notifies = ["CFI Linux"],
 )
 
@@ -194,12 +197,6 @@ ci.builder(
         ),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    os = os.WINDOWS_DEFAULT,
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Windows|Asan",
-        short_name = "asn",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "asan",
@@ -210,6 +207,12 @@ ci.builder(
             "minimal_symbols",
         ],
     ),
+    os = os.WINDOWS_DEFAULT,
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Windows|Asan",
+        short_name = "asn",
+    ),
+    contact_team_email = "lexan@google.com",
 )
 
 ci.builder(
@@ -227,12 +230,6 @@ ci.builder(
         ),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    os = os.WINDOWS_DEFAULT,
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Windows|Asan",
-        short_name = "dll",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "asan",
@@ -243,6 +240,12 @@ ci.builder(
             "minimal_symbols",
         ],
     ),
+    os = os.WINDOWS_DEFAULT,
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Windows|Asan",
+        short_name = "dll",
+    ),
+    contact_team_email = "lexan@google.com",
 )
 
 ci.builder(
@@ -266,11 +269,6 @@ ci.builder(
         android_config = builder_config.android_config(config = "clang_builder_mb_x64"),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Android",
-        short_name = "rel",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "android_builder",
@@ -280,6 +278,11 @@ ci.builder(
             "clang_tot",
         ],
     ),
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Android",
+        short_name = "rel",
+    ),
+    contact_team_email = "lexan@google.com",
 )
 
 ci.builder(
@@ -303,11 +306,6 @@ ci.builder(
         android_config = builder_config.android_config(config = "clang_builder_mb_x64"),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Android",
-        short_name = "dbg",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "android_builder_without_codecs",
@@ -316,6 +314,11 @@ ci.builder(
             "debug",
         ],
     ),
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Android",
+        short_name = "dbg",
+    ),
+    contact_team_email = "lexan@google.com",
 )
 
 ci.builder(
@@ -339,11 +342,6 @@ ci.builder(
         android_config = builder_config.android_config(config = "clang_builder_mb_x64"),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Android",
-        short_name = "x64",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "android_builder_without_codecs",
@@ -354,6 +352,11 @@ ci.builder(
             "dcheck_always_on",
         ],
     ),
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Android",
+        short_name = "x64",
+    ),
+    contact_team_email = "lexan@google.com",
 )
 
 ci.builder(
@@ -377,11 +380,6 @@ ci.builder(
         android_config = builder_config.android_config(config = "clang_builder_mb_x64"),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Android",
-        short_name = "x86",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "android_builder_without_codecs",
@@ -392,6 +390,11 @@ ci.builder(
             "dcheck_always_on",
         ],
     ),
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Android",
+        short_name = "x86",
+    ),
+    contact_team_email = "lexan@google.com",
 )
 
 ci.builder(
@@ -415,11 +418,6 @@ ci.builder(
         android_config = builder_config.android_config(config = "clang_builder_mb_x64"),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Code Coverage",
-        short_name = "and",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "android_builder_without_codecs",
@@ -431,6 +429,11 @@ ci.builder(
             "use_clang_coverage",
         ],
     ),
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Code Coverage",
+        short_name = "and",
+    ),
+    contact_team_email = "lexan@google.com",
 )
 
 ci.builder(
@@ -454,11 +457,6 @@ ci.builder(
         android_config = builder_config.android_config(config = "clang_builder_mb_x64"),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Android",
-        short_name = "a64",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "android_builder_without_codecs",
@@ -467,6 +465,11 @@ ci.builder(
             "arm64",
         ],
     ),
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Android",
+        short_name = "a64",
+    ),
+    contact_team_email = "lexan@google.com",
 )
 
 ci.builder(
@@ -490,11 +493,6 @@ ci.builder(
         android_config = builder_config.android_config(config = "asan_symbolize"),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Android",
-        short_name = "asn",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "android_builder_without_codecs",
@@ -504,6 +502,11 @@ ci.builder(
             "strip_debug_info",
         ],
     ),
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Android",
+        short_name = "asn",
+    ),
+    contact_team_email = "lexan@google.com",
 )
 
 ci.builder(
@@ -527,11 +530,6 @@ ci.builder(
         android_config = builder_config.android_config(config = "clang_builder_mb_x64"),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Android",
-        short_name = "off",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "android_builder",
@@ -542,6 +540,11 @@ ci.builder(
             "arm64",
         ],
     ),
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Android",
+        short_name = "off",
+    ),
+    contact_team_email = "lexan@google.com",
 )
 
 ci.builder(
@@ -563,11 +566,6 @@ ci.builder(
         ),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT ChromeOS",
-        short_name = "rel",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "lacros_on_linux",
@@ -576,6 +574,11 @@ ci.builder(
             "clang_tot",
         ],
     ),
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT ChromeOS",
+        short_name = "rel",
+    ),
+    contact_team_email = "lexan@google.com",
 )
 
 ci.builder(
@@ -597,11 +600,6 @@ ci.builder(
         ),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT ChromeOS",
-        short_name = "dbg",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "lacros_on_linux",
@@ -610,6 +608,11 @@ ci.builder(
             "clang_tot",
         ],
     ),
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT ChromeOS",
+        short_name = "dbg",
+    ),
+    contact_team_email = "lexan@google.com",
 )
 
 ci.builder(
@@ -633,6 +636,13 @@ ci.builder(
         build_gs_bucket = "chromium-clang-archive",
         run_tests_serially = True,
     ),
+    gn_args = gn_args.config(
+        configs = [
+            "fuchsia",
+            "release_builder",
+            "clang_tot",
+        ],
+    ),
     console_view_entry = [
         consoles.console_view_entry(
             category = "ToT Fuchsia",
@@ -646,13 +656,6 @@ ci.builder(
         ),
     ],
     contact_team_email = "lexan@google.com",
-    gn_args = gn_args.config(
-        configs = [
-            "fuchsia",
-            "release_builder",
-            "clang_tot",
-        ],
-    ),
 )
 
 ci.builder(
@@ -678,6 +681,16 @@ ci.builder(
         build_gs_bucket = "chromium-clang-archive",
         run_tests_serially = True,
     ),
+    gn_args = gn_args.config(
+        configs = [
+            "official_optimize",
+            "fuchsia",
+            "arm64",
+            "clang_tot",
+            "static",
+            "arm64_host",
+        ],
+    ),
     console_view_entry = [
         consoles.console_view_entry(
             category = "ToT Fuchsia",
@@ -691,16 +704,6 @@ ci.builder(
         ),
     ],
     contact_team_email = "lexan@google.com",
-    gn_args = gn_args.config(
-        configs = [
-            "official_optimize",
-            "fuchsia",
-            "arm64",
-            "clang_tot",
-            "static",
-            "arm64_host",
-        ],
-    ),
 )
 
 clang_tot_linux_builder(
@@ -801,8 +804,6 @@ clang_tot_linux_builder(
         ),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    # Requires a large disk, so has a machine specifically devoted to it
-    builderless = False,
     gn_args = gn_args.config(
         configs = [
             "libfuzzer",
@@ -817,13 +818,14 @@ clang_tot_linux_builder(
             "mojo_fuzzer",
         ],
     ),
+    # Requires a large disk, so has a machine specifically devoted to it
+    builderless = False,
     short_name = "fuz",
 )
 
 clang_tot_linux_builder(
     name = "ToTLinuxCoverage",
     executable = "recipe:chromium_clang_coverage_tot",
-    category = "ToT Code Coverage",
     gn_args = gn_args.config(
         configs = [
             "clang_tot",
@@ -832,6 +834,7 @@ clang_tot_linux_builder(
             "release",
         ],
     ),
+    category = "ToT Code Coverage",
     short_name = "linux",
 )
 
@@ -851,7 +854,6 @@ clang_tot_linux_builder(
         ),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    os = os.LINUX_FOCAL,
     gn_args = gn_args.config(
         configs = [
             "clang_tot",
@@ -859,6 +861,7 @@ clang_tot_linux_builder(
             "release",
         ],
     ),
+    os = os.LINUX_FOCAL,
     short_name = "msn",
 )
 
@@ -956,13 +959,6 @@ ci.builder(
         ),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    os = os.WINDOWS_DEFAULT,
-    free_space = builders.free_space.high,
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Windows",
-        short_name = "rel",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "clang_tot",
@@ -971,6 +967,13 @@ ci.builder(
             "x86",
         ],
     ),
+    os = os.WINDOWS_DEFAULT,
+    free_space = builders.free_space.high,
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Windows",
+        short_name = "rel",
+    ),
+    contact_team_email = "lexan@google.com",
 )
 
 ci.builder(
@@ -988,13 +991,6 @@ ci.builder(
         ),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    builderless = False,
-    os = os.WINDOWS_DEFAULT,
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Windows",
-        short_name = "dbg",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "clang_tot",
@@ -1003,6 +999,13 @@ ci.builder(
             "x86",
         ],
     ),
+    builderless = False,
+    os = os.WINDOWS_DEFAULT,
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Windows",
+        short_name = "dbg",
+    ),
+    contact_team_email = "lexan@google.com",
 )
 
 ci.builder(
@@ -1020,12 +1023,6 @@ ci.builder(
         ),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    os = os.WINDOWS_DEFAULT,
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Windows",
-        short_name = "dll",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "clang_tot",
@@ -1036,6 +1033,12 @@ ci.builder(
             "dcheck_always_on",
         ],
     ),
+    os = os.WINDOWS_DEFAULT,
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Windows",
+        short_name = "dll",
+    ),
+    contact_team_email = "lexan@google.com",
 )
 
 ci.builder(
@@ -1053,12 +1056,6 @@ ci.builder(
         ),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    os = os.WINDOWS_DEFAULT,
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Windows|x64",
-        short_name = "rel",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "clang_tot",
@@ -1066,6 +1063,12 @@ ci.builder(
             "release_builder",
         ],
     ),
+    os = os.WINDOWS_DEFAULT,
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Windows|x64",
+        short_name = "rel",
+    ),
+    contact_team_email = "lexan@google.com",
 )
 
 ci.builder(
@@ -1083,13 +1086,6 @@ ci.builder(
         ),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    os = os.WINDOWS_DEFAULT,
-    free_space = builders.free_space.high,
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Windows|x64",
-        short_name = "dbg",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "clang_tot",
@@ -1097,6 +1093,13 @@ ci.builder(
             "debug",
         ],
     ),
+    os = os.WINDOWS_DEFAULT,
+    free_space = builders.free_space.high,
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Windows|x64",
+        short_name = "dbg",
+    ),
+    contact_team_email = "lexan@google.com",
 )
 
 ci.builder(
@@ -1114,13 +1117,6 @@ ci.builder(
         ),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    os = os.WINDOWS_DEFAULT,
-    free_space = builders.free_space.high,
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Windows|x64",
-        short_name = "dll",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "clang_tot",
@@ -1129,6 +1125,13 @@ ci.builder(
             "dcheck_always_on",
         ],
     ),
+    os = os.WINDOWS_DEFAULT,
+    free_space = builders.free_space.high,
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Windows|x64",
+        short_name = "dll",
+    ),
+    contact_team_email = "lexan@google.com",
 )
 
 ci.builder(
@@ -1146,13 +1149,6 @@ ci.builder(
         ),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    builderless = False,
-    os = os.WINDOWS_DEFAULT,
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Windows|Asan",
-        short_name = "fuz",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "libfuzzer",
@@ -1165,6 +1161,13 @@ ci.builder(
             "minimal_symbols",
         ],
     ),
+    builderless = False,
+    os = os.WINDOWS_DEFAULT,
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Windows|Asan",
+        short_name = "fuz",
+    ),
+    contact_team_email = "lexan@google.com",
 )
 
 ci.builder(
@@ -1188,13 +1191,6 @@ ci.builder(
         ),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    os = os.WINDOWS_DEFAULT,
-    sheriff_rotations = args.ignore_default(None),
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Windows",
-        short_name = "pgo-arm",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "clang_tot",
@@ -1204,17 +1200,18 @@ ci.builder(
             "arm64",
         ],
     ),
+    os = os.WINDOWS_DEFAULT,
+    sheriff_rotations = args.ignore_default(None),
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Windows",
+        short_name = "pgo-arm",
+    ),
+    contact_team_email = "lexan@google.com",
 )
 
 ci.builder(
     name = "ToTWindowsCoverage",
     executable = "recipe:chromium_clang_coverage_tot",
-    os = os.WINDOWS_DEFAULT,
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Code Coverage",
-        short_name = "win",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "clang_tot",
@@ -1223,6 +1220,12 @@ ci.builder(
             "release",
         ],
     ),
+    os = os.WINDOWS_DEFAULT,
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Code Coverage",
+        short_name = "win",
+    ),
+    contact_team_email = "lexan@google.com",
 )
 
 ci.builder(
@@ -1240,12 +1243,6 @@ ci.builder(
         ),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    os = os.WINDOWS_DEFAULT,
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Windows|x64",
-        short_name = "pgo",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "clang_tot",
@@ -1254,6 +1251,12 @@ ci.builder(
             "pgo_phase_1",
         ],
     ),
+    os = os.WINDOWS_DEFAULT,
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Windows|x64",
+        short_name = "pgo",
+    ),
+    contact_team_email = "lexan@google.com",
 )
 
 ci.builder(
@@ -1275,11 +1278,6 @@ ci.builder(
         ),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Windows",
-        short_name = "lxw",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "clang_tot",
@@ -1290,6 +1288,11 @@ ci.builder(
             "dcheck_always_on",
         ],
     ),
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Windows",
+        short_name = "lxw",
+    ),
+    contact_team_email = "lexan@google.com",
 )
 
 ci.builder(
@@ -1311,15 +1314,6 @@ ci.builder(
         ),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    builderless = False,
-    cores = None,
-    os = os.MAC_DEFAULT,
-    ssd = True,
-    console_view_entry = consoles.console_view_entry(
-        category = "iOS|public",
-        short_name = "sim",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "clang_tot",
@@ -1330,7 +1324,16 @@ ci.builder(
             "xctest",
         ],
     ),
-    xcode = xcode.x14main,
+    builderless = False,
+    cores = None,
+    os = os.MAC_DEFAULT,
+    ssd = True,
+    console_view_entry = consoles.console_view_entry(
+        category = "iOS|public",
+        short_name = "sim",
+    ),
+    contact_team_email = "lexan@google.com",
+    xcode = xcode.xcode_default,
 )
 
 ci.builder(
@@ -1352,15 +1355,6 @@ ci.builder(
         ),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    builderless = False,
-    cores = None,
-    os = os.MAC_DEFAULT,
-    ssd = True,
-    console_view_entry = consoles.console_view_entry(
-        category = "iOS|public",
-        short_name = "dev",
-    ),
-    contact_team_email = "lexan@google.com",
     gn_args = gn_args.config(
         configs = [
             "clang_tot",
@@ -1371,7 +1365,16 @@ ci.builder(
             "xctest",
         ],
     ),
-    xcode = xcode.x14main,
+    builderless = False,
+    cores = None,
+    os = os.MAC_DEFAULT,
+    ssd = True,
+    console_view_entry = consoles.console_view_entry(
+        category = "iOS|public",
+        short_name = "dev",
+    ),
+    contact_team_email = "lexan@google.com",
+    xcode = xcode.xcode_default,
 )
 
 clang_mac_builder(
@@ -1389,11 +1392,6 @@ clang_mac_builder(
         ),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Mac",
-        short_name = "rel",
-    ),
-    execution_timeout = 20 * time.hour,
     gn_args = gn_args.config(
         configs = [
             "clang_tot",
@@ -1402,6 +1400,11 @@ clang_mac_builder(
             "release",
         ],
     ),
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Mac",
+        short_name = "rel",
+    ),
+    execution_timeout = 20 * time.hour,
 )
 
 clang_mac_builder(
@@ -1419,11 +1422,6 @@ clang_mac_builder(
         ),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Mac",
-        short_name = "dbg",
-    ),
-    execution_timeout = 20 * time.hour,
     gn_args = gn_args.config(
         configs = [
             "clang_tot",
@@ -1431,6 +1429,11 @@ clang_mac_builder(
             "debug",
         ],
     ),
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Mac",
+        short_name = "dbg",
+    ),
+    execution_timeout = 20 * time.hour,
 )
 
 clang_mac_builder(
@@ -1448,11 +1451,6 @@ clang_mac_builder(
         ),
         build_gs_bucket = "chromium-clang-archive",
     ),
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Mac",
-        short_name = "asn",
-    ),
-    execution_timeout = 20 * time.hour,
     gn_args = gn_args.config(
         configs = [
             "asan",
@@ -1462,14 +1460,15 @@ clang_mac_builder(
             "release_builder",
         ],
     ),
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Mac",
+        short_name = "asn",
+    ),
+    execution_timeout = 20 * time.hour,
 )
 
 clang_mac_builder(
     name = "ToTMacPGO",
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Mac",
-        short_name = "pgo",
-    ),
     gn_args = gn_args.config(
         configs = [
             "clang_tot",
@@ -1479,14 +1478,14 @@ clang_mac_builder(
             "x64",
         ],
     ),
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Mac",
+        short_name = "pgo",
+    ),
 )
 
 clang_mac_builder(
     name = "ToTMacArm64PGO",
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Mac",
-        short_name = "pgo-arm",
-    ),
     gn_args = gn_args.config(
         configs = [
             "clang_tot",
@@ -1496,14 +1495,14 @@ clang_mac_builder(
             "arm64",
         ],
     ),
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Mac",
+        short_name = "pgo-arm",
+    ),
 )
 
 clang_mac_builder(
     name = "ToTMacArm64",
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Mac",
-        short_name = "arm",
-    ),
     gn_args = gn_args.config(
         configs = [
             "clang_tot",
@@ -1512,15 +1511,15 @@ clang_mac_builder(
             "release",
         ],
     ),
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Mac",
+        short_name = "arm",
+    ),
 )
 
 clang_mac_builder(
     name = "ToTMacCoverage",
     executable = "recipe:chromium_clang_coverage_tot",
-    console_view_entry = consoles.console_view_entry(
-        category = "ToT Code Coverage",
-        short_name = "mac",
-    ),
     gn_args = gn_args.config(
         configs = [
             "clang_tot",
@@ -1528,5 +1527,9 @@ clang_mac_builder(
             "minimal_symbols",
             "release",
         ],
+    ),
+    console_view_entry = consoles.console_view_entry(
+        category = "ToT Code Coverage",
+        short_name = "mac",
     ),
 )

@@ -81,6 +81,7 @@
 <translation id="2258103955319320201">तुमच्या Chrome ब्राउझरवरील आशय तुमच्या सर्व डिव्हाइसवर अ‍ॅक्सेस करण्यासाठी साइन इन करा, त्यानंतर सिंक सुरू करा</translation>
 <translation id="2290014774651636340">Google API की गहाळ आहेत. Google Chrome ची काही कार्यक्षमता अक्षम केली जाईल.</translation>
 <translation id="2290095356545025170">तुमची खात्री आहे की तुम्ही Google Chrome अनइंस्टॉल करू इच्छिता?</translation>
+<translation id="2298849085402457754">तुमच्या Google खाते मध्ये ब्राउझिंग डेटा राखून ठेवून, तो फक्त या डिव्हाइसवरून साफ करण्यासाठी, <ph name="BEGIN_LINK" />Chrome मधून साइन आउट करणे<ph name="END_LINK" /> हे करा.</translation>
 <translation id="2309047409763057870">ही Google Chrome ची दुय्यम स्थापना असून त्यास तुमचा डीफॉल्ट ब्राउझर बनवू शकत नाही.</translation>
 <translation id="2345992953227471816">Chrome ला या एक्स्टेंशनमध्ये मालवेअर असल्याचे आढळले:</translation>
 <translation id="2348335408836342058">या साइटसाठी Chrome ला तुमचा कॅमेरा आणि मायक्रोफोन ॲक्सेस करण्याची परवानगी हवी आहे</translation>
@@ -201,6 +202,7 @@
 <translation id="4148957013307229264">स्थापना करत आहे...</translation>
 <translation id="4149882025268051530">संग्रहण संक्षिप्त करण्यास इन्स्टॉलर अयशस्वी. कृपया Google Chrome पुन्हा डाउनलोड करा.</translation>
 <translation id="4153934450158521343">Chrome लवकरच बंद होईल आणि डेटा हटवेल</translation>
+<translation id="4173512894976930765">साइट कदाचित अपेक्षेप्रमाणे काम करतील. तुम्ही Chrome वर साइन इन केले असल्यास, सर्व Chrome विंडो बंद केल्यावर तुमचे Google खाते वगळता तुम्हाला बहुतांश साइटवरून साइन आउट केले जाईल.</translation>
 <translation id="4175922240926474352">साइट, सुरक्षित कनेक्शन वापरत नसल्याने Chrome ने हे डाउनलोड ब्लॉक केले आहे आणि फाइलशी छेडछाड केली गेलेली असू शकते</translation>
 <translation id="4191857738314598978">{0,plural, =1{एका दिवसामध्ये Chrome पुन्हा लाँच करा}other{# दिवसांमध्ये Chrome पुन्हा लाँच करा}}</translation>
 <translation id="4205939740494406371">Chrome तुमचे पासवर्ड तपासू शकत नाही. २४ तासांनंतर पुन्हा प्रयत्न करा किंवा <ph name="BEGIN_LINK" />तुमच्या Google खाते मध्ये पासवर्ड तपासा<ph name="END_LINK" />.</translation>
@@ -218,7 +220,6 @@
 <translation id="4343195214584226067"><ph name="EXTENSION_NAME" /> हे Chrome मध्‍ये जोडले गेले आहे</translation>
 <translation id="4384570495110188418">तुम्ही साइन इन केलेले नसल्यामुळे Chrome तुमचे पासवर्ड तपासू शकत नाही</translation>
 <translation id="4389991535395284064">गुप्त मोडमध्ये ब्राउझ करताना, असुरक्षित कनेक्शन वापरून साइट लोड करण्यापूर्वी Chrome तुम्हाला चेतावणी देईल</translation>
-<translation id="4393248995085527349">भविष्यातील Google Chrome अपडेट मिळवण्यासाठी, तुमच्याकडे macOS 10.15 किंवा त्यानंतरची आवृत्ती असणे आवश्यक आहे. हा कॉंप्युटर macOS 10.13 वापरत आहे.</translation>
 <translation id="4427306783828095590">वर्धित सुरक्षितता फिशिंग आणि मालवेअर अधिक चांगल्यारितीने ब्लॉक करते</translation>
 <translation id="4450664632294415862">Chrome - नेटवर्क साइन इन - <ph name="PAGE_TITLE" /></translation>
 <translation id="4458462641685292929">Google Chrome वर दुसरे ऑपरेशन प्रगतीपथावर आहे. कृपया नंतर पुन्हा प्रयत्न करा.</translation>
@@ -305,7 +306,6 @@ Google Chrome तुमची सेटिंग्ज पुन्हा मि
 <translation id="5941711191222866238">कमी करा</translation>
 <translation id="5941830788786076944">Google Chromeला डीफॉल्ट ब्राउझर बनवा</translation>
 <translation id="6003112304606738118">डाउनलोड करत आहे... <ph name="HOURS" /> तास शिल्लक आहे(आहेत)</translation>
-<translation id="6010556343189461180">भविष्यातील Google Chrome अपडेट मिळवण्यासाठी, तुमच्याकडे macOS 10.15 किंवा त्यानंतरची आवृत्ती असणे आवश्यक आहे. हा कॉंप्युटर macOS 10.14 वापरत आहे.</translation>
 <translation id="6014316319780893079">तुम्ही <ph name="BEGIN_LINK" />Chrome ची टूल<ph name="END_LINK" /> वापरून सुरक्षितरीत्या ब्राउझ करू शकता आणि तुमचा डेटा नियंत्रित करू शकता</translation>
 <translation id="6022659036123304283">Chrome ला तुमच्या आवडीनुसार बनवा</translation>
 <translation id="6025087594896450715"><ph name="REMAINING_TIME" /> मध्ये Google Chrome रीस्टार्ट होईल</translation>

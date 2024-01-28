@@ -25,6 +25,7 @@
 #include "content/public/browser/web_ui.h"
 #include "ui/accessibility/accessibility_features.h"
 #include "ui/accessibility/ax_action_data.h"
+#include "ui/accessibility/ax_mode.h"
 #include "ui/accessibility/ax_tree_update.h"
 #include "url/gurl.h"
 
@@ -79,10 +80,16 @@ ReadAnythingUntrustedPageHandler::ReadAnythingUntrustedPageHandler(
   ax_action_handler_observer_.Observe(
       ui::AXActionHandlerRegistry::GetInstance());
 
-  coordinator_ = ReadAnythingCoordinator::FromBrowser(browser_.get());
-  if (coordinator_) {
-    coordinator_->AddObserver(this);
-    coordinator_->AddModelObserver(this);
+  if (features::IsReadAnythingLocalSidePanelEnabled()) {
+    auto* active_web_contents =
+        browser_->tab_strip_model()->GetActiveWebContents();
+    ObserveWebContentsSidePanelController(active_web_contents);
+  } else {
+    coordinator_ = ReadAnythingCoordinator::FromBrowser(browser_.get());
+    if (coordinator_) {
+      coordinator_->AddObserver(this);
+      coordinator_->AddModelObserver(this);
+    }
   }
 
   if (features::IsReadAnythingWebUIToolbarEnabled()) {
@@ -104,6 +111,7 @@ ReadAnythingUntrustedPageHandler::ReadAnythingUntrustedPageHandler(
             prefs->GetInteger(prefs::kAccessibilityReadAnythingLetterSpacing)),
         prefs->GetString(prefs::kAccessibilityReadAnythingFontName),
         prefs->GetDouble(prefs::kAccessibilityReadAnythingFontScale),
+        prefs->GetBoolean(prefs::kAccessibilityReadAnythingLinksEnabled),
         static_cast<read_anything::mojom::Colors>(
             prefs->GetInteger(prefs::kAccessibilityReadAnythingColorInfo)),
         speechRate,
@@ -135,15 +143,18 @@ ReadAnythingUntrustedPageHandler::~ReadAnythingUntrustedPageHandler() {
   pdf_observer_.reset();
   LogTextStyle();
 
-  if (!coordinator_) {
-    return;
+  if (features::IsReadAnythingLocalSidePanelEnabled() && tab_helper_) {
+    // If |this| is destroyed before the |ReadAnythingSidePanelController|, then
+    // remove |this| from the observer lists. In the cases where the coordinator
+    // is destroyed first, these will have been destroyed before this call.
+    tab_helper_->RemovePageHandlerAsObserver(weak_factory_.GetWeakPtr());
+  } else if (coordinator_) {
+    // If |this| is destroyed before the |ReadAnythingCoordinator|, then remove
+    // |this| from the observer lists. In the cases where the coordinator is
+    // destroyed first, these will have been destroyed before this call.
+    coordinator_->RemoveObserver(this);
+    coordinator_->RemoveModelObserver(this);
   }
-
-  // If |this| is destroyed before the |ReadAnythingCoordinator|, then remove
-  // |this| from the observer lists. In the cases where the coordinator is
-  // destroyed first, these will have been destroyed before this call.
-  coordinator_->RemoveObserver(this);
-  coordinator_->RemoveModelObserver(this);
 }
 
 void ReadAnythingUntrustedPageHandler::PrimaryPageChanged() {
@@ -202,6 +213,13 @@ void ReadAnythingUntrustedPageHandler::OnFontSizeChange(double font_size) {
   if (browser_) {
     browser_->profile()->GetPrefs()->SetDouble(
         prefs::kAccessibilityReadAnythingFontScale, saved_font_size);
+  }
+}
+void ReadAnythingUntrustedPageHandler::OnLinksEnabledChanged(bool enabled) {
+  if (browser_) {
+    browser_->profile()->GetPrefs()->SetBoolean(
+        prefs::kAccessibilityReadAnythingLinksEnabled,
+        static_cast<size_t>(enabled));
   }
 }
 void ReadAnythingUntrustedPageHandler::OnColorChange(
@@ -287,6 +305,7 @@ void ReadAnythingUntrustedPageHandler::OnCollapseSelection() {
 void ReadAnythingUntrustedPageHandler::OnReadAnythingThemeChanged(
     const std::string& font_name,
     double font_scale,
+    bool links_enabled,
     ui::ColorId foreground_color_id,
     ui::ColorId background_color_id,
     ui::ColorId separator_color_id,
@@ -304,9 +323,9 @@ void ReadAnythingUntrustedPageHandler::OnReadAnythingThemeChanged(
   SkColor background_skcolor =
       web_contents->GetColorProvider().GetColor(background_color_id);
 
-  page_->OnThemeChanged(
-      ReadAnythingTheme::New(font_name, font_scale, foreground_skcolor,
-                             background_skcolor, line_spacing, letter_spacing));
+  page_->OnThemeChanged(ReadAnythingTheme::New(
+      font_name, font_scale, links_enabled, foreground_skcolor,
+      background_skcolor, line_spacing, letter_spacing));
 }
 
 void ReadAnythingUntrustedPageHandler::SetDefaultLanguageCode(
@@ -325,6 +344,10 @@ void ReadAnythingUntrustedPageHandler::Activate(bool active) {
 
 void ReadAnythingUntrustedPageHandler::OnCoordinatorDestroyed() {
   coordinator_ = nullptr;
+}
+
+void ReadAnythingUntrustedPageHandler::OnSidePanelControllerDestroyed() {
+  tab_helper_ = nullptr;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -367,7 +390,6 @@ void ReadAnythingUntrustedPageHandler::OnTabStripModelDestroyed(
     TabStripModel* tab_strip_model) {
   // If the TabStripModel is destroyed before |this|, remove |this| as an
   // observer.
-  DCHECK(browser_);
   tab_strip_model->RemoveObserver(this);
 }
 
@@ -387,6 +409,12 @@ void ReadAnythingUntrustedPageHandler::OnActiveWebContentsChanged() {
     web_contents = browser_->tab_strip_model()->GetActiveWebContents();
   }
 
+  if (features::IsReadAnythingLocalSidePanelEnabled()) {
+    if (!tab_helper_ && web_contents) {
+      ObserveWebContentsSidePanelController(web_contents);
+    }
+  }
+
   main_observer_ = std::make_unique<ReadAnythingWebContentsObserver>(
       weak_factory_.GetSafeRef(), web_contents);
   pdf_observer_.reset();
@@ -394,8 +422,11 @@ void ReadAnythingUntrustedPageHandler::OnActiveWebContentsChanged() {
   // Enable accessibility for the top level render frame and all descendants.
   // This causes AXTreeSerializer to reset and send accessibility events of
   // the AXTree when it is re-serialized.
-  // TODO(crbug.com/1266555): Only enable kReadAnythingAXMode while still
-  // causing the reset.
+  // All components of kAXModeWebContentsOnly are needed. |ui::AXMode::kHTML| is
+  // needed for URL information. |ui::AXMode::kScreenReader| is needed for
+  // heading level information. |ui::AXMode::kInlineTextBoxes| is needed for
+  // complete Screen2x output -- if excluded, some nodes from the tree will not
+  // be identified as content nodes.
   if (web_contents) {
     web_contents->EnableAccessibilityMode(ui::kAXModeWebContentsOnly);
   }
@@ -478,11 +509,26 @@ void ReadAnythingUntrustedPageHandler::EnablePDFContentAccessibility(
   pdf_observer_ = std::make_unique<ReadAnythingWebContentsObserver>(
       weak_factory_.GetSafeRef(), contents);
 
-  // Enable accessibility to receive events (data) from PDF. kPDFOcr is needed
-  // for inaccessible PDFs. Reset accessibility to get the new updated trees.
-  contents->EnableAccessibilityMode(ui::kAXModeWebContentsOnly |
-                                    ui::AXMode::kPDFOcr);
+  // TODO(crbug.com/1513227): Improve PDF OCR support for Reading Mode. Maybe
+  // it would make it easy to read and maintain the code if setting the AXMode
+  // for PDF OCR (i.e. `ui::AXMode::kPDFOcr`) is handled by `PdfOcrController`.
+  // Enable accessibility to receive events (data) from PDF. Set kPDFOcr only
+  // when the PDF OCR feature flag is enabled to support inaccessible PDFs.
+  // Reset accessibility to get the new updated trees.
+  ui::AXMode ax_mode = ui::kAXModeWebContentsOnly;
+  if (features::IsPdfOcrEnabled()) {
+    ax_mode |= ui::AXMode::kPDFOcr;
+  }
+  contents->EnableAccessibilityMode(ax_mode);
 
   // Trigger distillation.
   OnActiveAXTreeIDChanged(true);
+}
+
+void ReadAnythingUntrustedPageHandler::ObserveWebContentsSidePanelController(
+    content::WebContents* web_contents) {
+  tab_helper_ = ReadAnythingTabHelper::FromWebContents(web_contents);
+  if (tab_helper_) {
+    tab_helper_->AddPageHandlerAsObserver(weak_factory_.GetWeakPtr());
+  }
 }

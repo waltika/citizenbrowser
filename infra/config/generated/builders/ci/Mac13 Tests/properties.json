@@ -19,6 +19,7 @@
                 ],
                 "build_config": "Release",
                 "config": "chromium",
+                "target_arch": "intel",
                 "target_bits": 64,
                 "target_platform": "mac"
               },
@@ -95,5 +96,8 @@
     ]
   },
   "builder_group": "chromium.mac",
-  "recipe": "chromium"
+  "recipe": "chromium",
+  "sheriff_rotations": [
+    "chromium"
+  ]
 }

@@ -7,12 +7,17 @@
 #include <memory>
 
 #include "ash/bubble/bubble_utils.h"
+#include "ash/constants/notifier_catalogs.h"
+#include "ash/public/cpp/system/anchored_nudge_data.h"
 #include "ash/resources/vector_icons/vector_icons.h"
+#include "ash/shell.h"
 #include "ash/strings/grit/ash_strings.h"
 #include "ash/style/icon_button.h"
 #include "ash/style/pill_button.h"
 #include "ash/style/style_util.h"
 #include "ash/style/typography.h"
+#include "ash/system/toast/anchored_nudge_manager_impl.h"
+#include "base/check_op.h"
 #include "base/notreached.h"
 #include "chrome/app/vector_icons/vector_icons.h"
 #include "chrome/browser/ash/arc/input_overlay/actions/action.h"
@@ -24,6 +29,7 @@
 #include "chrome/grit/component_extension_resources.h"
 #include "third_party/skia/include/core/SkColor.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
+#include "ui/base/resource/resource_bundle.h"
 #include "ui/chromeos/styles/cros_tokens_color_mappings.h"
 #include "ui/gfx/geometry/insets.h"
 #include "ui/gfx/geometry/point_f.h"
@@ -38,6 +44,7 @@
 #include "ui/views/layout/box_layout.h"
 #include "ui/views/layout/table_layout_view.h"
 #include "ui/views/view_class_properties.h"
+#include "ui/views/view_utils.h"
 
 namespace arc::input_overlay {
 
@@ -57,6 +64,8 @@ constexpr float kHaloInset = -4.0f;
 constexpr float kHaloThickness = 2.0f;
 
 constexpr size_t kMaxActionCount = 50;
+
+constexpr char kKeyEditNudgeID[] = "kGameControlsKeyEditNudge";
 
 }  // namespace
 
@@ -78,48 +87,6 @@ void EditingList::UpdateWidget() {
       widget, gfx::Rect(GetWidgetMagneticPositionLocal(), GetPreferredSize()));
 }
 
-void EditingList::ShowEduNudgeForEditingTip() {
-  DCHECK_EQ(scroll_content_->children().size(), 1u);
-  DCHECK(!is_zero_state_);
-
-  static_cast<ActionViewListItem*>(scroll_content_->children()[0])
-      ->ShowEduNudgeForEditingTip();
-}
-
-bool EditingList::OnMousePressed(const ui::MouseEvent& event) {
-  OnDragStart(event);
-  return true;
-}
-
-bool EditingList::OnMouseDragged(const ui::MouseEvent& event) {
-  OnDragUpdate(event);
-  return true;
-}
-
-void EditingList::OnMouseReleased(const ui::MouseEvent& event) {
-  OnDragEnd(event);
-}
-
-void EditingList::OnGestureEvent(ui::GestureEvent* event) {
-  switch (event->type()) {
-    case ui::ET_GESTURE_SCROLL_BEGIN:
-      OnDragStart(*event);
-      event->SetHandled();
-      break;
-    case ui::ET_GESTURE_SCROLL_UPDATE:
-      OnDragUpdate(*event);
-      event->SetHandled();
-      break;
-    case ui::ET_GESTURE_SCROLL_END:
-    case ui::ET_SCROLL_FLING_START:
-      OnDragEnd(*event);
-      event->SetHandled();
-      break;
-    default:
-      return;
-  }
-}
-
 void EditingList::Init() {
   SetBackground(views::CreateThemedRoundedRectBackground(
       cros_tokens::kCrosSysSystemBaseElevatedOpaque, /*radius=*/24));
@@ -133,7 +100,7 @@ void EditingList::Init() {
   AddActionAddRow();
 
   scroll_view_ = AddChildView(std::make_unique<views::ScrollView>());
-  scroll_view_->SetBackgroundColor(absl::nullopt);
+  scroll_view_->SetBackgroundColor(std::nullopt);
   on_scroll_view_scrolled_subscription_ =
       scroll_view_->AddContentsScrolledCallback(base::BindRepeating(
           &EditingList::OnScrollViewScrolled, base::Unretained(this)));
@@ -289,6 +256,43 @@ void EditingList::AddControlListContent() {
   }
 }
 
+void EditingList::MaybeApplyEduDecoration() {
+  // Show education decoration only once.
+  if (show_edu_) {
+    ShowKeyEditNudge();
+    PerformPulseAnimation();
+    show_edu_ = false;
+  }
+}
+
+void EditingList::ShowKeyEditNudge() {
+  const auto& list_children = scroll_content_->children();
+  DCHECK_EQ(list_children.size(), 1u);
+
+  // TODO(b/274690042): Replace it with localized strings.
+  auto nudge_data = ash::AnchoredNudgeData(
+      kKeyEditNudgeID, ash::NudgeCatalogName::kGameDashboardControlsNudge,
+      u"Reassign by selecting a new key", list_children[0]);
+  nudge_data.title_text = u"Quickly switch keys";
+  nudge_data.image_model =
+      ui::ResourceBundle::GetSharedInstance().GetThemedLottieImageNamed(
+          IDR_ARC_INPUT_OVERLAY_KEY_EDIT_NUDGE_JSON);
+  nudge_data.background_color_id = cros_tokens::kCrosSysBaseHighlight;
+  nudge_data.image_background_color_id = cros_tokens::kCrosSysOnBaseHighlight;
+  nudge_data.arrow = views::BubbleBorder::LEFT_CENTER;
+  nudge_data.duration = ash::NudgeDuration::kMediumDuration;
+  ash::Shell::Get()->anchored_nudge_manager()->Show(nudge_data);
+}
+
+void EditingList::PerformPulseAnimation() {
+  const auto& scroll_children = scroll_content_->children();
+  DCHECK_EQ(scroll_children.size(), 1u);
+  if (auto* list_item =
+          views::AsViewClass<ActionViewListItem>(scroll_children[0])) {
+    list_item->PerformPulseAnimation();
+  }
+}
+
 void EditingList::UpdateOnZeroState(bool is_zero_state) {
   is_zero_state_ = is_zero_state;
 
@@ -307,6 +311,11 @@ void EditingList::UpdateOnZeroState(bool is_zero_state) {
 
 void EditingList::OnAddButtonPressed() {
   // TODO(b/304819827): Support action type choose.
+  DCHECK(scroll_content_);
+  // Key edit nudge only shows up after adding the first action.
+  if (scroll_content_->children().size() == 1u) {
+    ash::Shell::Get()->anchored_nudge_manager()->Cancel(kKeyEditNudgeID);
+  }
   controller_->EnterButtonPlaceMode(ActionType::TAP);
 }
 
@@ -380,7 +389,7 @@ gfx::Point EditingList::GetWidgetMagneticPositionLocal() {
   auto* widget = GetWidget();
   DCHECK(widget);
 
-  const auto width = GetPreferredSize().width();
+  const int width = GetPreferredSize().width();
   const auto anchor_bounds = controller_->touch_injector()->content_bounds();
   const auto available_bounds = CalculateAvailableBounds(
       controller_->touch_injector()->window()->GetRootWindow());
@@ -452,13 +461,6 @@ gfx::Size EditingList::CalculatePreferredSize() const {
   return gfx::Size(kMainContainerWidth, GetHeightForWidth(kMainContainerWidth));
 }
 
-void EditingList::VisibilityChanged(View* starting_from, bool is_visible) {
-  if (is_visible && is_zero_state_) {
-    // TODO(b/274690042): Replace it with localized strings.
-    controller_->AddNudgeWidget(add_button_, u"Add your first button here");
-  }
-}
-
 void EditingList::OnThemeChanged() {
   views::View::OnThemeChanged();
 
@@ -476,12 +478,52 @@ void EditingList::OnThemeChanged() {
   focus_ring->SetHaloThickness(kHaloThickness);
 }
 
+bool EditingList::OnMousePressed(const ui::MouseEvent& event) {
+  OnDragStart(event);
+  return true;
+}
+
+bool EditingList::OnMouseDragged(const ui::MouseEvent& event) {
+  OnDragUpdate(event);
+  return true;
+}
+
+void EditingList::OnMouseReleased(const ui::MouseEvent& event) {
+  OnDragEnd(event);
+}
+
+void EditingList::OnGestureEvent(ui::GestureEvent* event) {
+  switch (event->type()) {
+    case ui::ET_GESTURE_SCROLL_BEGIN:
+      OnDragStart(*event);
+      event->SetHandled();
+      break;
+    case ui::ET_GESTURE_SCROLL_UPDATE:
+      OnDragUpdate(*event);
+      event->SetHandled();
+      break;
+    case ui::ET_GESTURE_SCROLL_END:
+    case ui::ET_SCROLL_FLING_START:
+      OnDragEnd(*event);
+      event->SetHandled();
+      break;
+    default:
+      return;
+  }
+}
+void EditingList::VisibilityChanged(views::View* starting_from,
+                                    bool is_visible) {
+  if (is_visible) {
+    MaybeApplyEduDecoration();
+  }
+}
+
 void EditingList::OnActionAdded(Action& action) {
   DCHECK(scroll_content_);
   if (controller_->GetActiveActionsSize() == 1u) {
     // Clear the zero-state.
-    controller_->RemoveNudgeWidget(GetWidget());
     UpdateOnZeroState(/*is_zero_state=*/false);
+    show_edu_ = true;
   }
   scroll_content_->AddChildView(
       std::make_unique<ActionViewListItem>(controller_, &action));
@@ -493,7 +535,7 @@ void EditingList::OnActionAdded(Action& action) {
 
 void EditingList::OnActionRemoved(const Action& action) {
   DCHECK(scroll_content_);
-  for (auto* child : scroll_content_->children()) {
+  for (views::View* child : scroll_content_->children()) {
     auto* list_item = static_cast<ActionViewListItem*>(child);
     DCHECK(list_item);
     if (list_item->action() == &action) {
@@ -505,8 +547,6 @@ void EditingList::OnActionRemoved(const Action& action) {
   // Set to zero-state if it is empty.
   if (controller_->GetActiveActionsSize() == 0u) {
     UpdateOnZeroState(/*is_zero_state=*/true);
-    // TODO(b/274690042): Replace it with localized strings.
-    controller_->AddNudgeWidget(add_button_, u"Add your first button here");
   }
 
   UpdateAddButtonState();
@@ -530,7 +570,7 @@ void EditingList::OnActionTypeChanged(Action* action, Action* new_action) {
 
 void EditingList::OnActionInputBindingUpdated(const Action& action) {
   DCHECK(scroll_content_);
-  for (auto* child : scroll_content_->children()) {
+  for (views::View* child : scroll_content_->children()) {
     auto* list_item = static_cast<ActionViewListItem*>(child);
     DCHECK(list_item);
     if (list_item->action() == &action) {
@@ -542,7 +582,7 @@ void EditingList::OnActionInputBindingUpdated(const Action& action) {
 
 void EditingList::OnActionNameUpdated(const Action& action) {
   DCHECK(scroll_content_);
-  for (auto* child : scroll_content_->children()) {
+  for (views::View* child : scroll_content_->children()) {
     auto* list_item = static_cast<ActionViewListItem*>(child);
     DCHECK(list_item);
     if (list_item->action() == &action) {
@@ -554,7 +594,7 @@ void EditingList::OnActionNameUpdated(const Action& action) {
 
 void EditingList::OnActionNewStateRemoved(const Action& action) {
   DCHECK(scroll_content_);
-  for (auto* child : scroll_content_->children()) {
+  for (views::View* child : scroll_content_->children()) {
     auto* list_item = static_cast<ActionViewListItem*>(child);
     DCHECK(list_item);
     if (list_item->action() == &action) {
@@ -562,6 +602,18 @@ void EditingList::OnActionNewStateRemoved(const Action& action) {
       break;
     }
   }
+}
+
+bool EditingList::IsKeyEditNudgeShownForTesting() const {
+  return ash::Shell::Get()->anchored_nudge_manager()->IsNudgeShown(
+      kKeyEditNudgeID);
+}
+
+ash::AnchoredNudge* EditingList::GetKeyEditNudgeForTesting() const {
+  return ash::Shell::Get()
+      ->anchored_nudge_manager()
+      ->GetShownNudgeForTest(  // IN-TEST
+          kKeyEditNudgeID);
 }
 
 BEGIN_METADATA(EditingList, views::View)

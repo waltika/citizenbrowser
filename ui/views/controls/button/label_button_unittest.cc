@@ -15,6 +15,7 @@
 #include "build/build_config.h"
 #include "third_party/skia/include/core/SkBitmap.h"
 #include "ui/accessibility/ax_node_data.h"
+#include "ui/actions/actions.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/base/ui_base_switches.h"
@@ -35,6 +36,7 @@
 #include "ui/views/animation/test/test_ink_drop.h"
 #include "ui/views/border.h"
 #include "ui/views/buildflags.h"
+#include "ui/views/controls/button/label_button_image_container.h"
 #include "ui/views/layout/layout_provider.h"
 #include "ui/views/style/platform_style.h"
 #include "ui/views/test/views_test_base.h"
@@ -63,6 +65,7 @@ class TestLabelButton : public LabelButton {
 
   using LabelButton::GetVisualState;
   using LabelButton::image;
+  using LabelButton::image_container_view;
   using LabelButton::label;
   using LabelButton::OnThemeChanged;
 };
@@ -167,7 +170,7 @@ TEST_F(LabelButtonTest, Init) {
   EXPECT_FALSE(button()->GetIsDefault());
   EXPECT_EQ(Button::STATE_NORMAL, button()->GetState());
 
-  EXPECT_EQ(button()->image()->parent(), button());
+  EXPECT_EQ(button()->image_container_view()->parent(), button());
   EXPECT_EQ(button()->label()->parent(), button());
 }
 
@@ -453,12 +456,12 @@ TEST_F(LabelButtonTest, ImageAlignmentWithMultilineLabel) {
 
   button()->SetBoundsRect(gfx::Rect(button()->GetPreferredSize()));
   views::test::RunScheduledLayout(button());
-  int y_origin_centered = button()->image()->origin().y();
+  int y_origin_centered = button()->image_container_view()->origin().y();
 
   button()->SetBoundsRect(gfx::Rect(button()->GetPreferredSize()));
   button()->SetImageCentered(false);
   views::test::RunScheduledLayout(button());
-  int y_origin_not_centered = button()->image()->origin().y();
+  int y_origin_not_centered = button()->image_container_view()->origin().y();
 
   EXPECT_LT(y_origin_not_centered, y_origin_centered);
 }
@@ -492,12 +495,12 @@ TEST_F(LabelButtonTest, LabelAndImage) {
   button_size.Enlarge(50, 0);
   button()->SetSize(button_size);
   views::test::RunScheduledLayout(button());
-  EXPECT_LT(button()->image()->bounds().right(),
+  EXPECT_LT(button()->image_container_view()->bounds().right(),
             button()->label()->bounds().x());
   int left_align_label_midpoint = button()->label()->bounds().CenterPoint().x();
   button()->SetHorizontalAlignment(gfx::ALIGN_CENTER);
   views::test::RunScheduledLayout(button());
-  EXPECT_LT(button()->image()->bounds().right(),
+  EXPECT_LT(button()->image_container_view()->bounds().right(),
             button()->label()->bounds().x());
   int center_align_label_midpoint =
       button()->label()->bounds().CenterPoint().x();
@@ -505,7 +508,7 @@ TEST_F(LabelButtonTest, LabelAndImage) {
   button()->SetHorizontalAlignment(gfx::ALIGN_RIGHT);
   views::test::RunScheduledLayout(button());
   EXPECT_LT(button()->label()->bounds().right(),
-            button()->image()->bounds().x());
+            button()->image_container_view()->bounds().x());
 
   button()->SetText(std::u16string());
   EXPECT_LT(button()->GetPreferredSize().width(), text_width + image_size);
@@ -565,9 +568,10 @@ TEST_F(LabelButtonTest, LabelWrapAndImageAlignment) {
             font_list.GetHeight() * 2 + button_insets.height());
 
   // The image should be centered on the first line of the multi-line label
-  EXPECT_EQ(button()->image()->y(),
-            (font_list.GetHeight() - button()->image()->height()) / 2 +
-                button_insets.top());
+  EXPECT_EQ(
+      button()->image_container_view()->y(),
+      (font_list.GetHeight() - button()->image_container_view()->height()) / 2 +
+          button_insets.top());
 }
 
 // This test was added because GetHeightForWidth and GetPreferredSize were
@@ -785,7 +789,7 @@ TEST_F(LabelButtonTest, ImageOrLabelGetClipped) {
   views::test::RunScheduledLayout(button());
 
   // Ensure that content (image and label) doesn't get clipped by the border.
-  EXPECT_GE(button()->image()->height(), image_size);
+  EXPECT_GE(button()->image_container_view()->height(), image_size);
   EXPECT_GE(button()->label()->height(), image_size);
 }
 
@@ -979,6 +983,25 @@ TEST_F(LabelButtonVisualStateTest, ChildWidget) {
   EXPECT_EQ(button()->GetVisualState(), style_of_inactive_widget_);
 #endif
   EXPECT_EQ(child_button->GetVisualState(), Button::STATE_NORMAL);
+}
+
+using LabelButtonActionViewInterfaceTest = ViewsTestBase;
+
+TEST_F(LabelButtonActionViewInterfaceTest, TestActionChanged) {
+  auto label_button = std::make_unique<LabelButton>();
+  const std::u16string test_string = u"test_string";
+  std::unique_ptr<actions::ActionItem> action_item =
+      actions::ActionItem::Builder()
+          .SetText(test_string)
+          .SetActionId(0)
+          .SetEnabled(false)
+          .Build();
+  label_button->GetActionViewInterface()->ActionItemChangedImpl(
+      action_item.get());
+  // Test some properties to ensure that the right ActionViewInterface is linked
+  // to the view.
+  EXPECT_EQ(test_string, label_button->GetText());
+  EXPECT_FALSE(label_button->GetEnabled());
 }
 
 }  // namespace views

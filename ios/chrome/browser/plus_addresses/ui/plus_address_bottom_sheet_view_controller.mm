@@ -7,6 +7,7 @@
 #import "base/functional/bind.h"
 #import "base/logging.h"
 #import "base/strings/sys_string_conversions.h"
+#import "base/time/time.h"
 #import "base/types/expected.h"
 #import "components/plus_addresses/features.h"
 #import "components/plus_addresses/plus_address_metrics.h"
@@ -50,13 +51,13 @@ NSAttributedString* DescriptionMessage() {
   return AttributedStringFromStringWithLink(message, text_attributes,
                                             link_attributes);
 }
+
 }  // namespace
 
 @interface PlusAddressBottomSheetViewController () <
     ConfirmationAlertActionHandler,
     UIAdaptivePresentationControllerDelegate,
     UITextViewDelegate>
-
 @end
 
 @implementation PlusAddressBottomSheetViewController {
@@ -69,6 +70,12 @@ NSAttributedString* DescriptionMessage() {
   UILabel* _reservedPlusAddressLabel;
   // A loading spinner to indicate to the user that an action is in progress.
   UIActivityIndicatorView* _activityIndicator;
+  // Record of the time the bottom sheet is shown.
+  base::Time _bottomSheetShownTime;
+  // Error that occurred while bottom sheet is showing.
+  std::optional<
+      plus_addresses::PlusAddressMetrics::PlusAddressModalCompletionStatus>
+      _bottomSheetErrorStatus;
 }
 
 - (instancetype)initWithDelegate:(id<PlusAddressBottomSheetDelegate>)delegate
@@ -130,6 +137,7 @@ NSAttributedString* DescriptionMessage() {
   [_delegate reservePlusAddress];
   plus_addresses::PlusAddressMetrics::RecordModalEvent(
       plus_addresses::PlusAddressMetrics::PlusAddressModalEvent::kModalShown);
+  _bottomSheetShownTime = base::Time::Now();
 }
 
 #pragma mark - ConfirmationAlertActionHandler
@@ -147,9 +155,7 @@ NSAttributedString* DescriptionMessage() {
 - (void)confirmationAlertSecondaryAction {
   // The cancel button was tapped, which dismisses the bottom sheet.
   // Call out to the command handler to hide the view and stop the coordinator.
-  plus_addresses::PlusAddressMetrics::RecordModalEvent(
-      plus_addresses::PlusAddressMetrics::PlusAddressModalEvent::
-          kModalCanceled);
+  [self dismiss];
   [_browserCoordinatorHandler dismissPlusAddressBottomSheet];
 }
 
@@ -161,13 +167,20 @@ NSAttributedString* DescriptionMessage() {
 }
 
 - (void)didConfirmPlusAddress {
+  plus_addresses::PlusAddressMetrics::RecordModalShownDuration(
+      plus_addresses::PlusAddressMetrics::PlusAddressModalCompletionStatus::
+          kModalConfirmed,
+      base::Time::Now() - _bottomSheetShownTime);
   [_activityIndicator stopAnimating];
   [_browserCoordinatorHandler dismissPlusAddressBottomSheet];
 }
 
-- (void)notifyError {
+- (void)notifyError:
+    (plus_addresses::PlusAddressMetrics::PlusAddressModalCompletionStatus)
+        status {
   // With any error, whether during the reservation step or the confirmation
   // step, disable submission of the modal.
+  _bottomSheetErrorStatus = status;
   self.primaryActionButton.enabled = NO;
   _reservedPlusAddressLabel.text =
       l10n_util::GetNSString(IDS_PLUS_ADDRESS_MODAL_ERROR_MESSAGE);
@@ -197,10 +210,7 @@ NSAttributedString* DescriptionMessage() {
     (UIPresentationController*)presentationController {
   // TODO(crbug.com/1467623): separate out the cancel click from other exit
   // patterns, on all platforms.
-  plus_addresses::PlusAddressMetrics::RecordModalEvent(
-      plus_addresses::PlusAddressMetrics::PlusAddressModalEvent::
-          kModalCanceled);
-  [_browserCoordinatorHandler dismissPlusAddressBottomSheet];
+  [self dismiss];
 }
 
 #pragma mark - Private
@@ -276,6 +286,23 @@ NSAttributedString* DescriptionMessage() {
   container.translatesAutoresizingMaskIntoConstraints = NO;
   AddSameConstraints(container, _activityIndicator);
   self.aboveTitleView = container;
+}
+
+- (void)dismiss {
+  plus_addresses::PlusAddressMetrics::RecordModalEvent(
+      plus_addresses::PlusAddressMetrics::PlusAddressModalEvent::
+          kModalCanceled);
+  if (_bottomSheetErrorStatus.has_value()) {
+    plus_addresses::PlusAddressMetrics::RecordModalShownDuration(
+        _bottomSheetErrorStatus.value(),
+        base::Time::Now() - _bottomSheetShownTime);
+  } else {
+    plus_addresses::PlusAddressMetrics::RecordModalShownDuration(
+        plus_addresses::PlusAddressMetrics::PlusAddressModalCompletionStatus::
+            kModalCanceled,
+        base::Time::Now() - _bottomSheetShownTime);
+  }
+  [_browserCoordinatorHandler dismissPlusAddressBottomSheet];
 }
 
 @end

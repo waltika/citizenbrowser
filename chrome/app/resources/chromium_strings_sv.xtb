@@ -74,6 +74,7 @@ Behörigheter som du redan har gett webbplatser och appar kan gälla för det h�
 <translation id="2329088755516916767">När detta är aktiverat läses sidor in i förväg i Chromium, vilket gör det snabbare att surfa och söka.</translation>
 <translation id="2343156876103232566">Logga in på Chromium på båda enheterna om du vill skicka ett nummer från Android-telefonen.</translation>
 <translation id="2359808026110333948">Fortsätt</translation>
+<translation id="2359920621792549529"><ph name="BEGIN_LINK" />Logga ut från Chromium<ph name="END_LINK" /> om du vill rensa webbinformation från enheten utan att ta bort den från Google-kontot.</translation>
 <translation id="2384373936468275798">Det gick inte att synkronisera data med Chromium OS eftersom inloggningsuppgifterna för kontot är inaktuella.</translation>
 <translation id="2398377054246527950">{NUM_DEVICES,plural, =0{Minst ett Chromium-tillägg har fått åtkomst till 1 styrdon}=1{Minst ett Chromium-tillägg har åtkomst till 1 styrdon}other{Minst ett Chromium-tillägg har åtkomst till # styrdon}}</translation>
 <translation id="2401032172288869980">Du behöver ge Chromium kamera- och mikrofonbehörighet för den här webbplatsen</translation>
@@ -141,7 +142,6 @@ Behörigheter som du redan har gett webbplatser och appar kan gälla för det h�
 <translation id="3533435340678213462">För att skydda din integritet raderar vi automatiskt intressen som är äldre än fyra veckor. Medan du surfar kan ett intresse dyka upp på listan igen. Du kan också ta bort intressen som du inte vill att Chromium ska inkludera.</translation>
 <translation id="3567254597502212821">Webbhistoriken, där webbplatser som du besökt i Chromium på den här enheten registreras.</translation>
 <translation id="3593091352817399191">Ett annat konto är redan inloggat. Du kan hålla isär webbinformationen genom att skapa en egen profil i Chromium.</translation>
-<translation id="363078681319665186">Du behöver macOS 10.15 eller senare för att få framtida uppdateringar av Chromium. På den här datorn används macOS 10.13.</translation>
 <translation id="3639635944603682591">Den här personens webbläsardata tas bort från enheten. Logga in i Chromium som <ph name="USER_EMAIL" /> om du vill återställa data.</translation>
 <translation id="364817392622123556">{COUNT,plural, =0{Det finns en ny Chromium-uppdatering som tillämpas så snart du startar om.}=1{Det finns en ny Chromium-uppdatering som tillämpas så snart du startar om. Inkognitofönstret öppnas inte igen.}other{Det finns en ny Chromium-uppdatering som tillämpas så snart du startar om. De # inkognitofönstren öppnas inte igen.}}</translation>
 <translation id="3651803019964686660">Logga in på Chromium på båda enheterna om du vill skicka ett nummer från <ph name="ORIGIN" /> till Android-telefonen.</translation>
@@ -158,7 +158,6 @@ Behörigheter som du redan har gett webbplatser och appar kan gälla för det h�
 <translation id="3848258323044014972"><ph name="PAGE_TITLE" /> – Chromium</translation>
 <translation id="386822487697155367">Få hjälp med Chromium OS</translation>
 <translation id="3871664619793219264">Få saker i webbläsaren Chromium från <ph name="ACCOUNT_EMAIL" /></translation>
-<translation id="387966568917439637">Du behöver macOS 10.15 eller senare för att få framtida uppdateringar av Chromium. På den här datorn används macOS 10.14.</translation>
 <translation id="388648406173476553">Anpassa och kontrollera Chromium. Någonting behöver ses över. Klicka här för mer information.</translation>
 <translation id="3889543394854987837">Öppna Chromium genom att klicka på ditt namn och börja surfa.</translation>
 <translation id="390528597099634151"><ph name="EXISTING_USER" /> är redan inloggad på den här Chromium-profilen. Du kan hålla isär webbinformationen genom att skapa en egen profil i Chromium.</translation>
@@ -376,6 +375,7 @@ Chromium kan inte återställa dina inställningar.</translation>
 <translation id="7461356015007898716">Du behöver Windows 10 eller senare för att få kommande uppdateringar av Chromium. På den här datorn används Windows 7.</translation>
 <translation id="7467949745582939695">Vill du starta om Chromium?</translation>
 <translation id="7483335560992089831">Det går inte att installera samma version av Chromium som den som redan körs. Stäng Chromium och försök igen.</translation>
+<translation id="751935028865900641">Webbplatser bör fungera som förväntat. Du loggas ut från de flesta webbplatser när du stänger alla fönster i Chromium, med undantag för Google-kontot om du är inloggad i Chromium.</translation>
 <translation id="753534427205733210">{0,plural, =1{Om en minut startas Chromium om}other{Om # minuter startas Chromium om}}</translation>
 <translation id="7582945390259497898">Chromium kan göra en uppskattning av dina intressen. Senare kan en webbplats fråga efter dina intressen i Chromium för att anpassa vilka annonser som visas.</translation>
 <translation id="7583399374488819119">Installationsprogram för <ph name="COMPANY_NAME" /></translation>

@@ -24,7 +24,7 @@ namespace content {
 class CitizenNotesAgentHostImpl;
 class CitizenNotesSession;
 class RenderFrameHostImpl;
-class WorkerCitizenNotesAgentHost;
+class WorkerOrWorkletCitizenNotesAgentHost;
 
 // This class encapsulates a connection to blink::mojom::CitizenNotesAgent
 // in the renderer (either RenderFrame or some kind of worker).
@@ -97,7 +97,7 @@ class CitizenNotesRendererChannel : public blink::mojom::CitizenNotesAgentHost {
   mojo::AssociatedRemote<blink::mojom::CitizenNotesAgent> associated_agent_remote_;
   int process_id_;
   RAW_PTR_EXCLUSION RenderFrameHostImpl* frame_host_ = nullptr;
-  base::flat_set<WorkerCitizenNotesAgentHost*> child_targets_;
+  base::flat_set<WorkerOrWorkletCitizenNotesAgentHost*> child_targets_;
   ChildTargetCreatedCallback child_target_created_callback_;
   bool wait_for_debugger_ = false;
   base::OnceClosure set_report_completion_callback_;

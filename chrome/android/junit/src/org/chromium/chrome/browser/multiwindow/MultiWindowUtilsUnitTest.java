@@ -12,7 +12,6 @@ import static org.mockito.Mockito.when;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Build.VERSION_CODES;
 import android.util.SparseIntArray;
 
@@ -188,6 +187,7 @@ public class MultiWindowUtilsUnitTest {
     @Test
     @Config(sdk = VERSION_CODES.S)
     public void testIsMoveOtherWindowSupported_InstanceSwitcherEnabled_ReturnsTrue() {
+        MultiWindowTestUtils.enableMultiInstance();
         when(mTabModelSelector.getModel(false)).thenReturn(mNormalTabModel);
         when(mTabModelSelector.getModel(true)).thenReturn(mIncognitoTabModel);
         when(mTabModelSelector.getTotalTabCount()).thenReturn(2);
@@ -249,6 +249,43 @@ public class MultiWindowUtilsUnitTest {
     }
 
     @Test
+    public void testHasAtMostOneTabWithHomepageEnabled_ReturnsTrue() {
+        PartnerBrowserCustomizations partnerBrowserCustomizations =
+                mock(PartnerBrowserCustomizations.class);
+        when(partnerBrowserCustomizations.isHomepageProviderAvailableAndEnabled()).thenReturn(true);
+        PartnerBrowserCustomizations.setInstanceForTesting(partnerBrowserCustomizations);
+        when(mTabModelSelector.getTotalTabCount()).thenReturn(1);
+        assertTrue(
+                "Should return true for last tab with partner homepage.",
+                mUtils.hasAtMostOneTabWithHomepageEnabled(mTabModelSelector));
+    }
+
+    @Test
+    public void testHasAtMostOneTabWithHomepageEnabled_WithMoreThanOneTab_ReturnsFalse() {
+        PartnerBrowserCustomizations partnerBrowserCustomizations =
+                mock(PartnerBrowserCustomizations.class);
+        when(partnerBrowserCustomizations.isHomepageProviderAvailableAndEnabled()).thenReturn(true);
+        PartnerBrowserCustomizations.setInstanceForTesting(partnerBrowserCustomizations);
+        when(mTabModelSelector.getTotalTabCount()).thenReturn(2);
+        assertFalse(
+                "Should return false for multiple tabs.",
+                mUtils.hasAtMostOneTabWithHomepageEnabled(mTabModelSelector));
+    }
+
+    @Test
+    public void testHasAtMostOneTabWithHomepageEnabled_WithHomepageDisabled_ReturnsFalse() {
+        PartnerBrowserCustomizations partnerBrowserCustomizations =
+                mock(PartnerBrowserCustomizations.class);
+        when(partnerBrowserCustomizations.isHomepageProviderAvailableAndEnabled())
+                .thenReturn(false);
+        PartnerBrowserCustomizations.setInstanceForTesting(partnerBrowserCustomizations);
+        when(mTabModelSelector.getTotalTabCount()).thenReturn(1);
+        assertFalse(
+                "Should return false for homepage disabled.",
+                mUtils.hasAtMostOneTabWithHomepageEnabled(mTabModelSelector));
+    }
+
+    @Test
     public void testGetInstanceCount() {
         when(mTabModelSelector.getModel(false)).thenReturn(mNormalTabModel);
         when(mTabModelSelector.getModel(true)).thenReturn(mIncognitoTabModel);
@@ -275,9 +312,8 @@ public class MultiWindowUtilsUnitTest {
 
     @Test
     @Config(sdk = 31)
-    public void testGetInstanceIdForViewIntent_LessThanMaxInstancesOpen()
-            throws NameNotFoundException {
-        initializeForMultiInstanceApi31();
+    public void testGetInstanceIdForViewIntent_LessThanMaxInstancesOpen() {
+        MultiWindowTestUtils.enableMultiInstance();
         when(mTabModelSelector.getModel(false)).thenReturn(mNormalTabModel);
         when(mTabModelSelector.getModel(true)).thenReturn(mIncognitoTabModel);
 
@@ -307,9 +343,8 @@ public class MultiWindowUtilsUnitTest {
 
     @Test
     @Config(sdk = 31)
-    public void testGetInstanceIdForViewIntent_MaxInstancesOpen_MaxRunningActivities()
-            throws NameNotFoundException {
-        initializeForMultiInstanceApi31();
+    public void testGetInstanceIdForViewIntent_MaxInstancesOpen_MaxRunningActivities() {
+        MultiWindowTestUtils.enableMultiInstance();
         when(mTabModelSelector.getModel(false)).thenReturn(mNormalTabModel);
         when(mTabModelSelector.getModel(true)).thenReturn(mIncognitoTabModel);
 
@@ -330,9 +365,8 @@ public class MultiWindowUtilsUnitTest {
 
     @Test
     @Config(sdk = 31)
-    public void testGetInstanceIdForViewIntent_MaxInstancesOpen_LessThanMaxRunningActivities()
-            throws NameNotFoundException {
-        initializeForMultiInstanceApi31();
+    public void testGetInstanceIdForViewIntent_MaxInstancesOpen_LessThanMaxRunningActivities() {
+        MultiWindowTestUtils.enableMultiInstance();
         when(mTabModelSelector.getModel(false)).thenReturn(mNormalTabModel);
         when(mTabModelSelector.getModel(true)).thenReturn(mIncognitoTabModel);
 
@@ -358,9 +392,8 @@ public class MultiWindowUtilsUnitTest {
 
     @Test
     @Config(sdk = 31)
-    public void testGetInstanceIdForLinkIntent_LessThanMaxInstancesOpen()
-            throws NameNotFoundException {
-        initializeForMultiInstanceApi31();
+    public void testGetInstanceIdForLinkIntent_LessThanMaxInstancesOpen() {
+        MultiWindowTestUtils.enableMultiInstance();
         when(mTabModelSelector.getModel(false)).thenReturn(mNormalTabModel);
         when(mTabModelSelector.getModel(true)).thenReturn(mIncognitoTabModel);
 
@@ -388,9 +421,5 @@ public class MultiWindowUtilsUnitTest {
         MultiInstanceManagerApi31.writeLastAccessedTime(instanceId);
         MultiInstanceManagerApi31.writeTabCount(instanceId, mTabModelSelector);
         MultiInstanceManagerApi31.updateTaskMap(instanceId, taskId);
-    }
-
-    private void initializeForMultiInstanceApi31() throws NameNotFoundException {
-        MultiWindowTestUtils.enableMultiInstance();
     }
 }

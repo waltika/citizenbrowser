@@ -37,6 +37,8 @@ public class PlayerCoordinator implements Player {
     private final MiniPlayerCoordinator mMiniPlayer;
     private final ExpandedPlayerCoordinator mExpandedPlayer;
     private Playback mPlayback;
+    private boolean mRestoreMiniPlayer;
+    private boolean mRestoreExpandedPlayer;
 
     // TODO remove internal call and then remove this constructor
     public PlayerCoordinator(
@@ -103,8 +105,7 @@ public class PlayerCoordinator implements Player {
     public void playTabRequested() {
         mMediator.setPlayback(null);
         mMediator.setPlaybackState(PlaybackListener.State.BUFFERING);
-        if (mExpandedPlayer.getVisibility() != VisibilityState.SHOWING
-                && mExpandedPlayer.getVisibility() != VisibilityState.VISIBLE) {
+        if (!mExpandedPlayer.anySheetShowing()) {
             mMiniPlayer.show(true);
         }
     }
@@ -122,14 +123,21 @@ public class PlayerCoordinator implements Player {
         mMediator.setPlaybackState(PlaybackListener.State.ERROR);
     }
 
+    @Override
+    public void recordPlaybackDuration() {
+        mMediator.recordPlaybackDuration();
+    }
+
     /** Show expanded player. */
     void expand() {
         mExpandedPlayer.show();
         mMiniPlayer.dismiss(true);
     }
 
-    void restoreMiniPlayer() {
+    @Override
+    public void restoreMiniPlayer() {
         mMiniPlayer.show(true);
+        mMediator.setHiddenAndPlaying(false);
     }
 
     @Override
@@ -140,6 +148,48 @@ public class PlayerCoordinator implements Player {
         mMediator.setPlaybackState(PlaybackListener.State.STOPPED);
         mMiniPlayer.dismiss(true);
         mExpandedPlayer.dismiss();
+        mMediator.setHiddenAndPlaying(false);
+    }
+
+    @Override
+    public void hideMiniPlayer() {
+        int miniPlayerVisibility = mMiniPlayer.getVisibility();
+        if (miniPlayerVisibility == VisibilityState.SHOWING
+                || miniPlayerVisibility == VisibilityState.VISIBLE) {
+        mMiniPlayer.dismiss(true);
+        mMediator.setHiddenAndPlaying(true);
+        }
+    }
+
+    @Override
+    public void hidePlayers() {
+        int expandedSheetVisibility = mExpandedPlayer.getVisibility();
+        int miniPlayerVisibility = mMiniPlayer.getVisibility();
+        if (expandedSheetVisibility == VisibilityState.SHOWING
+                || expandedSheetVisibility == VisibilityState.VISIBLE) {
+            mRestoreExpandedPlayer = true;
+            mRestoreMiniPlayer = false;
+            mExpandedPlayer.dismiss();
+        } else if (miniPlayerVisibility == VisibilityState.SHOWING
+                || miniPlayerVisibility == VisibilityState.VISIBLE) {
+            mRestoreMiniPlayer = true;
+            mRestoreExpandedPlayer = false;
+            mMiniPlayer.dismiss(true);
+        }
+
+        mMediator.setHiddenAndPlaying(true);
+    }
+
+    @Override
+    public void restorePlayers() {
+        if (mRestoreMiniPlayer) {
+            restoreMiniPlayer();
+            mRestoreMiniPlayer = false;
+        } else if (mRestoreExpandedPlayer) {
+            mExpandedPlayer.show();
+            mRestoreExpandedPlayer = false;
+            mMediator.setHiddenAndPlaying(false);
+        }
     }
 
     /** To be called when the close button is clicked. */

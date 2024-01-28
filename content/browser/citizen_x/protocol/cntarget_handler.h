@@ -100,7 +100,7 @@ class CNTargetHandler : public CitizenNotesDomainHandler,
   Response ActivateTarget(const std::string& target_id) override;
   Response CloseTarget(const std::string& target_id,
                        bool* out_success) override;
-  Response ExposeCitizenNotesProtocol(const std::string& target_id,
+  Response ExposeDevToolsProtocol(const std::string& target_id,
                                   Maybe<std::string> binding_name) override;
   void CreateBrowserContext(
       Maybe<bool> in_disposeOnDetach,

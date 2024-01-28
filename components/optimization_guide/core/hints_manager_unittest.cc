@@ -35,6 +35,7 @@
 #include "components/optimization_guide/core/top_host_provider.h"
 #include "components/optimization_guide/proto/hints.pb.h"
 #include "components/prefs/pref_registry_simple.h"
+#include "components/prefs/scoped_user_pref_update.h"
 #include "components/signin/public/base/consent_level.h"
 #include "components/signin/public/identity_manager/identity_manager.h"
 #include "components/signin/public/identity_manager/identity_test_environment.h"
@@ -262,12 +263,12 @@ class TestHintsFetcher : public HintsFetcher {
   }
 
  private:
+  OptimizationGuideLogger optimization_guide_logger_;
   std::vector<HintsFetcherEndState> fetch_states_;
   int num_fetches_requested_ = 0;
   std::string locale_requested_;
   proto::RequestContext request_context_requested_ =
       proto::RequestContext::CONTEXT_UNSPECIFIED;
-  OptimizationGuideLogger optimization_guide_logger_;
 };
 
 // A mock class of HintsFetcherFactory that returns instances of
@@ -331,8 +332,9 @@ class HintsManagerTest : public ProtoDatabaseProviderTestBase {
     ProtoDatabaseProviderTestBase::TearDown();
   }
 
-  void CreateHintsManager(TopHostProvider* top_host_provider,
-                          signin::IdentityManager* identity_manager = nullptr) {
+  void CreateHintsManager(
+      std::unique_ptr<FakeTopHostProvider> top_host_provider,
+      signin::IdentityManager* identity_manager = nullptr) {
     if (hints_manager_)
       ResetHintsManager();
 
@@ -346,9 +348,11 @@ class HintsManagerTest : public ProtoDatabaseProviderTestBase {
 
     tab_url_provider_ = std::make_unique<FakeTabUrlProvider>();
 
+    top_host_provider_ = std::move(top_host_provider);
+
     hints_manager_ = std::make_unique<HintsManager>(
         /*is_off_the_record=*/false, /*application_locale=*/"en-US",
-        pref_service(), hint_store_->AsWeakPtr(), top_host_provider,
+        pref_service(), hint_store_->AsWeakPtr(), top_host_provider_.get(),
         tab_url_provider_.get(), url_loader_factory_,
         /*push_notification_manager=*/nullptr,
         /*identity_manager=*/identity_manager, &optimization_guide_logger_);
@@ -363,6 +367,9 @@ class HintsManagerTest : public ProtoDatabaseProviderTestBase {
     hints_manager_->Shutdown();
     hints_manager_.reset();
     tab_url_provider_.reset();
+    if (top_host_provider_) {
+      top_host_provider_.reset();
+    }
     hint_store_.reset();
     RunUntilIdle();
   }
@@ -489,6 +496,10 @@ class HintsManagerTest : public ProtoDatabaseProviderTestBase {
     return tab_url_provider_.get();
   }
 
+  FakeTopHostProvider* top_host_provider() const {
+    return top_host_provider_.get();
+  }
+
   void RunUntilIdle() {
     task_environment_.RunUntilIdle();
     base::RunLoop().RunUntilIdle();
@@ -510,6 +521,7 @@ class HintsManagerTest : public ProtoDatabaseProviderTestBase {
   base::test::ScopedFeatureList scoped_feature_list_;
   std::unique_ptr<OptimizationGuideStore> hint_store_;
   std::unique_ptr<FakeTabUrlProvider> tab_url_provider_;
+  std::unique_ptr<FakeTopHostProvider> top_host_provider_;
   std::unique_ptr<sync_preferences::TestingPrefServiceSyncable> pref_service_;
   scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory_;
   network::TestURLLoaderFactory test_url_loader_factory_;
@@ -567,6 +579,15 @@ TEST_F(HintsManagerTest, ProcessHintsWithValidCommandLineOverride) {
       proto::LITE_PAGE_REDIRECT));
   EXPECT_FALSE(hints_manager()->HasLoadedOptimizationAllowlist(
       proto::PERFORMANCE_HINTS));
+  const base::Value::Dict& previous_opt_types_with_filter =
+      pref_service()->GetDict(prefs::kPreviousOptimizationTypesWithFilter);
+  EXPECT_EQ(2u, previous_opt_types_with_filter.size());
+  EXPECT_TRUE(previous_opt_types_with_filter.contains(
+      optimization_guide::proto::OptimizationType_Name(
+          proto::LITE_PAGE_REDIRECT)));
+  EXPECT_TRUE(previous_opt_types_with_filter.contains(
+      optimization_guide::proto::OptimizationType_Name(
+          proto::PERFORMANCE_HINTS)));
 
   // Now register a new type with an allowlist that has not yet been loaded.
   hints_manager()->RegisterOptimizationTypes({proto::PERFORMANCE_HINTS});
@@ -819,6 +840,46 @@ TEST_F(HintsManagerTest, ProcessHintsWithInvalidPref) {
                                         ProcessHintsComponentResult::kSuccess,
                                         1);
   }
+}
+
+TEST_F(HintsManagerTest, ProcessHintsUpdatePreviousOptTypesWithFilter) {
+  proto::Configuration config_one;
+  BloomFilter bloom_filter_one(kDefaultHostBloomFilterNumHashFunctions,
+                               kDefaultHostBloomFilterNumBits);
+  PopulateBloomFilterWithDefaultHost(&bloom_filter_one);
+  AddBloomFilterToConfig(proto::LITE_PAGE_REDIRECT, bloom_filter_one,
+                         kDefaultHostBloomFilterNumHashFunctions,
+                         kDefaultHostBloomFilterNumBits,
+                         /*is_allowlist=*/false, &config_one);
+  AddBloomFilterToConfig(proto::PERFORMANCE_HINTS, bloom_filter_one,
+                         kDefaultHostBloomFilterNumHashFunctions,
+                         kDefaultHostBloomFilterNumBits,
+                         /*is_allowlist=*/true, &config_one);
+  ProcessHints(config_one, "1.0.0.0");
+
+  const base::Value::Dict& dic_one =
+      pref_service()->GetDict(prefs::kPreviousOptimizationTypesWithFilter);
+  EXPECT_EQ(2u, dic_one.size());
+  EXPECT_TRUE(dic_one.contains(optimization_guide::proto::OptimizationType_Name(
+      proto::LITE_PAGE_REDIRECT)));
+  EXPECT_TRUE(dic_one.contains(optimization_guide::proto::OptimizationType_Name(
+      proto::PERFORMANCE_HINTS)));
+
+  proto::Configuration config_two;
+  BloomFilter bloom_filter_two(kDefaultHostBloomFilterNumHashFunctions,
+                               kDefaultHostBloomFilterNumBits);
+  PopulateBloomFilterWithDefaultHost(&bloom_filter_two);
+  AddBloomFilterToConfig(proto::LITE_PAGE_REDIRECT, bloom_filter_two,
+                         kDefaultHostBloomFilterNumHashFunctions,
+                         kDefaultHostBloomFilterNumBits,
+                         /*is_allowlist=*/false, &config_two);
+  ProcessHints(config_two, "2.0.0.0");
+
+  const base::Value::Dict& dic_two =
+      pref_service()->GetDict(prefs::kPreviousOptimizationTypesWithFilter);
+  EXPECT_EQ(1u, dic_two.size());
+  EXPECT_TRUE(dic_two.contains(optimization_guide::proto::OptimizationType_Name(
+      proto::LITE_PAGE_REDIRECT)));
 }
 
 TEST_F(HintsManagerTest,
@@ -1099,7 +1160,10 @@ TEST_F(HintsManagerTest, CanApplyOptimizationUrlWithNoHost) {
   EXPECT_EQ(OptimizationTypeDecision::kInvalidURL, optimization_type_decision);
 }
 
-TEST_F(HintsManagerTest, CanApplyOptimizationHasFilterForTypeButNotLoadedYet) {
+TEST_F(HintsManagerTest,
+       CanApplyOptimizationHasFilterForTypeButNotLoadedYet_ComponentReady) {
+  // Simulate a situation where the component is ready, but the filter has not
+  // been loaded yet.
   proto::Configuration config;
   BloomFilter blocklist_bloom_filter(kDefaultHostBloomFilterNumHashFunctions,
                                      kDefaultHostBloomFilterNumBits);
@@ -1126,6 +1190,27 @@ TEST_F(HintsManagerTest, CanApplyOptimizationHasFilterForTypeButNotLoadedYet) {
   // Run until idle to ensure we don't crash because the test object has gone
   // away.
   RunUntilIdle();
+}
+
+TEST_F(HintsManagerTest,
+       CanApplyOptimizationHasFilterForTypeButNotLoadedYet_ComponentNotReady) {
+  // Simulate a situation where the component not ready, but we know from
+  // previous sessions that LITE_PAGE_REDIRECT type has a filter.
+  ScopedDictPrefUpdate previous_opt_types_with_filter(
+      pref_service(), prefs::kPreviousOptimizationTypesWithFilter);
+  previous_opt_types_with_filter->Set(
+      optimization_guide::proto::OptimizationType_Name(
+          proto::LITE_PAGE_REDIRECT),
+      true);
+
+  hints_manager()->RegisterOptimizationTypes({proto::LITE_PAGE_REDIRECT});
+  OptimizationTypeDecision optimization_type_decision =
+      hints_manager()->CanApplyOptimization(GURL("https://whatever.com/123"),
+                                            proto::LITE_PAGE_REDIRECT,
+                                            /*optimization_metadata=*/nullptr);
+
+  EXPECT_EQ(OptimizationTypeDecision::kHadOptimizationFilterButNotLoadedInTime,
+            optimization_type_decision);
 }
 
 TEST_F(HintsManagerTest,
@@ -1492,16 +1577,13 @@ TEST_F(HintsManagerFetchingDisabledTest,
   base::CommandLine::ForCurrentProcess()->AppendSwitch(
       switches::kDisableCheckingUserPermissionsForTesting);
 
-  std::unique_ptr<FakeTopHostProvider> top_host_provider =
-      std::make_unique<FakeTopHostProvider>(
-          std::vector<std::string>({"example1.com", "example2.com"}));
-
-  CreateHintsManager(top_host_provider.get());
+  CreateHintsManager(std::make_unique<FakeTopHostProvider>(
+      std::vector<std::string>({"example1.com", "example2.com"})));
   InitializeWithDefaultConfig("1.0.0");
 
   // Force timer to expire and schedule a hints fetch.
   MoveClockForwardBy(base::Seconds(kUpdateFetchHintsTimeSecs));
-  EXPECT_EQ(0, top_host_provider->get_num_top_hosts_called());
+  EXPECT_EQ(0, top_host_provider()->get_num_top_hosts_called());
   // Hints fetcher should not even be created.
   EXPECT_FALSE(active_tabs_batch_update_hints_fetcher());
 }
@@ -1746,13 +1828,10 @@ TEST_F(HintsManagerFetchingTest,
 
 TEST_F(HintsManagerFetchingTest,
        NoRegisteredOptimizationTypesAndHintsFetchNotAttempted) {
-  std::unique_ptr<FakeTopHostProvider> top_host_provider =
-      std::make_unique<FakeTopHostProvider>(
-          std::vector<std::string>({"example1.com", "example2.com"}));
-
   base::CommandLine::ForCurrentProcess()->AppendSwitch(
       switches::kDisableCheckingUserPermissionsForTesting);
-  CreateHintsManager(top_host_provider.get());
+  CreateHintsManager(std::make_unique<FakeTopHostProvider>(
+      std::vector<std::string>({"example1.com", "example2.com"})));
 
   hints_manager()->SetHintsFetcherFactoryForTesting(
       BuildTestHintsFetcherFactory(
@@ -1761,7 +1840,7 @@ TEST_F(HintsManagerFetchingTest,
 
   // Force timer to expire and schedule a hints fetch but the fetch is not made.
   MoveClockForwardBy(base::Seconds(kUpdateFetchHintsTimeSecs));
-  EXPECT_EQ(0, top_host_provider->get_num_top_hosts_called());
+  EXPECT_EQ(0, top_host_provider()->get_num_top_hosts_called());
   // Hints fetcher should not even be created.
   EXPECT_FALSE(active_tabs_batch_update_hints_fetcher());
 }
@@ -1777,13 +1856,10 @@ TEST_F(HintsManagerFetchingTest,
                          kDefaultHostBloomFilterNumBits,
                          /*is_allowlist=*/true, &config);
 
-  std::unique_ptr<FakeTopHostProvider> top_host_provider =
-      std::make_unique<FakeTopHostProvider>(
-          std::vector<std::string>({"example1.com", "example2.com"}));
-
   base::CommandLine::ForCurrentProcess()->AppendSwitch(
       switches::kDisableCheckingUserPermissionsForTesting);
-  CreateHintsManager(top_host_provider.get());
+  CreateHintsManager(std::make_unique<FakeTopHostProvider>(
+      std::vector<std::string>({"example1.com", "example2.com"})));
   ProcessHints(config, "1.0.0.0");
 
   hints_manager()->RegisterOptimizationTypes({proto::LITE_PAGE_REDIRECT});
@@ -1793,7 +1869,7 @@ TEST_F(HintsManagerFetchingTest,
 
   // Force timer to expire after random delay and schedule a hints fetch.
   MoveClockForwardBy(base::Seconds(60 * 2));
-  EXPECT_EQ(0, top_host_provider->get_num_top_hosts_called());
+  EXPECT_EQ(0, top_host_provider()->get_num_top_hosts_called());
   // Hints fetcher should not even be created.
   EXPECT_FALSE(active_tabs_batch_update_hints_fetcher());
 }
@@ -1803,9 +1879,8 @@ TEST_F(HintsManagerFetchingTest, HintsFetcherEnabledNoHostsOrUrlsToFetch) {
   base::HistogramTester histogram_tester;
   base::CommandLine::ForCurrentProcess()->AppendSwitch(
       switches::kDisableCheckingUserPermissionsForTesting);
-  std::unique_ptr<FakeTopHostProvider> top_host_provider =
-      std::make_unique<FakeTopHostProvider>(std::vector<std::string>({}));
-  CreateHintsManager(top_host_provider.get());
+  CreateHintsManager(
+      std::make_unique<FakeTopHostProvider>(std::vector<std::string>({})));
 
   hints_manager()->RegisterOptimizationTypes({proto::DEFER_ALL_SCRIPT});
   hints_manager()->SetHintsFetcherFactoryForTesting(
@@ -1820,14 +1895,14 @@ TEST_F(HintsManagerFetchingTest, HintsFetcherEnabledNoHostsOrUrlsToFetch) {
 
   // Force timer to expire after random delay and schedule a hints fetch.
   MoveClockForwardBy(base::Seconds(60 * 2));
-  EXPECT_EQ(1, top_host_provider->get_num_top_hosts_called());
+  EXPECT_EQ(1, top_host_provider()->get_num_top_hosts_called());
   EXPECT_EQ(1, tab_url_provider()->get_num_urls_called());
   // Hints fetcher should not even be created.
   EXPECT_FALSE(active_tabs_batch_update_hints_fetcher());
 
   // Move it forward again to make sure timer is scheduled.
   MoveClockForwardBy(base::Seconds(kUpdateFetchHintsTimeSecs));
-  EXPECT_EQ(2, top_host_provider->get_num_top_hosts_called());
+  EXPECT_EQ(2, top_host_provider()->get_num_top_hosts_called());
   EXPECT_EQ(2, tab_url_provider()->get_num_urls_called());
   // Hints fetcher should not even be created.
   EXPECT_FALSE(active_tabs_batch_update_hints_fetcher());
@@ -1838,9 +1913,8 @@ TEST_F(HintsManagerFetchingTest, HintsFetcherEnabledNoHostsButHasUrlsToFetch) {
   base::HistogramTester histogram_tester;
   base::CommandLine::ForCurrentProcess()->AppendSwitch(
       switches::kDisableCheckingUserPermissionsForTesting);
-  std::unique_ptr<FakeTopHostProvider> top_host_provider =
-      std::make_unique<FakeTopHostProvider>(std::vector<std::string>({}));
-  CreateHintsManager(top_host_provider.get());
+  CreateHintsManager(
+      std::make_unique<FakeTopHostProvider>(std::vector<std::string>({})));
 
   hints_manager()->RegisterOptimizationTypes({proto::DEFER_ALL_SCRIPT});
   hints_manager()->SetHintsFetcherFactoryForTesting(
@@ -1859,7 +1933,7 @@ TEST_F(HintsManagerFetchingTest, HintsFetcherEnabledNoHostsButHasUrlsToFetch) {
   // Force timer to expire after random delay and schedule a hints fetch that
   // succeeds.
   MoveClockForwardBy(base::Seconds(60 * 2));
-  EXPECT_EQ(1, top_host_provider->get_num_top_hosts_called());
+  EXPECT_EQ(1, top_host_provider()->get_num_top_hosts_called());
   EXPECT_EQ(1, tab_url_provider()->get_num_urls_called());
   EXPECT_EQ(1,
             active_tabs_batch_update_hints_fetcher()->num_fetches_requested());
@@ -1873,7 +1947,7 @@ TEST_F(HintsManagerFetchingTest, HintsFetcherEnabledNoHostsButHasUrlsToFetch) {
 
   // Move it forward again to make sure timer is scheduled.
   MoveClockForwardBy(base::Seconds(kUpdateFetchHintsTimeSecs));
-  EXPECT_EQ(2, top_host_provider->get_num_top_hosts_called());
+  EXPECT_EQ(2, top_host_provider()->get_num_top_hosts_called());
   EXPECT_EQ(2, tab_url_provider()->get_num_urls_called());
   // Urls didn't change and we have all URLs cached in store.
   EXPECT_EQ(1,
@@ -1890,10 +1964,9 @@ TEST_F(HintsManagerFetchingTest, HintsFetcherTimerFetchOnStartup) {
   base::HistogramTester histogram_tester;
   base::CommandLine::ForCurrentProcess()->AppendSwitch(
       switches::kDisableCheckingUserPermissionsForTesting);
-  std::unique_ptr<FakeTopHostProvider> top_host_provider =
-      std::make_unique<FakeTopHostProvider>(std::vector<std::string>({}));
 
-  CreateHintsManager(top_host_provider.get());
+  CreateHintsManager(
+      std::make_unique<FakeTopHostProvider>(std::vector<std::string>({})));
   hints_manager()->RegisterOptimizationTypes({proto::DEFER_ALL_SCRIPT});
   hints_manager()->SetHintsFetcherFactoryForTesting(
       BuildTestHintsFetcherFactory(
@@ -1937,10 +2010,9 @@ TEST_F(HintsManagerFetchingTest, HintsFetcherDeferredStartup) {
 
   base::CommandLine::ForCurrentProcess()->AppendSwitch(
       switches::kDisableCheckingUserPermissionsForTesting);
-  std::unique_ptr<FakeTopHostProvider> top_host_provider =
-      std::make_unique<FakeTopHostProvider>(std::vector<std::string>({}));
 
-  CreateHintsManager(top_host_provider.get());
+  CreateHintsManager(
+      std::make_unique<FakeTopHostProvider>(std::vector<std::string>({})));
   hints_manager()->RegisterOptimizationTypes({proto::DEFER_ALL_SCRIPT});
   hints_manager()->SetHintsFetcherFactoryForTesting(
       BuildTestHintsFetcherFactory(
@@ -3376,12 +3448,9 @@ TEST_F(HintsManagerFetchingNoBatchUpdateTest,
        BatchUpdateHintsFetchNotScheduledIfNotAllowed) {
   base::CommandLine::ForCurrentProcess()->AppendSwitch(
       switches::kDisableCheckingUserPermissionsForTesting);
-  std::unique_ptr<FakeTopHostProvider> top_host_provider =
-      std::make_unique<FakeTopHostProvider>(
-          std::vector<std::string>({"example1.com", "example2.com"}));
-
   // Force hints fetch scheduling.
-  CreateHintsManager(top_host_provider.get());
+  CreateHintsManager(std::make_unique<FakeTopHostProvider>(
+      std::vector<std::string>({"example1.com", "example2.com"})));
   hints_manager()->RegisterOptimizationTypes({proto::DEFER_ALL_SCRIPT});
   hints_manager()->SetHintsFetcherFactoryForTesting(
       BuildTestHintsFetcherFactory(
@@ -3465,8 +3534,16 @@ class HintsManagerPersonalizedFetchingTest : public HintsManagerFetchingTest {
   base::test::ScopedFeatureList scoped_feature_list_;
 };
 
+// TODO(crbug.com/1509873): test is failing on iPhone device.
+#if TARGET_OS_IOS && !TARGET_IPHONE_SIMULATOR
+#define MAYBE_SuccessfulPersonalizedHintsFetching \
+  DISABLED_SuccessfulPersonalizedHintsFetching
+#else
+#define MAYBE_SuccessfulPersonalizedHintsFetching \
+  SuccessfulPersonalizedHintsFetching
+#endif
 TEST_F(HintsManagerPersonalizedFetchingTest,
-       SuccessfulPersonalizedHintsFetching) {
+       MAYBE_SuccessfulPersonalizedHintsFetching) {
   ASSERT_TRUE(identity_test_env()->identity_manager());
   AccountInfo account_info = identity_test_env()->MakePrimaryAccountAvailable(
       "test_email", signin::ConsentLevel::kSignin);

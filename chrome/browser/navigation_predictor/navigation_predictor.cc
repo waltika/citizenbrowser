@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <optional>
 
 #include "base/check_op.h"
 #include "base/hash/hash.h"
@@ -30,7 +31,6 @@
 #include "services/metrics/public/cpp/metrics_utils.h"
 #include "services/metrics/public/cpp/ukm_builders.h"
 #include "services/metrics/public/cpp/ukm_recorder.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 #include "third_party/blink/public/common/features.h"
 #include "url/gurl.h"
 #include "url/url_canon.h"
@@ -92,15 +92,6 @@ base::TimeDelta MLModelExecutionTimerInterval() {
   static int timer_interval = base::GetFieldTrialParamByFeatureAsInt(
       blink::features::kPreloadingHeuristicsMLModel, "timer_interval", 100);
   return base::Milliseconds(timer_interval);
-}
-
-bool IsTargetURLTheSameAsDocument(
-    const blink::mojom::AnchorElementMetricsPtr& anchor) {
-  GURL::Replacements replacements;
-  replacements.ClearRef();
-  GURL document_url = anchor->source_url.ReplaceComponents(replacements);
-  GURL target_url = anchor->target_url.ReplaceComponents(replacements);
-  return target_url == document_url;
 }
 
 }  // namespace
@@ -195,7 +186,8 @@ void NavigationPredictor::ReportNewAnchorElements(
   // reports for links from all same-process iframes.
   NavigationPredictorMetricsDocumentData::AnchorsData& data =
       GetNavigationPredictorMetricsDocumentData().GetAnchorsData();
-  GURL document_url;
+  const GURL document_url =
+      render_frame_host().GetLastCommittedURL().GetWithoutRef();
   std::vector<GURL> new_predictions;
   for (auto& element : elements) {
     AnchorId anchor_id(element->anchor_id);
@@ -222,10 +214,7 @@ void NavigationPredictor::ReportNewAnchorElements(
     data.link_locations_.push_back(element->ratio_distance_top_to_visible_top);
 
     // Collect the target URL if it is new, without ref (# fragment).
-    GURL::Replacements replacements;
-    replacements.ClearRef();
-    document_url = element->source_url.ReplaceComponents(replacements);
-    GURL target_url = element->target_url.ReplaceComponents(replacements);
+    GURL target_url = element->target_url.GetWithoutRef();
     if (target_url != document_url) {
       auto [it, inserted] =
           predicted_urls_.insert(base::FastHash(target_url.spec()));
@@ -355,7 +344,7 @@ void NavigationPredictor::OnMLModelExecutionTimerFired() {
       static_cast<int>(anchor.metrics->ratio_distance_root_top * 100);
 
   inputs.is_same_origin = anchor.metrics->is_same_host;
-  auto to_timedelta = [this](absl::optional<base::TimeTicks> ts) {
+  auto to_timedelta = [this](std::optional<base::TimeTicks> ts) {
     return ts.has_value() ? NowTicks() - ts.value() : base::TimeDelta();
   };
   inputs.entered_viewport_to_left_viewport =
@@ -683,4 +672,10 @@ void NavigationPredictor::ReportAnchorElementsEnteredViewport(
     navigation_predictor_metrics_data.AddAnchorElementMetricsData(
         index_it->second, std::move(metrics));
   }
+}
+
+bool NavigationPredictor::IsTargetURLTheSameAsDocument(
+    const blink::mojom::AnchorElementMetricsPtr& anchor) {
+  return render_frame_host().GetLastCommittedURL().EqualsIgnoringRef(
+      anchor->target_url);
 }

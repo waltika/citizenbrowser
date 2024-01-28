@@ -16,6 +16,7 @@
 #include "chrome/browser/sync/test/integration/sync_test.h"
 #include "chrome/common/chrome_paths.h"
 #include "components/password_manager/core/browser/features/password_features.h"
+#include "components/signin/public/base/signin_switches.h"
 #include "components/sync/base/features.h"
 #include "components/sync/base/model_type.h"
 #include "components/sync/service/glue/sync_transport_data_prefs.h"
@@ -65,8 +66,14 @@ class SyncConsentDisabledChecker : public SingleClientStatusChangeChecker {
 
 class SingleClientStandaloneTransportSyncTest : public SyncTest {
  public:
-  SingleClientStandaloneTransportSyncTest() : SyncTest(SINGLE_CLIENT) {}
+  SingleClientStandaloneTransportSyncTest() : SyncTest(SINGLE_CLIENT) {
+    feature_list_.InitAndDisableFeature(switches::kUnoDesktop);
+  }
+
   ~SingleClientStandaloneTransportSyncTest() override = default;
+
+ private:
+  base::test::ScopedFeatureList feature_list_;
 };
 
 // On Chrome OS sync auto-starts on sign-in.
@@ -515,13 +522,12 @@ class SingleClientStandaloneTransportReplaceSyncWithSigninMigrationSyncTest
   SingleClientStandaloneTransportReplaceSyncWithSigninMigrationSyncTest() {
     // Various features that are required for types to be supported in transport
     // mode are unconditionally enabled.
-    // TODO(crbug.com/1494120): Re-enable
-    // `syncer::kEnableBookmarksAccountStorage` when possible.
     default_features_.InitWithFeatures(
         /*enabled_features=*/
         {syncer::kReadingListEnableSyncTransportModeUponSignIn,
          password_manager::features::kEnablePasswordsAccountStorage,
          syncer::kSyncEnableContactInfoDataTypeInTransportMode,
+         syncer::kEnableBookmarkFoldersForAccountStorage,
          syncer::kEnablePreferencesAccountStorage},
         /*disabled_features=*/{});
 
@@ -636,9 +642,6 @@ IN_PROC_BROWSER_TEST_F(
   ASSERT_EQ(GetSyncService(0)->GetUserSettings()->GetPassphraseType(),
             syncer::PassphraseType::kCustomPassphrase);
 
-  // Payments is still enabled (not affected by the migration).
-  ASSERT_TRUE(GetSyncService(0)->GetUserSettings()->GetSelectedTypes().Has(
-      syncer::UserSelectableType::kPayments));
   // Preferences is supported now, but got disabled by the migration (same as
   // for non-custom-passphrase users).
   ASSERT_FALSE(GetSyncService(0)->GetUserSettings()->GetSelectedTypes().Has(
@@ -646,6 +649,12 @@ IN_PROC_BROWSER_TEST_F(
   // Autofill should've been disabled specifically for custom passphrase users.
   EXPECT_FALSE(GetSyncService(0)->GetUserSettings()->GetSelectedTypes().Has(
       syncer::UserSelectableType::kAutofill));
+  // If Payments it coupled to Autofill, it should've been disabled along with
+  // Autofill. Otherwise it should not be affected by the migration.
+  ASSERT_EQ(GetSyncService(0)->GetUserSettings()->GetSelectedTypes().Has(
+                syncer::UserSelectableType::kPayments),
+            base::FeatureList::IsEnabled(
+                syncer::kSyncDecoupleAddressPaymentSettings));
 }
 #endif  // BUILDFLAG(IS_ANDROID)
 

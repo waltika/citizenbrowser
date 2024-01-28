@@ -69,6 +69,7 @@
 #include "ui/views/views_delegate.h"
 #include "ui/views/widget/tooltip_manager.h"
 #include "ui/views/widget/widget.h"
+#include "ui/views/window/client_view.h"
 #include "ui/wm/core/shadow_controller.h"
 #include "ui/wm/core/shadow_types.h"
 #include "ui/wm/core/window_animations.h"
@@ -166,7 +167,7 @@ class CustomFrameView : public ash::NonClientFrameViewAsh {
         ash::WindowState::Get(GetWidget()->GetNativeWindow());
 
     // When un-pipped (window state changed from pip), we must undo the
-    // rounded corners from the host_window.
+    // rounded corners of the host_window.
     const int pip_corner_radius =
         window_state->IsPip() ? chromeos::kPipRoundedCornerRadius : 0;
     const gfx::RoundedCornersF pip_radii(pip_corner_radius);
@@ -196,17 +197,7 @@ class CustomFrameView : public ash::NonClientFrameViewAsh {
       header_view_->SetHeaderCornerRadius(window_radii->upper_left());
     }
 
-    const gfx::RoundedCornersF root_surface_radii = {
-        GetFrameEnabled() ? 0 : window_radii->upper_left(),
-        GetFrameEnabled() ? 0 : window_radii->upper_right(),
-        window_radii->lower_right(), window_radii->lower_left()};
-
-    Surface* root_surface = shell_surface_->root_surface();
-    DCHECK(root_surface);
-
-    shell_surface_->ApplyRoundedCornersToSurfaceTree(
-        gfx::RectF(root_surface->surface_hierarchy_content_bounds()),
-        root_surface_radii);
+    GetWidget()->client_view()->UpdateWindowRoundedCorners();
   }
 
   gfx::Rect GetWindowBoundsForClientBounds(
@@ -263,7 +254,46 @@ class CustomFrameView : public ash::NonClientFrameViewAsh {
   }
 
  private:
-  const raw_ptr<ShellSurfaceBase, ExperimentalAsh> shell_surface_;
+  const raw_ptr<ShellSurfaceBase> shell_surface_;
+};
+
+class CustomClientView : public views::ClientView {
+ public:
+  CustomClientView(views::Widget* widget, ShellSurfaceBase* shell_surface)
+      : views::ClientView(widget, shell_surface),
+        shell_surface_(shell_surface) {}
+
+  CustomClientView(const CustomClientView&) = delete;
+  CustomClientView& operator=(const CustomClientView&) = delete;
+
+  ~CustomClientView() override = default;
+
+  // ClientView:
+  void UpdateWindowRoundedCorners() override {
+    absl::optional<gfx::RoundedCornersF> window_radii =
+        shell_surface_->window_corners_radii();
+
+    DCHECK(GetWidget());
+    const bool frame_enabled = static_cast<CustomFrameView*>(
+                                   GetWidget()->non_client_view()->frame_view())
+                                   ->GetFrameEnabled();
+
+    // TODO(crbug.com/1415486): Support variable window radii.
+    DCHECK(IsRadiiUniform(window_radii.value()));
+    const gfx::RoundedCornersF root_surface_radii = {
+        frame_enabled ? 0 : window_radii->upper_left(),
+        frame_enabled ? 0 : window_radii->upper_right(),
+        window_radii->lower_right(), window_radii->lower_left()};
+
+    const Surface* root_surface = shell_surface_->root_surface();
+
+    shell_surface_->ApplyRoundedCornersToSurfaceTree(
+        gfx::RectF(root_surface->surface_hierarchy_content_bounds()),
+        root_surface_radii);
+  }
+
+ private:
+  raw_ptr<ShellSurfaceBase> shell_surface_;
 };
 
 class CustomWindowTargeter : public aura::WindowTargeter {
@@ -345,8 +375,8 @@ class CustomWindowTargeter : public aura::WindowTargeter {
     return false;
   }
 
-  raw_ptr<ShellSurfaceBase, ExperimentalAsh> shell_surface_;
-  const raw_ptr<views::Widget, DanglingUntriaged | ExperimentalAsh> widget_;
+  raw_ptr<ShellSurfaceBase> shell_surface_;
+  const raw_ptr<views::Widget, DanglingUntriaged> widget_;
 };
 
 void CloseAllShellSurfaceTransientChildren(aura::Window* window) {
@@ -1297,6 +1327,10 @@ views::View* ShellSurfaceBase::GetContentsView() {
   return this;
 }
 
+views::ClientView* ShellSurfaceBase::CreateClientView(views::Widget* widget) {
+  return new CustomClientView(widget, this);
+}
+
 std::unique_ptr<views::NonClientFrameView>
 ShellSurfaceBase::CreateNonClientFrameView(views::Widget* widget) {
   return CreateNonClientFrameViewInternal(widget);
@@ -1412,7 +1446,7 @@ void ShellSurfaceBase::OnCaptureChanged(aura::Window* lost_capture,
   // Use index instead of iterator because the vector grows during the
   // iteration.
   for (size_t i = 0; i < all.size(); ++i) {
-    const std::vector<aura::Window*>& children =
+    const std::vector<raw_ptr<aura::Window, VectorExperimental>>& children =
         wm::GetTransientChildren(all[i].first);
     for (aura::Window* child : children) {
       const bool to_close =
@@ -1776,7 +1810,14 @@ void ShellSurfaceBase::CreateShellSurfaceWidget(
   UpdateTopInset();
 
   aura::Window* window = widget_->GetNativeWindow();
-  window->AddChild(host_window());
+  {
+    // AddChild involves propagating a non-1 device_scale_factor to
+    // `host_window()`. Changing device_scale_factor this way does not send
+    // configure events. So suppress allocation of its LocalSurfaceId.
+    viz::ScopedSurfaceIdAllocator scoped_suppression =
+        host_window()->GetSurfaceIdAllocator(base::NullCallback());
+    window->AddChild(host_window());
+  }
   window->SetEventTargetingPolicy(
       aura::EventTargetingPolicy::kTargetAndDescendants);
   if (is_menu_) {
@@ -1787,6 +1828,9 @@ void ShellSurfaceBase::CreateShellSurfaceWidget(
   }
   InstallCustomWindowTargeter();
 
+  // TODO(fangzhoug): Consider performing the first shell_surface configure here
+  // s.t. there's no gap between the first configure to the point we start
+  // observing states of the window. crbug.com/1505583
   // Start tracking changes to window bounds and window state.
   window->AddObserver(this);
   ash::WindowState* window_state = ash::WindowState::Get(window);

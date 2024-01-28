@@ -74,6 +74,7 @@ Lejet që u ke dhënë sajteve të uebit dhe aplikacioneve mund të zbatohen pë
 <translation id="2329088755516916767">Kur ky cilësim është aktiv, Chromium i ngarkon paraprakisht faqet, gjë që e bën më të shpejtë shfletimin dhe kërkimin.</translation>
 <translation id="2343156876103232566">Për të dërguar një numër nga këtu te telefoni yt Android, identifikohu në Chromium në të dyja pajisjet.</translation>
 <translation id="2359808026110333948">Vazhdo</translation>
+<translation id="2359920621792549529">Për t'i pastruar të dhënat e shfletimit vetëm nga kjo pajisje, ndërkohë që i mban ato në "Llogarinë tënde të Google", <ph name="BEGIN_LINK" />dil nga Chromium<ph name="END_LINK" />.</translation>
 <translation id="2384373936468275798">ChromiumOS nuk mund t'i sinkronizonte të dhënat e tua sepse detajet e identifikimit të llogarisë janë të papërditësuara.</translation>
 <translation id="2398377054246527950">{NUM_DEVICES,plural, =0{Një ose disa shtesa të Chromium kanë pasur qasje në 1 pajisje HID}=1{Një ose disa shtesa të Chromium kanë qasje në 1 pajisje HID}other{Një ose disa shtesa të Chromium kanë qasje në # pajisje HID}}</translation>
 <translation id="2401032172288869980">Chromium ka nevojë për lejet e kamerës dhe të mikrofonit për këtë sajt</translation>
@@ -141,7 +142,6 @@ Lejet që u ke dhënë sajteve të uebit dhe aplikacioneve mund të zbatohen pë
 <translation id="3533435340678213462">Për të mbrojtur privatësinë tënde, ne fshijmë automatikisht interesat e tua që janë më të vjetra se 4 javë. Ndërsa vazhdon të shfletosh, një interes mund të shfaqet përsëri në listë. Ndryshe, mund të heqësh interesat që nuk dëshiron që Chromium të marrë parasysh.</translation>
 <translation id="3567254597502212821">Historiku yt i shfletimit, regjistri i sajteve që ke vizituar duke përdorur Chromium në këtë pajisje.</translation>
 <translation id="3593091352817399191">Një llogari tjetër është identifikuar tashmë. Për ta mbajtur shfletimin tënd të ndarë, Chromium mund të krijojë profilin tënd personal për ty.</translation>
-<translation id="363078681319665186">Për të marrë përditësimet e ardhshme të Chromium, do të të duhet macOS 10.15 ose një version i mëvonshëm. Ky kompjuter përdor macOS 10.13.</translation>
 <translation id="3639635944603682591">Të dhënat e shfletimit të këtij personi do të fshihen nga kjo pajisje. Për të rikuperuar të dhënat, identifikohu në Chromium si <ph name="USER_EMAIL" />.</translation>
 <translation id="364817392622123556">{COUNT,plural, =0{Ka një përditësim të ri për Chromium dhe do të zbatohet sapo ta rinisësh.}=1{Ka një përditësim të ri për Chromium dhe do të zbatohet sapo ta rinisësh. Dritarja jote "e fshehtë" nuk do të rihapet.}other{Ka një përditësim të ri për Chromium dhe do të zbatohet sapo ta rinisësh. # dritaret e tua "të fshehta" nuk do të rihapen.}}</translation>
 <translation id="3651803019964686660">Për të dërguar një numër nga <ph name="ORIGIN" /> te telefoni yt Android, identifikohu në Chromium në të dyja pajisjet.</translation>
@@ -158,7 +158,6 @@ Lejet që u ke dhënë sajteve të uebit dhe aplikacioneve mund të zbatohen pë
 <translation id="3848258323044014972"><ph name="PAGE_TITLE" /> - Chromium</translation>
 <translation id="386822487697155367">Merr ndihmë me ChromiumOS</translation>
 <translation id="3871664619793219264">Merr gjërat e tua në shfletuesin Chromium nga <ph name="ACCOUNT_EMAIL" /></translation>
-<translation id="387966568917439637">Për të marrë përditësimet e ardhshme të Chromium, do të të duhet macOS 10.15 ose një version i mëvonshëm. Ky kompjuter përdor macOS 10.14.</translation>
 <translation id="388648406173476553">Personalizo dhe kontrollo Chromium. Diçka ka nevojë për vëmendjen tënde - kliko për detaje.</translation>
 <translation id="3889543394854987837">Kliko emrin tënd për të hapur Chromium dhe fillo shfletimin.</translation>
 <translation id="390528597099634151"><ph name="EXISTING_USER" /> është i identifikuar tashmë në këtë profil të Chromium. Për ta mbajtur shfletimin tënd të ndarë, Chromium mund të krijojë profilin tënd personal për ty.</translation>
@@ -375,6 +374,7 @@ Chromium nuk është në gjendje të rikuperojë cilësimet e tua.</translation>
 <translation id="7461356015007898716">Për të marrë përditësimet e ardhshme të Chromium, do të të duhet Windows 10 ose një version i mëvonshëm. Ky kompjuter përdor Windows 7.</translation>
 <translation id="7467949745582939695">Të niset sërish Chromium?</translation>
 <translation id="7483335560992089831">Nuk mund të instalohet i njëjti version i Chromium që po ekzekutohet aktualisht. Mbylle Chromium dhe provo përsëri.</translation>
+<translation id="751935028865900641">Sajtet ndoshta do të punojnë siç pritet. Do të dalësh nga shumica e sajteve kur të mbyllësh të gjitha dritaret e Chromium, përveçse nga "Llogaria jote e Google" nëse je identifikuar në Chromium.</translation>
 <translation id="753534427205733210">{0,plural, =1{Chromium do të hapet përsëri për 1 minutë}other{Chromium do të hapet përsëri për # minuta}}</translation>
 <translation id="7582945390259497898">Chromium mund të përllogarisë interesat e tua. Më vonë, një sajt që ti viziton mund t'i kërkojë Chromium që të shikojë interesat e tua në mënyrë që të personalizojë reklamat që shikon.</translation>
 <translation id="7583399374488819119">Instaluesi i <ph name="COMPANY_NAME" /></translation>

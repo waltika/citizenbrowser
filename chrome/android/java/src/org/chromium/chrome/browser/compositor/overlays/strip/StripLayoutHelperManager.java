@@ -14,13 +14,14 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnDragListener;
 import android.view.ViewStub;
+import android.view.animation.Interpolator;
 
 import androidx.annotation.ColorInt;
+import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.content.res.AppCompatResources;
-import androidx.core.graphics.ColorUtils;
 
 import org.chromium.base.supplier.ObservableSupplier;
 import org.chromium.base.supplier.Supplier;
@@ -63,13 +64,17 @@ import org.chromium.chrome.browser.tabmodel.TabModelSelectorTabObserver;
 import org.chromium.chrome.browser.tasks.tab_groups.TabGroupModelFilter;
 import org.chromium.chrome.browser.tasks.tab_management.TabUiFeatureUtilities;
 import org.chromium.chrome.browser.tasks.tab_management.TabUiThemeUtil;
+import org.chromium.chrome.browser.toolbar.top.TabStripTransitionCoordinator.TabStripHeightObserver;
 import org.chromium.components.browser_ui.styles.SemanticColorUtils;
 import org.chromium.content_public.browser.LoadUrlParams;
 import org.chromium.ui.base.LocalizationUtils;
 import org.chromium.ui.base.PageTransition;
 import org.chromium.ui.base.WindowAndroid;
 import org.chromium.ui.dragdrop.DragAndDropDelegate;
+import org.chromium.ui.dragdrop.DragDropGlobalState;
+import org.chromium.ui.interpolators.Interpolators;
 import org.chromium.ui.resources.ResourceManager;
+import org.chromium.ui.util.ColorUtils;
 import org.chromium.url.GURL;
 
 import java.util.List;
@@ -78,7 +83,8 @@ import java.util.List;
  * This class handles managing which {@link StripLayoutHelper} is currently active and dispatches
  * all input and model events to the proper destination.
  */
-public class StripLayoutHelperManager implements SceneOverlay, PauseResumeWithNativeObserver {
+public class StripLayoutHelperManager
+        implements SceneOverlay, PauseResumeWithNativeObserver, TabStripHeightObserver {
 
     /**
      * POD type that contains the necessary tab model info on startup. Used in the startup flicker
@@ -118,6 +124,10 @@ public class StripLayoutHelperManager implements SceneOverlay, PauseResumeWithNa
     private static final float MODEL_SELECTOR_BUTTON_CLICK_SLOP_DP = 12.f;
     private static final float BUTTON_DESIRED_TOUCH_TARGET_SIZE = 48.f;
 
+    @VisibleForTesting
+    static final Interpolator TAB_STRIP_TRANSITION_INTERPOLATOR =
+            Interpolators.FAST_OUT_SLOW_IN_INTERPOLATOR;
+
     // Fade constants.
     static final float FADE_SHORT_WIDTH_DP = 60;
     static final float FADE_MEDIUM_WIDTH_DP = 72;
@@ -142,10 +152,11 @@ public class StripLayoutHelperManager implements SceneOverlay, PauseResumeWithNa
     private float mWidth; // in dp units
     private final float mHeight; // in dp units
     private int mOrientation;
-    private CompositorButton mModelSelectorButton;
+    private TintedCompositorButton mModelSelectorButton;
     private Context mContext;
     private boolean mBrowserScrimShowing;
     private boolean mIsHidden;
+    private boolean mIsTransitioning;
     private TabStripSceneLayer mTabStripTreeProvider;
     private TabStripEventHandler mTabStripEventHandler;
     private TabSwitcherLayoutObserver mTabSwitcherLayoutObserver;
@@ -167,6 +178,7 @@ public class StripLayoutHelperManager implements SceneOverlay, PauseResumeWithNa
     private final ActivityLifecycleDispatcher mLifecycleDispatcher;
     private final String mDefaultTitle;
     private final Supplier<LayerTitleCache> mLayerTitleCacheSupplier;
+    private final BrowserControlsStateProvider mBrowserControlsStateProvider;
 
     // Drag-Drop
     @Nullable private TabDragSource mTabDragSource;
@@ -174,6 +186,9 @@ public class StripLayoutHelperManager implements SceneOverlay, PauseResumeWithNa
     private class TabStripEventHandler implements MotionEventHandler {
         @Override
         public void onDown(float x, float y, boolean fromMouse, int buttons) {
+            if (DragDropGlobalState.hasValue()) {
+                return;
+            }
             if (mModelSelectorButton.onDown(x, y, fromMouse)) {
                 return;
             }
@@ -193,12 +208,18 @@ public class StripLayoutHelperManager implements SceneOverlay, PauseResumeWithNa
 
         @Override
         public void drag(float x, float y, float dx, float dy, float tx, float ty) {
+            if (DragDropGlobalState.hasValue()) {
+                return;
+            }
             mModelSelectorButton.drag(x, y);
             getActiveStripLayoutHelper().drag(time(), x, y, dx);
         }
 
         @Override
         public void click(float x, float y, boolean fromMouse, int buttons) {
+            if (DragDropGlobalState.hasValue()) {
+                return;
+            }
             long time = time();
             if (mModelSelectorButton.click(x, y)) {
                 mModelSelectorButton.handleClick(time);
@@ -209,11 +230,17 @@ public class StripLayoutHelperManager implements SceneOverlay, PauseResumeWithNa
 
         @Override
         public void fling(float x, float y, float velocityX, float velocityY) {
+            if (DragDropGlobalState.hasValue()) {
+                return;
+            }
             getActiveStripLayoutHelper().fling(time(), x, y, velocityX, velocityY);
         }
 
         @Override
         public void onLongPress(float x, float y) {
+            if (DragDropGlobalState.hasValue()) {
+                return;
+            }
             getActiveStripLayoutHelper().onLongPress(time(), x, y);
         }
 
@@ -224,6 +251,10 @@ public class StripLayoutHelperManager implements SceneOverlay, PauseResumeWithNa
 
         @Override
         public void onHoverEnter(float x, float y) {
+            if (DragDropGlobalState.hasValue()) {
+                return;
+            }
+
             // Inflate the hover card ViewStub if not already inflated.
             if (ChromeFeatureList.isEnabled(
                             ChromeFeatureList.ADVANCED_PERIPHERALS_SUPPORT_TAB_STRIP)
@@ -235,6 +266,9 @@ public class StripLayoutHelperManager implements SceneOverlay, PauseResumeWithNa
 
         @Override
         public void onHoverMove(float x, float y) {
+            if (DragDropGlobalState.hasValue()) {
+                return;
+            }
             getActiveStripLayoutHelper().onHoverMove(x, y);
         }
 
@@ -289,6 +323,7 @@ public class StripLayoutHelperManager implements SceneOverlay, PauseResumeWithNa
      * @param tabHoverCardViewStub The {@link ViewStub} representing the strip tab hover card.
      * @param tabContentManagerSupplier Supplier of the {@link TabContentManager} instance.
      * @param browserControlsStateProvider @{@link BrowserControlsStateProvider} for drag drop.
+     * @param tabStripHeightSupplier Supplier for the tab strip height.
      */
     public StripLayoutHelperManager(
             Context context,
@@ -304,7 +339,8 @@ public class StripLayoutHelperManager implements SceneOverlay, PauseResumeWithNa
             @NonNull ViewStub tabHoverCardViewStub,
             ObservableSupplier<TabContentManager> tabContentManagerSupplier,
             @NonNull BrowserControlsStateProvider browserControlsStateProvider,
-            @NonNull WindowAndroid windowAndroid) {
+            @NonNull WindowAndroid windowAndroid,
+            @NonNull ObservableSupplier<Integer> tabStripHeightSupplier) {
         mUpdateHost = updateHost;
         mLayerTitleCacheSupplier = layerTitleCacheSupplier;
         mTabStripTreeProvider = new TabStripSceneLayer(context);
@@ -312,63 +348,62 @@ public class StripLayoutHelperManager implements SceneOverlay, PauseResumeWithNa
         mTabSwitcherLayoutObserver = new TabSwitcherLayoutObserver();
         mLifecycleDispatcher = lifecycleDispatcher;
         mLifecycleDispatcher.register(this);
+        mBrowserControlsStateProvider = browserControlsStateProvider;
         mDefaultTitle = context.getString(R.string.tab_loading_default_title);
         mEventFilter =
                 new AreaMotionEventFilter(context, mTabStripEventHandler, null, false, false);
-        CompositorOnClickHandler selectorClickHandler =
-                new CompositorOnClickHandler() {
-                    @Override
-                    public void onClick(long time) {
-                        handleModelSelectorButtonClick();
-                    }
-                };
+        CompositorOnClickHandler selectorClickHandler = time -> handleModelSelectorButtonClick();
         createModelSelectorButton(context, selectorClickHandler);
         // Model selector button background color.
         // Default bg color is surface inverse.
-        int BackgroundDefaultColor =
-                context.getResources().getColor(R.color.model_selector_button_bg_color);
+        @ColorInt
+        int backgroundDefaultColor = context.getColor(R.color.model_selector_button_bg_color);
 
         // Incognito bg color is surface 1 baseline.
-        int BackgroundIncognitoColor =
-                context.getResources().getColor(R.color.default_bg_color_dark_elev_1_baseline);
+        @ColorInt
+        int backgroundIncognitoColor =
+                context.getColor(R.color.default_bg_color_dark_elev_1_baseline);
 
+        @ColorInt
         int apsBackgroundHoveredColor =
-                org.chromium.ui.util.ColorUtils.setAlphaComponent(
+                ColorUtils.setAlphaComponentWithFloat(
                         SemanticColorUtils.getDefaultTextColor(context),
-                        (int) (MODEL_SELECTOR_BUTTON_HOVER_BACKGROUND_DEFAULT_OPACITY * 255));
+                        MODEL_SELECTOR_BUTTON_HOVER_BACKGROUND_DEFAULT_OPACITY);
+        @ColorInt
         int apsBackgroundPressedColor =
-                org.chromium.ui.util.ColorUtils.setAlphaComponent(
+                ColorUtils.setAlphaComponentWithFloat(
                         SemanticColorUtils.getDefaultTextColor(context),
-                        (int) (MODEL_SELECTOR_BUTTON_HOVER_BACKGROUND_PRESSED_OPACITY * 255));
+                        MODEL_SELECTOR_BUTTON_HOVER_BACKGROUND_PRESSED_OPACITY);
+        @ColorInt
         int apsBackgroundHoveredIncognitoColor =
-                ColorUtils.setAlphaComponent(
-                        context.getResources().getColor(R.color.tab_strip_button_hover_bg_color),
-                        (int) (MODEL_SELECTOR_BUTTON_HOVER_BACKGROUND_DEFAULT_OPACITY * 255));
+                ColorUtils.setAlphaComponentWithFloat(
+                        context.getColor(R.color.tab_strip_button_hover_bg_color),
+                        MODEL_SELECTOR_BUTTON_HOVER_BACKGROUND_DEFAULT_OPACITY);
+        @ColorInt
         int apsBackgroundPressedIncognitoColor =
-                ColorUtils.setAlphaComponent(
-                        context.getResources().getColor(R.color.tab_strip_button_hover_bg_color),
-                        (int) (MODEL_SELECTOR_BUTTON_HOVER_BACKGROUND_PRESSED_OPACITY * 255));
+                ColorUtils.setAlphaComponentWithFloat(
+                        context.getColor(R.color.tab_strip_button_hover_bg_color),
+                        MODEL_SELECTOR_BUTTON_HOVER_BACKGROUND_PRESSED_OPACITY);
 
+        @ColorInt
         int iconDefaultColor =
                 AppCompatResources.getColorStateList(context, R.color.default_icon_color_tint_list)
                         .getDefaultColor();
-        int iconIncognitoColor =
-                context.getResources().getColor(R.color.default_icon_color_secondary_light);
+        @ColorInt
+        int iconIncognitoColor = context.getColor(R.color.default_icon_color_secondary_light);
 
-        ((TintedCompositorButton) mModelSelectorButton)
-                .setTint(
-                        iconDefaultColor, iconDefaultColor, iconIncognitoColor, iconIncognitoColor);
+        mModelSelectorButton.setTint(
+                iconDefaultColor, iconDefaultColor, iconIncognitoColor, iconIncognitoColor);
 
-        ((TintedCompositorButton) mModelSelectorButton)
-                .setBackgroundTint(
-                        BackgroundDefaultColor,
-                        BackgroundDefaultColor,
-                        BackgroundIncognitoColor,
-                        BackgroundIncognitoColor,
-                        apsBackgroundHoveredColor,
-                        apsBackgroundPressedColor,
-                        apsBackgroundHoveredIncognitoColor,
-                        apsBackgroundPressedIncognitoColor);
+        mModelSelectorButton.setBackgroundTint(
+                backgroundDefaultColor,
+                backgroundDefaultColor,
+                backgroundIncognitoColor,
+                backgroundIncognitoColor,
+                apsBackgroundHoveredColor,
+                apsBackgroundPressedColor,
+                apsBackgroundHoveredIncognitoColor,
+                apsBackgroundPressedIncognitoColor);
 
         // y-offset for folio = lowered tab container + (tab container size - bg size)/2 -
         // folio tab title y-offset = 2 + (38 - 32)/2 - 2 = 3dp
@@ -403,7 +438,8 @@ public class StripLayoutHelperManager implements SceneOverlay, PauseResumeWithNa
                             multiInstanceManager,
                             dragDropDelegate,
                             browserControlsStateProvider,
-                            windowAndroid);
+                            windowAndroid,
+                            tabStripHeightSupplier);
         }
 
         mNormalHelper =
@@ -471,8 +507,7 @@ public class StripLayoutHelperManager implements SceneOverlay, PauseResumeWithNa
                         R.drawable.ic_incognito);
 
         // Tab strip redesign button bg size is 32 * 32.
-        ((TintedCompositorButton) mModelSelectorButton)
-                .setBackgroundResourceId(R.drawable.bg_circle_tab_strip_button);
+        mModelSelectorButton.setBackgroundResourceId(R.drawable.bg_circle_tab_strip_button);
 
         mModelSelectorWidth = MODEL_SELECTOR_BUTTON_BACKGROUND_WIDTH_DP;
     }
@@ -546,10 +581,26 @@ public class StripLayoutHelperManager implements SceneOverlay, PauseResumeWithNa
                 getActiveStripLayoutHelper().getLastHoveredTab() == null
                         ? TabModel.INVALID_TAB_INDEX
                         : getActiveStripLayoutHelper().getLastHoveredTab().getId();
-        if (mIsHidden) {
+
+        float scrimOpacity = 0.0f;
+        // When tab strip is hiding, animation will trigger the toolbar moving up and tab
+        // strip fade-out in place. In this case the tab strip should not move at all.
+        if (duringTabStripTransition()) {
+            // During tab strip transition, make the yOffset stick to the top of the browser
+            // controls. This assumes on tablet there are no other components on top of the control
+            // container.
+            float visibleHeight = yOffset;
+            if (visibleHeight < 0) visibleHeight += getHeight();
+
+            // The fade-out is implemented by adding a scrim layer on top of the tab strip, with the
+            // same bg as the toolbar background color.
+            scrimOpacity = calculateScrimOpacityDuringTransition(visibleHeight);
+
+            yOffset = 0;
+        } else if (mIsHidden) {
             // When tab strip is hidden, the stable offset of this scene layer should be a negative
             // value.
-            yOffset -= mHeight;
+            yOffset -= getHeight();
         }
         mTabStripTreeProvider.pushAndUpdateStrip(
                 this,
@@ -558,7 +609,10 @@ public class StripLayoutHelperManager implements SceneOverlay, PauseResumeWithNa
                 getActiveStripLayoutHelper().getStripLayoutTabsToRender(),
                 yOffset,
                 selectedTabId,
-                hoveredTabId);
+                hoveredTabId,
+                // TODO(crbug.com/1498252): Use the toolbar background color for scrim.
+                getBackgroundColor(),
+                scrimOpacity);
         return mTabStripTreeProvider;
     }
 
@@ -590,12 +644,40 @@ public class StripLayoutHelperManager implements SceneOverlay, PauseResumeWithNa
                     getModelSelectorButtonWidthWithEndPadding() - mModelSelectorWidth);
         }
 
-        mNormalHelper.onSizeChanged(mWidth, mHeight, orientationChanged, LayoutManagerImpl.time());
+        mNormalHelper.onSizeChanged(
+                mWidth, getHeight(), orientationChanged, LayoutManagerImpl.time());
         mIncognitoHelper.onSizeChanged(
-                mWidth, mHeight, orientationChanged, LayoutManagerImpl.time());
+                mWidth, getHeight(), orientationChanged, LayoutManagerImpl.time());
 
         mStripFilterArea.set(0, 0, mWidth, Math.min(getHeight(), visibleViewportOffsetY));
         mEventFilter.setEventArea(mStripFilterArea);
+    }
+
+    // Implements TabStripHeightObserver
+
+    @Override
+    public void onHeightChanged(int newHeight) {
+        mIsTransitioning = true;
+        mIsHidden = newHeight == 0;
+    }
+
+    @Override
+    public void onTransitionFinished() {
+        mIsTransitioning = false;
+    }
+
+    private boolean duringTabStripTransition() {
+        return mIsTransitioning;
+    }
+
+    private float calculateScrimOpacityDuringTransition(float visibleHeight) {
+        if (!duringTabStripTransition()) {
+            return 0.0f;
+        }
+
+        // Otherwise, the alpha fraction is based on the percent of the tab strip visibility.
+        float ratio = 1 - visibleHeight / mHeight;
+        return TAB_STRIP_TRANSITION_INTERPOLATOR.getInterpolation(ratio);
     }
 
     private float getModelSelectorButtonWidthWithEndPadding() {
@@ -603,8 +685,8 @@ public class StripLayoutHelperManager implements SceneOverlay, PauseResumeWithNa
     }
 
     /**
-     * @Return The start padding needed for model selector button to ensure there is enough space
-     * for touch target.
+     * @return The start padding needed for model selector button to ensure there is enough space
+     *     for touch target.
      */
     private float getButtonStartPaddingForTouchTarget() {
         if (mModelSelectorButton.isVisible()) {
@@ -618,10 +700,6 @@ public class StripLayoutHelperManager implements SceneOverlay, PauseResumeWithNa
 
     public TintedCompositorButton getNewTabButton() {
         return getActiveStripLayoutHelper().getNewTabButton();
-    }
-
-    public boolean isTabStripFull() {
-        return getActiveStripLayoutHelper().isTabStripFull();
     }
 
     /**
@@ -638,6 +716,9 @@ public class StripLayoutHelperManager implements SceneOverlay, PauseResumeWithNa
     @Override
     public void getVirtualViews(List<VirtualView> views) {
         if (mBrowserScrimShowing) return;
+        if (duringTabStripTransition() || mIsHidden) return;
+        // Remove the a11y views when top controls is partially invisible.
+        if (mBrowserControlsStateProvider.getTopControlOffset() < 0) return;
 
         getActiveStripLayoutHelper().getVirtualViews(views);
         if (mModelSelectorButton.isVisible()) views.add(mModelSelectorButton);
@@ -684,8 +765,8 @@ public class StripLayoutHelperManager implements SceneOverlay, PauseResumeWithNa
         return leftFadeDrawable;
     }
 
-    public int getRightFadeDrawable() {
-        int rightFadeDrawable;
+    public @DrawableRes int getRightFadeDrawable() {
+        @DrawableRes int rightFadeDrawable;
         if (!LocalizationUtils.isLayoutRtl()) {
             if (mModelSelectorButton.isVisible()) {
                 rightFadeDrawable = R.drawable.tab_strip_fade_long;

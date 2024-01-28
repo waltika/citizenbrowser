@@ -94,6 +94,11 @@ IN_PROC_BROWSER_TEST_F(ReadAnythingAppToolbarTest, ColorCallback_ChangesColor) {
 }
 
 IN_PROC_BROWSER_TEST_F(ReadAnythingAppToolbarTest,
+                       ColorCallback_ChangesColorWhenColorsUndefined) {
+  ASSERT_TRUE(RunTest("color_callback_changes_color_when_colors_undefined.js"));
+}
+
+IN_PROC_BROWSER_TEST_F(ReadAnythingAppToolbarTest,
                        LineSpacingCallback_ChangesLineSpacing) {
   ASSERT_TRUE(RunTest("line_spacing_callback_changes_line_spacing.js"));
 }
@@ -114,6 +119,10 @@ IN_PROC_BROWSER_TEST_F(ReadAnythingAppToolbarTest, FontSelectionShows) {
 
 IN_PROC_BROWSER_TEST_F(ReadAnythingAppToolbarTest, FontSizeButtonsOnToolbar) {
   ASSERT_TRUE(RunTest("font_size_buttons_without_read_aloud.js"));
+}
+
+IN_PROC_BROWSER_TEST_F(ReadAnythingAppToolbarTest, LinksToggleButtonOnToolbar) {
+  ASSERT_TRUE(RunTest("links_toggle_button.js"));
 }
 
 // TODO(crbug.com/1474951): Remove this test once Read Aloud flag is removed.

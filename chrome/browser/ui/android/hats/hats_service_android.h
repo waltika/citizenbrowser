@@ -6,8 +6,10 @@
 #define CHROME_BROWSER_UI_ANDROID_HATS_HATS_SERVICE_ANDROID_H_
 
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
+#include <string_view>
 
 #include "base/functional/callback.h"
 #include "base/functional/callback_forward.h"
@@ -41,7 +43,8 @@ class HatsServiceAndroid : public HatsService {
                       const SurveyBitsData& product_specific_bits_data,
                       const SurveyStringData& product_specific_string_data,
                       base::OnceClosure success_callback,
-                      base::OnceClosure failure_callback);
+                      base::OnceClosure failure_callback,
+                      std::optional<std::string_view> supplied_trigger_id);
 
     // Not copyable or movable
     DelayedSurveyTask(const DelayedSurveyTask&) = delete;
@@ -77,6 +80,7 @@ class HatsServiceAndroid : public HatsService {
     SurveyStringData product_specific_string_data_;
     base::OnceClosure success_callback_;
     base::OnceClosure failure_callback_;
+    std::optional<std::string_view> supplied_trigger_id_;
     base::WeakPtrFactory<DelayedSurveyTask> weak_ptr_factory_{this};
   };
 
@@ -124,7 +128,9 @@ class HatsServiceAndroid : public HatsService {
       const SurveyBitsData& product_specific_bits_data,
       const SurveyStringData& product_specific_string_data,
       base::OnceClosure success_callback = base::DoNothing(),
-      base::OnceClosure failure_callback = base::DoNothing()) override;
+      base::OnceClosure failure_callback = base::DoNothing(),
+      const std::optional<std::string_view>& supplied_trigger_id =
+          std::nullopt) override;
 
   bool LaunchDelayedSurvey(
       const std::string& trigger,
@@ -138,9 +144,11 @@ class HatsServiceAndroid : public HatsService {
       int timeout_ms,
       const SurveyBitsData& product_specific_bits_data = {},
       const SurveyStringData& product_specific_string_data = {},
-      bool require_same_origin = false,
+      NavigationBehaviour navigation_behaviour = NavigationBehaviour::ALLOW_ANY,
       base::OnceClosure success_callback = base::DoNothing(),
-      base::OnceClosure failure_callback = base::DoNothing()) override;
+      base::OnceClosure failure_callback = base::DoNothing(),
+      const std::optional<std::string_view>& supplied_trigger_id =
+          std::nullopt) override;
 
   // Currently not implemented
   bool CanShowAnySurvey(bool user_prompted) const override;

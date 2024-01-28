@@ -18,6 +18,7 @@
 #import "ios/chrome/browser/feature_engagement/model/tracker_factory.h"
 #import "ios/chrome/browser/follow/model/follow_action_state.h"
 #import "ios/chrome/browser/follow/model/follow_browser_agent.h"
+#import "ios/chrome/browser/iph_for_new_chrome_user/model/tab_based_iph_browser_agent.h"
 #import "ios/chrome/browser/overlays/model/public/overlay_presenter.h"
 #import "ios/chrome/browser/promos_manager/promos_manager_factory.h"
 #import "ios/chrome/browser/reading_list/model/reading_list_browser_agent.h"
@@ -37,7 +38,6 @@
 #import "ios/chrome/browser/shared/public/commands/browser_coordinator_commands.h"
 #import "ios/chrome/browser/shared/public/commands/command_dispatcher.h"
 #import "ios/chrome/browser/shared/public/commands/find_in_page_commands.h"
-#import "ios/chrome/browser/shared/public/commands/help_commands.h"
 #import "ios/chrome/browser/shared/public/commands/lens_commands.h"
 #import "ios/chrome/browser/shared/public/commands/omnibox_commands.h"
 #import "ios/chrome/browser/shared/public/commands/overflow_menu_customization_commands.h"
@@ -119,6 +119,9 @@ using base::UserMetricsAction;
 // Whether the user selected a Destination on the overflow menu (the horizontal
 // list).
 @property(nonatomic, assign) BOOL overflowMenuUserSelectedDestination;
+// Whether the user scrolled to the end of the actions section during their
+// interaction.
+@property(nonatomic, assign) BOOL overflowMenuUserScrolledToEndOfActions;
 
 @property(nonatomic, strong) PopupMenuHelpCoordinator* popupMenuHelpCoordinator;
 
@@ -274,6 +277,8 @@ using base::UserMetricsAction;
           HandlerForProtocol(dispatcher, ActivityServiceCommands);
       mediator.applicationHandler =
           HandlerForProtocol(dispatcher, ApplicationCommands);
+      mediator.settingsHandler =
+          HandlerForProtocol(dispatcher, ApplicationSettingsCommands);
       mediator.bookmarksHandler =
           HandlerForProtocol(dispatcher, BookmarksCommands);
       mediator.browserCoordinatorHandler =
@@ -326,8 +331,8 @@ using base::UserMetricsAction;
       mediator.authenticationService =
           AuthenticationServiceFactory::GetForBrowserState(
               self.browser->GetBrowserState()->GetOriginalChromeBrowserState());
-      mediator.helpHandler = HandlerForProtocol(
-          self.browser->GetCommandDispatcher(), HelpCommands);
+      mediator.tabBasedIPHBrowserAgent =
+          TabBasedIPHBrowserAgent::FromBrowser(self.browser);
 
       self.contentBlockerMediator.consumer = mediator;
 
@@ -519,6 +524,14 @@ using base::UserMetricsAction;
 
     RecordOverflowMenuVisitedEvent(_event);
 
+    if (IsOverflowMenuCustomizationEnabled() &&
+        self.overflowMenuUserScrolledToEndOfActions) {
+      base::UmaHistogramBoolean(
+          "IOS.OverflowMenu.UserScrolledToEndAndStartedCustomization",
+          _event.Has(
+              OverflowMenuVisitedEventFields::kUserStartedCustomization));
+    }
+
     _event = OverflowMenuVisitedEvent();
 
     self.toolsMenuWasScrolledVertically = NO;
@@ -526,6 +539,7 @@ using base::UserMetricsAction;
     self.toolsMenuUserTookAction = NO;
     self.overflowMenuUserSelectedAction = NO;
     self.overflowMenuUserSelectedDestination = NO;
+    self.overflowMenuUserScrolledToEndOfActions = NO;
   }
 
   if (self.overflowMenuMediator) {
@@ -687,6 +701,10 @@ using base::UserMetricsAction;
 - (void)popupMenuUserSelectedDestination {
   self.overflowMenuUserSelectedDestination = YES;
   _event.Put(OverflowMenuVisitedEventFields::kUserSelectedDestination);
+}
+
+- (void)popupMenuUserScrolledToEndOfActions {
+  self.overflowMenuUserScrolledToEndOfActions = YES;
 }
 
 #pragma mark - Notification callback

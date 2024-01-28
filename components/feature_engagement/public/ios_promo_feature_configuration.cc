@@ -8,6 +8,7 @@
 #include "base/strings/string_util.h"
 #include "build/build_config.h"
 #include "components/feature_engagement/public/configuration.h"
+#include "components/feature_engagement/public/event_constants.h"
 #include "components/feature_engagement/public/feature_constants.h"
 #include "components/feature_engagement/public/group_constants.h"
 
@@ -16,7 +17,8 @@ namespace feature_engagement {
 namespace {
 
 // Returns a config for a standard promo. This includes a rule for "only show
-// this feature once every month."
+// this feature once every month." Promos here can be unit tested in
+// `PromosManagerFeatureEngagementTest`.
 absl::optional<FeatureConfig> GetStandardPromoConfig(
     const base::Feature* feature) {
   absl::optional<FeatureConfig> config;
@@ -31,6 +33,9 @@ absl::optional<FeatureConfig> GetStandardPromoConfig(
         EventConfig("app_store_promo_used", Comparator(EQUAL, 0), 365, 365);
     config->trigger =
         EventConfig("app_store_promo_trigger", Comparator(EQUAL, 0), 365, 365);
+    config->event_configs.insert(
+        EventConfig(feature_engagement::events::kChromeOpened,
+                    Comparator(GREATER_THAN_OR_EQUAL, 7), 365, 365));
   }
 
   if (kIPHiOSPromoWhatsNewFeature.name == feature->name) {
@@ -43,9 +48,15 @@ absl::optional<FeatureConfig> GetStandardPromoConfig(
     config->groups.push_back(kiOSFullscreenPromosGroup.name);
     config->used =
         EventConfig("whats_new_promo_used", Comparator(ANY, 0), 365, 365);
-    // What's New promo should be trigger no more than once a month.
+    // What's New promo should be trigger no more than once every 14 days.
     config->trigger = EventConfig("whats_new_promo_trigger",
-                                  Comparator(LESS_THAN, 1), 30, 365);
+                                  Comparator(LESS_THAN, 1), 14, 365);
+    config->event_configs.insert(
+        EventConfig(feature_engagement::events::kViewedWhatsNew,
+                    Comparator(LESS_THAN, 1), 365, 365));
+    config->event_configs.insert(
+        EventConfig(feature_engagement::events::kChromeOpened,
+                    Comparator(GREATER_THAN_OR_EQUAL, 7), 365, 365));
   }
 
   if (kIPHiOSPromoDefaultBrowserFeature.name == feature->name) {
@@ -71,8 +82,9 @@ absl::optional<FeatureConfig> GetStandardPromoConfig(
                                     Comparator(LESS_THAN, 4), 365, 365);
     }
 
-    config->event_configs.insert(EventConfig(
-        "chrome_opened", Comparator(GREATER_THAN_OR_EQUAL, 7), 365, 365));
+    config->event_configs.insert(
+        EventConfig(feature_engagement::events::kChromeOpened,
+                    Comparator(GREATER_THAN_OR_EQUAL, 7), 365, 365));
     // Default Browser promo shouldn't be shown if the Post Restore Default
     // Browser Promo has been shown in the past 7 days.
     config->event_configs.insert(
@@ -117,6 +129,27 @@ absl::optional<FeatureConfig> GetStandardPromoConfig(
         EventConfig("omnibox_position_promo_trigger", Comparator(EQUAL, 0),
                     feature_engagement::kMaxStoragePeriod,
                     feature_engagement::kMaxStoragePeriod);
+
+    // Blocks the app launch promo if it has been shown in another context (the
+    // promo can also be shown in FRE).
+    config->event_configs.insert(
+        EventConfig(events::kOmniboxPositionPromoShown, Comparator(EQUAL, 0),
+                    feature_engagement::kMaxStoragePeriod,
+                    feature_engagement::kMaxStoragePeriod));
+  }
+
+  if (kIPHiOSDockingPromoFeature.name == feature->name) {
+    config = FeatureConfig();
+    config->valid = true;
+    config->availability = Comparator(ANY, 0);
+    config->session_rate = Comparator(ANY, 0);
+    config->groups.push_back(kiOSFullscreenPromosGroup.name);
+    config->used = EventConfig("docking_promo_used", Comparator(EQUAL, 0),
+                               feature_engagement::kMaxStoragePeriod,
+                               feature_engagement::kMaxStoragePeriod);
+    config->trigger = EventConfig("docking_promo_trigger", Comparator(EQUAL, 0),
+                                  feature_engagement::kMaxStoragePeriod,
+                                  feature_engagement::kMaxStoragePeriod);
   }
 
   // All standard promos can only be shown once per month.
@@ -142,6 +175,23 @@ absl::optional<FeatureConfig> GetCustomConfig(const base::Feature* feature) {
     // from being signed-out after restoring their device.
     config->trigger =
         EventConfig("post_restore_promo_trigger", Comparator(ANY, 0), 365, 365);
+    return config;
+  }
+
+  if (kIPHWhatsNewUpdatedFeature.name == feature->name) {
+    // Should trigger and display What's New badged only when What's New was not
+    // viewed.
+    absl::optional<FeatureConfig> config = FeatureConfig();
+    config->valid = true;
+    config->availability = Comparator(ANY, 0);
+    config->session_rate = Comparator(ANY, 0);
+    config->used =
+        EventConfig("whats_new_updated_used", Comparator(ANY, 0), 365, 365);
+    config->trigger =
+        EventConfig("whats_new_updated_trigger", Comparator(ANY, 0), 365, 365);
+    config->event_configs.insert(
+        EventConfig(feature_engagement::events::kViewedWhatsNew,
+                    Comparator(LESS_THAN, 1), 365, 365));
     return config;
   }
 
@@ -227,6 +277,19 @@ absl::optional<FeatureConfig> GetCustomConfig(const base::Feature* feature) {
     // has to make.
     config->trigger =
         EventConfig("choice_screen_trigger", Comparator(ANY, 0), 365, 365);
+    return config;
+  }
+
+  if (kIPHiOSDockingPromoRemindMeLaterFeature.name == feature->name) {
+    absl::optional<FeatureConfig> config = FeatureConfig();
+    config->valid = true;
+    config->availability = Comparator(ANY, 0);
+    config->session_rate = Comparator(ANY, 0);
+    config->used = EventConfig("docking_promo_remind_me_later_used",
+                               Comparator(ANY, 0), 3650, 3650);
+    // Should not be subject to impression limits.
+    config->trigger = EventConfig("docking_promo_remind_me_later_trigger",
+                                  Comparator(ANY, 0), 3650, 3650);
     return config;
   }
 

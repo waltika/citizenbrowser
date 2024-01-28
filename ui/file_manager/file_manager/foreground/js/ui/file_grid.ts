@@ -7,15 +7,16 @@ import {dispatchSimpleEvent} from 'chrome://resources/ash/common/cr_deprecated.j
 import {isRTL} from 'chrome://resources/ash/common/util.js';
 import {assert} from 'chrome://resources/js/assert.js';
 
+import type {VolumeManager} from '../../../background/js/volume_manager.js';
 import {RateLimiter} from '../../../common/js/async_util.js';
-import {decorate} from '../../../common/js/cr_ui.js';
+import {crInjectTypeAndInit} from '../../../common/js/cr_ui.js';
 import {maybeShowTooltip} from '../../../common/js/dom_utils.js';
 import {entriesToURLs} from '../../../common/js/entry_utils.js';
 import {getIcon, getType, isEncrypted} from '../../../common/js/file_type.js';
+import type {FilesAppEntry} from '../../../common/js/files_app_entry_types.js';
 import {getEntryLabel, str} from '../../../common/js/translations.js';
-import type {VolumeManager} from '../../../externs/volume_manager.js';
 import type {FilesTooltip} from '../../elements/files_tooltip.js';
-import {type FileListModel, GROUP_BY_FIELD_DIRECTORY, GROUP_BY_FIELD_MODIFICATION_TIME, GroupValue} from '../file_list_model.js';
+import {type FileListModel, GROUP_BY_FIELD_DIRECTORY, GROUP_BY_FIELD_MODIFICATION_TIME, type GroupValue} from '../file_list_model.js';
 import {ListThumbnailLoader, type ThumbnailLoadedEvent} from '../list_thumbnail_loader.js';
 import {type MetadataItem} from '../metadata/metadata_item.js';
 import {type MetadataModel} from '../metadata/metadata_model.js';
@@ -50,7 +51,7 @@ export class FileGrid extends Grid {
   private listThumbnailLoader_: ListThumbnailLoader|null = null;
   private volumeManager_: VolumeManager|null = null;
   private relayoutRateLimiter_: RateLimiter|null = null;
-  private onThumbnailLoadedBound_: null|((_: Event) => void) = null;
+  private onThumbnailLoadedBound_: null|EventListener = null;
   a11y: A11yAnnounce|null = null;
 
   override get dataModel() {
@@ -74,11 +75,12 @@ export class FileGrid extends Grid {
   /**
    * Decorates an HTML element to be a FileGrid.
    */
-  static override decorate(
+  static decorate(
       element: HTMLElement, metadataModel: MetadataModel,
       volumeManager: VolumeManager, a11y: A11yAnnounce) {
     const self = element as FileGrid;
-    decorate(self, FileGrid);
+    Object.setPrototypeOf(self, FileGrid.prototype);
+    self.initialize();
     self.setAttribute('aria-multiselectable', 'true');
     self.setAttribute('aria-describedby', 'more-actions-info');
     self.metadataModel_ = metadataModel;
@@ -94,12 +96,13 @@ export class FileGrid extends Grid {
     self.listThumbnailLoader_ = null;
     self.beginIndex_ = 0;
     self.endIndex_ = 0;
-    self.onThumbnailLoadedBound_ = self.onThumbnailLoaded_.bind(self);
+    self.onThumbnailLoadedBound_ =
+        self.onThumbnailLoaded_.bind(self) as EventListener;
 
     self.itemConstructor = function(entry: Entry) {
       const item = self.ownerDocument.createElement('li') as FileGridItem;
       self.decorateThumbnail_(item, entry);
-      decorate(item, FileGridItem);
+      crInjectTypeAndInit(item, FileGridItem);
       return item;
     };
 
@@ -195,11 +198,10 @@ export class FileGrid extends Grid {
         null;
   }
 
-  private onThumbnailLoaded_(e: Event) {
-    const event = e as ThumbnailLoadedEvent;
+  private onThumbnailLoaded_(event: ThumbnailLoadedEvent) {
     assert(this.dataModel);
     assert(this.metadataModel_);
-    const listItem = this.getListItemByIndex(event.index);
+    const listItem = this.getListItemByIndex(event.detail.index);
     const entry = listItem && this.dataModel.item(listItem.listIndex);
     if (!entry) {
       return;
@@ -210,19 +212,19 @@ export class FileGrid extends Grid {
           this.metadataModel_.getCache(
                                  [entry],
                                  ['contentMimeType'])[0]!.contentMimeType;
-      if (!event.dataUrl) {
+      if (!event.detail.dataUrl) {
         FileGrid.clearThumbnailImage_(assertInstanceof(box, HTMLDivElement));
         this.setGenericThumbnail_(
             assertInstanceof(box, HTMLDivElement), entry, mimeType);
       } else {
-        assert(event.width);
-        assert(event.height);
+        assert(event.detail.width);
+        assert(event.detail.height);
         FileGrid.setThumbnailImage_(
-            assertInstanceof(box, HTMLDivElement), entry, event.dataUrl,
-            event.width, event.height, mimeType);
+            assertInstanceof(box, HTMLDivElement), entry, event.detail.dataUrl,
+            event.detail.width, event.detail.height, mimeType);
       }
     }
-    listItem.classList.toggle('thumbnail-loaded', !!event.dataUrl);
+    listItem.classList.toggle('thumbnail-loaded', !!event.detail.dataUrl);
   }
 
   override mergeItems(beginIndex: number, endIndex: number) {
@@ -667,7 +669,7 @@ export class FileGrid extends Grid {
    * @param _type Type of metadata changed.
    * @param entries Entries whose metadata changed.
    */
-  updateListItemsMetadata(_type: string, entries: Entry[]) {
+  updateListItemsMetadata(_type: string, entries: Array<Entry|FilesAppEntry>) {
     const urls = entriesToURLs(entries);
     const boxes =
         Array.from(this.querySelectorAll<HTMLElement>('.img-container'));
@@ -788,7 +790,7 @@ export class FileGrid extends Grid {
    * @param li List item which contains the box to be decorated.
    * @param entry Entry which thumbnail is generating for.
    */
-  private decorateThumbnailBox_(li: HTMLLIElement, entry: Entry) {
+  private decorateThumbnailBox_(li: HTMLLIElement, entry: Entry|FilesAppEntry) {
     const box =
         assertInstanceof(li.querySelector('.img-container'), HTMLDivElement);
 
@@ -822,7 +824,7 @@ export class FileGrid extends Grid {
    * @param  li The grid item.
    * @param  entry File entry for the grid item.
    */
-  private updateSharedStatus_(li: ListItem, entry: Entry) {
+  private updateSharedStatus_(li: ListItem, entry: Entry|FilesAppEntry) {
     if (!entry.isDirectory) {
       return;
     }
@@ -879,8 +881,8 @@ export class FileGrid extends Grid {
    * @param mimeType Optional mime type for the image.
    */
   private static setThumbnailImage_(
-      box: HTMLDivElement, entry: Entry, dataUrl: string, width: number,
-      height: number, mimeType?: string) {
+      box: HTMLDivElement, entry: Entry|FilesAppEntry, dataUrl: string,
+      width: number, height: number, mimeType?: string) {
     const thumbnail = box.ownerDocument.createElement('div');
     thumbnail.classList.add('thumbnail');
     box.classList.toggle('no-thumbnail', false);
@@ -922,7 +924,7 @@ export class FileGrid extends Grid {
    * @param mimeType Optional mime type for the file.
    */
   private setGenericThumbnail_(
-      box: HTMLDivElement, entry: Entry, mimeType?: string) {
+      box: HTMLDivElement, entry: Entry|FilesAppEntry, mimeType?: string) {
     if (isEncrypted(entry, mimeType)) {
       box.setAttribute('generic-thumbnail', 'encrypted');
       box.setAttribute('aria-label', str('ENCRYPTED_ICON_TOOLTIP'));
@@ -1034,8 +1036,8 @@ export class FileGrid extends Grid {
    * @param height Height of the coordinate.
    * @return Indexes of the hit elements.
    */
-  getHitElements(x: number, y: number, width?: number, height?: number):
-      number[] {
+  override getHitElements(
+      x: number, y: number, width?: number, height?: number): number[] {
     const currentSelection = [];
     const startXWithPadding =
         isRTL() ? this.clientWidth - (x + (width ?? 0)) : x;
@@ -1080,8 +1082,8 @@ class FileGridItem extends ListItem {
     // no-op setter. List calls this setter but Files app doesn't need it.
   }
 
-  override decorate() {
-    super.decorate();
+  override initialize() {
+    super.initialize();
     // Override the default role 'listitem' to 'option' to match the parent's
     // role (listbox).
     this.setAttribute('role', 'option');

@@ -124,7 +124,7 @@ ContentAnalysisDelegate::Result::~Result() = default;
 ContentAnalysisDelegate::~ContentAnalysisDelegate() = default;
 
 void ContentAnalysisDelegate::BypassWarnings(
-    absl::optional<std::u16string> user_justification) {
+    std::optional<std::u16string> user_justification) {
   if (callback_.is_null())
     return;
 
@@ -203,7 +203,7 @@ void ContentAnalysisDelegate::Cancel(bool warning) {
   RunCallback();
 }
 
-absl::optional<std::u16string> ContentAnalysisDelegate::GetCustomMessage()
+std::optional<std::u16string> ContentAnalysisDelegate::GetCustomMessage()
     const {
   auto element = data_.settings.tags.find(final_result_tag_);
   if (element != data_.settings.tags.end() &&
@@ -212,10 +212,10 @@ absl::optional<std::u16string> ContentAnalysisDelegate::GetCustomMessage()
                                       element->second.custom_message.message);
   }
 
-  return absl::nullopt;
+  return std::nullopt;
 }
 
-absl::optional<GURL> ContentAnalysisDelegate::GetCustomLearnMoreUrl() const {
+std::optional<GURL> ContentAnalysisDelegate::GetCustomLearnMoreUrl() const {
   auto element = data_.settings.tags.find(final_result_tag_);
   if (element != data_.settings.tags.end() &&
       element->second.custom_message.learn_more_url.is_valid() &&
@@ -223,7 +223,7 @@ absl::optional<GURL> ContentAnalysisDelegate::GetCustomLearnMoreUrl() const {
     return element->second.custom_message.learn_more_url;
   }
 
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 bool ContentAnalysisDelegate::BypassRequiresJustification() const {
@@ -232,13 +232,29 @@ bool ContentAnalysisDelegate::BypassRequiresJustification() const {
 }
 
 std::u16string ContentAnalysisDelegate::GetBypassJustificationLabel() const {
-  return l10n_util::GetStringUTF16(
-      IDS_DEEP_SCANNING_DIALOG_UPLOAD_BYPASS_JUSTIFICATION_LABEL);
+  int id;
+  switch (access_point_) {
+    case safe_browsing::DeepScanAccessPoint::UPLOAD:
+    case safe_browsing::DeepScanAccessPoint::DRAG_AND_DROP:
+    case safe_browsing::DeepScanAccessPoint::FILE_TRANSFER:
+      id = IDS_DEEP_SCANNING_DIALOG_UPLOAD_BYPASS_JUSTIFICATION_LABEL;
+      break;
+    case safe_browsing::DeepScanAccessPoint::DOWNLOAD:
+      id = IDS_DEEP_SCANNING_DIALOG_DOWNLOAD_BYPASS_JUSTIFICATION_LABEL;
+      break;
+    case safe_browsing::DeepScanAccessPoint::PASTE:
+      id = IDS_DEEP_SCANNING_DIALOG_PASTE_BYPASS_JUSTIFICATION_LABEL;
+      break;
+    case safe_browsing::DeepScanAccessPoint::PRINT:
+      id = IDS_DEEP_SCANNING_DIALOG_PRINT_BYPASS_JUSTIFICATION_LABEL;
+      break;
+  }
+  return l10n_util::GetStringUTF16(id);
 }
 
-absl::optional<std::u16string>
+std::optional<std::u16string>
 ContentAnalysisDelegate::OverrideCancelButtonText() const {
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 // static

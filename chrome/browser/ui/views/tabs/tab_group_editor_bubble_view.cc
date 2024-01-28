@@ -2,7 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include "chrome/browser/ui/views/tabs/tab_group_editor_bubble_view.h"
+
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -21,6 +24,7 @@
 #include "base/ranges/algorithm.h"
 #include "base/strings/utf_string_conversions.h"
 #include "chrome/app/vector_icons/vector_icons.h"
+#include "chrome/browser/feature_engagement/tracker_factory.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_element_identifiers.h"
@@ -38,17 +42,16 @@
 #include "chrome/browser/ui/views/chrome_typography.h"
 #include "chrome/browser/ui/views/controls/hover_button.h"
 #include "chrome/browser/ui/views/tabs/color_picker_view.h"
-#include "chrome/browser/ui/views/tabs/tab_group_editor_bubble_view.h"
 #include "chrome/browser/ui/views/toolbar/toolbar_ink_drop_util.h"
 #include "chrome/grit/generated_resources.h"
 #include "components/feature_engagement/public/feature_constants.h"
 #include "components/tab_groups/tab_group_color.h"
 #include "components/tab_groups/tab_group_id.h"
 #include "components/tab_groups/tab_group_visual_data.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 #include "third_party/skia/include/core/SkColor.h"
 #include "ui/base/interaction/element_identifier.h"
 #include "ui/base/l10n/l10n_util.h"
+#include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/base/models/dialog_model_field.h"
 #include "ui/base/models/image_model.h"
@@ -143,8 +146,9 @@ class TabGroupEditorBubbleDelegate : public ui::DialogModelDelegate {
   }
   void NewTabInGroupPressed() {
     TabStripModel* const model = browser_->tab_strip_model();
-    if (!model->group_model())
+    if (!model->group_model()) {
       return;
+    }
     base::RecordAction(
         base::UserMetricsAction("TabGroups_TabGroupBubble_NewTabInGroup"));
     const auto tabs = model->group_model()->GetTabGroup(group_)->ListTabs();
@@ -156,8 +160,9 @@ class TabGroupEditorBubbleDelegate : public ui::DialogModelDelegate {
 
   void UngroupPressed(TabGroupHeader* header_view) {
     TabStripModel* const model = browser_->tab_strip_model();
-    if (!model->group_model())
+    if (!model->group_model()) {
       return;
+    }
 
     // TODO(dpenning): When adding saved groups to TabGroupEditorBubbleDelegate
     // disconnect the tab groups first.
@@ -176,8 +181,9 @@ class TabGroupEditorBubbleDelegate : public ui::DialogModelDelegate {
 
     std::vector<int> tabs;
     tabs.reserve(tab_range.length());
-    for (auto i = tab_range.start(); i < tab_range.end(); ++i)
+    for (auto i = tab_range.start(); i < tab_range.end(); ++i) {
       tabs.push_back(i);
+    }
 
     model->RemoveFromGroup(tabs);
     // Close the widget because it is no longer applicable.
@@ -238,9 +244,9 @@ class TabGroupEditorBubbleDelegate : public ui::DialogModelDelegate {
 };
 
 class TitleField : public views::Textfield {
+  METADATA_HEADER(TitleField, views::Textfield)
+
  public:
-  // TODO(pbos): Add me back lol.
-  //  METADATA_HEADER(TitleField);
   TitleField(TabGroupEditorBubbleDelegate* delegate,
              bool stop_context_menu_propagation,
              std::u16string title)
@@ -320,6 +326,9 @@ class TitleField : public views::Textfield {
   bool stop_context_menu_propagation_;
 };
 
+BEGIN_METADATA(TitleField)
+END_METADATA
+
 }  // namespace
 
 // static
@@ -327,9 +336,12 @@ views::Widget* TabGroupEditorBubbleView::Show(
     const Browser* browser,
     const tab_groups::TabGroupId& group,
     TabGroupHeader* header_view,
-    absl::optional<gfx::Rect> anchor_rect,
+    std::optional<gfx::Rect> anchor_rect,
     views::View* anchor_view,
     bool stop_context_menu_propagation) {
+  feature_engagement::TrackerFactory::GetForBrowserContext(browser->profile())
+      ->NotifyEvent("tab_group_editor_shown");
+
   // TODO(pbos): Clean this duplicate implementation up. This is only here while
   // development of a DialogModel version of this bubble is in progress. This is
   // also only checked in so that development on DialogModel and
@@ -394,8 +406,9 @@ views::Widget* TabGroupEditorBubbleView::Show(
     auto bubble = std::make_unique<views::BubbleDialogModelHost>(
         std::move(dialog_model), header_view ? header_view : anchor_view,
         views::BubbleBorder::TOP_LEFT);
-    if (anchor_rect)
+    if (anchor_rect) {
       bubble->SetAnchorRect(*anchor_rect);
+    }
     views::BubbleDialogModelHost* const bubble_ptr = bubble.get();
     views::Widget* const widget =
         views::BubbleDialogDelegate::CreateBubble(std::move(bubble));
@@ -403,6 +416,7 @@ views::Widget* TabGroupEditorBubbleView::Show(
     bubble_ptr->GetBubbleFrameView()->SetPreferredArrowAdjustment(
         views::BubbleFrameView::PreferredArrowAdjustment::kOffset);
     widget->Show();
+
     return widget;
   }
 
@@ -432,8 +446,9 @@ gfx::Rect TabGroupEditorBubbleView::GetAnchorRect() const {
   // anchor view's bounds and also updates |anchor_rect_| to the views bounds.
   // It does this so that the bubble does not jump when the anchoring view is
   // deleted.
-  if (use_set_anchor_rect_)
+  if (use_set_anchor_rect_) {
     return anchor_rect().value();
+  }
   return BubbleDialogDelegateView::GetAnchorRect();
 }
 
@@ -489,7 +504,7 @@ TabGroupEditorBubbleView::TabGroupEditorBubbleView(
     const Browser* browser,
     const tab_groups::TabGroupId& group,
     views::View* anchor_view,
-    absl::optional<gfx::Rect> anchor_rect,
+    std::optional<gfx::Rect> anchor_rect,
     TabGroupHeader* header_view,
     bool stop_context_menu_propagation)
     : browser_(browser),
@@ -500,8 +515,9 @@ TabGroupEditorBubbleView::TabGroupEditorBubbleView(
   // |anchor_widget_|.
   DCHECK(anchor_view);
   SetAnchorView(anchor_view);
-  if (anchor_rect)
+  if (anchor_rect) {
     SetAnchorRect(anchor_rect.value());
+  }
 
   set_margins(gfx::Insets());
 
@@ -688,7 +704,7 @@ tab_groups::TabGroupColorId TabGroupEditorBubbleView::InitColorSet() {
 }
 
 void TabGroupEditorBubbleView::UpdateGroup() {
-  const absl::optional<int> selected_element =
+  const std::optional<int> selected_element =
       color_selector_->GetSelectedElement();
   TabGroup* const tab_group =
       browser_->tab_strip_model()->group_model()->GetTabGroup(group_);
@@ -781,8 +797,9 @@ void TabGroupEditorBubbleView::UngroupPressed(TabGroupHeader* header_view) {
     CHECK(saved_tab_group_service);
     saved_tab_group_service->DisconnectLocalTabGroup(group_);
   }
-  if (header_view)
+  if (header_view) {
     header_view->RemoveObserverFromWidget(GetWidget());
+  }
   TabStripModel* const model = browser_->tab_strip_model();
 
   const gfx::Range tab_range =
@@ -790,8 +807,9 @@ void TabGroupEditorBubbleView::UngroupPressed(TabGroupHeader* header_view) {
 
   std::vector<int> tabs;
   tabs.reserve(tab_range.length());
-  for (auto i = tab_range.start(); i < tab_range.end(); ++i)
+  for (auto i = tab_range.start(); i < tab_range.end(); ++i) {
     tabs.push_back(i);
+  }
 
   model->RemoveFromGroup(tabs);
   // Close the widget because it is no longer applicable.
@@ -845,7 +863,7 @@ void TabGroupEditorBubbleView::OnBubbleClose() {
   }
 }
 
-BEGIN_METADATA(TabGroupEditorBubbleView, views::BubbleDialogDelegateView)
+BEGIN_METADATA(TabGroupEditorBubbleView)
 END_METADATA
 
 void TabGroupEditorBubbleView::TitleFieldController::ContentsChanged(

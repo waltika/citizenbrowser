@@ -18,6 +18,14 @@ cr-toolbar:not([narrow]) {
   --cr-toolbar-left-spacer-width: var(--side-bar-width);
 }
 
+user-education-internals-card.highlighted {
+  background-color: var(--cr-iph-anchor-highlight-color);
+}
+
+h2 {
+  padding-inline: var(--cr-section-padding);
+}
+
 #cr-container-shadow-top {
   /* Needs to be higher than #container's z-index to appear above
     * scrollbars. */
@@ -108,7 +116,8 @@ cr-toolbar:not([narrow]) {
             id="[[item.internalName]]"
             hidden$="[[!promoFilter_(item, filter)]]"
             promo="[[item]]"
-            on-promo-launch="showFeaturePromo_">
+            on-promo-launch="showFeaturePromo_"
+            on-clear-promo-data="clearPromoData_">
         </user-education-internals-card>
       </template>
     </div>

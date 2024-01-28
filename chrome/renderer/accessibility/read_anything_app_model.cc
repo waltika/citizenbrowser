@@ -38,6 +38,7 @@ void ReadAnythingAppModel::OnThemeChanged(
     read_anything::mojom::ReadAnythingThemePtr new_theme) {
   font_name_ = new_theme->font_name;
   font_size_ = new_theme->font_size;
+  links_enabled_ = new_theme->links_enabled;
   letter_spacing_ = GetLetterSpacingValue(new_theme->letter_spacing);
   line_spacing_ = GetLineSpacingValue(new_theme->line_spacing);
   background_color_ = new_theme->background_color;
@@ -49,6 +50,7 @@ void ReadAnythingAppModel::OnSettingsRestoredFromPrefs(
     read_anything::mojom::LetterSpacing letter_spacing,
     const std::string& font,
     double font_size,
+    bool links_enabled,
     read_anything::mojom::Colors color,
     double speech_rate,
     base::Value::Dict* voices,
@@ -57,6 +59,7 @@ void ReadAnythingAppModel::OnSettingsRestoredFromPrefs(
   letter_spacing_ = GetLetterSpacingValue(letter_spacing);
   font_name_ = font;
   font_size_ = font_size;
+  links_enabled_ = links_enabled;
   color_theme_ = static_cast<size_t>(color);
   speech_rate_ = speech_rate;
   voices_ = voices->Clone();
@@ -173,8 +176,9 @@ void ReadAnythingAppModel::ComputeSelectionNodeIds() {
     return;
   }
 
-  // If start node or end node is ignored, the selection was invalid.
-  if (start_node->IsIgnored() || end_node->IsIgnored()) {
+  // If start node or end node is invisible or ignored, the selection was
+  // invalid.
+  if (start_node->IsInvisibleOrIgnored() || end_node->IsInvisibleOrIgnored()) {
     return;
   }
 
@@ -276,7 +280,7 @@ void ReadAnythingAppModel::ComputeDisplayNodeIdsForDistilledTree() {
     // TODO(abigailbklein) This prevents the crash in crbug.com/1402788, but may
     // not be the correct approach. Do we need a version of
     // GetDeepestLastUnignoredDescendant() that works on ignored nodes?
-    if (!content_node || content_node->IsIgnored()) {
+    if (!content_node || content_node->IsInvisibleOrIgnored()) {
       continue;
     }
 
@@ -638,6 +642,42 @@ void ReadAnythingAppModel::OnScroll(bool on_selection,
   }
 }
 
+void ReadAnythingAppModel::OnSelection(ax::mojom::EventFrom event_from) {
+  // If event_from is kUser, the user selected text on the main web page.
+  // If event_from is kAction, the user selected text in RM and the main web
+  // page was updated with that selection.
+  // Edgecases:
+  // 1. For selections in PDFs coming from the main pane or from the side
+  // panel, event_from is set to kNone.
+  // 2. When the user clicks and drags the cursor to highlight text on a
+  // webpage, such that the anchor node and offset stays the same and the focus
+  // node and/or offset changes, the first few selection events have event_from
+  // kUser, but the subsequent selection events have event_from kPage. This is
+  // the way UserActivationState is implemented. To detect this case, compare
+  // the new selection to the saved selection. If the anchor is the same, update
+  // the selection in RM.
+  ui::AXSelection selection =
+      GetTreeFromId(GetActiveTreeId())->GetUnignoredSelection();
+  bool is_click_and_drag_selection =
+      (selection.anchor_object_id == start_node_id_ &&
+       selection.anchor_offset == start_offset_ &&
+       (selection.focus_object_id != end_node_id_ ||
+        selection.focus_offset != end_offset_)) ||
+      (selection.anchor_object_id == end_node_id_ &&
+       selection.anchor_offset == end_offset_ &&
+       (selection.focus_object_id != start_node_id_ ||
+        selection.focus_offset != start_offset_));
+
+  if (event_from == ax::mojom::EventFrom::kUser ||
+      event_from == ax::mojom::EventFrom::kAction ||
+      (event_from == ax::mojom::EventFrom::kPage &&
+       is_click_and_drag_selection) ||
+      is_pdf_) {
+    requires_post_process_selection_ = true;
+    selection_from_action_ = event_from == ax::mojom::EventFrom::kAction;
+  }
+}
+
 void ReadAnythingAppModel::ProcessNonGeneratedEvents(
     const std::vector<ui::AXEvent>& events) {
   // Note that this list of events may overlap with generated events in the
@@ -729,21 +769,16 @@ void ReadAnythingAppModel::ProcessGeneratedEvents(
   // Note that this list of events may overlap with non-generated events in the
   // It's up to the consumer to pick but its generally good to prefer generated.
   for (const auto& event : event_generator) {
-    switch (event.event_params.event) {
+    switch (event.event_params->event) {
       case ui::AXEventGenerator::Event::DOCUMENT_SELECTION_CHANGED:
-        if (event.event_params.event_from == ax::mojom::EventFrom::kUser ||
-            event.event_params.event_from == ax::mojom::EventFrom::kAction) {
-          requires_post_process_selection_ = true;
-          selection_from_action_ =
-              event.event_params.event_from == ax::mojom::EventFrom::kAction;
-        }
+        OnSelection(event.event_params->event_from);
         break;
       case ui::AXEventGenerator::Event::DOCUMENT_TITLE_CHANGED:
       case ui::AXEventGenerator::Event::ALERT:
         requires_distillation_ = true;
         break;
       case ui::AXEventGenerator::Event::SCROLL_VERTICAL_POSITION_CHANGED:
-        OnScroll(event.event_params.event_from_action ==
+        OnScroll(event.event_params->event_from_action ==
                      ax::mojom::Action::kSetSelection,
                  /* from_reading_mode= */ false);
         break;
@@ -859,6 +894,10 @@ void ReadAnythingAppModel::DecreaseTextSize() {
 
 void ReadAnythingAppModel::ResetTextSize() {
   font_size_ = kReadAnythingDefaultFontScale;
+}
+
+void ReadAnythingAppModel::ToggleLinksEnabled() {
+  links_enabled_ = !links_enabled_;
 }
 
 void ReadAnythingAppModel::SetIsPdf(const GURL& url) {

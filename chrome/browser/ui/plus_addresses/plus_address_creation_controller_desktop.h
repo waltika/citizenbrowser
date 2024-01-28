@@ -5,7 +5,9 @@
 #ifndef CHROME_BROWSER_UI_PLUS_ADDRESSES_PLUS_ADDRESS_CREATION_CONTROLLER_DESKTOP_H_
 #define CHROME_BROWSER_UI_PLUS_ADDRESSES_PLUS_ADDRESS_CREATION_CONTROLLER_DESKTOP_H_
 
+#include "base/time/default_clock.h"
 #include "chrome/browser/ui/plus_addresses/plus_address_creation_controller.h"
+#include "components/plus_addresses/plus_address_metrics.h"
 #include "components/plus_addresses/plus_address_types.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/browser/web_contents_user_data.h"
@@ -14,6 +16,7 @@
 namespace plus_addresses {
 
 class PlusAddressCreationDialogDelegate;
+class PlusAddressCreationView;
 
 class PlusAddressCreationControllerDesktop
     : public PlusAddressCreationController,
@@ -29,14 +32,18 @@ class PlusAddressCreationControllerDesktop
   void OnCanceled() override;
   void OnDialogDestroyed() override;
 
+  // Used to validate the view behavior in browsertests.
+  PlusAddressCreationView* get_view_for_testing();
   // A mechanism to avoid view entanglements, reducing the need for view
   // mocking, etc., while still allowing tests of specific business logic.
   // TODO(crbug.com/1467623): Add more end-to-end coverage as the modal behavior
   // comes fully online.
   void set_suppress_ui_for_testing(bool should_suppress);
+  // Used to validate storage and clearing of `maybe_plus_profile_`.
+  std::optional<PlusProfile> get_plus_profile_for_testing();
 
-  // Validate storage and clearing of `maybe_plus_profile_`.
-  absl::optional<PlusProfile> get_plus_profile_for_testing();
+  // For setting custom `clock_` during test.
+  void SetClockForTesting(base::Clock* clock) { clock_ = clock; }
 
  private:
   // WebContentsUserData:
@@ -57,7 +64,18 @@ class PlusAddressCreationControllerDesktop
   PlusAddressCallback callback_;
   bool suppress_ui_for_testing_ = false;
   // This is set by OnPlusAddressReserved and cleared when the dialog is closed.
-  absl::optional<PlusProfile> plus_profile_;
+  std::optional<PlusProfile> plus_profile_;
+
+  // Record the time between `modal_shown_time_` and now as modal shown duration
+  // and clear `modal_shown_time_`.
+  void RecordModalShownDuration(
+      const PlusAddressMetrics::PlusAddressModalCompletionStatus status);
+
+  raw_ptr<base::Clock> clock_ = base::DefaultClock::GetInstance();
+  // This is set on `OfferCreation`.
+  std::optional<base::Time> modal_shown_time_;
+  std::optional<PlusAddressMetrics::PlusAddressModalCompletionStatus>
+      modal_error_status_;
 
   base::WeakPtrFactory<PlusAddressCreationControllerDesktop> weak_ptr_factory_{
       this};

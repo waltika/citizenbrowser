@@ -4,17 +4,26 @@
 
 #include "chrome/browser/ui/views/plus_addresses/plus_address_creation_dialog_delegate.h"
 
+#include <optional>
+
+#include "base/check_is_test.h"
 #include "base/functional/bind.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
+#include "base/run_loop.h"
 #include "base/strings/utf_string_conversions.h"
+#include "build/branding_buildflags.h"
 #include "chrome/browser/ui/plus_addresses/plus_address_creation_controller.h"
 #include "chrome/browser/ui/plus_addresses/plus_address_creation_controller_desktop.h"
+#include "chrome/browser/ui/plus_addresses/plus_address_creation_view.h"
 #include "chrome/browser/ui/views/chrome_layout_provider.h"
 #include "chrome/grit/theme_resources.h"
+#include "components/constrained_window/constrained_window_views.h"
 #include "components/plus_addresses/features.h"
 #include "components/plus_addresses/plus_address_types.h"
 #include "components/strings/grit/components_strings.h"
+#include "components/web_modal/web_contents_modal_dialog_manager.h"
+#include "components/web_modal/web_contents_modal_dialog_manager_delegate.h"
 #include "content/public/browser/page_navigator.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/common/referrer.h"
@@ -22,7 +31,9 @@
 #include "ui/base/resource/resource_bundle.h"
 #include "ui/base/window_open_disposition.h"
 #include "ui/color/color_id.h"
+#include "ui/events/base_event_utils.h"
 #include "ui/gfx/text_constants.h"
+#include "ui/gfx/vector_icon_types.h"
 #include "ui/views/background.h"
 #include "ui/views/controls/image_view.h"
 #include "ui/views/controls/styled_label.h"
@@ -32,12 +43,23 @@
 #include "ui/views/style/typography.h"
 #include "ui/views/view_class_properties.h"
 #include "ui/views/widget/widget.h"
+#if BUILDFLAG(GOOGLE_CHROME_BRANDING)
+#include "components/plus_addresses/resources/vector_icons.h"
+#else
+#include "components/vector_icons/vector_icons.h"
+#endif
 
 namespace plus_addresses {
 
 namespace {
 const float kDescriptionWidthPercent = 0.8;
 const int kPlusAddressLabelVerticalMargin = 10;
+const int kPlusAddressLogoWidth = 100;
+#if BUILDFLAG(GOOGLE_CHROME_BRANDING)
+const gfx::VectorIcon& kLogoIcon = plus_addresses::kPlusAddressesLogoIcon;
+#else
+const gfx::VectorIcon& kLogoIcon = vector_icons::kProductIcon;
+#endif
 }  // namespace
 
 PlusAddressCreationDialogDelegate::PlusAddressCreationDialogDelegate(
@@ -46,7 +68,8 @@ PlusAddressCreationDialogDelegate::PlusAddressCreationDialogDelegate(
     const std::string& primary_email_address)
     : views::BubbleDialogDelegate(/*anchor_view=*/nullptr,
                                   views::BubbleBorder::Arrow::NONE),
-      controller_(controller) {
+      controller_(controller),
+      web_contents_(web_contents) {
   // This delegate is owned & deleted by the PlusAddressCreationController.
   SetOwnedByWidget(false);
   RegisterDeleteDelegateCallback(base::BindOnce(
@@ -64,12 +87,10 @@ PlusAddressCreationDialogDelegate::PlusAddressCreationDialogDelegate(
           .Build();
 
   // Create hero image.
-  ui::ResourceBundle& bundle = ui::ResourceBundle::GetSharedInstance();
   primary_view->AddChildView(
       views::Builder<views::ImageView>()
-          .SetImage(ui::ImageModel::FromImageSkia(
-              // TODO(crbug.com/1467623) - Replace this placeholder image.
-              *bundle.GetImageSkiaNamed(IDR_TAILORED_SECURITY_CONSENTED)))
+          .SetImage(ui::ImageModel::FromVectorIcon(kLogoIcon, ui::kColorIcon,
+                                                   kPlusAddressLogoWidth))
           .Build());
 
   // Add title view.
@@ -163,6 +184,34 @@ PlusAddressCreationDialogDelegate::PlusAddressCreationDialogDelegate(
   plus_address_label_->SetSelectable(true);
   plus_address_label_->SetLineHeight(2 * plus_address_label_->GetLineHeight());
 
+  // Create and hide label for bug report instruction.
+  std::vector<size_t> error_link_offsets;
+  std::u16string error_link_text =
+      l10n_util::GetStringUTF16(IDS_PLUS_ADDRESS_MODAL_ERROR_REPORT_LINK_TEXT);
+  error_report_label_ = primary_view->AddChildView(
+      views::Builder<views::StyledLabel>()
+          .SetHorizontalAlignment(gfx::ALIGN_CENTER)
+          .SetText(l10n_util::GetStringFUTF16(
+              IDS_PLUS_ADDRESS_MODAL_REPORT_ERROR_INSTRUCTION_DESKTOP,
+              {error_link_text}, &error_link_offsets))
+          .SetTextContext(views::style::CONTEXT_BUBBLE_FOOTER)
+          .SetDefaultTextStyle(views::style::STYLE_HINT)
+          .SetVisible(false)
+          .Build());
+  error_report_label_->SetProperty(
+      views::kMarginsKey,
+      gfx::Insets::TLBR(kPlusAddressLabelVerticalMargin, 0,
+                        kPlusAddressLabelVerticalMargin, 0));
+  // Update style for error link.
+  gfx::Range error_link_range(error_link_offsets[0],
+                              error_link_offsets[0] + error_link_text.length());
+  views::StyledLabel::RangeStyleInfo error_link_text_style =
+      views::StyledLabel::RangeStyleInfo::CreateForLink(base::BindRepeating(
+          &PlusAddressCreationDialogDelegate::OpenErrorReportLink,
+          // Safe because this delegate outlives the Widget (and this view).
+          base::Unretained(this), web_contents));
+  error_report_label_->AddStyleRange(error_link_range, error_link_text_style);
+
   // Avoid using the builtin DialogDelegate buttons so that we can use
   // GetWidget()->Close() to close the UI when ready.
   SetButtons(ui::DIALOG_BUTTON_NONE);
@@ -176,27 +225,27 @@ PlusAddressCreationDialogDelegate::PlusAddressCreationDialogDelegate(
               views::DistanceMetric::DISTANCE_RELATED_BUTTON_HORIZONTAL))
           .Build());
 
-  views::MdTextButton* cancel =
+  cancel_button_ =
       buttons_view->AddChildView(std::make_unique<views::MdTextButton>(
           base::BindRepeating(
               &PlusAddressCreationDialogDelegate::HandleButtonPress,
               // Safe because this delegate outlives the Widget (and this view).
-              base::Unretained(this), ButtonType::kCancel),
+              base::Unretained(this), PlusAddressViewButtonType::kCancel),
           l10n_util::GetStringUTF16(IDS_PLUS_ADDRESS_MODAL_CANCEL_TEXT)
 
               ));
-  cancel->SetTooltipText(
+  cancel_button_->SetTooltipText(
       l10n_util::GetStringUTF16(IDS_PLUS_ADDRESS_MODAL_CANCEL_TEXT));
-  cancel->SetAccessibleName(
+  cancel_button_->SetAccessibleName(
       l10n_util::GetStringUTF16(IDS_PLUS_ADDRESS_MODAL_CANCEL_TEXT));
-  cancel->SizeToPreferredSize();
+  cancel_button_->SizeToPreferredSize();
 
   confirm_button_ =
       buttons_view->AddChildView(std::make_unique<views::MdTextButton>(
           base::BindRepeating(
               &PlusAddressCreationDialogDelegate::HandleButtonPress,
               // Safe because this delegate outlives the Widget (and this view).
-              base::Unretained(this), ButtonType::kConfirm),
+              base::Unretained(this), PlusAddressViewButtonType::kConfirm),
           l10n_util::GetStringUTF16(IDS_PLUS_ADDRESS_MODAL_OK_TEXT)));
   confirm_button_->SetTooltipText(
       l10n_util::GetStringUTF16(IDS_PLUS_ADDRESS_MODAL_OK_TEXT));
@@ -223,7 +272,7 @@ void PlusAddressCreationDialogDelegate::OnWidgetInitialized() {
         views::Button::PressedCallback(base::BindRepeating(
             &PlusAddressCreationDialogDelegate::HandleButtonPress,
             // Safe because this outlives the BubbleFrameView.
-            base::Unretained(this), ButtonType::kClose)));
+            base::Unretained(this), PlusAddressViewButtonType::kClose)));
   }
 }
 
@@ -232,6 +281,18 @@ void PlusAddressCreationDialogDelegate::OpenSettingsLink(
   if (web_contents && !kPlusAddressManagementUrl.Get().empty()) {
     web_contents->OpenURL(content::OpenURLParams(
         GURL(kPlusAddressManagementUrl.Get()), content::Referrer(),
+        WindowOpenDisposition::NEW_FOREGROUND_TAB,
+        ui::PageTransition::PAGE_TRANSITION_LINK,
+        /*is_renderer_initiated=*/false));
+  }
+}
+
+// TODO(b/313670457) Test open link behaviors when migrate to Kombucha.
+void PlusAddressCreationDialogDelegate::OpenErrorReportLink(
+    content::WebContents* web_contents) {
+  if (web_contents && !kPlusAddressErrorReportUrl.Get().empty()) {
+    web_contents->OpenURL(content::OpenURLParams(
+        GURL(kPlusAddressErrorReportUrl.Get()), content::Referrer(),
         WindowOpenDisposition::NEW_FOREGROUND_TAB,
         ui::PageTransition::PAGE_TRANSITION_LINK,
         /*is_renderer_initiated=*/false));
@@ -247,9 +308,9 @@ void PlusAddressCreationDialogDelegate::ShowReserveResult(
         base::UTF8ToUTF16(maybe_plus_profile->plus_address));
     confirm_button_->SetEnabled(true);
   } else {
-    plus_address_label_->SetText(
-        l10n_util::GetStringUTF16(IDS_PLUS_ADDRESS_MODAL_ERROR_MESSAGE));
+    ShowErrorStateUI();
   }
+  MaybeBlockUntilResultShows();
 }
 
 void PlusAddressCreationDialogDelegate::ShowConfirmResult(
@@ -259,41 +320,129 @@ void PlusAddressCreationDialogDelegate::ShowConfirmResult(
   CHECK(GetBubbleFrameView());
 
   // Stop indicating loading now that we have the server response.
-  GetBubbleFrameView()->SetProgress(absl::nullopt);
+  GetBubbleFrameView()->SetProgress(std::nullopt);
 
   if (maybe_plus_profile.has_value()) {
     GetWidget()->CloseWithReason(
         views::Widget::ClosedReason::kAcceptButtonClicked);
   } else {
-    plus_address_label_->SetText(
-        l10n_util::GetStringUTF16(IDS_PLUS_ADDRESS_MODAL_ERROR_MESSAGE));
+    ShowErrorStateUI();
     confirm_button_->SetEnabled(false);
   }
+  MaybeBlockUntilResultShows();
 }
 
-void PlusAddressCreationDialogDelegate::HandleButtonPress(ButtonType type) {
+void PlusAddressCreationDialogDelegate::HandleButtonPress(
+    PlusAddressViewButtonType type) {
   CHECK(GetBubbleFrameView());
 
   switch (type) {
-    case ButtonType::kConfirm: {
+    case PlusAddressViewButtonType::kConfirm: {
       controller_->OnConfirmed();
       // Show a progress bar that loops until the Confirm request is resolved.
       GetBubbleFrameView()->SetProgress(-1);
       return;
     }
-    case ButtonType::kCancel: {
+    case PlusAddressViewButtonType::kCancel: {
       controller_->OnCanceled();
       GetWidget()->CloseWithReason(
           views::Widget::ClosedReason::kCancelButtonClicked);
       return;
     }
-    case ButtonType::kClose: {
+    case PlusAddressViewButtonType::kClose: {
       controller_->OnCanceled();
       GetWidget()->CloseWithReason(
           views::Widget::ClosedReason::kCloseButtonClicked);
       return;
     }
   }
+}
+
+bool PlusAddressCreationDialogDelegate::GetConfirmButtonEnabledForTesting()
+    const {
+  CHECK(confirm_button_);
+  return confirm_button_->GetEnabled();
+}
+
+void PlusAddressCreationDialogDelegate::ClickButtonForTesting(
+    PlusAddressViewButtonType type) {
+  views::Button* button;
+  switch (type) {
+    case PlusAddressViewButtonType::kConfirm: {
+      button = confirm_button_;
+      break;
+    }
+    case PlusAddressViewButtonType::kCancel: {
+      button = cancel_button_;
+      break;
+    }
+    case PlusAddressViewButtonType::kClose: {
+      button = GetBubbleFrameView()->close_button();
+      break;
+    }
+  }
+  CHECK(button);
+  button->OnMousePressed(ui::MouseEvent(ui::ET_MOUSE_PRESSED, gfx::Point(),
+                                        gfx::Point(), ui::EventTimeForNow(),
+                                        ui::EF_LEFT_MOUSE_BUTTON, 0));
+  button->OnMouseReleased(ui::MouseEvent(ui::ET_MOUSE_RELEASED, gfx::Point(),
+                                         gfx::Point(), ui::EventTimeForNow(),
+                                         ui::EF_LEFT_MOUSE_BUTTON, 0));
+}
+
+std::u16string
+PlusAddressCreationDialogDelegate::GetPlusAddressLabelTextForTesting() const {
+  CHECK(plus_address_label_);
+  return plus_address_label_->GetText();
+}
+
+bool PlusAddressCreationDialogDelegate::ShowsLoadingIndicatorForTesting()
+    const {
+  CHECK(GetBubbleFrameView());
+  return GetBubbleFrameView()->GetProgress().has_value();
+}
+
+void PlusAddressCreationDialogDelegate::WaitUntilResultShownForTesting() {
+  base::RunLoop loop;
+  blocking_until_result_shown_.emplace(loop.QuitClosure());
+  loop.Run();
+}
+
+bool PlusAddressCreationDialogDelegate::
+    GetPlusAddressLabelVisibilityForTesting() const {
+  CHECK(plus_address_label_);
+  return plus_address_label_->GetVisible();
+}
+
+bool PlusAddressCreationDialogDelegate::GetErrorLabelVisibilityForTesting()
+    const {
+  CHECK(error_report_label_);
+  return error_report_label_->GetVisible();
+}
+
+void PlusAddressCreationDialogDelegate::MaybeBlockUntilResultShows() {
+  if (blocking_until_result_shown_.has_value()) {
+    // This code path is intended to be run only for testing. Bail early if
+    // not. While all paths that set this variable are in `ForTesting` blocks
+    // and therefore excluded, this check should ensure a mistake isn't made
+    // in the future.
+    CHECK_IS_TEST();
+    std::move(blocking_until_result_shown_.value()).Run();
+    blocking_until_result_shown_.reset();
+  }
+}
+
+void PlusAddressCreationDialogDelegate::ShowErrorStateUI() {
+  CHECK(GetWidget() && web_contents_);
+  plus_address_label_->SetVisible(false);
+  // Show the error report instructions.
+  error_report_label_->SetVisible(true);
+  // Update the size of modal.
+  constrained_window::UpdateWebContentsModalDialogPosition(
+      GetWidget(),
+      web_modal::WebContentsModalDialogManager::FromWebContents(web_contents_)
+          ->delegate()
+          ->GetWebContentsModalDialogHost());
 }
 
 }  // namespace plus_addresses

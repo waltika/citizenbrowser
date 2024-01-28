@@ -53,7 +53,7 @@ std::string GetUrlOfActiveTab(const Browser* browser) {
 }
 
 void CloseAllBrowserWindows() {
-  for (auto* browser : CHECK_DEREF(BrowserList::GetInstance())) {
+  for (Browser* browser : CHECK_DEREF(BrowserList::GetInstance())) {
     LOG(WARNING) << "kiosk: Closing unexpected browser window with url: "
                  << GetUrlOfActiveTab(browser);
     browser->window()->Close();
@@ -66,7 +66,7 @@ const char kKioskNewBrowserWindowHistogram[] = "Kiosk.NewBrowserWindow";
 
 KioskBrowserWindowHandler::KioskBrowserWindowHandler(
     Profile* profile,
-    const absl::optional<std::string>& web_app_name,
+    const std::optional<std::string>& web_app_name,
     base::RepeatingCallback<void(bool is_closing)>
         on_browser_window_added_callback,
     base::OnceClosure shutdown_kiosk_browser_session_callback)

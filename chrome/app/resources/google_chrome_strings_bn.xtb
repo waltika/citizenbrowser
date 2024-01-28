@@ -80,6 +80,7 @@
 <translation id="2258103955319320201">সব ডিভাইস জুড়ে Chrome ব্রাউজারে থাকা ডেটা অ্যাক্সেস করতে, প্রথমে সাইন-ইন করে সিঙ্ক চালু করুন।</translation>
 <translation id="2290014774651636340">Google এপিআই কীগুলি অনুপস্থিত৷ Google Chrome-এর কিছু বৈশিষ্ট্য নিষ্ক্রিয় হয়ে যাবে৷</translation>
 <translation id="2290095356545025170">আপনি কি Google Chrome আনইনস্টল করার ব্যাপারে নিষ্চিত ?</translation>
+<translation id="2298849085402457754">শুধুমাত্র এই ডিভাইস থেকে ব্রাউজ করা ডেটা মুছে দিতে, তা নিজের Google অ্যাকাউন্টে রেখে দেওয়ার সময়, <ph name="BEGIN_LINK" />Chrome থেকে সাইন-আউট করুন<ph name="END_LINK" />।</translation>
 <translation id="2309047409763057870">এটা Google Chrome-এর সেকেন্ডারি ইনস্টলেশন এবং একে আপনার ডিফল্ট ব্রাউজার করা যাবে না।</translation>
 <translation id="2345992953227471816">Chrome এইসব আইটেমে ম্যালওয়্যার আছে বলে খুঁজে পেয়েছে:</translation>
 <translation id="2348335408836342058">এই সাইটটির জন্য Chrome কে আপনার ক্যামেরা এবং মাইক্রোফোনে অ্যাক্সেস দিতে হবে</translation>
@@ -200,6 +201,7 @@
 <translation id="4148957013307229264">ইনস্টল হচ্ছে...</translation>
 <translation id="4149882025268051530">ইনস্টলারটি আর্কাইভ আনকমপ্রেস করা যায়নি৷ অনুগ্রহ করে আবার Google Chrome ডাউনলোড করুন৷</translation>
 <translation id="4153934450158521343">Chrome শীঘ্রই বন্ধ হবে এবং ডেটা মুছে ফেলা হবে</translation>
+<translation id="4173512894976930765">সাইটগুলি প্রত্যাশা অনুযায়ী কাজ করতে পারে। আপনি সব Chrome উইন্ডো বন্ধ করে দিলে আপনাকে বেশিরভাগ সাইট থেকে সাইন-আউট করে দেওয়া হবে, তবে আপনি Chrome-এ সাইন-ইন করে থাকলে আপনাকে Google অ্যাকাউন্ট থেকে সাইন-আউট করা হবে না।</translation>
 <translation id="4175922240926474352">এই সাইটটি নিরাপদ কানেকশন ব্যবহার করছে না এবং ফাইলটিতে কিছু পরিবর্তন করা হয়ে থাকতে পারে, তাই Chrome এই ডাউনলোডটি ব্লক করে দিয়েছে</translation>
 <translation id="4191857738314598978">{0,plural, =1{Chrome এক দিনের মধ্যে আবার লঞ্চ করুন}one{Chrome # দিনের মধ্যে আবার লঞ্চ করুন}other{Chrome # দিনের মধ্যে আবার লঞ্চ করুন}}</translation>
 <translation id="4205939740494406371">Chrome আপনার পাসওয়ার্ড চেক করতে পারছে না। ২৪ ঘণ্টা পরে আবার চেষ্টা করুন বা <ph name="BEGIN_LINK" />আপনার Google অ্যাকাউন্টে পাসওয়ার্ড চেক করুন<ph name="END_LINK" />।</translation>
@@ -217,7 +219,6 @@
 <translation id="4343195214584226067">Chrome-এ <ph name="EXTENSION_NAME" /> যোগ করা হয়েছে</translation>
 <translation id="4384570495110188418">সাইন-ইন করে না থাকার কারণে Chrome আপনার পাসওয়ার্ড চেক করতে পারছে না</translation>
 <translation id="4389991535395284064">ছদ্মবেশী মোডে ব্রাউজ করার সময়, Chrome অসুরক্ষিত কানেকশন ব্যবহার করে কোনও সাইট লোড করার আগে আপনাকে সতর্ক করবে</translation>
-<translation id="4393248995085527349">ভবিষ্যতে Google Chrome আপডেট পেতে হলে, আপনার macOS 10.15 বা এর পরবর্তী ভার্সন থাকতে হবে। এই কম্পিউটারে macOS 10.13 ভার্সন ব্যবহার করা হচ্ছে।</translation>
 <translation id="4427306783828095590">ফিশিং ও ম্যালওয়্যার ব্লক করার ব্যাপারে উন্নত সুরক্ষা আরও সাহায্য করে</translation>
 <translation id="4450664632294415862">Chrome - নেটওয়ার্ক সাইন-ইন - <ph name="PAGE_TITLE" /></translation>
 <translation id="4458462641685292929">Google Chrome এ আরেকটি ক্রিয়াকলাপ প্রক্রিয়ায় আছে। দয়া করে পরে আবার চেষ্টা করুন৷</translation>
@@ -303,7 +304,6 @@
 <translation id="5941711191222866238">ছোট করুন</translation>
 <translation id="5941830788786076944">Google Chrome-কে ডিফল্ট ব্রাউজার করুন</translation>
 <translation id="6003112304606738118">ডাউনলোড হচ্ছে... <ph name="HOURS" /> ঘণ্টা বাকি আছে</translation>
-<translation id="6010556343189461180">ভবিষ্যতে Google Chrome আপডেট পেতে হলে, আপনার macOS 10.15 বা এর পরবর্তী ভার্সন থাকতে হবে। এই কম্পিউটারে macOS 10.14 ভার্সন ব্যবহার করা হচ্ছে।</translation>
 <translation id="6014316319780893079"><ph name="BEGIN_LINK" />Chrome-এর টুল<ph name="END_LINK" /> দিয়ে আপনি নিরাপদে ব্রাউজ ও কন্ট্রোল করতে পারবেন</translation>
 <translation id="6022659036123304283">Chrome-কে আপনার করে নিন</translation>
 <translation id="6025087594896450715">Google Chrome <ph name="REMAINING_TIME" />-এর মধ্যে রিস্টার্ট হবে</translation>

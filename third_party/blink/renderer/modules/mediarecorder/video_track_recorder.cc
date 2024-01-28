@@ -313,13 +313,13 @@ VideoTrackRecorderImpl::CodecProfile::CodecProfile(CodecId codec_id)
 VideoTrackRecorderImpl::CodecProfile::CodecProfile(
     CodecId codec_id,
     absl::optional<media::VideoCodecProfile> opt_profile,
-    absl::optional<uint8_t> opt_level)
+    absl::optional<media::VideoCodecLevel> opt_level)
     : codec_id(codec_id), profile(opt_profile), level(opt_level) {}
 
 VideoTrackRecorderImpl::CodecProfile::CodecProfile(
     CodecId codec_id,
     media::VideoCodecProfile profile,
-    uint8_t level)
+    media::VideoCodecLevel level)
     : codec_id(codec_id), profile(profile), level(level) {}
 
 VideoTrackRecorderImpl::CodecEnumerator::CodecEnumerator(
@@ -530,10 +530,8 @@ VideoTrackRecorderImpl::Encoder::MaybeProvideEncodableFrame(
         is_opaque ? media::PIXEL_FORMAT_I420 : media::PIXEL_FORMAT_I420A,
         visible_rect.size(), visible_rect, visible_rect.size(),
         video_frame->timestamp());
-
     if (!frame ||
-        !media::ConvertAndScaleFrame(*video_frame, *frame, resize_buffer_)
-             .is_ok()) {
+        !frame_converter_.ConvertAndScale(*video_frame, *frame).is_ok()) {
       // Send black frames (yuv = {0, 127, 127}).
       DLOG(ERROR) << "Can't convert RGB to I420";
       frame = media::VideoFrame::CreateColorFrame(
@@ -796,12 +794,12 @@ void VideoTrackRecorderImpl::Resume() {
 
 void VideoTrackRecorderImpl::OnVideoFrameForTesting(
     scoped_refptr<media::VideoFrame> frame,
-    base::TimeTicks timestamp) {
+    base::TimeTicks timestamp,
+    bool allow_vea_encoder) {
   DVLOG(3) << __func__;
-
   if (!encoder_) {
     DCHECK(!initialize_encoder_cb_.is_null());
-    initialize_encoder_cb_.Run(/*allow_vea_encoder=*/true, frame, timestamp);
+    initialize_encoder_cb_.Run(allow_vea_encoder, frame, timestamp);
   }
   encoder_.AsyncCall(&Encoder::StartFrameEncode)
       .WithArgs(WTF::CrossThreadBindRepeating(
@@ -850,10 +848,24 @@ VideoTrackRecorderImpl::CreateMediaVideoEncoder(
                    << static_cast<int>(codec_profile.codec_id);
       return nullptr;
   }
-  auto on_error_cb = base::BindPostTask(
-      main_thread_task_runner_,
-      WTF::BindOnce(&CallbackInterface::OnVideoEncodingError,
-                    WrapWeakPersistent(callback_interface())));
+
+  MediaRecorderEncoderWrapper::OnErrorCB on_error_cb;
+  if (create_vea_encoder) {
+    // If |on_error_cb| is called, then MediaRecorderEncoderWrapper with a
+    // software encoder will be created.
+    // TODO(crbug.com/1441395): This should be handled by using
+    // media::VideoEncoderFallback. This should be achieved after refactoring
+    // VideoTrackRecorder to call media::VideoEncoder directly.
+    on_error_cb = base::BindPostTask(
+        main_thread_task_runner_,
+        WTF::BindOnce(&VideoTrackRecorderImpl::OnHardwareEncoderError,
+                      weak_factory_.GetWeakPtr()));
+  } else {
+    on_error_cb = base::BindPostTask(
+        main_thread_task_runner_,
+        WTF::BindOnce(&CallbackInterface::OnVideoEncodingError,
+                      WrapWeakPersistent(callback_interface())));
+  }
 
   media::GpuVideoAcceleratorFactories* gpu_factories =
       Platform::Current()->GetGpuFactories();
@@ -877,16 +889,24 @@ VideoTrackRecorderImpl::CreateSoftwareVideoEncoder(
   switch (codec_profile.codec_id) {
 #if BUILDFLAG(RTC_USE_H264)
     case CodecId::kH264:
-      return std::make_unique<H264Encoder>(std::move(encoding_task_runner),
-                                           on_encoded_video_cb, codec_profile,
-                                           bits_per_second);
+      return std::make_unique<H264Encoder>(
+          std::move(encoding_task_runner), on_encoded_video_cb, codec_profile,
+          bits_per_second,
+          base::BindPostTask(
+              main_thread_task_runner_,
+              WTF::BindRepeating(&CallbackInterface::OnVideoEncodingError,
+                                 WrapWeakPersistent(callback_interface()))));
 #endif
     case CodecId::kVp8:
     case CodecId::kVp9:
       return std::make_unique<VpxEncoder>(
           std::move(encoding_task_runner),
           codec_profile.codec_id == CodecId::kVp9, on_encoded_video_cb,
-          bits_per_second);
+          bits_per_second,
+          base::BindPostTask(
+              main_thread_task_runner_,
+              WTF::BindRepeating(&CallbackInterface::OnVideoEncodingError,
+                                 WrapWeakPersistent(callback_interface()))));
 #if BUILDFLAG(ENABLE_LIBAOM)
     case CodecId::kAv1: {
       auto on_error_cb = base::BindPostTask(

@@ -26,8 +26,9 @@ import {PolymerElement} from 'chrome://resources/polymer/v3_0/polymer/polymer_bu
 
 import {FocusConfig} from '../focus_config.js';
 import {loadTimeData} from '../i18n_setup.js';
+import {MetricsBrowserProxy, MetricsBrowserProxyImpl, SafetyHubEntryPoint} from '../metrics_browser_proxy.js';
 import {routes} from '../route.js';
-import {Router} from '../router.js';
+import {RouteObserverMixin, Router} from '../router.js';
 import {SafetyHubBrowserProxy, SafetyHubBrowserProxyImpl, SafetyHubEvent, UnusedSitePermissions} from '../safety_hub/safety_hub_browser_proxy.js';
 import {ContentSettingsTypes} from '../site_settings/constants.js';
 
@@ -143,6 +144,16 @@ function getCategoryItemMap(): Map<ContentSettingsTypes, CategoryListItem> {
       disabledLabel: 'siteSettingsLocationBlocked',
     },
     {
+      route: routes.SITE_SETTINGS_WEB_PRINTING,
+      id: Id.WEB_PRINTING,
+      label: 'siteSettingsWebPrinting',
+      icon: 'settings:printer',
+      enabledLabel: 'siteSettingsWebPrintingAsk',
+      disabledLabel: 'siteSettingsWebPrintingBlock',
+      shouldShow: () =>
+          loadTimeData.getBoolean('enableWebPrintingContentSetting'),
+    },
+    {
       route: routes.SITE_SETTINGS_HID_DEVICES,
       id: Id.HID_DEVICES,
       label: 'siteSettingsHidDevices',
@@ -173,6 +184,14 @@ function getCategoryItemMap(): Map<ContentSettingsTypes, CategoryListItem> {
       icon: 'settings:code',
       enabledLabel: 'siteSettingsJavascriptAllowed',
       disabledLabel: 'siteSettingsJavascriptBlocked',
+    },
+    {
+      route: routes.SITE_SETTINGS_JAVASCRIPT_JIT,
+      id: Id.JAVASCRIPT_JIT,
+      label: 'siteSettingsJavascriptJit',
+      icon: 'settings:lock-outline',
+      enabledLabel: 'siteSettingsJavascriptJitAllowed',
+      disabledLabel: 'siteSettingsJavascriptJitBlocked',
     },
     {
       route: routes.SITE_SETTINGS_MICROPHONE,
@@ -342,6 +361,14 @@ function getCategoryItemMap(): Map<ContentSettingsTypes, CategoryListItem> {
       label: 'siteSettingsZoomLevels',
       icon: 'settings:zoom-in',
     },
+    {
+      route: routes.PERFORMANCE,
+      id: Id.PERFORMANCE,
+      label: 'siteSettingsPerformance',
+      icon: 'settings:performance',
+      enabledLabel: 'siteSettingsPerformanceSublabel',
+      disabledLabel: 'siteSettingsPerformanceSublabel',
+    },
   ];
   if (loadTimeData.getBoolean('is3pcdCookieSettingsRedesignEnabled')) {
     categoryList.push({
@@ -385,7 +412,8 @@ export interface SettingsSiteSettingsPageElement {
   };
 }
 
-const SettingsSiteSettingsPageElementBase = WebUiListenerMixin(PolymerElement);
+const SettingsSiteSettingsPageElementBase =
+    RouteObserverMixin(WebUiListenerMixin(PolymerElement));
 
 export class SettingsSiteSettingsPageElement extends
     SettingsSiteSettingsPageElementBase {
@@ -444,6 +472,7 @@ export class SettingsSiteSettingsPageElement extends
                   Id.AR,
                   Id.VR,
                   Id.IDLE_DETECTION,
+                  Id.WEB_PRINTING,
                   Id.WINDOW_MANAGEMENT,
                   Id.LOCAL_FONTS,
                   Id.AUTO_PICTURE_IN_PICTURE,
@@ -465,6 +494,8 @@ export class SettingsSiteSettingsPageElement extends
               Id.FEDERATED_IDENTITY_API,
               Id.ANTI_ABUSE,
               Id.SITE_DATA,
+              Id.PERFORMANCE,
+              Id.JAVASCRIPT_JIT,
             ]),
           };
         },
@@ -528,6 +559,8 @@ export class SettingsSiteSettingsPageElement extends
   private unusedSitePermissionsSubheader_: string;
   private safetyHubBrowserProxy_: SafetyHubBrowserProxy =
       SafetyHubBrowserProxyImpl.getInstance();
+  private metricsBrowserProxy_: MetricsBrowserProxy =
+      MetricsBrowserProxyImpl.getInstance();
 
   private lists_: {
     all: CategoryListItem[],
@@ -536,6 +569,18 @@ export class SettingsSiteSettingsPageElement extends
     contentBasic: CategoryListItem[],
     contentAdvanced: CategoryListItem[],
   };
+
+  override currentRouteChanged() {
+    if (Router.getInstance().getCurrentRoute() !== routes.SITE_SETTINGS) {
+      return;
+    }
+    // Only record the metrics when the user navigates to the privacy page
+    // that shows the entry point.
+    if (this.showUnusedSitePermissions_) {
+      this.metricsBrowserProxy_.recordSafetyHubEntryPointShown(
+          SafetyHubEntryPoint.SITE_SETTINGS);
+    }
+  }
 
   private focusConfigChanged_(_newConfig: FocusConfig, oldConfig: FocusConfig) {
     // focusConfig is set only once on the parent, so this observer should
@@ -578,6 +623,8 @@ export class SettingsSiteSettingsPageElement extends
   }
 
   private onSafetyHubButtonClick_() {
+    this.metricsBrowserProxy_.recordSafetyHubEntryPointClicked(
+        SafetyHubEntryPoint.SITE_SETTINGS);
     Router.getInstance().navigateTo(routes.SAFETY_HUB);
   }
 }

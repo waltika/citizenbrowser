@@ -82,6 +82,7 @@ Es posible que algunas funciones no estén disponibles y que no se guarden los c
 <translation id="2258103955319320201">Para acceder a tus elementos del navegador de Chrome en todos tus dispositivos, inicia sesión y activa la sincronización.</translation>
 <translation id="2290014774651636340">Faltan las claves de la API de Google. Se inhabilitarán algunas funciones de Google Chrome.</translation>
 <translation id="2290095356545025170">¿Seguro que quieres desinstalar Google Chrome?</translation>
+<translation id="2298849085402457754">Para borrar los datos de navegación de este dispositivo, pero no de tu cuenta de Google, <ph name="BEGIN_LINK" />cierra sesión en Chrome<ph name="END_LINK" />.</translation>
 <translation id="2309047409763057870">Esta instalación de Google Chrome es secundaria, por lo que no se puede establecer como navegador predeterminado.</translation>
 <translation id="2345992953227471816">Chrome ha detectado que estas extensiones contienen malware:</translation>
 <translation id="2348335408836342058">Chrome necesita permiso para acceder a la cámara y al micrófono en este sitio web</translation>
@@ -202,6 +203,7 @@ Es posible que algunas funciones no estén disponibles y que no se guarden los c
 <translation id="4148957013307229264">Instalando...</translation>
 <translation id="4149882025268051530">El programa de instalación no ha podido descomprimir el archivo. Vuelve a descargar Google Chrome.</translation>
 <translation id="4153934450158521343">Chrome se cerrará y eliminará los datos dentro de poco</translation>
+<translation id="4173512894976930765">Es probable que los sitios funcionen correctamente. Cuando cierres todas las ventanas de Chrome, se cerrará tu sesión en la mayoría de los sitios, salvo la de tu cuenta de Google si has iniciado sesión en Chrome.</translation>
 <translation id="4175922240926474352">Chrome ha bloqueado esta descarga porque el sitio no utiliza una conexión segura y es posible que el archivo se haya manipulado</translation>
 <translation id="4191857738314598978">{0,plural, =1{Reinicia Chrome en el próximo día}other{Reinicia Chrome en los próximos # días}}</translation>
 <translation id="4205939740494406371">Chrome no puede comprobar tus contraseñas. Vuelve a intentarlo en 24 horas o <ph name="BEGIN_LINK" />comprueba las contraseñas en tu cuenta de Google<ph name="END_LINK" />.</translation>
@@ -219,7 +221,6 @@ Es posible que algunas funciones no estén disponibles y que no se guarden los c
 <translation id="4343195214584226067"><ph name="EXTENSION_NAME" /> se ha añadido a Chrome</translation>
 <translation id="4384570495110188418">Chrome no puede comprobar tus contraseñas porque no has iniciado sesión</translation>
 <translation id="4389991535395284064">Cuando navegues en modo Incógnito, Chrome te avisará antes de cargar un sitio usando una conexión no segura</translation>
-<translation id="4393248995085527349">Para recibir futuras actualizaciones de Google Chrome, necesitarás macOS 10.15 o una versión posterior. Este ordenador utiliza macOS 10.13.</translation>
 <translation id="4427306783828095590">La protección mejorada es más eficaz para bloquear ataques de suplantación de identidad y malware.</translation>
 <translation id="4450664632294415862">Chrome, inicio de sesión en la red, <ph name="PAGE_TITLE" /></translation>
 <translation id="4458462641685292929">Hay otra operación en curso en Google Chrome. Vuelve a intentarlo más tarde.</translation>
@@ -307,7 +308,6 @@ Google Chrome no puede recuperar tu configuración.</translation>
 <translation id="5941711191222866238">Minimizar</translation>
 <translation id="5941830788786076944">Establecer Google Chrome como navegador predeterminado</translation>
 <translation id="6003112304606738118">Descargando... Horas restantes: <ph name="HOURS" />.</translation>
-<translation id="6010556343189461180">Para recibir futuras actualizaciones de Google Chrome, necesitarás macOS 10.15 o una versión posterior. Este ordenador utiliza macOS 10.14.</translation>
 <translation id="6014316319780893079">Las <ph name="BEGIN_LINK" />herramientas de Chrome<ph name="END_LINK" /> te permiten navegar de forma segura y mantener el control</translation>
 <translation id="6022659036123304283">Personaliza Chrome</translation>
 <translation id="6025087594896450715">Google Chrome se reiniciará dentro de <ph name="REMAINING_TIME" /></translation>

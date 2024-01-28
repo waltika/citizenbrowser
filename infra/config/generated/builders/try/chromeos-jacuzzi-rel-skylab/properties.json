@@ -1,6 +1,9 @@
 {
   "$build/chromium_tests_builder_config": {
     "builder_config": {
+      "additional_exclusions": [
+        "infra/config/generated/builders/try/chromeos-jacuzzi-rel-skylab/gn-args.json"
+      ],
       "builder_db": {
         "entries": [
           {
@@ -34,7 +37,7 @@
                 "config": "chromium"
               },
               "skylab_upload_location": {
-                "gs_bucket": "chrome-test-builds",
+                "gs_bucket": "chromium-skylab-ci",
                 "gs_extra": "ash"
               }
             }

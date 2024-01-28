@@ -15,7 +15,6 @@
 #include "chrome/browser/ui/user_education/scoped_new_badge_tracker.h"
 #include "chrome/browser/ui/views/autofill/popup/popup_view_utils.h"
 #include "content/public/common/input/native_web_keyboard_event.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/events/event_handler.h"
 #include "ui/gfx/geometry/rect_f.h"
@@ -70,8 +69,8 @@ class PopupRowView : public views::View, public views::ViewObserver {
 
     virtual ~SelectionDelegate() = default;
 
-    virtual absl::optional<CellIndex> GetSelectedCell() const = 0;
-    virtual void SetSelectedCell(absl::optional<CellIndex> cell_index,
+    virtual std::optional<CellIndex> GetSelectedCell() const = 0;
+    virtual void SetSelectedCell(std::optional<CellIndex> cell_index,
                                  PopupCellSelectionSource source) = 0;
   };
 
@@ -125,8 +124,8 @@ class PopupRowView : public views::View, public views::ViewObserver {
   void OnViewFocused(views::View* focused_now) override;
 
   // Gets and sets the selected cell within this row.
-  absl::optional<CellType> GetSelectedCell() const { return selected_cell_; }
-  virtual void SetSelectedCell(absl::optional<CellType> cell);
+  std::optional<CellType> GetSelectedCell() const { return selected_cell_; }
+  virtual void SetSelectedCell(std::optional<CellType> cell);
 
   // Sets whether the row's child suggestions are displayed in a sub-popup.
   // Note that the row doesn't control the sub-popup, but rather should be
@@ -159,8 +158,9 @@ class PopupRowView : public views::View, public views::ViewObserver {
   // provide a control for the sub-popup. It implements visualization and event
   // handling only, `PopupViewViews` controls the logic of opening/closing.
   class ExpandChildSuggestionsView : public views::View {
+    METADATA_HEADER(ExpandChildSuggestionsView, views::View)
+
    public:
-    METADATA_HEADER(ExpandChildSuggestionsView);
     ExpandChildSuggestionsView();
     ExpandChildSuggestionsView(const ExpandChildSuggestionsView&) = delete;
     ExpandChildSuggestionsView& operator=(const ExpandChildSuggestionsView&) =
@@ -203,12 +203,11 @@ class PopupRowView : public views::View, public views::ViewObserver {
   std::optional<ScopedNewBadgeTrackerWithAcceptAction> new_badge_tracker_;
 
   // Which (if any) cell of this row is currently selected.
-  absl::optional<CellType> selected_cell_;
+  std::optional<CellType> selected_cell_;
 
-  // The cell wrapping the content area of the row.
+  // The view wrapping the content area of the row.
   raw_ptr<PopupRowContentView> content_view_ = nullptr;
-  // The cell wrapping the control area of the row.
-  // TODO(crbug.com/1411172): Add keyboard event handling.
+  // The view wrapping the control area of the row.
   raw_ptr<ExpandChildSuggestionsView> expand_child_suggestions_view_ = nullptr;
 
   // Overriding event handles for the content and control views.
@@ -243,6 +242,11 @@ class PopupRowView : public views::View, public views::ViewObserver {
   // Whether the row's child suggestions (see `Suggestion::children`) are
   // displayed in a sub-popup.
   bool child_suggestions_displayed_ = false;
+
+  // Has the same value as `Suggestion::is_acceptable` of the underlying
+  // suggestion. If `false` the content part is not highlighted separately,
+  // but the whole row is highlighted instead as for the control view.
+  const bool suggestion_is_acceptable_;
 };
 
 }  // namespace autofill

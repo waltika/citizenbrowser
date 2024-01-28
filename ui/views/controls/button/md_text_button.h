@@ -7,38 +7,39 @@
 
 #include <memory>
 
+#include "base/functional/callback.h"
+#include "base/functional/callback_forward.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "ui/base/ui_base_types.h"
-#include "ui/views/action_view_controller.h"
+#include "ui/views/action_view_interface.h"
 #include "ui/views/controls/button/label_button.h"
+#include "ui/views/controls/button/label_button_image_container.h"
 #include "ui/views/controls/focus_ring.h"
 #include "ui/views/style/typography.h"
 
-namespace views {
+namespace actions {
+class ActionItem;
+}
 
-// TODO(crbug.com/147023): Remove when ActionViewController implementation adds
-// LabelButton.
-class Button;
+namespace views {
 
 // A button class that implements the Material Design text button spec.
 class VIEWS_EXPORT MdTextButton : public LabelButton {
- public:
-  METADATA_HEADER(MdTextButton);
+  METADATA_HEADER(MdTextButton, LabelButton)
 
-  explicit MdTextButton(PressedCallback callback = PressedCallback(),
-                        const std::u16string& text = std::u16string(),
-                        int button_context = style::CONTEXT_BUTTON_MD,
-                        bool use_text_color_for_icon = true);
+ public:
+  explicit MdTextButton(
+      PressedCallback callback = PressedCallback(),
+      const std::u16string& text = std::u16string(),
+      int button_context = style::CONTEXT_BUTTON_MD,
+      bool use_text_color_for_icon = true,
+      std::unique_ptr<LabelButtonImageContainer> image_container =
+          std::make_unique<SingleImageContainer>());
 
   MdTextButton(const MdTextButton&) = delete;
   MdTextButton& operator=(const MdTextButton&) = delete;
 
   ~MdTextButton() override;
-
-  // TODO(crbug.com/1406008): Remove the use of Prominent state and use button
-  // style state instead.
-  void SetProminent(bool is_prominent);
-  bool GetProminent() const;
 
   void SetStyle(ui::ButtonStyle button_style);
   ui::ButtonStyle GetStyle() const;
@@ -65,6 +66,7 @@ class VIEWS_EXPORT MdTextButton : public LabelButton {
   void StateChanged(ButtonState old_state) override;
   void SetImageModel(ButtonState for_state,
                      const ui::ImageModel& image_model) override;
+  std::unique_ptr<ActionViewInterface> GetActionViewInterface() override;
 
  protected:
   // View:
@@ -99,24 +101,20 @@ class VIEWS_EXPORT MdTextButton : public LabelButton {
   bool use_text_color_for_icon_ = true;
 };
 
-template <>
-struct VIEWS_EXPORT ActionViewControllerSuperClassT<MdTextButton> {
-  using SuperClass = ActionViewControllerTemplate<Button>;
+class VIEWS_EXPORT MdTextButtonActionViewInterface
+    : public LabelButtonActionViewInterface {
+ public:
+  explicit MdTextButtonActionViewInterface(MdTextButton* action_view);
+  ~MdTextButtonActionViewInterface() override = default;
+
+  // LabelButtonActionViewInterface:
+  void ActionItemChangedImpl(actions::ActionItem* action_item) override;
+
+ private:
+  raw_ptr<MdTextButton> action_view_;
 };
 
-template <>
-void ActionViewControllerTemplate<MdTextButton,
-                                  ActionViewControllerTemplate<Button>>::
-    ActionItemChangedImpl(MdTextButton* action_view,
-                          actions::ActionItem* action_item);
-
-template <>
-void ActionViewControllerTemplate<MdTextButton,
-                                  ActionViewControllerTemplate<Button>>::
-    SetActionViewImpl(MdTextButton* action_view);
-
 BEGIN_VIEW_BUILDER(VIEWS_EXPORT, MdTextButton, LabelButton)
-VIEW_BUILDER_PROPERTY(bool, Prominent)
 VIEW_BUILDER_PROPERTY(absl::optional<float>, CornerRadius)
 VIEW_BUILDER_PROPERTY(absl::optional<SkColor>, BgColorOverride)
 VIEW_BUILDER_PROPERTY(absl::optional<gfx::Insets>, CustomPadding)

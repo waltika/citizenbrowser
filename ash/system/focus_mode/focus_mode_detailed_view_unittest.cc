@@ -6,22 +6,25 @@
 
 #include <memory>
 
+#include "ash/capture_mode/capture_mode_test_util.h"
 #include "ash/constants/ash_features.h"
 #include "ash/constants/ash_pref_names.h"
 #include "ash/shell.h"
 #include "ash/strings/grit/ash_strings.h"
 #include "ash/style/icon_button.h"
 #include "ash/style/pill_button.h"
+#include "ash/style/rounded_container.h"
 #include "ash/style/switch.h"
 #include "ash/style/system_textfield.h"
+#include "ash/system/focus_mode/focus_mode_chip_carousel.h"
 #include "ash/system/focus_mode/focus_mode_controller.h"
 #include "ash/system/focus_mode/focus_mode_countdown_view.h"
 #include "ash/system/focus_mode/focus_mode_feature_pod_controller.h"
+#include "ash/system/focus_mode/focus_mode_task_view.h"
 #include "ash/system/focus_mode/focus_mode_util.h"
 #include "ash/system/model/system_tray_model.h"
 #include "ash/system/tray/fake_detailed_view_delegate.h"
 #include "ash/system/tray/hover_highlight_view.h"
-#include "ash/system/tray/tri_view.h"
 #include "ash/system/unified/feature_tile.h"
 #include "ash/system/unified/unified_system_tray.h"
 #include "ash/system/unified/unified_system_tray_bubble.h"
@@ -33,12 +36,20 @@
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/events/keycodes/keyboard_codes_posix.h"
 #include "ui/message_center/message_center.h"
+#include "ui/views/controls/button/image_button.h"
 #include "ui/views/controls/label.h"
 #include "ui/views/layout/box_layout_view.h"
+#include "ui/views/test/views_test_utils.h"
 #include "ui/views/view_utils.h"
 #include "ui/views/widget/widget.h"
 
 namespace ash {
+
+namespace {
+
+constexpr base::TimeDelta kStartAnimationDelay = base::Milliseconds(300);
+
+}  // namespace
 
 class FocusModeDetailedViewTest : public AshTestBase {
  public:
@@ -118,6 +129,10 @@ class FocusModeDetailedViewTest : public AshTestBase {
     return focus_mode_detailed_view_->timer_decrement_button_;
   }
 
+  RoundedContainer* GetDoNotDisturbContainer() {
+    return focus_mode_detailed_view_->do_not_disturb_view_;
+  }
+
   Switch* GetDoNotDisturbToggleButton() {
     CHECK(!FocusModeController::Get()->in_focus_session());
     return focus_mode_detailed_view_->do_not_disturb_toggle_button_;
@@ -133,6 +148,14 @@ class FocusModeDetailedViewTest : public AshTestBase {
 
   PrefService* prefs() {
     return Shell::Get()->session_controller()->GetActivePrefService();
+  }
+
+  FocusModeTaskView* GetTaskView() {
+    return focus_mode_detailed_view_->focus_mode_task_view_;
+  }
+
+  RoundedContainer* GetTaskContainerView() {
+    return focus_mode_detailed_view_->task_view_container_;
   }
 
   FakeDetailedViewDelegate detailed_view_delegate_;
@@ -245,7 +268,8 @@ TEST_F(FocusModeDetailedViewTest, DndOnBeforeStart) {
 TEST_F(FocusModeDetailedViewTest, ToggleRow) {
   auto* focus_mode_controller = FocusModeController::Get();
 
-  auto validate_labels = [&](bool active) {
+  auto validate_labels = [&](bool active, const std::string& trace_name) {
+    SCOPED_TRACE(trace_name);
     EXPECT_EQ(active, focus_mode_controller->in_focus_session());
     EXPECT_EQ(active ? u"Focusing" : u"Focus", GetToggleRowLabel()->GetText());
 
@@ -253,14 +277,13 @@ TEST_F(FocusModeDetailedViewTest, ToggleRow) {
 
     if (active) {
       EXPECT_EQ(focus_mode_util::GetFormattedEndTimeString(
-                    focus_mode_controller->end_time()),
+                    focus_mode_controller->GetActualEndTime()),
                 GetToggleRowSubLabel()->GetText());
     }
-    EXPECT_EQ(active ? u"End Focus" : u"Start",
-              GetToggleRowButton()->GetText());
+    EXPECT_EQ(active ? u"Finish" : u"Start", GetToggleRowButton()->GetText());
   };
 
-  validate_labels(/*active=*/false);
+  validate_labels(/*active=*/false, "Initial state");
 
   // Starting the focus session closes the bubble, so we need to simulate
   // recreating the detailed view.
@@ -268,11 +291,11 @@ TEST_F(FocusModeDetailedViewTest, ToggleRow) {
   CreateFakeFocusModeDetailedView();
 
   // Wait a minute to test that the time remaining label updates.
-  task_environment()->FastForwardBy(base::Seconds(61));
-  validate_labels(/*active=*/true);
+  task_environment()->FastForwardBy(base::Seconds(60));
+  validate_labels(/*active=*/true, "Wait for a minute");
 
   LeftClickOn(GetToggleRowButton());
-  validate_labels(/*active=*/false);
+  validate_labels(/*active=*/false, "Toggle off session");
 
   // Verify that the time displays correctly in the 24-hour clock format.
   Shell::Get()->system_tray_model()->SetUse24HourClock(true);
@@ -285,10 +308,10 @@ TEST_F(FocusModeDetailedViewTest, ToggleRow) {
   // Wait a second to avoid the time remaining being either 1500 seconds or
   // 1499.99 seconds.
   task_environment()->FastForwardBy(base::Seconds(1));
-  validate_labels(/*active=*/true);
+  validate_labels(/*active=*/true, "Check time passed");
 
   LeftClickOn(GetToggleRowButton());
-  validate_labels(/*active=*/false);
+  validate_labels(/*active=*/false, "Toggle off session again");
 }
 
 // Tests how the textfield for the timer setting view handles valid and invalid
@@ -324,6 +347,24 @@ TEST_F(FocusModeDetailedViewTest, TimerSettingViewTextfield) {
   EXPECT_EQ(u"333", timer_textfield->GetText());
   PressAndReleaseKey(ui::KeyboardCode::VKEY_RETURN);
   EXPECT_EQ(u"300", timer_textfield->GetText());
+}
+
+// Tests how the textfield for the timer setting view handles valid and invalid
+// inputs from virtual keyboard.
+TEST_F(FocusModeDetailedViewTest, TimerSettingViewTextfieldVK) {
+  SystemTextfield* timer_textfield = GetTimerSettingTextfield();
+  LeftClickOn(timer_textfield);
+  ASSERT_TRUE(timer_textfield->IsActive());
+
+  auto* event_generator = GetEventGenerator();
+  PressAndReleaseKeyOnVK(event_generator, ui::VKEY_DELETE);
+  PressAndReleaseKeyOnVK(event_generator, ui::VKEY_2);
+  PressAndReleaseKeyOnVK(event_generator, ui::VKEY_A);
+  PressAndReleaseKeyOnVK(event_generator, ui::VKEY_A);
+  PressAndReleaseKeyOnVK(event_generator, ui::VKEY_0);
+  PressAndReleaseKeyOnVK(event_generator, ui::VKEY_0);
+  PressAndReleaseKeyOnVK(event_generator, ui::VKEY_0);
+  EXPECT_EQ(u"200", timer_textfield->GetText());
 }
 
 // Tests that incrementing the duration of an inactive focus session follows a
@@ -483,13 +524,13 @@ TEST_F(FocusModeDetailedViewTest, TimerViewVisibility) {
   EXPECT_TRUE(timer_setting_view->GetVisible());
 
   const base::TimeDelta session_duration =
-      focus_mode_controller->session_duration();
+      focus_mode_controller->GetSessionDuration();
   EXPECT_EQ(focus_mode_util::GetFormattedEndTimeString(base::Time::Now() +
                                                        session_duration),
             GetEndTimeLabel()->GetText());
 
   // Wait a minute to test that the end time label updates.
-  task_environment()->FastForwardBy(base::Seconds(61));
+  task_environment()->FastForwardBy(base::Seconds(60));
   EXPECT_EQ(focus_mode_util::GetFormattedEndTimeString(base::Time::Now() +
                                                        session_duration),
             GetEndTimeLabel()->GetText());
@@ -581,6 +622,47 @@ TEST_F(FocusModeDetailedViewTest, SubLabelVisibility) {
 
   focus_mode_controller->ToggleFocusMode();
   EXPECT_FALSE(IsToggleRowSubLabelVisible());
+}
+
+// Tests that when the user select a task or mark a selected task as completed,
+// the task view container will shrink or expand.
+TEST_F(FocusModeDetailedViewTest, ExpandOrShrinkTaskViewContainer) {
+  auto* task_container_view = GetTaskContainerView();
+  auto* task_view = GetTaskView();
+  auto* chip_carousel = task_view->chip_carousel_for_testing();
+  EXPECT_TRUE(chip_carousel->HasTasks());
+  EXPECT_TRUE(chip_carousel->GetVisible());
+
+  auto* radio_button = task_view->radio_button_for_testing();
+  // `radio_button` is invisible before we select a task title.
+  EXPECT_FALSE(radio_button->GetVisible());
+  const int old_height_before_shrink = task_container_view->bounds().height();
+
+  // 1. Shrink the `task_container_view`.
+  task_view->AddOrUpdateTask(u"my task title");
+  views::test::RunScheduledLayout(task_container_view);
+  EXPECT_TRUE(radio_button->GetVisible());
+  EXPECT_FALSE(chip_carousel->GetVisible());
+  EXPECT_GT(old_height_before_shrink, task_container_view->bounds().height());
+
+  // 2. Expand the `task_container_view`.
+  LeftClickOn(radio_button);
+  task_environment()->FastForwardBy(kStartAnimationDelay);
+  views::test::RunScheduledLayout(task_container_view);
+  EXPECT_EQ(old_height_before_shrink, task_container_view->bounds().height());
+}
+
+// Tests that tabbing to the timer decrease button after setting the time to 1
+// does not cause a crash. Regression test for b/315358227.
+TEST_F(FocusModeDetailedViewTest, TabToDisablingButton) {
+  SystemTextfield* textfield = GetTimerSettingTextfield();
+  LeftClickOn(textfield);
+  ASSERT_TRUE(textfield->IsActive());
+  PressAndReleaseKey(ui::KeyboardCode::VKEY_DELETE);
+  PressAndReleaseKey(ui::KeyboardCode::VKEY_1);
+  ASSERT_EQ(u"1", textfield->GetText());
+  PressAndReleaseKey(ui::KeyboardCode::VKEY_TAB);
+  EXPECT_FALSE(GetTimerSettingDecrementButton()->GetEnabled());
 }
 
 }  // namespace ash

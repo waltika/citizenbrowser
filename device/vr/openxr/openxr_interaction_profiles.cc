@@ -6,8 +6,12 @@
 
 #include "base/no_destructor.h"
 #include "device/vr/openxr/openxr_interaction_profile_paths.h"
+#include "device/vr/public/mojom/openxr_interaction_profile_type.mojom.h"
 
 namespace device {
+
+using device::mojom::OpenXrInteractionProfileType;
+
 OpenXrSystemInputProfiles::OpenXrSystemInputProfiles(
     std::string system_name,
     std::vector<std::string> input_profiles)
@@ -116,6 +120,14 @@ GetOpenXrInputProfilesMap() {
           // EXT Hand Interaction
           {OpenXrInteractionProfileType::kExtHand,
            {{"", {"generic-hand-select-grasp", "generic-hand-select"}}}},
+
+          // XR_ANDROID_hand_gestures
+          {OpenXrInteractionProfileType::kAndroidHandGestures,
+           {{"", {"generic-hand-select", "generic-button"}}}},
+
+          // XR_FB_hand_tracking_aim
+          {OpenXrInteractionProfileType::kMetaHandAim,
+           {{"", {"generic-hand-select", "generic-button"}}}},
       });
   return *kInputProfilesMap;
 }

@@ -5,8 +5,9 @@
 #include "chrome/browser/compose/compose_text_usage_logger.h"
 
 #include <algorithm>
+#include <bit>
+#include <cstdint>
 
-#include "base/bits.h"
 #include "base/strings/string_tokenizer.h"
 #include "base/strings/string_util.h"
 #include "components/autofill/content/browser/content_autofill_driver.h"
@@ -41,10 +42,7 @@ size_t RoundDownToPowerOfTwo(int64_t n) {
   if (n < 0) {
     return -1;
   }
-  if (n == 0) {
-    return 0;
-  }
-  return 1ull << (base::bits::Log2Floor(n));
+  return std::bit_floor<uint64_t>(n);
 }
 
 }  // namespace
@@ -76,7 +74,7 @@ void ComposeTextUsageLogger::OnAfterTextFieldDidChange(
     autofill::AutofillManager& manager,
     autofill::FormGlobalId form,
     autofill::FieldGlobalId field,
-    std::u16string text_value) {
+    const std::u16string& text_value) {
   autofill::FormType form_type = autofill::FormType::kUnknownFormType;
   int64_t form_control_type = -1;
   autofill::FormStructure* form_structure = manager.FindCachedFormById(form);

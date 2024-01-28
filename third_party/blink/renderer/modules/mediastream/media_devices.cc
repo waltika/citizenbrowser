@@ -6,6 +6,7 @@
 
 #include <utility>
 
+#include "base/feature_list.h"
 #include "base/metrics/histogram_functions.h"
 #include "base/ranges/algorithm.h"
 #include "base/uuid.h"
@@ -64,6 +65,15 @@
 #include "third_party/blink/renderer/platform/wtf/functional.h"
 
 namespace blink {
+
+BASE_FEATURE(kEnumerateDevicesRequestAudioCapabilities,
+             "EnumerateDevicesRequestAudioCapabilities",
+#if BUILDFLAG(IS_MAC)
+             base::FEATURE_DISABLED_BY_DEFAULT
+#else
+             base::FEATURE_ENABLED_BY_DEFAULT
+#endif
+);
 
 namespace {
 
@@ -153,7 +163,7 @@ enum class DisplayCapturePolicyResult {
   kMaxValue = kAllowed
 };
 
-#if !BUILDFLAG(IS_ANDROID)
+#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
 // These values are persisted to logs. Entries should not be renumbered and
 // numeric values should never be reused.
 enum class ProduceTargetFunctionResult {
@@ -199,7 +209,7 @@ void RecordUma(SubCaptureTarget::Type type, ProduceTargetPromiseResult result) {
   }
 }
 
-#endif  // !BUILDFLAG(IS_ANDROID)
+#endif  // !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
 
 // When `blink::features::kGetDisplayMediaRequiresUserActivation` is enabled,
 // calls to `getDisplayMedia()` will require a transient user activation. This
@@ -409,7 +419,8 @@ ScriptPromise MediaDevices::enumerateDevices(ScriptState* script_state,
       /*request_audio_input=*/true, /*request_video_input=*/true,
       /*request_audio_output=*/true,
       /*request_video_input_capabilities=*/true,
-      /*request_audio_input_capabilities=*/true,
+      /*request_audio_input_capabilities=*/
+      base::FeatureList::IsEnabled(kEnumerateDevicesRequestAudioCapabilities),
       WTF::BindOnce(&MediaDevices::DevicesEnumerated, WrapPersistent(this),
                     WrapPersistent(result_tracker)));
   return promise;
@@ -467,7 +478,7 @@ ScriptPromise MediaDevices::SendUserMediaRequest(
 
   base::OnceCallback<void(const String&, CaptureController*)>
       on_success_follow_up;
-#if !BUILDFLAG(IS_ANDROID)
+#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
   if (media_type == UserMediaRequestType::kDisplayMedia ||
       IsExtensionScreenSharingFunctionCall(options, exception_state)) {
     if (options->hasController()) {
@@ -715,7 +726,7 @@ ScriptPromise MediaDevices::ProduceSubCaptureTarget(
   CHECK(type == SubCaptureTarget::Type::kCropTarget ||
         type == SubCaptureTarget::Type::kRestrictionTarget);
 
-#if BUILDFLAG(IS_ANDROID)
+#if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_IOS)
   exception_state.ThrowDOMException(DOMExceptionCode::kNotSupportedError,
                                     "Unsupported.");
   return ScriptPromise();
@@ -1118,7 +1129,7 @@ void MediaDevices::Trace(Visitor* visitor) const {
   ExecutionContextLifecycleObserver::Trace(visitor);
 }
 
-#if !BUILDFLAG(IS_ANDROID)
+#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
 MediaDevices::ElementToResolverMap& MediaDevices::GetResolverMap(
     SubCaptureTarget::Type type) {
   switch (type) {

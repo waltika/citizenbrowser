@@ -16,6 +16,7 @@
 <translation id="1075811647922107217">페이지 크기</translation>
 <translation id="1082009148392559545">화면 보호기 다운로드 중</translation>
 <translation id="1094693127011229778">IP 주소를 사용할 수 없습니다.</translation>
+<translation id="1116694919640316211">정보</translation>
 <translation id="1118572504348554005">신고된 버그 및 기타 문제를 해결하기 위해 이 양식을 통해 제출된 의견을 파트너와 공유할 수 있습니다. 비밀번호와 같은 민감한 정보는 포함하지 마세요.</translation>
 <translation id="1119447706177454957">내부 오류</translation>
 <translation id="1124772482545689468">사용자</translation>
@@ -42,6 +43,7 @@
 <translation id="1264369926465113395">크리에이터를 위한 Chromebook 활용 방법을 소개하는 새로운 디지털 잡지를 확인하세요.</translation>
 <translation id="1270369111467284986">종속 포털로 의심됨</translation>
 <translation id="1290331692326790741">신호 약함</translation>
+<translation id="1300115153046603471">APN은 기본값 및 <ph name="ATTACH" /> 유형입니다.</translation>
 <translation id="1301069673413256657">GSM</translation>
 <translation id="1308754910631152188">업데이트 중(<ph name="PERCENTAGE_VALUE" />% 완료)</translation>
 <translation id="1309341072016605398"><ph name="MINUTES" />분</translation>
@@ -81,7 +83,6 @@
 <translation id="1515129336378114413">브라우저 홈</translation>
 <translation id="1526389707933164996">화면 보호기 애니메이션</translation>
 <translation id="152892567002884378">볼륨 크게</translation>
-<translation id="1539242642795599947">APN은 기본값 유형이며 첨부됩니다.</translation>
 <translation id="1555130319947370107">파란색</translation>
 <translation id="155865706765934889">터치패드</translation>
 <translation id="1561927818299383735">백라이트 색상</translation>
@@ -143,7 +144,6 @@
 <translation id="188114911237521550">어두운 모드 사용 중지</translation>
 <translation id="1885577615937958993">미디어를 빨리 감습니다</translation>
 <translation id="1887850431809612466">하드웨어 버전</translation>
-<translation id="1897672602657312171">검색 키가 없는 단축키가 일부 앱의 단축키와 충돌할 수 있습니다. 이 단축키를 계속 사용하려면 다시 누르거나 검색 키를 사용하여 새 단축키를 누르세요.</translation>
 <translation id="1904932688895783618">다음은 몇 가지 유용한 리소스입니다.</translation>
 <translation id="1905710495812624430">허용되는 최대 시도 횟수를 초과했습니다.</translation>
 <translation id="1908234395526491708">UDP 요청 실패</translation>
@@ -175,7 +175,6 @@
 <translation id="2152882202543497059">사진 <ph name="NUMBER" />장</translation>
 <translation id="2157660087437850958">그림 이모티콘 선택 도구입니다</translation>
 <translation id="2157959690810728433">대기 중</translation>
-<translation id="2158450850127366833">{NUM_ROOL_APPS,plural,offset:2 =1{관리자가 로그인할 때마다 <ph name="APP_NAME_1" /> 앱이 자동으로 시작되도록 설정했습니다.}=2{관리자가 로그인할 때마다 <ph name="APP_NAME_1" /> 및 <ph name="APP_NAME_2" /> 앱이 자동으로 시작되도록 설정했습니다.}=3{관리자가 로그인할 때마다 <ph name="APP_NAME_1" />, <ph name="APP_NAME_2" />, <ph name="APP_NAME_3" /> 앱이 자동으로 시작되도록 설정했습니다.}other{관리자가 로그인할 때마다 <ph name="APP_NAME_1" />, <ph name="APP_NAME_2" /> 외 #개 앱이 자동으로 시작되도록 설정했습니다.}}</translation>
 <translation id="2158971754079422508"><ph name="DESC_TEXT" />: 다시 시도</translation>
 <translation id="215916044711630446">APN 추가 버튼이 사용 중지되었습니다</translation>
 <translation id="2161394479394250669">인쇄 작업 취소</translation>
@@ -185,6 +184,7 @@
 <translation id="2189104374785738357">APN 세부정보 수정</translation>
 <translation id="2209788852729124853">트래픽 카운터 재설정</translation>
 <translation id="2212733584906323460">이름 결정</translation>
+<translation id="2215920961700443347">인터넷에 연결되어 있지 않습니다. 인터넷에 연결한 후 다시 시도해 주세요.</translation>
 <translation id="2217935453350629363">현재 속도</translation>
 <translation id="2224337661447660594">인터넷 연결 없음</translation>
 <translation id="222447520299472966">아트 갤러리 앨범을 하나 이상 선택해야 합니다.</translation>
@@ -218,6 +218,7 @@
 <translation id="2421798028054665193"><ph name="TOTAL_PAGES" />페이지 중 <ph name="CURRENT_PAGE" />에 있는 이미지</translation>
 <translation id="2446553403094072641">부동 소수점 정확성</translation>
 <translation id="2448312741937722512">유형</translation>
+<translation id="2465272316171730950">리소스가 소진되었습니다. 잠시 후 다시 시도해 주세요.</translation>
 <translation id="248546197012830854">기기가 오프라인 상태입니다. 도움말 콘텐츠를 보려면 Wi-Fi 네트워크에 연결하세요.</translation>
 <translation id="2491955442992294626">다른 창을 사용 중일 때는 키가 테스트되지 않습니다.</translation>
 <translation id="2493126929778606526">가장 잘 나온 사진이 자동으로 선별됩니다.</translation>
@@ -225,7 +226,6 @@
 <translation id="2505327257735685095">현재 배경화면 이미지 새로고침</translation>
 <translation id="2512979179176933762">창을 표시합니다</translation>
 <translation id="2513396635448525189">로그인 이미지</translation>
-<translation id="2515109918609218604">단축키를 사용할 수 없습니다. 기능 키와 검색 키를 사용하지 않고 새로운 단축키를 누릅니다.</translation>
 <translation id="2517472476991765520">스캔</translation>
 <translation id="2521835766824839541">이전 트랙입니다</translation>
 <translation id="2526590354069164005">데스크톱</translation>
@@ -241,6 +241,7 @@
 <translation id="2638662041295312666">로그인 이미지</translation>
 <translation id="2640549051766135490">앨범 <ph name="TITLE" /> <ph name="DESC" /> 선택됨</translation>
 <translation id="2652403576514495859">음성기록 사용 설정 또는 전환</translation>
+<translation id="2656001153562991489">Chromebook Plus 전용</translation>
 <translation id="267442004702508783">새로고침</translation>
 <translation id="268270014981824665">키보드 밝기 낮추기</translation>
 <translation id="2712812801627182647">TLS 인증 키</translation>
@@ -373,11 +374,13 @@
 <translation id="385051799172605136">뒤로</translation>
 <translation id="3858860766373142691">이름</translation>
 <translation id="3862598938296403232">설명은 필수 항목입니다.</translation>
+<translation id="386280020966669610">아이디어 얻기</translation>
 <translation id="3865289341173661845">도움말 콘텐츠를 사용할 수 없습니다.</translation>
 <translation id="3865414814144988605">해상도</translation>
 <translation id="3866249974567520381">설명</translation>
 <translation id="387301095347517405">배터리가 완전 방전 및 충전 사이클을 거친 횟수입니다.</translation>
 <translation id="3885327323343477505">화면 보호기 변경</translation>
+<translation id="3892148308691398805">텍스트 복사</translation>
 <translation id="391412459402535266">기기를 테스트할 수 없습니다. 테스트하려면 노트북 모드로 전환하세요.</translation>
 <translation id="3916998944874125962">스크린샷을 찍습니다</translation>
 <translation id="3923184630988645767">데이터 사용</translation>
@@ -403,6 +406,7 @@
 <translation id="4060260348856573701">새 APN</translation>
 <translation id="4093865285251893588">프로필 이미지</translation>
 <translation id="409427325554347132">테스트 세부정보 저장</translation>
+<translation id="409469431304488632">실험 버전</translation>
 <translation id="4095829376260267438">WPA2WPA3</translation>
 <translation id="4110686435123617899">앨범 <ph name="TITLE" /> <ph name="DESC" /> 선택</translation>
 <translation id="4111761024568264522">USB 터치패드</translation>
@@ -410,7 +414,6 @@
 <translation id="4117637339509843559">어두운 모드</translation>
 <translation id="4130035430755296270">마우스를 가져가면 더 많은 레이아웃 옵션이 표시됩니다.</translation>
 <translation id="4131410914670010031">흑백</translation>
-<translation id="4143820682073026914">{NUM_ROOL_APPS,plural, =1{<ph name="APP_NAME_1" /> 앱이 자동으로 시작되었습니다}other{#개 앱이 자동으로 시작되었습니다}}</translation>
 <translation id="4145784616224233563">HTTP 방화벽</translation>
 <translation id="4147897805161313378">Google 포토</translation>
 <translation id="4150201353443180367">디스플레이</translation>
@@ -422,7 +425,6 @@
 <translation id="4171077696775491955">밝기를 낮춥니다</translation>
 <translation id="4176463684765177261">사용 중지됨</translation>
 <translation id="4176659219503619100">제어판</translation>
-<translation id="4185315616950253617">맨 위 행의 단축키에는 검색 키가 포함되어야 합니다.</translation>
 <translation id="420283545744377356">화면 보호기 사용 중지</translation>
 <translation id="4213104098953699324">USB 키보드</translation>
 <translation id="4227825898293920515">비밀번호가 <ph name="TIME" /> 후에 만료됨</translation>
@@ -438,10 +440,12 @@
 <translation id="4289849978083912975">슬라이드쇼</translation>
 <translation id="4297501883039923494">중지됨 - 알 수 없는 오류</translation>
 <translation id="4300073214558989">이미지 <ph name="IMAGE_COUNT" />개</translation>
+<translation id="4310735698903592804">Google AI 기반 최신 배경화면</translation>
 <translation id="4333390807948134856"><ph name="KEY_NAME" /> 키를 눌렀습니다.</translation>
 <translation id="4354430579665871434">키</translation>
 <translation id="4361257691546579041">APN은 기본값 유형입니다.</translation>
 <translation id="437294888293595148">모든 바로가기 재설정</translation>
+<translation id="4376423484621194274">관리자가 <ph name="APP_NAME" /> 종료를 허용하지 않습니다.</translation>
 <translation id="4378373042927530923">실행되지 않음</translation>
 <translation id="4378551569595875038">연결 중...</translation>
 <translation id="4382484599443659549">PDF</translation>
@@ -550,6 +554,7 @@
 <translation id="5088172560898466307">서버 호스트 이름</translation>
 <translation id="5089810972385038852">시/도</translation>
 <translation id="5090362543162270857">IPsec(IKEv2)</translation>
+<translation id="5108781503443873320">유의어:</translation>
 <translation id="5137451382116112100">전체</translation>
 <translation id="5142961317498132443">인증</translation>
 <translation id="5145081769226915336">어두운 모드를 자동으로 사용 설정하시겠습니까?</translation>
@@ -566,6 +571,7 @@
 <translation id="5227902338748591677">어두운 테마 일정</translation>
 <translation id="5229344016299762883">전체 종료</translation>
 <translation id="5234764350956374838">닫기</translation>
+<translation id="5244638145904800454">{NUM_ROOL_APPS,plural,offset:1 =1{관리자가 로그인할 때마다 "<ph name="APP_NAME" />" 앱이 자동으로 시작되도록 설정했습니다.}=2{관리자가 로그인할 때마다 "<ph name="APP_NAME" />" 외 1개 앱이 자동으로 시작되도록 설정했습니다.}other{관리자가 로그인할 때마다 "<ph name="APP_NAME" />" 외 #개 앱이 자동으로 시작되도록 설정했습니다.}}</translation>
 <translation id="5252456968953390977">로밍</translation>
 <translation id="5257811368506016604">가벼운 색상 모드 사용</translation>
 <translation id="5264277876637023664">CPU 테스트 실행</translation>
@@ -611,7 +617,6 @@
 <translation id="5578477003638479617">UMTS</translation>
 <translation id="5578519639599103840">다시 스캔</translation>
 <translation id="5583640892426849032">Backspace</translation>
-<translation id="5584044598279886848">이 APN을 사용 중지하거나 삭제할 수 없습니다. 사용 설정 및 연결된 APN이 사용 중지되거나 삭제되었는지 확인하세요.</translation>
 <translation id="5600027863942488546"><ph name="KEY_NAME" /> 키는 테스트했습니다.</translation>
 <translation id="5620281292257375798">내부용</translation>
 <translation id="5649768706273821470">듣기</translation>
@@ -631,6 +636,7 @@
 <translation id="574392208103952083">보통</translation>
 <translation id="5757187557809630523">다음 트랙입니다</translation>
 <translation id="5760715441271661976">포털 상태</translation>
+<translation id="5763838252932650682"><ph name="APP_NAME" /> 다시 시작 및 업데이트</translation>
 <translation id="576835345334454681">디스플레이 밝기 높이기</translation>
 <translation id="57838592816432529">음소거</translation>
 <translation id="5784136236926853061">HTTP 지연 시간 높음</translation>
@@ -641,6 +647,7 @@
 <translation id="5843706793424741864">화씨</translation>
 <translation id="584953448295717128">APN이 자동으로 감지되었습니다.</translation>
 <translation id="5849570051105887917">홈 공급자 코드</translation>
+<translation id="5856267793478861942"><ph name="ATTACH" />(<ph name="IA" />)</translation>
 <translation id="5859603669299126575">아트 갤러리 앨범</translation>
 <translation id="5859969039821714932">단축키를 사용할 수 없습니다. <ph name="KEY" />을 누르지 않은 상태로 새 단축키를 누르세요.</translation>
 <translation id="5860033963881614850">사용 안함</translation>
@@ -656,12 +663,12 @@
 <translation id="5916664084637901428">사용</translation>
 <translation id="5921506667911082617">{COUNT,plural, =1{파일 스캔이 완료되어 <ph name="LINK_BEGIN" /><ph name="FOLDER_NAME" /><ph name="LINK_END" />에 저장되었습니다.}other{파일 스캔이 완료되어 <ph name="LINK_BEGIN" /><ph name="FOLDER_NAME" /><ph name="LINK_END" />에 저장되었습니다.}}</translation>
 <translation id="5931523347251946569">파일을 찾을 수 없음</translation>
+<translation id="593880865674747800">이 스타일로 더 만들기</translation>
 <translation id="5939518447894949180">초기화</translation>
 <translation id="594552776027197022">임의의 키 쌍 생성</translation>
 <translation id="5946538341867151940">아직 연결되지 않았습니다. 이동통신사에서 맞춤 APN을 추천하는 경우 '+ 새 APN'을 선택하여 APN 정보를 입력합니다.</translation>
 <translation id="5972388717451707488">엔진 업데이트</translation>
 <translation id="5984145644188835034">기본 배경화면</translation>
-<translation id="6001235009374883388">APN은 유형 연결입니다.</translation>
 <translation id="6017514345406065928">녹색</translation>
 <translation id="6019566113895157499">키보드 단축키</translation>
 <translation id="6034694447310538551">월간 자동 재설정 사용 설정</translation>
@@ -679,6 +686,7 @@
 <translation id="6104112872696127344">스캔이 취소되었습니다.</translation>
 <translation id="6106186594183574873">완료하려면 이전 비밀번호를 입력하세요.</translation>
 <translation id="6108689792487843350">게이트웨이에 연결할 수 없습니다.</translation>
+<translation id="6108952804512516814">AI로 만들기</translation>
 <translation id="6112878310391905610">관리자가 관리하는 설정입니다.</translation>
 <translation id="6113701710518389813">위쪽 화살표</translation>
 <translation id="6117895505466548728"><ph name="TITLE" />, <ph name="NUMBER" />개 앨범 더 보기</translation>
@@ -692,6 +700,7 @@
 <translation id="6184793017104303157">B4</translation>
 <translation id="6189418609903030344">배터리 용량은 사용함에 따라 감소함</translation>
 <translation id="6191293864534840972">네임서버 형식이 잘못되었습니다.</translation>
+<translation id="6196607555925437199">다시 만들기</translation>
 <translation id="6205145102504628069">구름의 흐름</translation>
 <translation id="6213737986933151570">CDMA1XRTT</translation>
 <translation id="6223752125779001553">사용 가능한 스캐너 없음</translation>
@@ -746,6 +755,7 @@
 <translation id="6526200165918397681">배경화면 일치</translation>
 <translation id="6527081081771465939">알려지지 않은 Wi-Fi 보안 프로토콜입니다.</translation>
 <translation id="6535178685492749208">오프라인 상태입니다. 의견은 나중에 전송됩니다.</translation>
+<translation id="6557784757915238407">APN은 <ph name="ATTACH" /> 유형입니다.</translation>
 <translation id="65587193855025101">평판</translation>
 <translation id="6560196641871357166">생동감</translation>
 <translation id="6564646048574748301">실패 - 프린터에 연결할 수 없음</translation>
@@ -805,6 +815,7 @@
 <translation id="7059230779847288458">충전 중, 완료까지 <ph name="TIME_VALUE" /> 남음</translation>
 <translation id="7066538517128343186"><ph name="KEY" /> 키</translation>
 <translation id="7068619307603204412">기기 준비</translation>
+<translation id="7076851914315147928">배경화면 선택</translation>
 <translation id="708426984172631313">중지됨</translation>
 <translation id="7086440545492620869"><ph name="VALUE" /><ph name="DISPLAY_NAME" /></translation>
 <translation id="710028965487274708">실패 - 승인 실패</translation>
@@ -833,12 +844,12 @@
 <translation id="7216409898977639127">이동통신사</translation>
 <translation id="725133483556299729">이메일 선택</translation>
 <translation id="7271040990581020067">현재 스캐너를 사용하고 있습니다. 나중에 다시 시도해 주세요.</translation>
-<translation id="7273347807225967898">단축키를 사용할 수 없습니다. 특수키(Ctrl, Alt, Shift, 검색 또는 런처)를 사용하여 새로운 단축키를 누르세요.</translation>
 <translation id="7274587244503383581"><ph name="PRINTED_PAGES_NUMBER" />/<ph name="TOTAL_PAGES_NUMBER" /></translation>
 <translation id="7281657306185710294">살랑살랑 바람</translation>
 <translation id="7287310195820267359">배경화면 컬렉션</translation>
 <translation id="7297226631177386107">방화벽으로 인해 HTTPS 웹사이트에 연결할 수 없습니다.</translation>
 <translation id="7297726121602187087">진한 녹색</translation>
+<translation id="7301262279595293068">이 애플리케이션을 업데이트하는 동안 잠시 기다려 주세요.</translation>
 <translation id="7302860742311162920">ICCID</translation>
 <translation id="7305884605064981971">EDGE</translation>
 <translation id="7308203371573257315">Chromebook 도움말 포럼에서 전문가에게 문의하기</translation>
@@ -857,6 +868,7 @@
 <translation id="741244894080940828">변환</translation>
 <translation id="7415801143053185905">HTTPS 지연 시간 매우 높음</translation>
 <translation id="7427315641433634153">MSCHAP</translation>
+<translation id="7438298994385592770">이 APN을 사용 중지하거나 삭제할 수 없습니다. 사용 설정된 <ph name="ATTACH" /> APN이 사용 중지되거나 삭제되었는지 확인하세요.</translation>
 <translation id="7458970041932198923">아바타를 보고 설정하려면 네트워크에 연결하고 페이지를 새로고침하세요.</translation>
 <translation id="7469648432129124067">포털 감지됨</translation>
 <translation id="7481312909269577407">앞으로</translation>
@@ -867,7 +879,9 @@
 <translation id="7502658306369382406">IPv6 주소</translation>
 <translation id="7513770521371759388">하단</translation>
 <translation id="7515998400212163428">Android</translation>
+<translation id="7525067979554623046">만들기</translation>
 <translation id="7528507600602050979">도움말 콘텐츠를 사용할 수 없습니다.</translation>
+<translation id="753556296624075801">Google 제공</translation>
 <translation id="7535791657097741517">밝은 테마 사용 설정</translation>
 <translation id="7550715992156305117">진단 루틴</translation>
 <translation id="7551123448725492271">오디오 기기입니다.</translation>
@@ -906,9 +920,11 @@
 <translation id="7799817062559422778">밝은 모드</translation>
 <translation id="780301667611848630">취소</translation>
 <translation id="7805768142964895445">상태</translation>
+<translation id="7819831665603418705">템플릿 사용</translation>
 <translation id="7819857487979277519">PSK (WPA 또는 RSN)</translation>
 <translation id="7841134249932030522">어두운 모드 사용</translation>
 <translation id="7846634333498149051">키보드</translation>
+<translation id="7850847810298646851">Google AI 기반 배경화면</translation>
 <translation id="7856267634822906833">블루투스 터치스크린</translation>
 <translation id="7869143217755017858">어두운 모드 사용 중지</translation>
 <translation id="7881066108824108340">DNS</translation>
@@ -926,6 +942,7 @@
 <translation id="7971535376154084247">일반 컨트롤</translation>
 <translation id="7977800524392185497"><ph name="NETWORK_NAME" /> 네트워크에 참여하려면 설정으로 이동하세요.</translation>
 <translation id="7978412674231730200">비공개 키</translation>
+<translation id="7983597390787556680">{NUM_ROOL_APPS,plural, =1{"<ph name="APP_NAME_1" />" 앱이 자동으로 시작되었습니다}other{#개 앱이 자동으로 시작되었습니다}}</translation>
 <translation id="7994702968232966508">EAP 방식</translation>
 <translation id="8004582292198964060">브라우저</translation>
 <translation id="8017679124341497925">바로가기 수정됨</translation>
@@ -942,7 +959,6 @@
 <translation id="808894953321890993">비밀번호 변경</translation>
 <translation id="8094062939584182041">Google에서 이 문제에 관한 이메일을 보내도록 허용</translation>
 <translation id="8104083085214006426">안전하지 않은 개방형 네트워크를 사용하고 있습니다.</translation>
-<translation id="8111706652656628199">단축키를 사용할 수 없습니다. Shift 외 1개(ctrl, Alt, 검색 또는 런처)를 사용하여 새 단축키를 누르세요.</translation>
 <translation id="811820734797650957">(Android) 핑할 수 있는 게이트웨이</translation>
 <translation id="8129620843620772246"><ph name="TEMPERATURE_C" />°C</translation>
 <translation id="8132480444149501833">트래픽 카운터 요청</translation>
@@ -951,13 +967,13 @@
 <translation id="8151185429379586178">개발자 도구</translation>
 <translation id="8152370627892825"><ph name="DESCRIPTION" />, <ph name="ACCELERATOR_INFO" />.</translation>
 <translation id="8179976553408161302">Enter</translation>
-<translation id="8183974620058026102">접속</translation>
 <translation id="8206859287963243715">휴대전화</translation>
 <translation id="8208861521865154048">혜택</translation>
 <translation id="8226628635270268143">좋아하는 사진 및 앨범을 선택합니다.</translation>
 <translation id="8227119283605456246">파일 첨부</translation>
 <translation id="8230672074305416752">기본 네트워크 게이트웨이를 핑할 수 없습니다.</translation>
 <translation id="8246209727385807362">알 수 없는 이동통신사</translation>
+<translation id="8261506727792406068">삭제</translation>
 <translation id="8262870577632766028">1시간</translation>
 <translation id="827422111966801947">인디고</translation>
 <translation id="8286154143153872371">배경화면을 보려면 네트워크에 연결하고 페이지를 새로고침하세요.</translation>
@@ -968,6 +984,7 @@
 <translation id="8318753676953949627">이미지 없음</translation>
 <translation id="8329018942023753850">계산기 앱입니다</translation>
 <translation id="8336739000755212683">기기 계정 이미지 변경</translation>
+<translation id="8339024191194156249">자동 실행 자세히 알아보기</translation>
 <translation id="8347126826554447157"><ph name="SHORCTCUT1" /> 또는 <ph name="SHORCTCUT2" /></translation>
 <translation id="8347227221149377169">인쇄 작업</translation>
 <translation id="8349826889576450703">런처</translation>

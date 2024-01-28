@@ -16,6 +16,7 @@
 #include "components/autofill/core/browser/test_autofill_client.h"
 #include "components/autofill/core/browser/test_autofill_driver.h"
 #include "components/autofill/core/browser/test_browser_autofill_manager.h"
+#include "components/autofill/core/common/mojom/autofill_types.mojom-shared.h"
 #include "components/sync/test/test_sync_service.h"
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
@@ -37,7 +38,6 @@ class MockAutofillClient : public TestAutofillClient {
  public:
   MockAutofillClient();
   ~MockAutofillClient() override;
-  MOCK_METHOD(bool, IsTouchToFillCreditCardSupported, (), (override));
   MOCK_METHOD(bool,
               ShowTouchToFillCreditCard,
               (base::WeakPtr<TouchToFillDelegate>,
@@ -186,6 +186,11 @@ class AutofillMetricsBaseTest {
         {.trigger_source = AutofillTriggerSource::kPopup});
   }
 
+  void UndoAutofill(const FormData& form) {
+    autofill_manager().UndoAutofill(mojom::ActionPersistence::kFill, form,
+                                    form.fields.front());
+  }
+
   [[nodiscard]] FormData CreateEmptyForm() {
     FormData form;
     form.host_frame = test::MakeLocalFrameToken();
@@ -222,7 +227,8 @@ class AutofillMetricsBaseTest {
   }
 
   const bool is_in_any_main_frame_ = true;
-  base::test::TaskEnvironment task_environment_;
+  base::test::TaskEnvironment task_environment_{
+      base::test::TaskEnvironment::TimeSource::MOCK_TIME};
   test::AutofillUnitTestEnvironment autofill_test_environment_;
   std::unique_ptr<MockAutofillClient> autofill_client_;
   syncer::TestSyncService sync_service_;
@@ -231,7 +237,6 @@ class AutofillMetricsBaseTest {
  private:
   void CreateTestAutofillProfiles();
 
-  base::test::ScopedFeatureList scoped_feature_list_async_parse_form_;
   CreditCard credit_card_ = test::WithCvc(test::GetMaskedServerCard());
 };
 

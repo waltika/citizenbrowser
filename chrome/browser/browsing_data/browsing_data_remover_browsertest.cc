@@ -45,6 +45,7 @@
 #include "components/password_manager/core/browser/features/password_manager_features_util.h"
 #include "components/prefs/pref_service.h"
 #include "components/signin/core/browser/account_reconcilor.h"
+#include "components/signin/public/base/signin_switches.h"
 #include "components/signin/public/identity_manager/identity_manager.h"
 #include "components/signin/public/identity_manager/identity_test_utils.h"
 #include "components/sync/test/test_sync_service.h"
@@ -139,7 +140,9 @@ class BrowsingDataRemoverBrowserTest
     // WebSQL is disabled by default as of M119 (crbug/695592). Enable feature
     // in tests during deprecation trial and enterprise policy support.
     enabled_features.push_back(blink::features::kWebSQLAccess);
-    InitFeatureLists(std::move(enabled_features), {});
+    // TODO(b/314968275): Add tests for when UNO Desktop is enabled.
+    InitFeatureLists(std::move(enabled_features),
+                     /*disabled_features=*/{switches::kUnoDesktop});
   }
 
 #if BUILDFLAG(IS_CHROMEOS_LACROS)
@@ -825,23 +828,21 @@ class BrowsingDataRemoverWithPasswordsAccountStorageBrowserTest
     : public BrowsingDataRemoverBrowserTest {
  public:
   BrowsingDataRemoverWithPasswordsAccountStorageBrowserTest() {
-    features_.InitAndEnableFeature(
-        password_manager::features::kEnablePasswordsAccountStorage);
+    features_.InitWithFeatures(
+        /*enabled_features=*/{password_manager::features::
+                                  kEnablePasswordsAccountStorage},
+        /*disabled_features=*/{switches::kUnoDesktop});
   }
 
   void ClearSiteDataAndWait(
       const url::Origin& origin,
-      const absl::optional<net::CookiePartitionKey>& cookie_partition_key,
-      const absl::optional<blink::StorageKey>& storage_key,
+      const std::optional<net::CookiePartitionKey>& cookie_partition_key,
+      const std::optional<blink::StorageKey>& storage_key,
       const std::set<std::string>& storage_buckets_to_remove) {
     base::RunLoop loop;
     content::ClearSiteData(
-        /*browser_context_getter=*/base::BindRepeating(
-            [](content::BrowserContext* browser_context) {
-              return browser_context;
-            },
-            base::Unretained(GetBrowser()->profile())),
-        /*storage_partition_config=*/absl::nullopt,
+        GetBrowser()->profile()->GetWeakPtr(),
+        /*storage_partition_config=*/std::nullopt,
         /*origin=*/origin, content::ClearSiteDataTypeSet::All(),
         /*storage_buckets_to_remove=*/storage_buckets_to_remove,
         /*avoid_closing_connections=*/true,
@@ -929,26 +930,26 @@ IN_PROC_BROWSER_TEST_F(
 
   const struct {
     const url::Origin origin;
-    const absl::optional<net::CookiePartitionKey> cookie_partition_key;
-    const absl::optional<blink::StorageKey> storage_key;
+    const std::optional<net::CookiePartitionKey> cookie_partition_key;
+    const std::optional<blink::StorageKey> storage_key;
     bool expects_opted_in;
   } test_cases[] = {
       {
           url::Origin::Create(kFirstPartyURL),
-          absl::nullopt,
-          absl::nullopt,
+          std::nullopt,
+          std::nullopt,
           false,
       },
       {
           url::Origin::Create(kCrossSiteURL),
-          absl::nullopt,
-          absl::nullopt,
+          std::nullopt,
+          std::nullopt,
           true,
       },
       {
           url::Origin::Create(kFirstPartyURL),
           net::CookiePartitionKey::FromURLForTesting(kFirstPartyURL),
-          absl::nullopt,
+          std::nullopt,
           false,
       },
       {
@@ -961,7 +962,7 @@ IN_PROC_BROWSER_TEST_F(
       {
           url::Origin::Create(kFirstPartyURL),
           net::CookiePartitionKey::FromURLForTesting(kCrossSiteURL),
-          absl::nullopt,
+          std::nullopt,
           true,
       },
       {
@@ -1004,7 +1005,7 @@ class BrowsingDataRemoverStorageBucketsBrowserTest
 
   void ClearSiteDataAndWait(
       const url::Origin& origin,
-      const absl::optional<blink::StorageKey>& storage_key,
+      const std::optional<blink::StorageKey>& storage_key,
       const std::set<std::string>& storage_buckets_to_remove) {
     base::RunLoop loop;
     content::ClearSiteDataTypeSet clear_site_data_types =
@@ -1012,16 +1013,12 @@ class BrowsingDataRemoverStorageBucketsBrowserTest
     // We're clearing some storage buckets and not all of them.
     clear_site_data_types.Remove(content::ClearSiteDataType::kStorage);
     content::ClearSiteData(
-        /*browser_context_getter=*/base::BindRepeating(
-            [](content::BrowserContext* browser_context) {
-              return browser_context;
-            },
-            base::Unretained(GetBrowser()->profile())),
-        /*storage_partition_config=*/absl::nullopt,
+        GetBrowser()->profile()->GetWeakPtr(),
+        /*storage_partition_config=*/std::nullopt,
         /*origin=*/origin, clear_site_data_types,
         /*storage_buckets_to_remove=*/storage_buckets_to_remove,
         /*avoid_closing_connections=*/true,
-        /*cookie_partition_key=*/absl::nullopt,
+        /*cookie_partition_key=*/std::nullopt,
         /*storage_key=*/storage_key,
         /*partitioned_state_allowed_only=*/false,
         /*callback=*/loop.QuitClosure());

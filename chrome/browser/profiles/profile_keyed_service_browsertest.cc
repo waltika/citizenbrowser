@@ -4,6 +4,7 @@
 
 #include <sstream>
 
+#include "base/memory/raw_ptr.h"
 #include "base/ranges/algorithm.h"
 #include "base/test/scoped_feature_list.h"
 #include "base/test/to_vector.h"
@@ -28,6 +29,7 @@
 #include "pdf/buildflags.h"
 #include "printing/buildflags/buildflags.h"
 #include "third_party/blink/public/common/features.h"
+#include "ui/base/ui_base_features.h"
 
 #if !BUILDFLAG(IS_ANDROID)
 #include "chrome/common/companion/visual_query/features.h"
@@ -55,7 +57,7 @@ std::vector<KeyedServiceBaseFactory*> GetKeyedServiceBaseFactories() {
       BrowserContextDependencyManager::GetInstance();
   DependencyGraph& dependency_graph =
       dependency_manager->GetDependencyGraphForTesting();
-  std::vector<DependencyNode*> nodes;
+  std::vector<raw_ptr<DependencyNode, VectorExperimental>> nodes;
   bool success = dependency_graph.GetConstructionOrder(&nodes);
   DCHECK(success);
 
@@ -173,9 +175,10 @@ class ProfileKeyedServiceBrowserTest : public InProcessBrowserTest {
 #endif  // !BUILDFLAG(IS_ANDROID)
           blink::features::kBrowsingTopics,
           net::features::kTpcdMetadataGrants,
-          net::features::kTpcdSupportSettings,
+          net::features::kTpcdTrialSettings,
           features::kPersistentOriginTrials,
           features::kSidePanelPinning,
+          features::kChromeRefresh2023,
 #if BUILDFLAG(BUILD_WITH_TFLITE_LIB)
           omnibox::kOnDeviceTailModel,
           omnibox::kOnDeviceHeadProviderNonIncognito,
@@ -237,6 +240,9 @@ IN_PROC_BROWSER_TEST_F(ProfileKeyedServiceBrowserTest,
     "ExtensionURLLoaderFactory::BrowserContextShutdownNotifierFactory",
     "FederatedIdentityPermissionContext",
     "FeedbackPrivateAPI",
+#if BUILDFLAG(IS_CHROMEOS_LACROS)
+    "FileChangeServiceBridge",
+#endif // BUILDFLAG(IS_CHROMEOS_LACROS)
     "FileSystemAccessPermissionContext",
     "GeneratedPrefs",
     "HeavyAdService",
@@ -312,7 +318,6 @@ IN_PROC_BROWSER_TEST_F(ProfileKeyedServiceBrowserTest,
 #if BUILDFLAG(ENABLE_EXTENSIONS)
     "ImageWriterControllerLacros",
 #endif
-    "ManualTestHeartbeatEvent",
     "MediaNotificationService",
     "SessionStateChangedEventDispatcher",
 #else // !BUILDFLAG(IS_CHROMEOS_LACROS)
@@ -335,6 +340,9 @@ IN_PROC_BROWSER_TEST_F(ProfileKeyedServiceBrowserTest,
 #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN)
     "AppShortcutManager",
 #endif  // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN)
+#if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)|| BUILDFLAG(IS_WIN)
+    "ManualTestHeartbeatEvent",
+#endif // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)|| BUILDFLAG(IS_WIN)
     "AppTerminationObserver",
     "AppWindowRegistry",
     "AudioAPI",
@@ -397,6 +405,9 @@ IN_PROC_BROWSER_TEST_F(ProfileKeyedServiceBrowserTest,
     "ExtensionWebUIOverrideRegistrar",
     "FederatedIdentityPermissionContext",
     "FeedbackPrivateAPI",
+#if BUILDFLAG(IS_CHROMEOS_LACROS)
+    "FileChangeServiceBridge",
+#endif // BUILDFLAG(IS_CHROMEOS_LACROS)
     "FileSystemAccessPermissionContext",
     "FirstPartySetsPolicyService",
     "FontPrefChangeNotifier",
@@ -421,9 +432,6 @@ IN_PROC_BROWSER_TEST_F(ProfileKeyedServiceBrowserTest,
     "InstallVerifier",
     "InstanceIDProfileService",
     "InvalidationService",
-#if BUILDFLAG(ENABLE_SUPERVISED_USERS)
-    "KidsChromeManagementClient",
-#endif  // BUILDFLAG(ENABLE_SUPERVISED_USERS)
     "LanguageSettingsPrivateDelegate",
     "LazyBackgroundTaskQueue",
 #if BUILDFLAG(ENABLE_SUPERVISED_USERS)
@@ -478,7 +486,6 @@ IN_PROC_BROWSER_TEST_F(ProfileKeyedServiceBrowserTest,
     "ProcessMap",
     "ProcessesAPI",
     "ProfileNetworkContextService",
-    "ProfileThemeUpdateServiceFactory",
     "ProtocolHandlerRegistry",
     "RealtimeReportingClient",
     "RendererStartupHelper",
@@ -492,6 +499,7 @@ IN_PROC_BROWSER_TEST_F(ProfileKeyedServiceBrowserTest,
     "SafeBrowsingMetricsCollector",
     "SafeBrowsingPrivateEventRouter",
     "SafeBrowsingTailoredSecurityService",
+    "SearchEngineChoiceServiceFactory",
     "SendTabToSelfClientService",
     "SendTabToSelfSyncService",
     "SerialConnectionManager",
@@ -520,7 +528,7 @@ IN_PROC_BROWSER_TEST_F(ProfileKeyedServiceBrowserTest,
     "TemplateURLServiceFactory",
     "ThemeService",
     "ToolbarActionsModel",
-    "TpcdSupportService",
+    "TpcdTrialService",
     "TrackingProtectionSettings",
     "TranslateRanker",
     "TriggeredProfileResetter",
@@ -573,6 +581,7 @@ IN_PROC_BROWSER_TEST_F(ProfileKeyedServiceBrowserTest,
     "AutocompleteControllerEmitter",
     "AutofillInternalsService",
     "CanMakePaymentQuery",
+    "DataControlsRulesService",
     "LocalPresentationManager",
     "OmniboxInputWatcher",
     "OmniboxSuggestionsWatcher",
@@ -616,6 +625,7 @@ IN_PROC_BROWSER_TEST_F(ProfileKeyedServiceBrowserTest,
     // default, however their creation is still possible.
     "AutocompleteControllerEmitter",
     "CanMakePaymentQuery",
+    "DataControlsRulesService",
     "OmniboxInputWatcher",
     "OmniboxSuggestionsWatcher",
     "PolicyBlocklist",

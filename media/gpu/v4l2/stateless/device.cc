@@ -260,6 +260,12 @@ struct timeval Buffer::GetTimeval() const {
   return time_val_;
 }
 
+uint64_t Buffer::GetTimeAsFrameID() const {
+  DCHECK_EQ(time_val_.tv_sec, 0);
+
+  return time_val_.tv_usec;
+}
+
 bool Buffer::CopyDataIn(const void* data, size_t length) {
   DVLOGF(4) << MappedAddress(0) << " : " << data << " : " << length;
 
@@ -286,6 +292,11 @@ BufferFormat::BufferFormat(Fourcc fourcc,
 BufferFormat::BufferFormat(const BufferFormat& other) = default;
 
 BufferFormat::~BufferFormat() {}
+
+std::string BufferFormat::ToString() const {
+  return std::string("(" + fourcc.ToString() + " : " + resolution.ToString() +
+                     " : " + BufferTypeString(buffer_type) + ")");
+}
 
 void Device::Close() {
   device_fd_.reset();
@@ -405,10 +416,37 @@ bool Device::StreamOff(BufferType type) {
   return true;
 }
 
+// VIDIOC_EXPBUF
+std::vector<base::ScopedFD> Device::ExportAsDMABUF(int index,
+                                                   uint32_t num_planes) {
+  DVLOGF(4);
+
+  std::vector<base::ScopedFD> dmabuf_fds;
+  for (uint32_t i = 0; i < num_planes; ++i) {
+    struct v4l2_exportbuffer expbuf;
+    memset(&expbuf, 0, sizeof(expbuf));
+    expbuf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+    expbuf.index = index;
+    expbuf.plane = i;
+    expbuf.flags = O_CLOEXEC;
+    if (IoctlDevice(VIDIOC_EXPBUF, &expbuf) != 0) {
+      DVLOGF(1) << "VIDIOC_EXPBUF failed to export " << i << " of "
+                << num_planes << " planes";
+      dmabuf_fds.clear();
+      break;
+    }
+
+    dmabuf_fds.push_back(base::ScopedFD(expbuf.fd));
+  }
+
+  return dmabuf_fds;
+}
+
 // VIDIOC_REQBUFS
 absl::optional<uint32_t> Device::RequestBuffers(BufferType type,
                                                 MemoryType memory,
-                                                size_t count) {
+                                                uint32_t count) {
+  DVLOGF(4);
   struct v4l2_requestbuffers reqbufs;
   memset(&reqbufs, 0, sizeof(reqbufs));
 
@@ -580,8 +618,7 @@ bool Device::OpenDevice() {
   // we will just fail to open immediately.
   for (int i = 0; i < 10; ++i) {
     const auto path = kDecoderDevicePrefix + base::NumberToString(i);
-    device_fd_.reset(
-        HANDLE_EINTR(open(path.c_str(), O_RDWR | O_NONBLOCK | O_CLOEXEC, 0)));
+    device_fd_.reset(HANDLE_EINTR(open(path.c_str(), O_RDWR | O_CLOEXEC, 0)));
     if (!device_fd_.is_valid()) {
       VPLOGF(2) << "Failed to open media device: " << path;
       continue;

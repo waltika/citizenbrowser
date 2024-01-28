@@ -20,7 +20,9 @@ class FakeBoundSessionCookieRefreshService
 
   void SimulateUnblockRequest();
   bool IsRequestBlocked();
-  void SimulateOnBoundSessionTerminated();
+  void SimulateOnBoundSessionTerminated(
+      const GURL& site,
+      const base::flat_set<std::string>& bound_cookie_names);
 
   // BoundSessionCookieRefreshService:
   void Initialize() override {}

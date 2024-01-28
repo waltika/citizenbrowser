@@ -84,7 +84,7 @@ async function waitQuickViewClose(appId) {
 
   function checkQuickViewElementsDisplayNone(elements) {
     chrome.test.assertTrue(Array.isArray(elements));
-    if (elements.length == 0 || elements[0].styles.display !== 'none') {
+    if (elements.length === 0 || elements[0].styles.display !== 'none') {
       return pending(caller, 'Waiting for Quick View to close.');
     }
   }
@@ -453,6 +453,7 @@ testcase.openQuickViewRemovablePartitions = async () => {
   await directoryTree.navigateToPath('/Drive Label');
 
   // Wait for 2 removable partitions to appear in the directory tree.
+  await directoryTree.expandTreeItemByLabel('Drive Label');
   await directoryTree.waitForChildItemsCountByLabel('Drive Label', 2);
 
   // Click to open the first partition.
@@ -3290,7 +3291,7 @@ testcase.openQuickViewUmaViaSelectionMenu = async () => {
   // Wait until the selection menu is visible.
   function checkElementsDisplayVisible(elements) {
     chrome.test.assertTrue(Array.isArray(elements));
-    if (elements.length == 0 || elements[0].styles.display === 'none') {
+    if (elements.length === 0 || elements[0].styles.display === 'none') {
       return pending(caller, 'Waiting for Selection Menu to be visible.');
     }
   }
@@ -3372,7 +3373,7 @@ testcase.openQuickViewUmaViaSelectionMenuKeyboard = async () => {
   // Wait until the selection menu is visible.
   function checkElementsDisplayVisible(elements) {
     chrome.test.assertTrue(Array.isArray(elements));
-    if (elements.length == 0 || elements[0].styles.display === 'none') {
+    if (elements.length === 0 || elements[0].styles.display === 'none') {
       return pending(caller, 'Waiting for Selection Menu to be visible.');
     }
   }

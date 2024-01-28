@@ -77,11 +77,8 @@ HistoryClustersPageHandlerV2::HistoryClustersPageHandlerV2(
         CartServiceFactory::GetForProfile(profile_));
   }
 
-  if (base::FeatureList::IsEnabled(
-          ntp_features::kNtpHistoryClustersModuleDiscounts)) {
     discount_processor_ = std::make_unique<DiscountProcessor>(
         commerce::ShoppingServiceFactory::GetForBrowserContext(profile_));
-  }
 }
 
 HistoryClustersPageHandlerV2::~HistoryClustersPageHandlerV2() {
@@ -180,14 +177,6 @@ void HistoryClustersPageHandlerV2::GetCartForCluster(
 void HistoryClustersPageHandlerV2::GetDiscountsForCluster(
     history_clusters::mojom::ClusterPtr cluster,
     GetDiscountsForClusterCallback callback) {
-  if (!base::FeatureList::IsEnabled(
-          ntp_features::kNtpHistoryClustersModuleDiscounts)) {
-    std::move(callback).Run(
-        base::flat_map<
-            GURL, std::vector<
-                      ntp::history_clusters::discount::mojom::DiscountPtr>>());
-    return;
-  }
   DCHECK(discount_processor_);
   discount_processor_->GetDiscountsForCluster(std::move(cluster),
                                               std::move(callback));
@@ -206,6 +195,10 @@ void HistoryClustersPageHandlerV2::RecordClick(int64_t cluster_id) {
   ranking_metrics_logger_->SetClicked(cluster_id);
 }
 
+void HistoryClustersPageHandlerV2::RecordDisabled(int64_t cluster_id) {
+  ranking_metrics_logger_->SetDisabled(cluster_id);
+}
+
 void HistoryClustersPageHandlerV2::RecordLayoutTypeShown(
     ntp::history_clusters::mojom::LayoutType layout_type,
     int64_t cluster_id) {
@@ -213,6 +206,7 @@ void HistoryClustersPageHandlerV2::RecordLayoutTypeShown(
 }
 
 void HistoryClustersPageHandlerV2::UpdateClusterVisitsInteractionState(
+    int64_t cluster_id,
     const std::vector<history_clusters::mojom::URLVisitPtr> visits,
     const history_clusters::mojom::InteractionState state) {
   if (visits.empty()) {
@@ -236,14 +230,19 @@ void HistoryClustersPageHandlerV2::UpdateClusterVisitsInteractionState(
       base::UmaHistogramEnumeration(
           kDismissReasonMetricName,
           NTPHistoryClustersDismissReason::kNotInterested);
+      ranking_metrics_logger_->SetDismissed(cluster_id);
       break;
     case history_clusters::mojom::InteractionState::kDone:
       base::UmaHistogramEnumeration(kDismissReasonMetricName,
                                     NTPHistoryClustersDismissReason::kDone);
+      ranking_metrics_logger_->SetDismissed(cluster_id);
+      ranking_metrics_logger_->SetMarkedAsDone(cluster_id);
       break;
     case history_clusters::mojom::InteractionState::kDefault:
-      // Do nothing. Can happen when performing an 'Undo' action on the client,
+      // Can happen when performing an 'Undo' action on the client,
       // which restores a cluster to the Default state.
+      ranking_metrics_logger_->SetDismissed(cluster_id, false);
+      ranking_metrics_logger_->SetMarkedAsDone(cluster_id, false);
       break;
   }
 }

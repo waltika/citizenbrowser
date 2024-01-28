@@ -311,6 +311,10 @@ void AXRelationCache::UpdateReverseOwnsRelations(Element& relation_source) {
 // root, it discovers that any other two objects are repeated in the ancestor
 // chain, this is unexpected, and results in the CHECK(false) condition.
 static bool ContainsCycle(AXObject* owner, AXObject* child) {
+  if (FlatTreeTraversal::IsDescendantOf(*owner->GetNode(), *child->GetNode())) {
+    // A DOM descendant cannot own its ancestor.
+    return true;
+  }
   HashSet<AXID> visited;
   // Walk up the parents of the owner object, make sure that this child
   // doesn't appear there, as that would create a cycle.
@@ -590,7 +594,7 @@ void AXRelationCache::UpdateAriaOwnsWithCleanLayout(AXObject* owner,
   } else if (element && element->HasExplicitlySetAttrAssociatedElements(
                             html_names::kAriaOwnsAttr)) {
     UpdateAriaOwnsFromAttrAssociatedElementsWithCleanLayout(
-        owner, *element->GetElementArrayAttribute(html_names::kAriaOwnsAttr),
+        owner, *element->GetAttrAssociatedElements(html_names::kAriaOwnsAttr),
         owned_children, force);
   } else {
     // Figure out the ids that actually correspond to children that exist
@@ -723,7 +727,7 @@ AXObject* AXRelationCache::GetOrCreateAriaOwnerFor(Node* node, AXObject* obj) {
 #if DCHECK_IS_ON()
   if (obj)
     DCHECK(!obj->IsDetached());
-  AXObject* obj_for_node = object_cache_->SafeGet(node);
+  AXObject* obj_for_node = object_cache_->Get(node);
   DCHECK(!obj || obj_for_node == obj)
       << "Object and node did not match:"
       << "\n* node = " << node << "\n* obj = " << obj->ToString(true, true)
@@ -741,6 +745,12 @@ AXObject* AXRelationCache::GetOrCreateAriaOwnerFor(Node* node, AXObject* obj) {
 
   for (AXObject* related : related_sources) {
     if (related) {
+      bool is_valid = related_target
+                          ? IsValidOwnsRelation(related, related_target)
+                          : IsValidOwner(related);
+      if (!is_valid) {
+        continue;
+      }
       owner_ids_to_update_.insert(related->AXObjectID());
       object_cache_->MarkAXObjectDirtyWithCleanLayout(related);
     }

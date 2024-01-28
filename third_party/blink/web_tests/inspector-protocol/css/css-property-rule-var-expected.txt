@@ -1,4 +1,4 @@
-Test that values of property rules are computed correctly in the presence of var()
+Test that values of registered properties are validated correctly in the presence of var()
 Computed value:
 {
     name : --len
@@ -78,6 +78,43 @@ Validated declarations:
     }
     [7] : {
         name : --color
+        value : var(--in)
+    }
+]
+[
+    [0] : {
+        disabled : false
+        implicit : false
+        name : --in
+        range : {
+            endColumn : 14
+            endLine : 29
+            startColumn : 4
+            startLine : 29
+        }
+        text : --in: 1px;
+        value : 1px
+    }
+    [1] : {
+        disabled : false
+        implicit : false
+        name : --len
+        parsedOk : true
+        range : {
+            endColumn : 21
+            endLine : 30
+            startColumn : 4
+            startLine : 30
+        }
+        text : --len: var(--in);
+        value : var(--in)
+    }
+    [2] : {
+        name : --in
+        value : 1px
+    }
+    [3] : {
+        name : --len
         value : var(--in)
     }
 ]
@@ -186,4 +223,92 @@ Keyframes:
         ]
     }
 ]
+Editing a rule:
+[
+    [0] : {
+        disabled : false
+        implicit : false
+        name : --v
+        range : {
+            endColumn : 16
+            endLine : 1
+            startColumn : 7
+            startLine : 1
+        }
+        text : --v: 5px;
+        value : 5px
+    }
+    [1] : {
+        disabled : false
+        implicit : false
+        name : --len
+        parsedOk : true
+        range : {
+            endColumn : 33
+            endLine : 1
+            startColumn : 17
+            startLine : 1
+        }
+        text : --len: var(--v);
+        value : var(--v)
+    }
+    [2] : {
+        name : --v
+        value : 5px
+    }
+    [3] : {
+        name : --len
+        value : var(--v)
+    }
+]
+Adding a rule:
+{
+    cssProperties : [
+        [0] : {
+            disabled : false
+            implicit : false
+            name : --v
+            range : {
+                endColumn : 17
+                endLine : 1
+                startColumn : 8
+                startLine : 1
+            }
+            text : --v: 5px;
+            value : 5px
+        }
+        [1] : {
+            disabled : false
+            implicit : false
+            name : --len
+            parsedOk : true
+            range : {
+                endColumn : 34
+                endLine : 1
+                startColumn : 18
+                startLine : 1
+            }
+            text : --len: var(--v);
+            value : var(--v)
+        }
+        [2] : {
+            name : --v
+            value : 5px
+        }
+        [3] : {
+            name : --len
+            value : var(--v)
+        }
+    ]
+    cssText :  --v: 5px; --len: var(--v); 
+    range : {
+        endColumn : 35
+        endLine : 1
+        startColumn : 7
+        startLine : 1
+    }
+    shorthandEntries : [
+    ]
+    styleSheetId : <string>
+}
 

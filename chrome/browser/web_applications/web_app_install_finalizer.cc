@@ -42,7 +42,6 @@
 #include "chrome/browser/web_applications/web_app_install_manager.h"
 #include "chrome/browser/web_applications/web_app_install_utils.h"
 #include "chrome/browser/web_applications/web_app_origin_association_manager.h"
-#include "chrome/browser/web_applications/web_app_prefs_utils.h"
 #include "chrome/browser/web_applications/web_app_provider.h"
 #include "chrome/browser/web_applications/web_app_registrar.h"
 #include "chrome/browser/web_applications/web_app_registry_update.h"
@@ -243,7 +242,7 @@ void WebAppInstallFinalizer::OnOriginAssociationValidated(
   if (provider_->policy_manager().IsWebAppInDisabledList(app_id) &&
       web_app->chromeos_data().has_value() &&
       !web_app->chromeos_data()->is_disabled) {
-    absl::optional<WebAppChromeOsData> cros_data = web_app->chromeos_data();
+    std::optional<WebAppChromeOsData> cros_data = web_app->chromeos_data();
     cros_data->is_disabled = true;
     web_app->SetWebAppChromeOsData(std::move(cros_data));
   }
@@ -411,7 +410,7 @@ void WebAppInstallFinalizer::UpdateIsolationDataAndResetPendingUpdateInfo(
       location, version, controlled_frame_partitions,
       // Always reset `pending_update_info`, because reaching this point means
       // that an install or update just succeeded.
-      /*pending_update_info=*/absl::nullopt));
+      /*pending_update_info=*/std::nullopt));
 }
 
 void WebAppInstallFinalizer::SetWebAppManifestFieldsAndWriteData(

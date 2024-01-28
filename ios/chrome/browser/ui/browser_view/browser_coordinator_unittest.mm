@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #import "ios/chrome/browser/ui/browser_view/browser_coordinator.h"
+#import "ios/chrome/browser/ui/browser_view/browser_coordinator+Testing.h"
 
 #import "base/files/file_util.h"
 #import "base/test/scoped_feature_list.h"
@@ -18,6 +19,7 @@
 #import "ios/chrome/browser/ntp/model/new_tab_page_tab_helper.h"
 #import "ios/chrome/browser/prerender/model/prerender_service_factory.h"
 #import "ios/chrome/browser/search_engines/model/template_url_service_factory.h"
+#import "ios/chrome/browser/segmentation_platform/model/segmentation_platform_service_factory.h"
 #import "ios/chrome/browser/shared/coordinator/scene/scene_state.h"
 #import "ios/chrome/browser/shared/model/browser/test/test_browser.h"
 #import "ios/chrome/browser/shared/model/browser_state/test_chrome_browser_state.h"
@@ -35,7 +37,6 @@
 #import "ios/chrome/browser/sync/model/sync_error_browser_agent.h"
 #import "ios/chrome/browser/tab_insertion/model/tab_insertion_browser_agent.h"
 #import "ios/chrome/browser/tabs/model/tab_helper_util.h"
-#import "ios/chrome/browser/ui/browser_view/browser_coordinator+private.h"
 #import "ios/chrome/browser/ui/browser_view/browser_view_controller.h"
 #import "ios/chrome/browser/ui/fullscreen/fullscreen_controller.h"
 #import "ios/chrome/browser/ui/fullscreen/fullscreen_model.h"
@@ -94,6 +95,12 @@ class BrowserCoordinatorTest : public PlatformTest {
     test_cbs_builder.AddTestingFactory(
         AuthenticationServiceFactory::GetInstance(),
         base::BindRepeating(AuthenticationServiceFactory::GetDefaultFactory()));
+    test_cbs_builder.AddTestingFactory(
+        segmentation_platform::SegmentationPlatformServiceFactory::
+            GetInstance(),
+        base::BindRepeating(
+            segmentation_platform::SegmentationPlatformServiceFactory::
+                GetDefaultFactory()));
 
     chrome_browser_state_ = test_cbs_builder.Build();
     browser_ = std::make_unique<TestBrowser>(chrome_browser_state_.get(),
@@ -338,16 +345,17 @@ TEST_F(BrowserCoordinatorTest, NewTabPageTabHelperDelegate) {
 
 // Tests that BrowserCoordinator starts and stops the SaveToPhotosCoordinator
 // properly when SaveToPhotosCommands are issued.
+
 TEST_F(BrowserCoordinatorTest, StartsAndStopsSaveToPhotosCoordinator) {
-  // Mock the SaveToPhotosCoordinator class
+  // Mock the SaveToPhotosCoordinator class.
   id mockSaveToPhotosCoordinator =
       OCMStrictClassMock([SaveToPhotosCoordinator class]);
 
-  // Start the BrowserCoordinator
+  // Start the BrowserCoordinator.
   BrowserCoordinator* browser_coordinator = GetBrowserCoordinator();
   [browser_coordinator start];
 
-  // At rest, check the SaveToPhotosCoordinator is nil
+  // At rest, check the SaveToPhotosCoordinator is nil.
   EXPECT_EQ(browser_coordinator.saveToPhotosCoordinator, nil);
 
   CommandDispatcher* dispatcher = browser_->GetCommandDispatcher();

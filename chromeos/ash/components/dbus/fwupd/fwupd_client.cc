@@ -130,7 +130,7 @@ class FwupdClientImpl : public FwupdClient {
       dbus::MethodCall method_call(kFwupdServiceInterface,
                                    kFwupdSetFeatureFlagsMethodName);
       dbus::MessageWriter writer(&method_call);
-      writer.AppendInt64(kRequestsFeatureFlag);
+      writer.AppendUint64(kRequestsFeatureFlag);
 
       proxy_->CallMethodWithErrorResponse(
           &method_call, dbus::ObjectProxy::TIMEOUT_USE_DEFAULT,
@@ -286,11 +286,11 @@ class FwupdClientImpl : public FwupdClient {
 
       const std::string* version = dict.FindString("Version");
       const std::string* description = dict.FindString("Description");
-      absl::optional<int> priority = dict.FindInt("Urgency");
+      std::optional<int> priority = dict.FindInt("Urgency");
       const std::string* uri = dict.FindString("Uri");
       const std::string* checksum = dict.FindString("Checksum");
       const std::string* remote_id = dict.FindString("RemoteId");
-      absl::optional<bool> trusted_report = dict.FindBool("TrustFlags");
+      std::optional<bool> trusted_report = dict.FindBool("TrustFlags");
       bool has_trusted_report =
           !base::FeatureList::IsEnabled(
               features::kUpstreamTrustedReportsFirmware) ||
@@ -382,7 +382,7 @@ class FwupdClientImpl : public FwupdClient {
         return;
       }
 
-      absl::optional<bool> flags = dict.FindBool("Flags");
+      std::optional<bool> flags = dict.FindBool("Flags");
       const std::string* name = dict.FindString("Name");
       if (flags.has_value() && flags.value()) {
         if (name) {
@@ -453,7 +453,7 @@ class FwupdClientImpl : public FwupdClient {
     }
   }
 
-  raw_ptr<dbus::ObjectProxy, ExperimentalAsh> proxy_ = nullptr;
+  raw_ptr<dbus::ObjectProxy> proxy_ = nullptr;
 
   // Note: This should remain the last member so it'll be destroyed and
   // invalidate its weak pointers before any other members are destroyed.

@@ -123,15 +123,37 @@ void TabSearchBubbleHost::OnWidgetDestroying(views::Widget* widget) {
   pressed_lock_.reset();
 }
 
+void TabSearchBubbleHost::OnOrganizationAccepted(const Browser* browser) {
+  if (browser != GetBrowser()) {
+    return;
+  }
+  // Don't show IPH if the user already has other tab groups.
+  if (browser->tab_strip_model()->group_model()->ListTabGroups().size() > 1) {
+    return;
+  }
+  BrowserFeaturePromoController* const promo_controller =
+      BrowserFeaturePromoController::GetForView(button_);
+  if (promo_controller) {
+    promo_controller->MaybeShowPromo(
+        feature_engagement::kIPHTabOrganizationSuccessFeature);
+  }
+}
+
 void TabSearchBubbleHost::OnUserInvokedFeature(const Browser* browser) {
   if (browser == GetBrowser()) {
-    profile_->GetPrefs()->SetInteger(tab_search_prefs::kTabSearchTabIndex, 1);
-    ShowTabSearchBubble(false);
+    const int tab_organization_tab_index = 1;
+    ShowTabSearchBubble(false, tab_organization_tab_index);
   }
 }
 
 bool TabSearchBubbleHost::ShowTabSearchBubble(
-    bool triggered_by_keyboard_shortcut) {
+    bool triggered_by_keyboard_shortcut,
+    int tab_index) {
+  if (tab_index >= 0) {
+    profile_->GetPrefs()->SetInteger(tab_search_prefs::kTabSearchTabIndex,
+                                     tab_index);
+  }
+
   if (webui_bubble_manager_.GetBubbleWidget())
     return false;
 
@@ -143,7 +165,7 @@ bool TabSearchBubbleHost::ShowTabSearchBubble(
         feature_engagement::kIPHTabSearchFeature,
         user_education::EndFeaturePromoReason::kFeatureEngaged);
 
-  absl::optional<gfx::Rect> anchor;
+  std::optional<gfx::Rect> anchor;
   if (button_->GetWidget()->IsFullscreen() && !button_->IsDrawn()) {
     // Use a screen-coordinate anchor rect when the tabstrip's search button is
     // not drawn, and potentially positioned offscreen, in fullscreen mode.

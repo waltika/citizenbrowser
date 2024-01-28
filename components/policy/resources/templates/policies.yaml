@@ -1082,11 +1082,11 @@ policies:
   1081: DeviceSystemAecEnabled
   1082: HttpAllowlist
   1083: HttpsUpgradesEnabled
-  1084: RealTimeDownloadProtectionRequestAllowed
+  1084: ''
   1085: MandatoryExtensionsForIncognitoNavigation
   1086: CredentialProviderPromoEnabled
   1087: RemoteAccessHostAllowEnterpriseRemoteSupportConnections
-  1088: ClientSidePhishingProtectionAllowed
+  1088: ''
   1089: UserAvatarCustomizationSelectorsEnabled
   1090: DefaultThirdPartyStoragePartitioningSetting
   1091: ThirdPartyStoragePartitioningBlockedForOrigins
@@ -1096,7 +1096,7 @@ policies:
   1095: InsecureHashesInTLSHandshakesEnabled
   1096: DeviceLoginScreenGeolocationAccessLevel
   1097: DeviceReportNetworkEvents
-  1098: SafeBrowsingExtensionProtectionAllowed
+  1098: ''
   1099: ShowDisplaySizeScreenEnabled
   1100: EssentialSearchEnabled
   1101: LegacyTechReportAllowlist
@@ -1184,8 +1184,17 @@ policies:
   1183: DeskAPIDeskSaveAndShareEnabled
   1184: OopPrintDriversAllowed
   1185: DeviceHardwareVideoDecodingEnabled
-  1186: TabOrganizationAllowed
-  1187: ComposeAllowed
+  1186: TabOrganizerSettings
+  1187: HelpMeWriteSettings
+  1188: CreateThemesSettings
+  1189: ListenToThisPageEnabled
+  1190: AlwaysOnVpnPreConnectUrlAllowlist
+  1191: CACertificates
+  1192: CADistrustedCertificates
+  1193: CAHintCertificates
+  1194: DeviceLoginScreenTouchVirtualKeyboardEnabled
+  1195: DeviceExtendedAutoUpdateEnabled
+  1196: CAPlatformIntegrationEnabled
 atomic_groups:
   1: Homepage
   2: RemoteAccess

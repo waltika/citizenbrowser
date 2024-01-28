@@ -84,11 +84,10 @@ public class RequestDesktopUtils {
     private static final String ENABLED_GROUP_SUFFIX = "_Enabled";
     private static final String CONTROL_GROUP_SUFFIX = "_Control";
     private static final String DEFAULT_ON_GROUP_NAME_PREFIX = "DefaultOn_";
-    private static final String OPT_IN_GROUP_NAME_PREFIX = "OptIn_";
     // This is used to lookup the name of a feature used to track a cohort of users who triggered
     // the global default experiment, or would have triggered for control groups.
     private static final String PARAM_GLOBAL_DEFAULTS_COHORT_ID = "global_setting_cohort_id";
-    private static final int DEFAULT_GLOBAL_DEFAULTS_COHORT_ID = 0;
+    private static final int DEFAULT_GLOBAL_DEFAULTS_COHORT_ID = 1;
     private static final String GLOBAL_DEFAULTS_COHORT_NAME = "RequestDesktopSiteDefaultsCohort";
     private static final String GLOBAL_DEFAULTS_ENABLED_COHORT_NAME =
             "RequestDesktopSiteDefaultsEnabledCohort";
@@ -98,7 +97,7 @@ public class RequestDesktopUtils {
 
     static final String PARAM_GLOBAL_SETTING_DEFAULT_ON_DISPLAY_SIZE_THRESHOLD_INCHES =
             "default_on_display_size_threshold_inches";
-    static final double DEFAULT_GLOBAL_SETTING_DEFAULT_ON_DISPLAY_SIZE_THRESHOLD_INCHES = 12.0;
+    static final double DEFAULT_GLOBAL_SETTING_DEFAULT_ON_DISPLAY_SIZE_THRESHOLD_INCHES = 10.0;
     static final String PARAM_GLOBAL_SETTING_DEFAULT_ON_ON_LOW_END_DEVICES =
             "default_on_on_low_end_devices";
     static final String PARAM_GLOBAL_SETTING_DEFAULT_ON_ON_X86_DEVICES =
@@ -109,7 +108,7 @@ public class RequestDesktopUtils {
             "default_on_smallest_screen_width";
     static final int DEFAULT_GLOBAL_SETTING_DEFAULT_ON_SMALLEST_SCREEN_WIDTH_THRESHOLD_DP = 600;
     static final String PARAM_GLOBAL_SETTING_DEFAULT_ON_MEMORY_LIMIT = "default_on_memory_limit";
-    static final int DEFAULT_GLOBAL_SETTING_DEFAULT_ON_MEMORY_LIMIT_THRESHOLD_MB = 0;
+    static final int DEFAULT_GLOBAL_SETTING_DEFAULT_ON_MEMORY_LIMIT_THRESHOLD_MB = 6500;
     static final String PARAM_SHOW_MESSAGE_ON_GLOBAL_SETTING_DEFAULT_ON =
             "show_message_on_default_on";
     static final String PARAM_GLOBAL_SETTING_DEFAULT_ON_MANUFACTURER_LIST =
@@ -149,16 +148,13 @@ public class RequestDesktopUtils {
     }
 
     /**
-     * Records the metrics associated with changing the user agent by user agent.
+     * Records the metrics associated with changing the user agent by user.
+     *
      * @param isDesktop True if the user agent is the desktop.
      * @param tab The current activity {@link Tab}.
      */
     public static void recordUserChangeUserAgent(boolean isDesktop, @Nullable Tab tab) {
-        if (ChromeFeatureList.sAppMenuMobileSiteOption.isEnabled() && !isDesktop) {
-            RecordUserAction.record("MobileMenuRequestMobileSite");
-        } else {
-            RecordUserAction.record("MobileMenuRequestDesktopSite");
-        }
+        RecordUserAction.record("MobileMenuRequestDesktopSite");
 
         RecordHistogram.recordBooleanHistogram(
                 "Android.RequestDesktopSite.UserSwitchToDesktop", isDesktop);
@@ -329,7 +325,7 @@ public class RequestDesktopUtils {
 
         // Check whether default-on for x86 devices is disabled.
         if (!ChromeFeatureList.getFieldTrialParamByFeatureAsBoolean(
-                        feature, PARAM_GLOBAL_SETTING_DEFAULT_ON_ON_X86_DEVICES, true)
+                        feature, PARAM_GLOBAL_SETTING_DEFAULT_ON_ON_X86_DEVICES, false)
                 && !isCpuArchitectureArm()) {
             updateNoLongerInCohort();
             return false;
@@ -434,9 +430,10 @@ public class RequestDesktopUtils {
                 String.format(
                         Locale.US,
                         message
-                                + ", silently reporting crashes for debugging, displaySizeInInches: %.1f "
-                                + "displayWidth: %d displayHeight: %d xdpi: %.1f ydpi: %.1f densityDpi: %d "
-                                + "screenWidthDp: %d screenHeightDp: %d onExternalDisplay: %b",
+                                + ", silently reporting crashes for debugging, displaySizeInInches:"
+                                + " %.1f displayWidth: %d displayHeight: %d xdpi: %.1f ydpi: %.1f"
+                                + " densityDpi: %d screenWidthDp: %d screenHeightDp: %d"
+                                + " onExternalDisplay: %b",
                         displaySizeInInches,
                         display.getDisplayWidth(),
                         display.getDisplayHeight(),
@@ -468,9 +465,9 @@ public class RequestDesktopUtils {
         String displaySpec =
                 String.format(
                         Locale.US,
-                        "lastDisplaySizeInInches: %.1f lastDisplayWidth: %d lastDisplayHeight: %d "
-                                + "lastXdpi: %.1f lastYdpi: %.1f lastDensityDpi: %d "
-                                + "lastScreenWidthDp: %d lastScreenHeightDp: %d lastOnExternalDisplay: %b",
+                        "lastDisplaySizeInInches: %.1f lastDisplayWidth: %d lastDisplayHeight: %d"
+                            + " lastXdpi: %.1f lastYdpi: %.1f lastDensityDpi: %d lastScreenWidthDp:"
+                            + " %d lastScreenHeightDp: %d lastOnExternalDisplay: %b",
                         displaySizeInInches,
                         display.getDisplayWidth(),
                         display.getDisplayHeight(),
@@ -910,8 +907,8 @@ public class RequestDesktopUtils {
     }
 
     /** Record event for feature engagement on desktop site settings page open. */
-    public static void notifyRequestDesktopSiteSettingsPageOpened() {
-        TrackerFactory.getTrackerForProfile(Profile.getLastUsedRegularProfile())
+    public static void notifyRequestDesktopSiteSettingsPageOpened(Profile profile) {
+        TrackerFactory.getTrackerForProfile(profile)
                 .notifyEvent(EventConstants.DESKTOP_SITE_SETTINGS_PAGE_OPENED);
     }
 
@@ -984,12 +981,10 @@ public class RequestDesktopUtils {
             return;
         }
 
-        // For backward compatibility.
-        if (cohortId == 0) {
-            maybeRegisterSyntheticFieldTrials(isControlGroup, screenSizeThreshold, isOptInArm);
+        if (isOptInArm) {
+            // Opt-in arm is not supported for the new cohort tracking.
             return;
         }
-        assert !isOptInArm : "Opt-in arm is not supported for the new cohort tracking.";
 
         String thresholdAsString = String.valueOf(screenSizeThreshold).replace('.', '_');
         String baseGroupName = DEFAULT_ON_GROUP_NAME_PREFIX + thresholdAsString + "_" + cohortId;
@@ -1016,37 +1011,6 @@ public class RequestDesktopUtils {
                 syntheticFeatureNameForUma,
                 baseGroupName,
                 SyntheticTrialAnnotationMode.CURRENT_LOG);
-    }
-
-    private static void maybeRegisterSyntheticFieldTrials(
-            boolean isControlGroup, double screenSizeThreshold, boolean isOptInArm) {
-        String thresholdAsString = String.valueOf(screenSizeThreshold).replace('.', '_');
-        String baseGroupName =
-                (isOptInArm ? OPT_IN_GROUP_NAME_PREFIX : DEFAULT_ON_GROUP_NAME_PREFIX)
-                        + thresholdAsString;
-
-        String syntheticFeatureName =
-                isControlGroup
-                        ? ChromeFeatureList.REQUEST_DESKTOP_SITE_DEFAULTS_CONTROL_SYNTHETIC
-                        : ChromeFeatureList.REQUEST_DESKTOP_SITE_DEFAULTS_SYNTHETIC;
-        if (isOptInArm) {
-            syntheticFeatureName =
-                    isControlGroup
-                            ? ChromeFeatureList.REQUEST_DESKTOP_SITE_OPT_IN_CONTROL_SYNTHETIC
-                            : ChromeFeatureList.REQUEST_DESKTOP_SITE_OPT_IN_SYNTHETIC;
-        }
-
-        if (!isControlGroup && !ChromeFeatureList.isEnabled(syntheticFeatureName)) {
-            UmaSessionStats.registerSyntheticFieldTrial(
-                    syntheticFeatureName,
-                    baseGroupName + ENABLED_GROUP_SUFFIX,
-                    SyntheticTrialAnnotationMode.CURRENT_LOG);
-        } else if (isControlGroup && !ChromeFeatureList.isEnabled(syntheticFeatureName)) {
-            UmaSessionStats.registerSyntheticFieldTrial(
-                    syntheticFeatureName,
-                    baseGroupName + CONTROL_GROUP_SUFFIX,
-                    SyntheticTrialAnnotationMode.CURRENT_LOG);
-        }
     }
 
     @VisibleForTesting

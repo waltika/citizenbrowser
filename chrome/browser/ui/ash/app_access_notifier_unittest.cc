@@ -22,6 +22,7 @@
 #include "base/test/scoped_feature_list.h"
 #include "chrome/browser/apps/app_service/app_service_proxy.h"
 #include "chrome/browser/apps/app_service/app_service_proxy_factory.h"
+#include "chrome/browser/apps/app_service/app_service_test.h"
 #include "chrome/browser/ash/login/users/fake_chrome_user_manager.h"
 #include "chrome/browser/profiles/profile_manager.h"
 #include "chrome/test/base/testing_browser_process.h"
@@ -162,6 +163,8 @@ class AppAccessNotifierTest : public testing::Test,
         account_id_primary_user_, &capability_access_cache_primary_user_);
 
     SetActiveUserAccountId(/*is_primary=*/true);
+    WaitForAppServiceProxyReady(
+        apps::AppServiceProxyFactory::GetForProfile(primary_profile));
   }
 
   void SetupSecondaryUser() {
@@ -180,6 +183,8 @@ class AppAccessNotifierTest : public testing::Test,
         account_id_secondary_user_, &capability_access_cache_secondary_user_);
 
     SetActiveUserAccountId(/*is_primary=*/false);
+    WaitForAppServiceProxyReady(
+        apps::AppServiceProxyFactory::GetForProfile(secondary_profile));
   }
 
   std::vector<std::u16string> GetAppsAccessingCamera() {
@@ -201,8 +206,8 @@ class AppAccessNotifierTest : public testing::Test,
 
   static apps::CapabilityAccessPtr MakeCapabilityAccess(
       const std::string app_id,
-      absl::optional<bool> camera,
-      absl::optional<bool> microphone) {
+      std::optional<bool> camera,
+      std::optional<bool> microphone) {
     auto access = std::make_unique<apps::CapabilityAccess>(app_id);
     access->camera = camera;
     access->microphone = microphone;
@@ -254,8 +259,8 @@ class AppAccessNotifierTest : public testing::Test,
   apps::AppRegistryCache registry_cache_secondary_user_;
   apps::AppCapabilityAccessCache capability_access_cache_secondary_user_;
 
-  raw_ptr<ash::FakeChromeUserManager, DanglingUntriaged | ExperimentalAsh>
-      fake_user_manager_ = nullptr;
+  raw_ptr<ash::FakeChromeUserManager, DanglingUntriaged> fake_user_manager_ =
+      nullptr;
   std::unique_ptr<user_manager::ScopedUserManager> scoped_user_manager_;
 
   // This instance is needed for setting up `ash_test_helper_`.

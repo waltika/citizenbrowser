@@ -77,6 +77,7 @@
 <translation id="2258103955319320201">Chrome öğelerinize tüm cihazlarınızda erişmek için oturum açın ve senkronizasyonu etkinleştirin</translation>
 <translation id="2290014774651636340">Google API anahtarları eksik. Google Chrome'un bazı işlevleri devre dışı bırakılacak.</translation>
 <translation id="2290095356545025170">Google Chrome'u kaldırmak istediğinizden emin misiniz?</translation>
+<translation id="2298849085402457754">Tarama verilerini yalnızca bu cihazdan temizleyip Google Hesabınızda tutmak için <ph name="BEGIN_LINK" />Chrome oturumunu kapatın<ph name="END_LINK" />.</translation>
 <translation id="2309047409763057870">Bu, Google Chrome'un ikincil bir yüklemesidir ve varsayılan tarayıcınız yapılamaz.</translation>
 <translation id="2345992953227471816">Chrome aşağıdaki uzantılarda kötü amaçlı yazılım tespit etti:</translation>
 <translation id="2348335408836342058">Chrome'un bu sitede kameranıza ve mikrofonunuza erişmesi için izin gerekiyor</translation>
@@ -134,7 +135,7 @@
 <translation id="2969728957078202736"><ph name="PAGE_TITLE" /> - Ağda Oturum Açın - Chrome</translation>
 <translation id="3018957014024118866">Chrome'daki verileri de sil (<ph name="URL" />)</translation>
 <translation id="3019382870990049182">&amp;ChromeOS Flex'i güncellemek için yeniden başlatın</translation>
-<translation id="303514781271618814">Chrome, sitelerin daha az veri kullanarak aynı tarama deneyimini sunmasını sağlayan yeni özellikleri keşfediyor</translation>
+<translation id="303514781271618814">Chrome, sitelerin daha az veri kullanarak aynı tarama deneyimini sunmasını sağlayan yeni özellikleri deniyor</translation>
 <translation id="3037838751736561277">Google Chrome arka plan modunda.</translation>
 <translation id="3038232873781883849">Yüklenmesi bekleniyor...</translation>
 <translation id="3059710691562604940">Güvenli Tarama kapalı. Chrome bunun açılmasını öneriyor.</translation>
@@ -197,6 +198,7 @@
 <translation id="4148957013307229264">Yükleniyor...</translation>
 <translation id="4149882025268051530">Yükleyici arşivi açamadı. Lütfen Google Chrome'u yeniden indirin.</translation>
 <translation id="4153934450158521343">Chrome yakında kapanacak ve verileri silecek</translation>
+<translation id="4173512894976930765">Siteler muhtemelen beklendiği gibi çalışır. Tüm Chrome pencerelerini kapattığınızda çoğu sitedeki oturumunuz kapatılır. Chrome'da oturum açtıysanız Google Hesabınız buna dahil değildir.</translation>
 <translation id="4175922240926474352">Sitede güvenli bağlantı kullanılmadığı ve dosya üzerinde oynanmış olabileceği için Chrome bu indirme işlemini engelledi</translation>
 <translation id="4191857738314598978">{0,plural, =1{Chrome'u bir gün içinde yeniden başlatın}other{Chrome'u # gün içinde yeniden başlatın}}</translation>
 <translation id="4205939740494406371">Chrome, şifrelerinizi kontrol edemiyor. 24 saat sonra tekrar deneyin veya <ph name="BEGIN_LINK" />şifreleri Google Hesabınızda kontrol edin<ph name="END_LINK" />.</translation>
@@ -214,7 +216,6 @@
 <translation id="4343195214584226067"><ph name="EXTENSION_NAME" /> Chrome'a eklendi</translation>
 <translation id="4384570495110188418">Oturum açmadığınızdan Chrome, şifrelerinizi kontrol edemiyor</translation>
 <translation id="4389991535395284064">Chrome, Gizli modda gezinirken güvenli olmayan bağlantı kullanan bir siteyi yüklemeden önce sizi uyarır</translation>
-<translation id="4393248995085527349">Gelecekteki Google Chrome güncellemelerini almak için macOS 10.15 veya sonraki bir sürümün yüklü olması gerekir. Bu bilgisayar macOS 10.13 kullanıyor.</translation>
 <translation id="4427306783828095590">Gelişmiş koruma, kimlik avını ve kötü amaçlı yazılımları engellemek için daha fazla özellik sunar</translation>
 <translation id="4450664632294415862">Chrome - Ağda Oturum Açın - <ph name="PAGE_TITLE" /></translation>
 <translation id="4458462641685292929">Google Chrome'da başka bir işlem devam ediyor. Lütfen daha sonra yeniden deneyin.</translation>
@@ -300,7 +301,6 @@ Bazı özellikler kullanılamayabilir. Lütfen farklı bir profil dizini belirti
 <translation id="5941711191222866238">Küçült</translation>
 <translation id="5941830788786076944">Google Chrome varsayılan tarayıcı olsun</translation>
 <translation id="6003112304606738118">İndiriliyor... <ph name="HOURS" /> saat kaldı</translation>
-<translation id="6010556343189461180">Gelecekteki Google Chrome güncellemelerini almak için macOS 10.15 veya sonraki bir sürümün yüklü olması gerekir. Bu bilgisayar macOS 10.14 kullanıyor.</translation>
 <translation id="6014316319780893079"><ph name="BEGIN_LINK" />Chrome araçları<ph name="END_LINK" /> ile güvenli bir şekilde göz atabilir ve kontrolü elinizde tutabilirsiniz</translation>
 <translation id="6022659036123304283">Chrome'u kendinize uyarlayın</translation>
 <translation id="6025087594896450715">Google Chrome <ph name="REMAINING_TIME" /> sonra yeniden başlatılacak</translation>

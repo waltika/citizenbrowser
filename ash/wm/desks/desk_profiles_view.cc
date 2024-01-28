@@ -11,8 +11,13 @@
 #include "ash/public/cpp/desk_profiles_delegate.h"
 #include "ash/resources/vector_icons/vector_icons.h"
 #include "ash/shell.h"
+#include "ash/shell_delegate.h"
+#include "ash/strings/grit/ash_strings.h"
 #include "ash/wm/desks/desk.h"
+#include "ash/wm/desks/desks_histogram_enums.h"
 #include "base/check_op.h"
+#include "ui/base/metadata/metadata_impl_macros.h"
+#include "ui/base/models/menu_separator_types.h"
 #include "ui/base/models/simple_menu_model.h"
 #include "ui/chromeos/styles/cros_tokens_color_mappings.h"
 #include "ui/compositor/layer.h"
@@ -21,6 +26,7 @@
 #include "ui/views/accessibility/view_accessibility.h"
 #include "ui/views/context_menu_controller.h"
 #include "ui/views/controls/button/image_button.h"
+#include "ui/views/controls/highlight_path_generator.h"
 #include "ui/views/controls/menu/menu_item_view.h"
 #include "ui/views/controls/menu/menu_model_adapter.h"
 #include "ui/views/layout/box_layout_view.h"
@@ -35,6 +41,12 @@ constexpr gfx::Size kIconButtonSize(22, 22);
 constexpr int kCheckButtonSize = 20;
 // The size of desk profile icon on context menu item.
 constexpr int kIconProfileSize = 24;
+// We are using the actual value of`IDC_MANAGE_CHROME_PROFILES` here because
+// `IDC_MANAGE_CHROME_PROFILES` is defined in chrome header, so we can't include
+// it here. And we also want to use a unique number to avoid duplication with
+// auto generated `command_id` from profile index above (ranges from 0 to
+// profile count limit).
+constexpr int IDC_ASH_DESKS_OPEN_PROFILE_MANAGER = 35358;
 
 using ProfilesList = std::vector<LacrosProfileSummary>;
 }  // namespace
@@ -74,46 +86,57 @@ class DeskProfilesMenuModelAdapter : public views::MenuModelAdapter {
   views::MenuItemView* AppendMenuItem(views::MenuItemView* menu,
                                       ui::MenuModel* model,
                                       size_t index) override {
-    auto* delegate = Shell::Get()->GetDeskProfilesDelegate();
-    CHECK(delegate);
-    const int command_id = model->GetCommandIdAt(index);
-    CHECK_LT(index, profiles_->size());
-    const auto& summary = (*profiles_)[index];
-    views::MenuItemView* item_view = menu->AppendMenuItem(command_id);
-    gfx::ImageSkia icon = gfx::ImageSkiaOperations::CreateResizedImage(
-        summary.icon, skia::ImageOperations::RESIZE_BEST,
-        gfx::Size(kIconProfileSize, kIconProfileSize));
-    item_view->SetIcon(ui::ImageModel::FromImageSkia(
-        gfx::ImageSkiaOperations::CreateImageWithRoundRectClip(kIconProfileSize,
-                                                               icon)));
-    item_view->SetTitle(base::UTF8ToUTF16(summary.name));
-    // Add a secondary title for email if available. Note that local profile may
-    // not have an associated email.
-    if (!summary.email.empty()) {
-      item_view->SetSecondaryTitle(base::UTF8ToUTF16(summary.email));
+    if (model->GetTypeAt(index) == ui::MenuModel::TYPE_SEPARATOR) {
+      menu->AppendSeparator();
+      return nullptr;
     }
-    // Add a checker icon to the desk profile item that's assigned to.
-    CHECK(button_->desk());
-    if (button_->desk()->lacros_profile_id() == summary.profile_id) {
-      item_view->AddChildView(
-          views::Builder<views::BoxLayoutView>()
-              .SetOrientation(views::BoxLayout::Orientation::kHorizontal)
-              .SetCrossAxisAlignment(
-                  views::BoxLayout::CrossAxisAlignment::kCenter)
-              .AddChild(views::Builder<views::ImageView>().SetImage(
-                  ui::ImageModel::FromVectorIcon(kHollowCheckCircleIcon,
-                                                 cros_tokens::kCrosSysPrimary,
-                                                 kCheckButtonSize)))
-              .Build());
+    const int command_id = model->GetCommandIdAt(index);
+    views::MenuItemView* item_view = menu->AppendMenuItem(command_id);
+    if (command_id == IDC_ASH_DESKS_OPEN_PROFILE_MANAGER) {
+      item_view->SetIcon(ui::ImageModel::FromVectorIcon(
+          kSettingsIcon, cros_tokens::kCrosSysOnSurface, kCheckButtonSize));
+      item_view->SetTitle(
+          l10n_util::GetStringUTF16(IDS_ASH_DESKS_OPEN_PROFILE_MANAGER));
+    } else {
+      // Update each profile item view with customized style.
+      CHECK_LT(command_id, static_cast<int>(profiles_->size()));
+      const auto& summary = (*profiles_)[command_id];
+      gfx::ImageSkia icon = gfx::ImageSkiaOperations::CreateResizedImage(
+          summary.icon, skia::ImageOperations::RESIZE_BEST,
+          gfx::Size(kIconProfileSize, kIconProfileSize));
+      item_view->SetIcon(ui::ImageModel::FromImageSkia(
+          gfx::ImageSkiaOperations::CreateImageWithRoundRectClip(
+              kIconProfileSize, icon)));
+      item_view->SetTitle(base::UTF8ToUTF16(summary.name));
+      item_view->SetHighlightWhenSelectedWithChildViews(true);
+      // Add a secondary title for email if available. Note that local profile
+      // may not have an associated email.
+      if (!summary.email.empty()) {
+        item_view->SetSecondaryTitle(base::UTF8ToUTF16(summary.email));
+      }
+      // Add a checker icon to the desk profile item that's assigned to.
+      CHECK(button_->desk());
+      if (button_->desk()->lacros_profile_id() == summary.profile_id) {
+        item_view->AddChildView(
+            views::Builder<views::BoxLayoutView>()
+                .SetOrientation(views::BoxLayout::Orientation::kHorizontal)
+                .SetCrossAxisAlignment(
+                    views::BoxLayout::CrossAxisAlignment::kCenter)
+                .AddChild(views::Builder<views::ImageView>().SetImage(
+                    ui::ImageModel::FromVectorIcon(kHollowCheckCircleIcon,
+                                                   cros_tokens::kCrosSysPrimary,
+                                                   kCheckButtonSize)))
+                .Build());
+      }
     }
     return item_view;
   }
   // The list of logged in profiles.
-  const raw_ptr<ProfilesList, ExperimentalAsh> profiles_;
+  const raw_ptr<ProfilesList> profiles_;
 
   // The menu runner that is responsible to run the menu.
   // The avatar button.
-  raw_ptr<DeskProfilesButton, ExperimentalAsh> button_;
+  raw_ptr<DeskProfilesButton> button_;
 
   // The event type which was used to show the menu.
   const ui::MenuSourceType source_type_;
@@ -134,7 +157,10 @@ class DeskProfilesButton::MenuController : public ui::SimpleMenuModel::Delegate,
 
   // ui::SimpleMenuModel::Delegate:
   void ExecuteCommand(int command_id, int event_flags) override {
-    // TODO(shidi) : Update the command id to include other operations.
+    if (command_id == IDC_ASH_DESKS_OPEN_PROFILE_MANAGER) {
+      Shell::Get()->shell_delegate()->OpenProfileManager();
+      return;
+    }
     CHECK_LT(command_id, static_cast<int>(profiles_.size()));
     profile_button_->desk_->SetLacrosProfileId(
         profiles_[command_id].profile_id);
@@ -162,15 +188,20 @@ class DeskProfilesButton::MenuController : public ui::SimpleMenuModel::Delegate,
   // Builds and saves a default menu model to `context_menu_model_`;
   void BuildMenuModel() {
     auto* delegate = Shell::Get()->GetDeskProfilesDelegate();
-    CHECK(delegate);
+    if (!delegate) {
+      // For Ash unit test there is no delegate available.
+      return;
+    }
 
     profiles_ = delegate->GetProfilesSnapshot();
-    // TODO(shidi): the index needs to be updated to separate profiles and other
-    // commands.  Add function to generate index instead of using for loop iter.
     for (size_t index = 0; index < profiles_.size(); ++index) {
       context_menu_model_.AddItem(index,
                                   base::UTF8ToUTF16(profiles_[index].name));
     }
+    context_menu_model_.AddSeparator(ui::NORMAL_SEPARATOR);
+    context_menu_model_.AddItem(
+        IDC_ASH_DESKS_OPEN_PROFILE_MANAGER,
+        l10n_util::GetStringUTF16(IDS_ASH_DESKS_OPEN_PROFILE_MANAGER));
   }
 
   // Called when the context menu is closed. Used as a callback for
@@ -192,7 +223,7 @@ class DeskProfilesButton::MenuController : public ui::SimpleMenuModel::Delegate,
   std::unique_ptr<views::MenuRunner> menu_runner_;
 
   // Owned by views hierarchy.
-  raw_ptr<DeskProfilesButton, ExperimentalAsh> profile_button_ = nullptr;
+  raw_ptr<DeskProfilesButton> profile_button_ = nullptr;
 
   base::WeakPtrFactory<DeskProfilesButton::MenuController> weak_ptr_factory_{
       this};
@@ -203,11 +234,20 @@ DeskProfilesButton::DeskProfilesButton(views::Button::PressedCallback callback,
     : desk_(desk) {
   desk_->AddObserver(this);
   SetFocusBehavior(views::View::FocusBehavior::ALWAYS);
+  SetPreferredSize(kIconButtonSize);
   SetPaintToLayer();
   layer()->SetFillsBoundsOpaquely(false);
   icon_ = AddChildView(std::make_unique<views::ImageView>());
   icon_->SetSize(kIconButtonSize);
   icon_->SetImageSize(kIconButtonSize);
+  auto* focus_ring = views::FocusRing::Get(this);
+  focus_ring->SetOutsetFocusRingDisabled(true);
+  focus_ring->SetColorId(cros_tokens::kCrosSysFocusRing);
+  focus_ring->SetPathGenerator(
+      std::make_unique<views::CircleHighlightPathGenerator>(
+          -gfx::Insets(focus_ring->GetHaloThickness() / 2)));
+  views::InstallCircleHighlightPathGenerator(this);
+
   UpdateIcon();
   icon_->SetPaintToLayer();
   icon_->layer()->SetFillsBoundsOpaquely(false);
@@ -218,6 +258,7 @@ DeskProfilesButton::DeskProfilesButton(views::Button::PressedCallback callback,
 }
 
 DeskProfilesButton::~DeskProfilesButton() {
+  set_context_menu_controller(nullptr);
   if (desk_) {
     desk_->RemoveObserver(this);
   }
@@ -226,7 +267,10 @@ DeskProfilesButton::~DeskProfilesButton() {
 void DeskProfilesButton::UpdateIcon() {
   CHECK(desk_);
   auto* delegate = Shell::Get()->GetDeskProfilesDelegate();
-  CHECK(delegate);
+  if (!delegate) {
+    // For Ash unit test there is no delegate available.
+    return;
+  }
   // Initialize Desk's Lacros profile id with primary profile id.
   const uint64_t primary_profile_id = delegate->GetPrimaryProfileId();
   if (desk_->lacros_profile_id() == 0 && primary_profile_id != 0) {
@@ -236,6 +280,7 @@ void DeskProfilesButton::UpdateIcon() {
           desk_->lacros_profile_id())) {
     icon_image_ = summary->icon;
     icon_->SetImage(icon_image_);
+    icon_->SetTooltipText(base::UTF8ToUTF16(summary->name));
   }
 }
 
@@ -251,10 +296,12 @@ void DeskProfilesButton::OnDeskDestroyed(const Desk* desk) {
   desk_ = nullptr;
 }
 
-void DeskProfilesButton::OnMouseReleased(const ui::MouseEvent& event) {
+bool DeskProfilesButton::OnMousePressed(const ui::MouseEvent& event) {
+  base::UmaHistogramBoolean(kDeskProfilesPressesHistogramName, true);
   if (event.IsLeftMouseButton()) {
     CreateMenu(event);
   }
+  return ImageButton::OnMousePressed(event);
 }
 
 void DeskProfilesButton::OnGestureEvent(ui::GestureEvent* event) {
@@ -273,5 +320,8 @@ void DeskProfilesButton::CreateMenu(const ui::LocatedEvent& event) {
   context_menu_->ShowContextMenuForViewImpl(this, location_in_screen,
                                             ui::MENU_SOURCE_MOUSE);
 }
+
+BEGIN_METADATA(DeskProfilesButton)
+END_METADATA
 
 }  // namespace ash

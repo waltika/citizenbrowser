@@ -167,6 +167,12 @@ void ResetWheelAndTouchEventHandlerProperties(LocalFrame& frame) {
       cc::EventListenerProperties::kNone);
 }
 
+bool IsCompositedOutermostMainFrame(WebLocalFrameImpl* web_frame) {
+  return web_frame->GetFrame()->IsMainFrame() &&
+         !web_frame->IsInFencedFrameTree() &&
+         web_frame->ViewImpl()->does_composite();
+}
+
 }  // namespace
 
 LocalFrameClientImpl::LocalFrameClientImpl(WebLocalFrameImpl* frame)
@@ -306,6 +312,11 @@ void LocalFrameClientImpl::NotifyCurrentHistoryItemChanged() {
     web_frame_->Client()->NotifyCurrentHistoryItemChanged();
 }
 
+void LocalFrameClientImpl::NotifyAutoscrollForSelectionInMainFrame(bool autoscroll_selection) {
+  if (web_frame_->Client())
+    web_frame_->Client()->NotifyAutoscrollForSelectionInMainFrame(autoscroll_selection);
+}
+
 void LocalFrameClientImpl::DidUpdateCurrentHistoryItem() {
   web_frame_->Client()->DidUpdateCurrentHistoryItem();
 }
@@ -410,6 +421,41 @@ void LocalFrameClientImpl::DidFinishSameDocumentNavigation(
     web_frame_->Client()->DidFinishSameDocumentNavigation(
         commit_type, is_synchronously_committed, same_document_navigation_type,
         is_client_redirect);
+
+    // Exclude `kWebHistoryInertCommit` because these types of navigations does
+    // not originate from nor add entries to the session history (i.e., they are
+    // not history-traversable).
+    // Exclude the WebView not being composited because we won't present any
+    // frame if it is not being actively drawn.
+    if (IsCompositedOutermostMainFrame(web_frame_) &&
+        commit_type != kWebHistoryInertCommit) {
+      WebFrameWidgetImpl* frame_widget = web_frame_->FrameWidgetImpl();
+      // The outermost mainframe must have a frame widget.
+      CHECK(frame_widget);
+      bool should_increment_id = base::FeatureList::IsEnabled(
+          features::kIncrementLocalSurfaceIdForMainframeSameDocNavigation);
+      if (should_increment_id) {
+        frame_widget->RequestNewLocalSurfaceId();
+      }
+      frame_widget->NotifyPresentationTime(WTF::BindOnce(
+          [](bool incremented, base::TimeTicks start, base::TimeTicks finish) {
+            base::TimeDelta duration = finish - start;
+            if (incremented) {
+              UMA_HISTOGRAM_TIMES(
+                  "Navigation."
+                  "MainframeSameDocumentNavigationCommitToPresentFirstFrame."
+                  "LocalSurfaceIdUpdated",
+                  duration);
+            } else {
+              UMA_HISTOGRAM_TIMES(
+                  "Navigation."
+                  "MainframeSameDocumentNavigationCommitToPresentFirstFrame."
+                  "LocalSurfaceIdNotUpdated",
+                  duration);
+            }
+          },
+          should_increment_id, base::TimeTicks::Now()));
+    }
   }
 
   // Set the layout shift exclusion window for the browser initiated same
@@ -470,9 +516,7 @@ void LocalFrameClientImpl::DispatchDidCommitLoad(
       // UKM metrics are only collected for the outermost main frame. Ensure
       // after a navigation on the main frame we setup the appropriate
       // structures.
-      if (web_frame_->GetFrame()->IsMainFrame() &&
-          !web_frame_->IsInFencedFrameTree() &&
-          web_frame_->ViewImpl()->does_composite()) {
+      if (IsCompositedOutermostMainFrame(web_frame_)) {
         WebFrameWidgetImpl* frame_widget = web_frame_->FrameWidgetImpl();
 
         // Update the URL and the document source id used to key UKM metrics in

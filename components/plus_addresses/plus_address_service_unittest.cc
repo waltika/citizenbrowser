@@ -96,14 +96,14 @@ TEST_F(PlusAddressServiceTest, SupportsPlusAddressNoServer) {
       /*is_off_the_record=*/false));
 }
 
-// Tests for the label overrides. These tests are not in the enabled/disabled
-// fixtures as they vary parameters.
-TEST_F(PlusAddressServiceTest, LabelOverrides) {
+// Tests for the suggestion label overrides. These tests are not in the
+// enabled/disabled fixtures as they vary parameters.
+TEST_F(PlusAddressServiceTest, SuggestionLabelOverride) {
   base::test::ScopedFeatureList scoped_feature_list;
   // Setting the override should result in echoing the override back.
   scoped_feature_list.InitAndEnableFeatureWithParameters(
       plus_addresses::kFeature,
-      {{plus_addresses::kEnterprisePlusAddressLabelOverride.name,
+      {{plus_addresses::kEnterprisePlusAddressSuggestionLabelOverride.name,
         "mattwashere"}});
   PlusAddressService service;
   EXPECT_EQ(service.GetCreateSuggestionLabel(), u"mattwashere");
@@ -114,7 +114,7 @@ TEST_F(PlusAddressServiceTest, LabelOverrideWithSpaces) {
   // Setting the override should result in echoing the override back.
   scoped_feature_list.InitAndEnableFeatureWithParameters(
       plus_addresses::kFeature,
-      {{plus_addresses::kEnterprisePlusAddressLabelOverride.name,
+      {{plus_addresses::kEnterprisePlusAddressSuggestionLabelOverride.name,
         "matt was here"}});
   PlusAddressService service;
   EXPECT_EQ(service.GetCreateSuggestionLabel(), u"matt was here");
@@ -126,12 +126,9 @@ TEST_F(PlusAddressServiceTest, NoAccountPlusAddressCreation) {
   const url::Origin no_subdomain_origin =
       url::Origin::Create(GURL("https://test.example"));
 
-  base::MockOnceCallback<void(const std::string&)> offer_callback;
   base::MockOnceCallback<void(const PlusProfileOrError&)> reserve_callback;
   base::MockOnceCallback<void(const PlusProfileOrError&)> confirm_callback;
   // Ensure that the lambdas aren't called since there is no signed-in account.
-  EXPECT_CALL(offer_callback, Run).Times(0);
-  service.OfferPlusAddressCreation(no_subdomain_origin, offer_callback.Get());
   EXPECT_CALL(reserve_callback, Run).Times(0);
   service.ReservePlusAddress(no_subdomain_origin, reserve_callback.Get());
   EXPECT_CALL(confirm_callback, Run).Times(0);
@@ -149,12 +146,9 @@ TEST_F(PlusAddressServiceTest, AbortPlusAddressCreation) {
   const url::Origin no_subdomain_origin =
       url::Origin::Create(GURL("https://test.example"));
 
-  base::MockOnceCallback<void(const std::string&)> offer_callback;
   base::MockOnceCallback<void(const PlusProfileOrError&)> reserve_callback;
   base::MockOnceCallback<void(const PlusProfileOrError&)> confirm_callback;
   // Ensure that the lambdas aren't called since there is no signed-in account.
-  EXPECT_CALL(offer_callback, Run).Times(0);
-  service.OfferPlusAddressCreation(no_subdomain_origin, offer_callback.Get());
   EXPECT_CALL(reserve_callback, Run).Times(0);
   service.ReservePlusAddress(no_subdomain_origin, reserve_callback.Get());
   EXPECT_CALL(confirm_callback, Run).Times(0);
@@ -198,44 +192,6 @@ class PlusAddressServiceRequestsTest : public ::testing::Test {
   data_decoder::test::InProcessDataDecoder decoder_;
   base::test::ScopedFeatureList scoped_feature_list_;
 };
-
-TEST_F(PlusAddressServiceRequestsTest, OfferPlusAddressCreation) {
-  signin::IdentityTestEnvironment identity_test_env;
-  identity_test_env.MakeAccountAvailable("plus@plus.plus",
-                                         {signin::ConsentLevel::kSignin});
-  identity_test_env.SetAutomaticIssueOfAccessTokens(true);
-
-  PlusAddressService service(
-      identity_test_env.identity_manager(), nullptr,
-      PlusAddressClient(identity_test_env.identity_manager(),
-                        test_shared_loader_factory));
-
-  const url::Origin no_subdomain_origin =
-      url::Origin::Create(GURL("https://test.example"));
-  const std::string site = "test.example";
-  const std::string plus_address = "plus+remote@plus.plus";
-
-  base::test::TestFuture<const std::string&> future;
-  service.OfferPlusAddressCreation(no_subdomain_origin, future.GetCallback());
-
-  // Check that the future callback is blocked and unblock it.
-  ASSERT_FALSE(future.IsReady());
-  test_url_loader_factory.SimulateResponseForPendingRequest(
-      plus_profiles_endpoint,
-      test::MakeCreationResponse(
-          PlusProfile({.facet = site, .plus_address = plus_address})));
-  ASSERT_TRUE(future.IsReady());
-  EXPECT_EQ(future.Get(), plus_address);
-
-  // Assert that ensuing calls to the same facet do not make a network request.
-  const url::Origin subdomain_origin =
-      url::Origin::Create(GURL("https://subdomain.test.example"));
-  base::test::TestFuture<const std::string&> second_future;
-  service.OfferPlusAddressCreation(no_subdomain_origin,
-                                   second_future.GetCallback());
-  ASSERT_TRUE(second_future.IsReady());
-  EXPECT_EQ(second_future.Get(), plus_address);
-}
 
 TEST_F(PlusAddressServiceRequestsTest, ReservePlusAddress_ReturnsUnconfirmed) {
   signin::IdentityTestEnvironment identity_test_env;
@@ -685,7 +641,7 @@ class PlusAddressServiceEnabledTest : public PlusAddressServiceTest {
           "mattwashere"}});
   }
 
- private:
+ protected:
   base::test::ScopedFeatureList scoped_feature_list_;
 };
 
@@ -718,6 +674,64 @@ TEST_F(PlusAddressServiceEnabledTest, FullySupported) {
   EXPECT_TRUE(service.SupportsPlusAddresses(
       url::Origin::Create(GURL("https://test.example")),
       /*is_off_the_record=*/false));
+}
+
+// `SupportsPlusAddresses` returns false when `origin` is included on
+// `kPlusAddressExcludedSites` and true otherwise.
+TEST_F(PlusAddressServiceEnabledTest, ExcludedSitesAreNotSupported) {
+  signin::IdentityTestEnvironment identity_test_env;
+  identity_test_env.MakeAccountAvailable("plus@plus.plus",
+                                         {signin::ConsentLevel::kSignin});
+  scoped_feature_list_.Reset();
+  scoped_feature_list_.InitAndEnableFeatureWithParameters(
+      plus_addresses::kFeature,
+      {{plus_addresses::kEnterprisePlusAddressServerUrl.name, "mattwashere"},
+       {plus_addresses::kPlusAddressExcludedSites.name,
+        "exclude.co.th,forbidden.com"}});
+
+  PlusAddressService service(identity_test_env.identity_manager());
+  // Verify that url not on the excluded site continues to work.
+  EXPECT_TRUE(service.SupportsPlusAddresses(
+      url::Origin::Create(GURL("https://test.example")),
+      /*is_off_the_record=*/false));
+
+  // Sites on excluded list are not supported.
+  EXPECT_FALSE(service.SupportsPlusAddresses(
+      url::Origin::Create(GURL("https://www.forbidden.com")),
+      /*is_off_the_record=*/false));
+  EXPECT_FALSE(service.SupportsPlusAddresses(
+      url::Origin::Create(GURL("https://www.exclude.co.th")),
+      /*is_off_the_record=*/false));
+
+  // Excluded site with different subdomain are also not supported.
+  EXPECT_FALSE(service.SupportsPlusAddresses(
+      url::Origin::Create(GURL("https://myaccount.forbidden.com")),
+      /*is_off_the_record=*/false));
+}
+
+// `SupportsPlusAddresses` returns false when `origin` scheme is not http or
+// https.
+TEST_F(PlusAddressServiceEnabledTest, NonHTTPSchemesAreNotSupported) {
+  signin::IdentityTestEnvironment identity_test_env;
+  identity_test_env.MakeAccountAvailable("plus@plus.plus",
+                                         {signin::ConsentLevel::kSignin});
+  PlusAddressService service(identity_test_env.identity_manager());
+  EXPECT_TRUE(service.SupportsPlusAddresses(
+      url::Origin::Create(GURL("http://test.example")),
+      /*is_off_the_record=*/false));
+  EXPECT_FALSE(
+      service.SupportsPlusAddresses(url::Origin::Create(GURL("other://hello")),
+                                    /*is_off_the_record=*/false));
+}
+
+// `SupportsPlusAddresses` returns false when `origin` is opaque.
+TEST_F(PlusAddressServiceEnabledTest, OpaqueOriginIsNotSupported) {
+  signin::IdentityTestEnvironment identity_test_env;
+  identity_test_env.MakeAccountAvailable("plus@plus.plus",
+                                         {signin::ConsentLevel::kSignin});
+  PlusAddressService service(identity_test_env.identity_manager());
+  url::Origin origin;
+  EXPECT_FALSE(service.SupportsPlusAddresses(origin, false));
 }
 
 TEST_F(PlusAddressServiceEnabledTest, OTRWithNoExistingAddress) {

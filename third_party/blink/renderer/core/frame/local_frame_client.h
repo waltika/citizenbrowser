@@ -304,6 +304,7 @@ public:
     
     virtual void DidCreateScriptContext(v8::Local<v8::Context>,
                                         int32_t world_id) = 0;
+    
     virtual void WillReleaseScriptContext(v8::Local<v8::Context>,
                                           int32_t world_id) = 0;
     virtual bool AllowScriptExtensions() = 0;
@@ -313,6 +314,9 @@ public:
     // Immediately notifies the browser of a change in the current HistoryItem.
     // Prefer DidUpdateCurrentHistoryItem().
     virtual void NotifyCurrentHistoryItemChanged() {}
+    
+    virtual void NotifyAutoscrollForSelectionInMainFrame (bool autoscroll_selection) {}
+    
     // Notifies the browser of a change in the current HistoryItem on a timer,
     // allowing batching of updates.
     virtual void DidUpdateCurrentHistoryItem() {}
@@ -438,11 +442,11 @@ public:
     virtual void BindDevToolsAgent(
                                    mojo::PendingAssociatedRemote<mojom::blink::DevToolsAgentHost> host,
                                    mojo::PendingAssociatedReceiver<mojom::blink::DevToolsAgent> receiver) {}
-
+    
     virtual void BindCitizenNotesAgent(
-        mojo::PendingAssociatedRemote<mojom::blink::CitizenNotesAgentHost> host,
-        mojo::PendingAssociatedReceiver<mojom::blink::CitizenNotesAgent> receiver) {}
-
+                                       mojo::PendingAssociatedRemote<mojom::blink::CitizenNotesAgentHost> host,
+                                       mojo::PendingAssociatedReceiver<mojom::blink::CitizenNotesAgent> receiver) {}
+    
 };
 
 }  // namespace blink

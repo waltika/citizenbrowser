@@ -67,7 +67,6 @@ const CGFloat kLineSpacingBetweenErrorAndFooter = 12.0f;
 @property(nonatomic, assign) BOOL errorSectionPresented;
 
 // If YES, denote that the particular field requires a value.
-@property(nonatomic, assign) BOOL nameRequired;
 @property(nonatomic, assign) BOOL line1Required;
 @property(nonatomic, assign) BOOL cityRequired;
 @property(nonatomic, assign) BOOL stateRequired;
@@ -189,12 +188,6 @@ const CGFloat kLineSpacingBetweenErrorAndFooter = 12.0f;
     const AutofillProfileFieldDisplayInfo& field = kProfileFieldsToDisplay[i];
 
     if (!FieldIsUsedInAddress(field.autofillType, countryCode)) {
-      continue;
-    }
-
-    if (field.autofillType == autofill::NAME_HONORIFIC_PREFIX &&
-        !base::FeatureList::IsEnabled(
-            autofill::features::kAutofillEnableSupportForHonorificPrefixes)) {
       continue;
     }
 
@@ -392,8 +385,8 @@ const CGFloat kLineSpacingBetweenErrorAndFooter = 12.0f;
 
 #pragma mark - Conversion Helper Methods
 
-// Returns `autofill::ServerFieldType` corresponding to the `itemType`.
-- (autofill::ServerFieldType)serverFieldTypeCorrespondingToRequiredItemType:
+// Returns `autofill::FieldType` corresponding to the `itemType`.
+- (autofill::FieldType)serverFieldTypeCorrespondingToRequiredItemType:
     (AutofillProfileDetailsItemType)itemType {
   switch (itemType) {
     case AutofillProfileDetailsItemTypeFullName:
@@ -631,8 +624,6 @@ const CGFloat kLineSpacingBetweenErrorAndFooter = 12.0f;
 // Returns true if the itemType belongs to a required field.
 - (BOOL)isItemTypeRequiredField:(AutofillProfileDetailsItemType)itemType {
   switch (itemType) {
-    case AutofillProfileDetailsItemTypeFullName:
-      return self.nameRequired;
     case AutofillProfileDetailsItemTypeLine1:
       return self.line1Required;
     case AutofillProfileDetailsItemTypeCity:
@@ -641,6 +632,7 @@ const CGFloat kLineSpacingBetweenErrorAndFooter = 12.0f;
       return self.stateRequired;
     case AutofillProfileDetailsItemTypeZip:
       return self.zipRequired;
+    case AutofillProfileDetailsItemTypeFullName:
     case AutofillProfileDetailsItemTypeHonorificPrefix:
     case AutofillProfileDetailsItemTypeCompanyName:
     case AutofillProfileDetailsItemTypeLine2:

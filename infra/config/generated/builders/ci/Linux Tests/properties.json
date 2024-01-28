@@ -45,7 +45,8 @@
                 ],
                 "build_config": "Release",
                 "config": "chromium",
-                "target_bits": 64
+                "target_bits": 64,
+                "target_platform": "linux"
               },
               "legacy_gclient_config": {
                 "apply_configs": [
@@ -80,10 +81,6 @@
         },
         {
           "builder": "linux-rel",
-          "group": "tryserver.chromium.linux"
-        },
-        {
-          "builder": "linux-siso-rel",
           "group": "tryserver.chromium.linux"
         },
         {

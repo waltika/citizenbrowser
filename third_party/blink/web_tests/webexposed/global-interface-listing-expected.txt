@@ -1137,11 +1137,15 @@ interface CanvasRenderingContext2D
     method createConicGradient
     method createImageData
     method createLinearGradient
+    method createMesh2DIndexBuffer
+    method createMesh2DUVBuffer
+    method createMesh2DVertexBuffer
     method createPattern
     method createRadialGradient
     method drawFocusIfNeeded
     method drawFormattedText
     method drawImage
+    method drawMesh
     method ellipse
     method endLayer
     method fill
@@ -2677,6 +2681,7 @@ interface EventTarget
     method addEventListener
     method constructor
     method dispatchEvent
+    method on
     method removeEventListener
 interface External
     attribute @@toStringTag
@@ -2804,6 +2809,7 @@ interface FileSystemObserver
     method unobserve
 interface FileSystemWritableFileStream : WritableStream
     attribute @@toStringTag
+    getter mode
     method constructor
     method seek
     method truncate
@@ -3462,6 +3468,7 @@ interface HTMLBodyElement : HTMLElement
     getter onload
     getter onmessage
     getter onmessageerror
+    getter onmove
     getter onoffline
     getter ononline
     getter onpagehide
@@ -3492,6 +3499,7 @@ interface HTMLBodyElement : HTMLElement
     setter onload
     setter onmessage
     setter onmessageerror
+    setter onmove
     setter onoffline
     setter ononline
     setter onpagehide
@@ -4011,6 +4019,7 @@ interface HTMLFrameSetElement : HTMLElement
     getter onload
     getter onmessage
     getter onmessageerror
+    getter onmove
     getter onoffline
     getter ononline
     getter onpagehide
@@ -4037,6 +4046,7 @@ interface HTMLFrameSetElement : HTMLElement
     setter onload
     setter onmessage
     setter onmessageerror
+    setter onmove
     setter onoffline
     setter ononline
     setter onpagehide
@@ -4073,10 +4083,8 @@ interface HTMLHeadingElement : HTMLElement
     setter align
 interface HTMLHtmlElement : HTMLElement
     attribute @@toStringTag
-    getter blocking
     getter version
     method constructor
-    setter blocking
     setter version
 interface HTMLIFrameElement : HTMLElement
     attribute @@toStringTag
@@ -4922,7 +4930,6 @@ interface HTMLTemplateElement : HTMLElement
     attribute @@toStringTag
     getter content
     getter parseparts
-    getter shadowRoot
     getter shadowRootMode
     method constructor
     setter parseparts
@@ -5621,6 +5628,8 @@ interface MLGraphBuilder
     attribute @@toStringTag
     method abs
     method add
+    method argMax
+    method argMin
     method averagePool2d
     method batchNormalization
     method build
@@ -5635,16 +5644,25 @@ interface MLGraphBuilder
     method cos
     method div
     method elu
+    method equal
     method erf
     method exp
     method expand
     method floor
     method gather
     method gemm
+    method greater
+    method greaterOrEqual
+    method hardSigmoid
     method hardSwish
     method identity
     method input
+    method instanceNormalization
+    method layerNormalization
     method leakyRelu
+    method lesser
+    method lesserOrEqual
+    method linear
     method log
     method logicalNot
     method matmul
@@ -5674,6 +5692,7 @@ interface MLGraphBuilder
     method sin
     method slice
     method softmax
+    method softplus
     method softsign
     method split
     method sqrt
@@ -6026,11 +6045,13 @@ interface MediaMetadata
     getter album
     getter artist
     getter artwork
+    getter chapterInfo
     getter title
     method constructor
     setter album
     setter artist
     setter artwork
+    setter chapterInfo
     setter title
 interface MediaQueryList : EventTarget
     attribute @@toStringTag
@@ -6195,6 +6216,15 @@ interface MerchantValidationEvent : Event
     getter validationURL
     method complete
     method constructor
+interface Mesh2DIndexBuffer
+    attribute @@toStringTag
+    method constructor
+interface Mesh2DUVBuffer
+    attribute @@toStringTag
+    method constructor
+interface Mesh2DVertexBuffer
+    attribute @@toStringTag
+    method constructor
 interface MessageChannel
     attribute @@toStringTag
     getter port1
@@ -6236,6 +6266,16 @@ interface MimeTypeArray
     method constructor
     method item
     method namedItem
+interface ModelGenericSession
+    attribute @@toStringTag
+    method constructor
+    method execute
+    method executeStreaming
+interface ModelManager
+    attribute @@toStringTag
+    method canCreateGenericSession
+    method constructor
+    method createGenericSession
 interface Mojo
     static method bindInterface
     static method createDataPipe
@@ -6496,6 +6536,7 @@ interface Navigator
     getter keyboard
     getter language
     getter languages
+    getter lockedMode
     getter locks
     getter login
     getter managed
@@ -6723,6 +6764,7 @@ interface Observable
     attribute @@toStringTag
     method constructor
     method subscribe
+    method toArray
 interface OfflineAudioCompletionEvent : Event
     attribute @@toStringTag
     getter renderedBuffer
@@ -7184,9 +7226,10 @@ interface PerformanceScriptTiming : PerformanceEntry
     attribute @@toStringTag
     getter executionStart
     getter forcedStyleAndLayoutDuration
+    getter invoker
+    getter invokerType
     getter pauseDuration
     getter sourceLocation
-    getter type
     getter window
     getter windowAttribution
     method constructor
@@ -7416,6 +7459,7 @@ interface PromiseRejectionEvent : Event
 interface PublicKeyCredential : Credential
     static method isConditionalMediationAvailable
     static method isUserVerifyingPlatformAuthenticatorAvailable
+    static method parseCreationOptionsFromJSON
     attribute @@toStringTag
     getter authenticatorAttachment
     getter rawId
@@ -12536,6 +12580,7 @@ namespace console
     getter location
     getter locationbar
     getter menubar
+    getter model
     getter name
     getter navigation
     getter navigator
@@ -12606,6 +12651,7 @@ namespace console
     getter onmouseover
     getter onmouseup
     getter onmousewheel
+    getter onmove
     getter onoffline
     getter ononline
     getter onoverscroll
@@ -12836,6 +12882,7 @@ namespace console
     setter onmouseover
     setter onmouseup
     setter onmousewheel
+    setter onmove
     setter onoffline
     setter ononline
     setter onoverscroll

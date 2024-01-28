@@ -13,9 +13,11 @@
 #include "base/synchronization/lock.h"
 #include "base/thread_annotations.h"
 #include "base/time/time.h"
+#include "components/content_settings/core/browser/content_settings_rule.h"
 #include "components/content_settings/core/common/content_settings.h"
 #include "components/content_settings/core/common/content_settings_constraints.h"
 #include "components/content_settings/core/common/content_settings_metadata.h"
+#include "components/content_settings/core/common/content_settings_rules.h"
 
 class GURL;
 
@@ -25,8 +27,6 @@ class Value;
 }  // namespace base
 
 namespace content_settings {
-
-class RuleIterator;
 
 // Stores and provides access to Content Settings Rules.
 //
@@ -40,22 +40,6 @@ class RuleIterator;
 // Iterator itself will hold the lock until it's destroyed.
 class OriginIdentifierValueMap {
  public:
-  struct PatternPair {
-    ContentSettingsPattern primary_pattern;
-    ContentSettingsPattern secondary_pattern;
-    PatternPair(const ContentSettingsPattern& primary_pattern,
-                const ContentSettingsPattern& secondary_pattern);
-    bool operator<(const OriginIdentifierValueMap::PatternPair& other) const;
-  };
-
-  struct ValueEntry {
-    base::Value value;
-    RuleMetaData metadata;
-    ValueEntry();
-    ~ValueEntry();
-  };
-
-  typedef std::map<PatternPair, ValueEntry> Rules;
   typedef std::map<ContentSettingsType, Rules> EntryMap;
 
   base::Lock& GetLock() const LOCK_RETURNED(lock_) { return lock_; }
@@ -85,15 +69,21 @@ class OriginIdentifierValueMap {
 
   size_t size() const EXCLUSIVE_LOCKS_REQUIRED(lock_);
 
-  // Returns an iterator for reading the rules for |content_type| and
-  // |resource_identifier|. It is not allowed to call functions of
-  // |OriginIdentifierValueMap| (also |GetRuleIterator|) before the iterator
-  // has been destroyed.
+  // Returns an iterator for reading the rules for |content_type|. It is not
+  // allowed to call functions of |OriginIdentifierValueMap| (also
+  // |GetRuleIterator|) before the iterator has been destroyed.
   //
   // |lock_| will be acquired and held until the returned RuleIterator is
   // destroyed.
   std::unique_ptr<RuleIterator> GetRuleIterator(
       ContentSettingsType content_type) const LOCKS_EXCLUDED(lock_);
+
+  // Returns the matching Rule with highest precedence or nullptr if no Rule
+  // matched.
+  std::unique_ptr<Rule> GetRule(const GURL& primary_url,
+                                const GURL& secondary_url,
+                                ContentSettingsType content_type) const
+      EXCLUSIVE_LOCKS_REQUIRED(lock_);
 
   OriginIdentifierValueMap();
 
@@ -115,7 +105,8 @@ class OriginIdentifierValueMap {
   // |last_modified| date for each value. The |constraints| will be used to
   // constrain the setting to a valid time-range and lifetime model if
   // specified.
-  void SetValue(const ContentSettingsPattern& primary_pattern,
+  // Returns true if something changed.
+  bool SetValue(const ContentSettingsPattern& primary_pattern,
                 const ContentSettingsPattern& secondary_pattern,
                 ContentSettingsType content_type,
                 base::Value value,
@@ -123,7 +114,8 @@ class OriginIdentifierValueMap {
 
   // Deletes the map entry for the given |primary_pattern|,
   // |secondary_pattern|, |content_type| tuple.
-  void DeleteValue(const ContentSettingsPattern& primary_pattern,
+  // Returns true if something changed.
+  bool DeleteValue(const ContentSettingsPattern& primary_pattern,
                    const ContentSettingsPattern& secondary_pattern,
                    ContentSettingsType content_type)
       EXCLUSIVE_LOCKS_REQUIRED(lock_);

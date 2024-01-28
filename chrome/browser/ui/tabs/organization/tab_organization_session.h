@@ -6,15 +6,19 @@
 #define CHROME_BROWSER_UI_TABS_ORGANIZATION_TAB_ORGANIZATION_SESSION_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
+#include "chrome/browser/ui/tabs/organization/metrics.h"
 #include "chrome/browser/ui/tabs/organization/tab_organization.h"
 #include "chrome/browser/ui/tabs/organization/tab_organization_request.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
-#include "third_party/abseil-cpp/absl/types/variant.h"
 
 class Browser;
+
+namespace content {
+class WebContents;
+}  // namespace content
 
 class TabOrganizationSession : public TabOrganization::Observer {
  public:
@@ -34,7 +38,8 @@ class TabOrganizationSession : public TabOrganization::Observer {
 
   TabOrganizationSession();
   explicit TabOrganizationSession(
-      std::unique_ptr<TabOrganizationRequest> request);
+      std::unique_ptr<TabOrganizationRequest> request,
+      TabOrganizationEntryPoint entrypoint = TabOrganizationEntryPoint::NONE);
   ~TabOrganizationSession() override;
 
   const TabOrganizationRequest* request() const { return request_.get(); }
@@ -45,7 +50,8 @@ class TabOrganizationSession : public TabOrganization::Observer {
   std::u16string feedback_id() const { return feedback_id_; }
 
   static std::unique_ptr<TabOrganizationSession> CreateSessionForBrowser(
-      const Browser* browser);
+      const Browser* browser,
+      const content::WebContents* base_session_webcontents = nullptr);
 
   const TabOrganization* GetNextTabOrganization() const;
   TabOrganization* GetNextTabOrganization();
@@ -74,19 +80,22 @@ class TabOrganizationSession : public TabOrganization::Observer {
 
   // Checks whether there is a response, and if so calls Populate functions.
   // Notifies observers that the session has been updated.
-  void OnRequestResponse(const TabOrganizationResponse* response);
+  void OnRequestResponse(TabOrganizationResponse* response);
 
   // TODO: Remove once the full UI flow is implemented.
-  void PopulateAndCreate(const TabOrganizationResponse* response);
+  void PopulateAndCreate(TabOrganizationResponse* response);
 
   // Fills in the organizations from the request. Called when the request
   // completes.
-  void PopulateOrganizations(const TabOrganizationResponse* response);
+  void PopulateOrganizations(TabOrganizationResponse* response);
 
   std::unique_ptr<TabOrganizationRequest> request_;
   TabOrganizations tab_organizations_;
   ID session_id_;
   std::u16string feedback_id_;
+
+  // Entry point used to create the session. Used for logging.
+  TabOrganizationEntryPoint entrypoint_;
 
   base::ObserverList<Observer>::Unchecked observers_;
 };

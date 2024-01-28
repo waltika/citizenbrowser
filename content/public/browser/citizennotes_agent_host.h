@@ -53,6 +53,7 @@ class CONTENT_EXPORT CitizenNotesAgentHost
   static const char kTypeDedicatedWorker[];
   static const char kTypeSharedWorker[];
   static const char kTypeServiceWorker[];
+  static const char kTypeWorklet[];
   static const char kTypeSharedStorageWorklet[];
   static const char kTypeBrowser[];
   static const char kTypeGuest[];

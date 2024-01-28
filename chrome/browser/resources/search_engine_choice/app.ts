@@ -54,7 +54,7 @@ export class SearchEngineChoiceAppElement extends
   static get properties() {
     return {
       /**
-       * We pass the choice list as JSON because it doesn't change
+       * The choice list is passed as JSON because it doesn't change
        * dynamically, so it would be better to have it available as loadtime
        * data.
        */
@@ -89,20 +89,6 @@ export class SearchEngineChoiceAppElement extends
         value: '',
       },
 
-      withMarketingSnippets_: {
-        type: Boolean,
-        value() {
-          return loadTimeData.getBoolean('withMarketingSnippets');
-        },
-      },
-
-      withForcedScroll_: {
-        type: Boolean,
-        value() {
-          return loadTimeData.getBoolean('withForcedScroll');
-        },
-      },
-
       actionButtonText_: {
         type: String,
         computed: 'getActionButtonText_(hasUserScrolledToTheBottom_)',
@@ -120,9 +106,7 @@ export class SearchEngineChoiceAppElement extends
   private fakeOmniboxText_: string;
   private fakeOmniboxIconPath_: string;
   private pageHandler_: PageHandlerRemote;
-  private withMarketingSnippets_: boolean;
   private hasUserScrolledToTheBottom_: boolean;
-  private withForcedScroll_: boolean;
   private actionButtonText_: string;
 
   constructor() {
@@ -133,35 +117,34 @@ export class SearchEngineChoiceAppElement extends
   override connectedCallback() {
     super.connectedCallback();
 
-    // Change the `icon_path` format so that we can use it with the
-    // `background-image` property in HTML. We need to use the
-    // `background-image` property because `getFaviconForPageURL` returns an
-    // `image-set` and not a url.
+    // Change the `icon_path` format so that it can be used with the
+    // `background-image` property in HTML. The
+    // `background-image` property should be used because `getFaviconForPageURL`
+    // returns an `image-set` and not a url.
     this.choiceList_.forEach((searchEngine: SearchEngineChoice) => {
       if (searchEngine.prepopulateId === 0) {
-        // We get the favicon from the Favicon Service for custom search
+        // Fetch the favicon from the Favicon Service for custom search
         // engines.
         searchEngine.iconPath =
             getFaviconForPageURL(searchEngine?.url!, false, '', 24);
       } else {
-        searchEngine.iconPath = 'url(' + searchEngine.iconPath + ')';
+        searchEngine.iconPath = 'image-set(url(' + searchEngine.iconPath +
+            ') 1x, url(' + searchEngine.iconPath + '@2x) 2x)';
       }
     });
 
     afterNextRender(this, () => {
-      if (this.withForcedScroll_) {
-        // If the choice list and the page don't contain a scrollbar then the
-        // user is already at the bottom.
-        this.hasUserScrolledToTheBottom_ =
-            !this.isChoiceListScrollable_() && !this.isPageScrollable_();
+      // If the choice list and the page don't contain a scrollbar then the
+      // user is already at the bottom.
+      this.hasUserScrolledToTheBottom_ =
+          !this.isChoiceListScrollable_() && !this.isPageScrollable_();
 
-        if (this.isChoiceListScrollable_()) {
-          this.$.choiceList.addEventListener(
-              'scroll', this.onChoiceListScroll_.bind(this));
-        }
-        if (this.isPageScrollable_()) {
-          document.addEventListener('scroll', this.onPageScroll_.bind(this));
-        }
+      if (this.isChoiceListScrollable_()) {
+        this.$.choiceList.addEventListener(
+            'scroll', this.onChoiceListScroll_.bind(this));
+      }
+      if (this.isPageScrollable_()) {
+        document.addEventListener('scroll', this.onPageScroll_.bind(this));
       }
 
       this.pageHandler_.displayDialog();
@@ -173,10 +156,6 @@ export class SearchEngineChoiceAppElement extends
     this.pageHandler_.handleLearnMoreLinkClicked();
   }
 
-  private needsScrollToTheBottom_() {
-    return this.withForcedScroll_ && !this.hasUserScrolledToTheBottom_;
-  }
-
   private needsUserChoice_() {
     return parseInt(this.selectedChoice_) === -1;
   }
@@ -184,21 +163,22 @@ export class SearchEngineChoiceAppElement extends
   // The action button will be disabled if the user scrolls to the bottom of
   // the list without making a search engine choice.
   private computeActionButtonDisabled_() {
-    return !this.needsScrollToTheBottom_() && this.needsUserChoice_();
+    return this.hasUserScrolledToTheBottom_ && this.needsUserChoice_();
   }
 
   private onActionButtonClicked_() {
-    if (this.needsScrollToTheBottom_()) {
-      if (this.isChoiceListScrollable_()) {
-        const scrollPosition = this.$.choiceList.getBoundingClientRect().top;
-        this.$.choiceList.scrollTo({top: scrollPosition, behavior: 'smooth'});
-      } else if (this.isPageScrollable_()) {
-        window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
-      }
+    if (this.hasUserScrolledToTheBottom_) {
+      this.pageHandler_.handleSearchEngineChoiceSelected(
+          parseInt(this.selectedChoice_));
       return;
     }
-    this.pageHandler_.handleSearchEngineChoiceSelected(
-        parseInt(this.selectedChoice_));
+
+    if (this.isChoiceListScrollable_()) {
+      const choiceList = this.$.choiceList;
+      choiceList.scrollTo({top: choiceList.scrollHeight, behavior: 'smooth'});
+    } else if (this.isPageScrollable_()) {
+      window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});
+    }
   }
 
   private onInfoDialogButtonClicked_() {
@@ -219,7 +199,7 @@ export class SearchEngineChoiceAppElement extends
     const fakeOmniboxText = this.i18n('fakeOmniboxText', choice?.name!);
     const fakeOmniboxIconPath = choice?.iconPath!;
 
-    // We need to change the previous engine name to the new one and then start
+    // Change the previous engine name to the new one and then start
     // the fade-in-animation when the fade-out-animation finishes running.
     const handleFadeOutFinished = (event: AnimationEvent) => {
       if (event.animationName === 'fade-out-animation') {
@@ -227,21 +207,21 @@ export class SearchEngineChoiceAppElement extends
 
         this.fakeOmniboxText_ = fakeOmniboxText;
         this.fakeOmniboxIconPath_ = fakeOmniboxIconPath;
-        // We call `requestAnimationFrame` to make sure that the previous
-        // animation is fully removed so that we can run the next one.
+        // `requestAnimationFrame` is called to make sure that the previous
+        // animation is fully removed so that the next one can be run.
         window.requestAnimationFrame(function() {
           searchEngineOmnibox.classList.add('fade-in-animation');
         });
       } else if (event.animationName === 'fade-in-animation') {
-        // Hide the dummy omnibox so that we don't see it behind the search
-        // engine omnibox.
+        // Hide the dummy omnibox so that it is not shown behind the
+        // search engine omnibox.
         if (!dummyOmnibox.classList.contains('hidden')) {
           dummyOmnibox.classList.add('hidden');
         }
       }
     };
 
-    // Show the dummy omnibox at fade-out start so that we can see it while
+    // Show the dummy omnibox at fade-out start so that it can be seen while
     // animating the search engine omnibox.
     const handleAnimationStart = (event: AnimationEvent) => {
       if (event.animationName === 'fade-out-animation') {
@@ -283,11 +263,12 @@ export class SearchEngineChoiceAppElement extends
 
   private processScroll_(
       contentHeight: number, viewportHeight: number, scrollPosition: number) {
-    // We check for `< 1` so that we don't care about rounding issues.
-    if (Math.abs(contentHeight - viewportHeight - scrollPosition) < 1) {
+    // The value is checked against `< 1` instead of `=== 0` to keep a margin of
+    // error.
+    if (contentHeight - viewportHeight - scrollPosition < 1) {
       this.hasUserScrolledToTheBottom_ = true;
       document.removeEventListener('scroll', this.onPageScroll_.bind(this));
-      document.removeEventListener(
+      this.$.choiceList.removeEventListener(
           'scroll', this.onChoiceListScroll_.bind(this));
     }
   }
@@ -299,7 +280,7 @@ export class SearchEngineChoiceAppElement extends
         this.$.choiceList.scrollHeight > this.$.choiceList.clientHeight;
   }
 
-  // We make the page scrollable instead of the choice lists at specific
+  // The page becomes scrollable instead of the choice lists at specific
   // heights.
   private isPageScrollable_() {
     const choiceListOverflow = getComputedStyle(this.$.choiceList).overflow;
@@ -309,7 +290,8 @@ export class SearchEngineChoiceAppElement extends
 
   private getActionButtonText_() {
     return this.i18n(
-        this.needsScrollToTheBottom_() ? 'moreButtonText' : 'submitButtonText');
+        this.hasUserScrolledToTheBottom_ ? 'submitButtonText' :
+                                           'moreButtonText');
   }
 }
 

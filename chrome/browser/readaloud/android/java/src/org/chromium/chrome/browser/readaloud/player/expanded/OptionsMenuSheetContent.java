@@ -65,7 +65,7 @@ class OptionsMenuSheetContent extends MenuSheetContent {
 
         mMenu.addItem(
                 Item.VOICE,
-                R.drawable.graphic_eq_24,
+                R.drawable.voice_selection_24,
                 res.getString(R.string.readaloud_voice_menu_title),
                 MenuItem.Action.EXPAND,
                 res.getString(R.string.readaloud_voice_menu_title));
@@ -110,6 +110,14 @@ class OptionsMenuSheetContent extends MenuSheetContent {
     @Nullable
     VoiceMenuSheetContent getVoiceMenu() {
         return mVoiceSheet;
+    }
+
+    // BottomSheetContent
+    @Override
+    public int getSheetContentDescriptionStringId() {
+        // "Options menu"
+        // Automatically appended: "Swipe down to close."
+        return R.string.readaloud_options_menu_description;
     }
 
     private void onClick(int itemId) {

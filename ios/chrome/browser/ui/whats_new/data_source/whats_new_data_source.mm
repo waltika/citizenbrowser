@@ -73,6 +73,8 @@ NSString* GetPrimaryActionTitle(WhatsNewPrimaryAction action) {
       return l10n_util::GetNSString(IDS_IOS_OPEN_CHROME_SETTINGS);
     case WhatsNewPrimaryAction::kIOSSettingsPasswords:
       return l10n_util::GetNSString(IDS_IOS_OPEN_IOS_SETTINGS);
+    case WhatsNewPrimaryAction::kLens:
+      return l10n_util::GetNSString(IDS_IOS_GO_TO_LENS);
     case WhatsNewPrimaryAction::kNoAction:
     case WhatsNewPrimaryAction::kError:
       return nil;

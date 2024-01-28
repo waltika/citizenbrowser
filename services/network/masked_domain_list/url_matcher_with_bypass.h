@@ -59,11 +59,26 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) UrlMatcherWithBypass {
       std::string_view domain,
       const masked_domain_list::ResourceOwner& resource_owner);
 
+  // Builds a single pair of matcher and bypass rules for the provided partition
+  // to minimize unnecessary memory usage.
+  void AddMaskedDomainListRules(
+      const std::set<std::string>& domains,
+      const std::string& partition_key,
+      const masked_domain_list::ResourceOwner& resource_owner);
+
+  // Builds a single matcher for the provided partition that does not have any
+  // bypass rules.
+  void AddRulesWithoutBypass(const std::set<std::string>& domains,
+                             const std::string& partition_key);
+
   void Clear();
 
   // Estimates dynamic memory usage.
   // See base/trace_event/memory_usage_estimator.h for more info.
   size_t EstimateMemoryUsage() const;
+
+  static net::SchemeHostPortMatcher BuildBypassMatcher(
+      const masked_domain_list::ResourceOwner& resource_owner);
 
   // Determine the partition of the `match_list_with_bypass_map_` that contains
   // the given domain.
@@ -73,8 +88,8 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) UrlMatcherWithBypass {
   // Maps partition map keys to smaller maps of domains eligible for the match
   // list and the top frame domains that allow the match list to be bypassed.
   std::map<std::string,
-           std::map<std::unique_ptr<net::SchemeHostPortMatcher>,
-                    net::SchemeHostPortMatcher>>
+           std::vector<std::pair<net::SchemeHostPortMatcher,
+                                 net::SchemeHostPortMatcher>>>
       match_list_with_bypass_map_;
 };
 

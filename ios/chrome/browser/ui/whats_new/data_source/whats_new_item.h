@@ -25,7 +25,10 @@ enum class WhatsNewType {
   kCalendarEvent = 9,
   kChromeActions = 10,
   kMiniMaps = 11,
-  kMaxValue = kMiniMaps,
+  kLensSearch = 12,
+  kBottomOmnibox = 13,
+  kESB = 14,
+  kMaxValue = kESB
 };
 
 // An enum representing the different primary button actions for features in
@@ -38,7 +41,8 @@ enum class WhatsNewPrimaryAction {
   kPrivacySettings = 2,
   kChromeSettings = 3,
   kIOSSettingsPasswords = 4,
-  kMaxValue = kIOSSettingsPasswords,
+  kLens = 5,
+  kMaxValue = kLens,
 };
 
 class GURL;

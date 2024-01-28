@@ -324,9 +324,7 @@ struct v4l2_av1_cdef FillCdefParams(const libgav1::Cdef& cdef,
                                     uint8_t color_bitdepth) {
   struct v4l2_av1_cdef v4l2_cdef = {};
 
-  // Damping value parsed in libgav1 is from the spec + (bitdepth - 8).
-  // All the strength values parsed in libgav1 are from the spec and left
-  // shifted by (bitdepth - 8).
+  // Damping value parsed in libgav1 is from the spec + (|color_bitdepth| - 8).
   CHECK_GE(color_bitdepth, 8u);
   const uint8_t coeff_shift = color_bitdepth - 8u;
 
@@ -355,6 +353,16 @@ struct v4l2_av1_cdef FillCdefParams(const libgav1::Cdef& cdef,
   SafeArrayMemcpy(v4l2_cdef.y_sec_strength, cdef.y_secondary_strength);
   SafeArrayMemcpy(v4l2_cdef.uv_pri_strength, cdef.uv_primary_strength);
   SafeArrayMemcpy(v4l2_cdef.uv_sec_strength, cdef.uv_secondary_strength);
+
+  // All the strength values parsed in libgav1 are from the AV1 spec and left
+  // shifted by (|color_bitdepth| - 8). So these values need to be right shifted
+  // by (|color_bitdepth| - 8) before passing to a driver.
+  for (size_t i = 0; i < libgav1::kMaxCdefStrengths; i++) {
+    v4l2_cdef.y_pri_strength[i] >>= coeff_shift;
+    v4l2_cdef.y_sec_strength[i] >>= coeff_shift;
+    v4l2_cdef.uv_pri_strength[i] >>= coeff_shift;
+    v4l2_cdef.uv_sec_strength[i] >>= coeff_shift;
+  }
 
   return v4l2_cdef;
 }
@@ -778,8 +786,7 @@ DecodeStatus V4L2VideoDecoderDelegateAV1::SubmitDecode(
       SetupFrameParams(sequence_header, pic.frame_header, ref_frames);
 
   std::vector<struct v4l2_ctrl_av1_tile_group_entry> tile_group_entry_vectors =
-      FillTileGroupParams(base::make_span(stream.data(), stream.size()),
-                          pic.frame_header.tile_info.tile_columns,
+      FillTileGroupParams(stream, pic.frame_header.tile_info.tile_columns,
                           tile_buffers);
 
   if (tile_group_entry_vectors.empty()) {

@@ -33,6 +33,7 @@
 #include "third_party/blink/renderer/core/paint/paint_layer.h"
 #include "third_party/blink/renderer/core/paint/paint_layer_paint_order_iterator.h"
 #include "third_party/blink/renderer/core/resize_observer/resize_observer_entry.h"
+#include "third_party/blink/renderer/core/resize_observer/resize_observer_size.h"
 #include "third_party/blink/renderer/core/scroll/scrollable_area.h"
 #include "third_party/blink/renderer/core/style/computed_style_constants.h"
 #include "third_party/blink/renderer/core/style/shape_clip_path_operation.h"
@@ -689,6 +690,10 @@ bool ViewTransitionStyleTracker::FlattenAndVerifyElements(
 
     transition_names.push_back(name);
     elements.push_back(element);
+
+    if (name.LowerASCII() == "auto") {
+      UseCounter::Count(document_, WebFeature::kViewTransitionNameAuto);
+    }
   }
   return true;
 }

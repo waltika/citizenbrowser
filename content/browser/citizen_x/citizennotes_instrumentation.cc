@@ -12,6 +12,7 @@
 #include "components/download/public/common/download_item.h"
 #include "components/download/public/common/download_url_parameters.h"
 #include "content/browser/citizen_x/browser_citizennotes_agent_host.h"
+#include "content/browser/citizen_x/dedicated_worker_citizennotes_agent_host.h"
 #include "content/browser/citizen_x/citizennotes_issue_storage.h"
 #include "content/browser/citizen_x/citizennotes_url_loader_interceptor.h"
 #include "content/browser/citizen_x/protocol/audits.h"
@@ -28,12 +29,12 @@
 #include "content/browser/citizen_x/protocol/cnpage_handler.h"
 #include "content/browser/citizen_x/protocol/cnpreload_handler.h"
 #include "content/browser/citizen_x/protocol/cnsecurity_handler.h"
+#include "content/browser/citizen_x/protocol/cnstorage_handler.h"
 #include "content/browser/citizen_x/protocol/cntarget_handler.h"
 #include "content/browser/citizen_x/protocol/cntracing_handler.h"
 #include "content/browser/citizen_x/render_frame_citizennotes_agent_host.h"
 #include "content/browser/citizen_x/service_worker_citizennotes_agent_host.h"
 #include "content/browser/citizen_x/web_contents_citizennotes_agent_host.h"
-#include "content/browser/citizen_x/worker_citizennotes_agent_host.h"
 #include "content/browser/citizen_x/worker_citizennotes_manager.h"
 #include "content/browser/preloading/prerender/prerender_final_status.h"
 #include "content/browser/preloading/prerender/prerender_metrics.h"
@@ -59,7 +60,7 @@
 #include "services/network/public/mojom/citizennotes_observer.mojom.h"
 #include "services/network/public/mojom/network_context.mojom.h"
 #include "services/network/public/mojom/url_loader_factory.mojom.h"
-//#include "third_party/blink/public/mojom/citizennotes/cninspector_issue.mojom.h"
+#include "third_party/blink/public/mojom/devtools/inspector_issue.mojom.h"
 #include "third_party/blink/public/mojom/navigation/navigation_params.mojom.h"
 
 namespace content {
@@ -70,7 +71,7 @@ namespace {
 namespace AttributionReportingIssueTypeEnum =
     protocol::Audits::AttributionReportingIssueTypeEnum;
 
-//const char kPrivacySandboxExtensionsAPI[] = "PrivacySandboxExtensionsAPI";
+const char kPrivacySandboxExtensionsAPI[] = "PrivacySandboxExtensionsAPI";
 
 template <typename Handler, typename... MethodArgs, typename... Args>
 void DispatchToAgents(CitizenNotesAgentHostImpl* host,
@@ -120,26 +121,26 @@ void DispatchToAgents(WebContents* web_contents,
   }
 }
 
-/*std::unique_ptr<protocol::Audits::InspectorIssue> BuildHeavyAdIssue(
+std::unique_ptr<protocol::Audits::InspectorIssue> BuildHeavyAdIssue(
     const blink::mojom::HeavyAdIssueDetailsPtr& issue_details) {
-//  protocol::String status =
-//      (issue_details->resolution ==
-//       blink::mojom::HeavyAdResolutionStatus::kHeavyAdBlocked)
-//          ? protocol::Audits::HeavyAdResolutionStatusEnum::HeavyAdBlocked
-//          : protocol::Audits::HeavyAdResolutionStatusEnum::HeavyAdWarning;
-//  protocol::String reason_string;
-//  switch (issue_details->reason) {
-//    case blink::mojom::HeavyAdReason::kNetworkTotalLimit:
-//      reason_string = protocol::Audits::HeavyAdReasonEnum::NetworkTotalLimit;
-//      break;
-//    case blink::mojom::HeavyAdReason::kCpuTotalLimit:
-//      reason_string = protocol::Audits::HeavyAdReasonEnum::CpuTotalLimit;
-//      break;
-//    case blink::mojom::HeavyAdReason::kCpuPeakLimit:
-//      reason_string = protocol::Audits::HeavyAdReasonEnum::CpuPeakLimit;
-//      break;
-//  }
-    auto heavy_ad_details =
+  protocol::String status =
+      (issue_details->resolution ==
+       blink::mojom::HeavyAdResolutionStatus::kHeavyAdBlocked)
+          ? protocol::Audits::HeavyAdResolutionStatusEnum::HeavyAdBlocked
+          : protocol::Audits::HeavyAdResolutionStatusEnum::HeavyAdWarning;
+  protocol::String reason_string;
+  switch (issue_details->reason) {
+    case blink::mojom::HeavyAdReason::kNetworkTotalLimit:
+      reason_string = protocol::Audits::HeavyAdReasonEnum::NetworkTotalLimit;
+      break;
+    case blink::mojom::HeavyAdReason::kCpuTotalLimit:
+      reason_string = protocol::Audits::HeavyAdReasonEnum::CpuTotalLimit;
+      break;
+    case blink::mojom::HeavyAdReason::kCpuPeakLimit:
+      reason_string = protocol::Audits::HeavyAdReasonEnum::CpuPeakLimit;
+      break;
+  }
+  auto heavy_ad_details =
       protocol::Audits::HeavyAdIssueDetails::Create()
           .SetReason(reason_string)
           .SetResolution(status)
@@ -157,10 +158,10 @@ void DispatchToAgents(WebContents* web_contents,
           .SetCode(protocol::Audits::InspectorIssueCodeEnum::HeavyAdIssue)
           .SetDetails(std::move(protocol_issue_details))
           .Build();
-  return nullptr;
-}*/
+  return issue;
+}
 
-/*protocol::Audits::AttributionReportingIssueType
+protocol::Audits::AttributionReportingIssueType
 BuildAttributionReportingIssueViolationType(
     blink::mojom::AttributionReportingIssueType type) {
   switch (type) {
@@ -198,12 +199,11 @@ BuildAttributionReportingIssueViolationType(
     case blink::mojom::AttributionReportingIssueType::kNoWebOrOsSupport:
       return AttributionReportingIssueTypeEnum::NoWebOrOsSupport;
   }
-}*/
+}
 
-/*
 std::unique_ptr<protocol::Audits::InspectorIssue>
 BuildAttributionReportingIssue(
-  const blink::mojom::AttributionReportingIssueDetailsPtr& issue_details) {
+    const blink::mojom::AttributionReportingIssueDetailsPtr& issue_details) {
   protocol::String violation_type = BuildAttributionReportingIssueViolationType(
       issue_details->violation_type);
 
@@ -231,13 +231,12 @@ BuildAttributionReportingIssue(
   auto issue = protocol::Audits::InspectorIssue::Create()
                    .SetCode(protocol::Audits::InspectorIssueCodeEnum::
                                 AttributionReportingIssue)
-                   .SetDetails(std::move(nullptr)
-                   .Build());
-  std::unique_ptr<protocol::Audits::InspectorIssue> issue;
+                   .SetDetails(std::move(protocol_issue_details))
+                   .Build();
   return issue;
-}*/ //TODO: Cleanup
+}
 
-/*protocol::Audits::FederatedAuthRequestIssueReason
+protocol::Audits::FederatedAuthRequestIssueReason
 FederatedAuthRequestResultToProtocol(
     blink::mojom::FederatedAuthRequestResult result) {
   using blink::mojom::FederatedAuthRequestResult;
@@ -358,10 +357,9 @@ FederatedAuthRequestResultToProtocol(
       NOTREACHED_NORETURN();
     }
   }
-}*/
+}
 
-/*
- std::unique_ptr<protocol::Audits::InspectorIssue>
+std::unique_ptr<protocol::Audits::InspectorIssue>
 BuildFederatedAuthRequestIssue(
     const blink::mojom::FederatedAuthRequestIssueDetailsPtr& issue_details) {
   auto federated_auth_request_details =
@@ -381,12 +379,10 @@ BuildFederatedAuthRequestIssue(
                                 FederatedAuthRequestIssue)
                    .SetDetails(std::move(protocol_issue_details))
                    .Build();
-    std::unique_ptr<protocol::Audits::InspectorIssue> issue;
-    return issue;
+  return issue;
 }
-*/
- 
-/*protocol::Audits::FederatedAuthUserInfoRequestIssueReason
+
+protocol::Audits::FederatedAuthUserInfoRequestIssueReason
 FederatedAuthUserInfoRequestResultToProtocol(
     blink::mojom::FederatedAuthUserInfoRequestResult result) {
   using blink::mojom::FederatedAuthUserInfoRequestResult;
@@ -431,9 +427,9 @@ FederatedAuthUserInfoRequestResultToProtocol(
       NOTREACHED_NORETURN();
     }
   }
-}*/
+}
 
-/*std::unique_ptr<protocol::Audits::InspectorIssue>
+std::unique_ptr<protocol::Audits::InspectorIssue>
 BuildFederatedAuthUserInfoRequestIssue(
     const blink::mojom::FederatedAuthUserInfoRequestIssueDetailsPtr&
         issue_details) {
@@ -455,21 +451,18 @@ BuildFederatedAuthUserInfoRequestIssue(
                                 FederatedAuthUserInfoRequestIssue)
                    .SetDetails(std::move(protocol_issue_details))
                    .Build();
-    std::unique_ptr<protocol::Audits::InspectorIssue> issue;
-    return issue;
+  return issue;
 }
-*/
- 
-/*const char* DeprecationIssueTypeToProtocol(
+
+const char* DeprecationIssueTypeToProtocol(
     blink::mojom::DeprecationIssueType error_type) {
   switch (error_type) {
     case blink::mojom::DeprecationIssueType::kPrivacySandboxExtensionsAPI:
       return kPrivacySandboxExtensionsAPI;
   }
-}*/
+}
 
-/*
- std::unique_ptr<protocol::Audits::InspectorIssue> BuildDeprecationIssue(
+std::unique_ptr<protocol::Audits::InspectorIssue> BuildDeprecationIssue(
     const blink::mojom::DeprecationIssueDetailsPtr& issue_details) {
   std::unique_ptr<protocol::Audits::SourceCodeLocation> source_code_location =
       protocol::Audits::SourceCodeLocation::Create()
@@ -499,13 +492,11 @@ BuildFederatedAuthUserInfoRequestIssue(
           .SetCode(protocol::Audits::InspectorIssueCodeEnum::DeprecationIssue)
           .SetDetails(std::move(protocol_issue_details))
           .Build();
-    
-    
-  std::unique_ptr<protocol::Audits::InspectorIssue> deprecation_issue;
-  return deprecation_issue;
-}*/
 
-/*std::unique_ptr<protocol::Audits::InspectorIssue> BuildBounceTrackingIssue(
+  return deprecation_issue;
+}
+
+std::unique_ptr<protocol::Audits::InspectorIssue> BuildBounceTrackingIssue(
     const blink::mojom::BounceTrackingIssueDetailsPtr& issue_details) {
   auto bounce_tracking_issue_details =
       protocol::Audits::BounceTrackingIssueDetails::Create()
@@ -518,6 +509,7 @@ BuildFederatedAuthUserInfoRequestIssue(
           .SetBounceTrackingIssueDetails(
               std::move(bounce_tracking_issue_details))
           .Build();
+
   auto issue =
       protocol::Audits::InspectorIssue::Create()
           .SetCode(
@@ -525,16 +517,13 @@ BuildFederatedAuthUserInfoRequestIssue(
           .SetDetails(std::move(protocol_issue_details))
           .Build();
 
-
-  std::unique_ptr<protocol::Audits::InspectorIssue> issue;
   return issue;
-} */
+}
 
-/*std::unique_ptr<protocol::Audits::InspectorIssue>
+std::unique_ptr<protocol::Audits::InspectorIssue>
 BuildCookieDeprecationMetadataIssue(
     const blink::mojom::CookieDeprecationMetadataIssueDetailsPtr&
         issue_details) {
-
   auto metadata_issue_details =
       protocol::Audits::CookieDeprecationMetadataIssueDetails::Create()
           .SetAllowedSites(std::make_unique<protocol::Array<protocol::String>>(
@@ -552,9 +541,9 @@ BuildCookieDeprecationMetadataIssue(
                                 CookieDeprecationMetadataIssue)
                    .SetDetails(std::move(protocol_issue_details))
                    .Build();
-  std::unique_ptr<protocol::Audits::InspectorIssue> issue;
+
   return issue;
-}*/ //TODO: Clean
+}
 
 void UpdateChildFrameTrees(FrameTreeNode* ftn, bool update_target_info) {
   if (auto* agent_host = WebContentsCitizenNotesAgentHost::GetFor(
@@ -577,7 +566,6 @@ void OnResetNavigationRequest(NavigationRequest* navigation_request) {
 
 void OnNavigationResponseReceived(const NavigationRequest& nav_request,
                                   const network::mojom::URLResponseHead& head) {
-/*
   // This response is artificial (see CachedNavigationURLLoader), so we don't
   // want to report it.
   if (nav_request.IsPageActivation()) {
@@ -585,9 +573,9 @@ void OnNavigationResponseReceived(const NavigationRequest& nav_request,
   }
 
   FrameTreeNode* ftn = nav_request.frame_tree_node();
-  std::string id = nav_request.devtools_navigation_token().ToString();
+  std::string id = nav_request.citizennotes_navigation_token().ToString();
   std::string frame_id =
-      ftn->current_frame_host()->devtools_frame_token().ToString();
+      ftn->current_frame_host()->citizennotes_frame_token().ToString();
   GURL url = nav_request.common_params().url;
 
   network::mojom::URLResponseHeadCitizenNotesInfoPtr head_info =
@@ -595,32 +583,28 @@ void OnNavigationResponseReceived(const NavigationRequest& nav_request,
   DispatchToAgents(ftn, &protocol::CNNetworkHandler::ResponseReceived, id, id,
                    url, protocol::Network::ResourceTypeEnum::Document,
                    *head_info, frame_id);
- */ //TODO: Clean
 }
 
 void OnFetchKeepAliveRequestWillBeSent(
     FrameTreeNode* frame_tree_node,
     const std::string& request_id,
     const network::ResourceRequest& request,
-    absl::optional<
-        std::pair<const GURL&,
-                  const network::mojom::URLResponseHeadCitizenNotesInfo&>>
+    std::optional<std::pair<const GURL&,
+                            const network::mojom::URLResponseHeadCitizenNotesInfo&>>
         redirect_info) {
   CHECK(frame_tree_node);
 
-/*
   auto timestamp = base::TimeTicks::Now();
-    std::string frame_token =
-      frame_tree_node->current_frame_host()->devtools_frame_token().ToString();
+  std::string frame_token =
+      frame_tree_node->current_frame_host()->citizennotes_frame_token().ToString();
   GURL initiator_url;
   if (request.request_initiator.has_value()) {
     initiator_url = request.request_initiator->GetURL();
   }
-
   DispatchToAgents(frame_tree_node,
                    &protocol::CNNetworkHandler::FetchKeepAliveRequestWillBeSent,
                    request_id, request, initiator_url, frame_token, timestamp,
-                   redirect_info);*/ //TODO: Clean
+                   redirect_info);
 }
 
 void OnFetchKeepAliveResponseReceived(
@@ -630,15 +614,14 @@ void OnFetchKeepAliveResponseReceived(
     const network::mojom::URLResponseHead& head) {
   CHECK(frame_tree_node);
 
-        /*
-         std::string frame_token =
-      frame_tree_node->current_frame_host()->devtools_frame_token().ToString();
+  std::string frame_token =
+      frame_tree_node->current_frame_host()->citizennotes_frame_token().ToString();
   network::mojom::URLResponseHeadCitizenNotesInfoPtr head_info =
       network::ExtractCitizenNotesInfo(head);
   DispatchToAgents(frame_tree_node, &protocol::CNNetworkHandler::ResponseReceived,
                    request_id, request_id, url,
                    protocol::Network::ResourceTypeEnum::Fetch, *head_info,
-                   frame_token);*/ //TODO: Clean
+                   frame_token);
 }
 
 void OnFetchKeepAliveRequestComplete(
@@ -690,7 +673,7 @@ void OnFrameTreeNodeDestroyed(FrameTreeNode& frame_tree_node) {
     DispatchToAgents(
         RenderFrameCitizenNotesAgentHost::GetFor(parent),
         &protocol::CNPageHandler::OnFrameDetached,
-        frame_tree_node.current_frame_host()->devtools_frame_token());
+        frame_tree_node.current_frame_host()->citizennotes_frame_token());
   }
 }
 
@@ -719,15 +702,15 @@ void WillInitiatePrerender(FrameTree& frame_tree) {
 }
 
 void DidActivatePrerender(const NavigationRequest& nav_request,
-                          const absl::optional<base::UnguessableToken>&
-                              initiator_devtools_navigation_token) {
+                          const std::optional<base::UnguessableToken>&
+                              initiator_citizennotes_navigation_token) {
   FrameTreeNode* ftn = nav_request.frame_tree_node();
   UpdateChildFrameTrees(ftn, /* update_target_info= */ true);
 }
 
 void DidUpdatePrefetchStatus(
     FrameTreeNode* ftn,
-    const base::UnguessableToken& initiator_devtools_navigation_token,
+    const base::UnguessableToken& initiator_citizennotes_navigation_token,
     const GURL& prefetch_url,
     PreloadingTriggeringOutcome status,
     PrefetchStatus prefetch_status,
@@ -737,20 +720,20 @@ void DidUpdatePrefetchStatus(
   }
 
   std::string initiating_frame_id =
-      ftn->current_frame_host()->devtools_frame_token().ToString();
+      ftn->current_frame_host()->citizennotes_frame_token().ToString();
   DispatchToAgents(ftn, &protocol::CNPreloadHandler::DidUpdatePrefetchStatus,
-                   initiator_devtools_navigation_token, initiating_frame_id,
+                   initiator_citizennotes_navigation_token, initiating_frame_id,
                    prefetch_url, status, prefetch_status, request_id);
 }
 
 void DidUpdatePrerenderStatus(
     int initiator_frame_tree_node_id,
-    const base::UnguessableToken& initiator_devtools_navigation_token,
+    const base::UnguessableToken& initiator_citizennotes_navigation_token,
     const GURL& prerender_url,
-    absl::optional<blink::mojom::SpeculationTargetHint> target_hint,
+    std::optional<blink::mojom::SpeculationTargetHint> target_hint,
     PreloadingTriggeringOutcome status,
-    absl::optional<PrerenderFinalStatus> prerender_status,
-    absl::optional<std::string> disallowed_mojo_interface,
+    std::optional<PrerenderFinalStatus> prerender_status,
+    std::optional<std::string> disallowed_mojo_interface,
     const std::vector<PrerenderMismatchedHeaders>* mismatched_headers) {
   auto* ftn = FrameTreeNode::GloballyFindByID(initiator_frame_tree_node_id);
   // ftn will be null if this is browser-initiated, which has no initiator.
@@ -759,7 +742,7 @@ void DidUpdatePrerenderStatus(
   }
 
   DispatchToAgents(ftn, &protocol::CNPreloadHandler::DidUpdatePrerenderStatus,
-                   initiator_devtools_navigation_token, prerender_url,
+                   initiator_citizennotes_navigation_token, prerender_url,
                    target_hint, status, prerender_status,
                    disallowed_mojo_interface, mismatched_headers);
 }
@@ -811,27 +794,26 @@ void ReportBlockedByResponseIssue(
   blockedByResponseDetails->SetBlockedFrame(
       protocol::Audits::AffectedFrame::Create()
           .SetFrameId(
-              ftn->current_frame_host()->devtools_frame_token().ToString())
+              ftn->current_frame_host()->citizennotes_frame_token().ToString())
           .Build());
   if (parent_frame) {
     blockedByResponseDetails->SetParentFrame(
         protocol::Audits::AffectedFrame::Create()
-            .SetFrameId(parent_frame->devtools_frame_token().ToString())
+            .SetFrameId(parent_frame->citizennotes_frame_token().ToString())
             .Build());
   }
 
   issueDetails.SetBlockedByResponseIssueDetails(
       std::move(blockedByResponseDetails));
 
-//  auto inspector_issue =
-//      protocol::Audits::InspectorIssue::Create()
-//          .SetCode(
-//              protocol::Audits::InspectorIssueCodeEnum::BlockedByResponseIssue)
-//          .SetDetails(issueDetails.Build())
-//          .Build();
+  auto inspector_issue =
+      protocol::Audits::InspectorIssue::Create()
+          .SetCode(
+              protocol::Audits::InspectorIssueCodeEnum::BlockedByResponseIssue)
+          .SetDetails(issueDetails.Build())
+          .Build();
 
-//  ReportBrowserInitiatedIssue(ftn->current_frame_host(), inspector_issue.get());
-//TODO: Amend
+  ReportBrowserInitiatedIssue(ftn->current_frame_host(), inspector_issue.get());
 }
 
 }  // namespace
@@ -840,7 +822,7 @@ void OnNavigationRequestFailed(
     const NavigationRequest& nav_request,
     const network::URLLoaderCompletionStatus& status) {
   FrameTreeNode* ftn = nav_request.frame_tree_node();
-  std::string id = nav_request.devtools_navigation_token().ToString();
+  std::string id = nav_request.citizennotes_navigation_token().ToString();
 
   if (status.blocked_by_response_reason) {
     ReportBlockedByResponseIssue(
@@ -918,16 +900,16 @@ void WillBeginDownload(download::DownloadCreateInfo* info,
 
 void OnSignedExchangeReceived(
     FrameTreeNode* frame_tree_node,
-    absl::optional<const base::UnguessableToken> devtools_navigation_token,
+    std::optional<const base::UnguessableToken> citizennotes_navigation_token,
     const GURL& outer_request_url,
     const network::mojom::URLResponseHead& outer_response,
-    const absl::optional<SignedExchangeEnvelope>& envelope,
+    const std::optional<SignedExchangeEnvelope>& envelope,
     const scoped_refptr<net::X509Certificate>& certificate,
-    const absl::optional<net::SSLInfo>& ssl_info,
+    const std::optional<net::SSLInfo>& ssl_info,
     const std::vector<SignedExchangeError>& errors) {
   DispatchToAgents(frame_tree_node,
                    &protocol::CNNetworkHandler::OnSignedExchangeReceived,
-                   devtools_navigation_token, outer_request_url, outer_response,
+                   citizennotes_navigation_token, outer_request_url, outer_response,
                    envelope, certificate, ssl_info, errors);
 }
 
@@ -1083,9 +1065,9 @@ void ThrottleWorkerMainScriptFetch(
     const base::UnguessableToken& citizennotes_worker_token,
     const GlobalRenderFrameHostId& ancestor_render_frame_host_id,
     scoped_refptr<CitizenNotesThrottleHandle> throttle_handle) {
-  WorkerCitizenNotesAgentHost* agent_host =
+  DedicatedWorkerCitizenNotesAgentHost* agent_host =
       WorkerCitizenNotesManager::GetInstance().GetCitizenNotesHostFromToken(
-                                                                            citizennotes_worker_token);
+          citizennotes_worker_token);
   if (!agent_host) {
     return;
   }
@@ -1154,7 +1136,7 @@ void ApplyAuctionNetworkRequestOverrides(
     *network_instrumentation_enabled = true;
     network->ApplyOverrides(&request->headers, &request->skip_service_worker,
                             &disable_cache,
-                            &request->devtools_accepted_stream_types);
+                            &request->citizennotes_accepted_stream_types);
   }
 
   for (auto* emulation : protocol::CNEmulationHandler::ForAgentHost(agent_host)) {
@@ -1173,7 +1155,7 @@ void ApplyNetworkRequestOverrides(
     FrameTreeNode* frame_tree_node,
     blink::mojom::BeginNavigationParams* begin_params,
     bool* report_raw_headers,
-    absl::optional<std::vector<net::SourceStream::SourceType>>*
+    std::optional<std::vector<net::SourceStream::SourceType>>*
         citizennotes_accepted_stream_types,
     bool* citizennotes_user_agent_overridden,
     bool* citizennotes_accept_language_overridden) {
@@ -1217,7 +1199,7 @@ void ApplyNetworkRequestOverrides(
 
 bool ApplyUserAgentMetadataOverrides(
     FrameTreeNode* frame_tree_node,
-    absl::optional<blink::UserAgentMetadata>* override_out) {
+    std::optional<blink::UserAgentMetadata>* override_out) {
   CitizenNotesAgentHostImpl* agent_host =
       GetCitizenNotesAgentHostForNetworkOverrides(frame_tree_node);
   if (!agent_host) {
@@ -1274,7 +1256,7 @@ bool WillCreateURLLoaderFactory(
       RenderFrameCitizenNotesAgentHost::GetFor(rfh);
 
   return WillCreateURLLoaderFactoryInternal(
-      frame_agent_host, rfh->GetDevToolsFrameToken(), rph->GetID(),
+      frame_agent_host, rfh->GetCitizenNotesFrameToken(), rph->GetID(),
       rph->GetStoragePartition(), is_navigation, is_download,
       target_factory_receiver, factory_override);
 }
@@ -1300,8 +1282,8 @@ bool WillCreateURLLoaderFactoryInternal(
                                             : &citizennotes_override;
 
   // Order of targets and sessions matters -- the latter proxy is created,
-  // the closer it is to the network. So start with frame's NetworkHandler,
-  // then process frame's FetchHandler and then browser's FetchHandler.
+  // the closer it is to the network. So start with frame's CNNetworkHandler,
+  // then process frame's CNFetchHandler and then browser's CNFetchHandler.
   // Within the target, the agents added earlier are closer to network.
   bool had_interceptors =
       MaybeCreateProxyForInterception<protocol::CNNetworkHandler>(
@@ -1439,13 +1421,12 @@ void OnPrefetchRequestWillBeSent(
     const std::string& request_id,
     const GURL& initiator,
     const network::ResourceRequest& request,
-    absl::optional<
-        std::pair<const GURL&,
-                  const network::mojom::URLResponseHeadCitizenNotesInfo&>>
+    std::optional<std::pair<const GURL&,
+                            const network::mojom::URLResponseHeadCitizenNotesInfo&>>
         redirect_info) {
   auto timestamp = base::TimeTicks::Now();
   std::string frame_token =
-      frame_tree_node->current_frame_host()->devtools_frame_token().ToString();
+      frame_tree_node->current_frame_host()->citizennotes_frame_token().ToString();
   DispatchToAgents(
       frame_tree_node, &protocol::CNNetworkHandler::PrefetchRequestWillBeSent,
       request_id, request, initiator, frame_token, timestamp, redirect_info);
@@ -1456,7 +1437,7 @@ void OnPrefetchResponseReceived(FrameTreeNode* frame_tree_node,
                                 const GURL& url,
                                 const network::mojom::URLResponseHead& head) {
   std::string frame_token =
-      frame_tree_node->current_frame_host()->devtools_frame_token().ToString();
+      frame_tree_node->current_frame_host()->citizennotes_frame_token().ToString();
 
   network::mojom::URLResponseHeadCitizenNotesInfoPtr head_info =
       network::ExtractCitizenNotesInfo(head);
@@ -1485,7 +1466,7 @@ void OnAuctionWorkletNetworkRequestWillBeSent(
     int frame_tree_node_id,
     const network::ResourceRequest& request,
     base::TimeTicks timestamp) {
-  if (request.devtools_request_id->empty()) {
+  if (request.citizennotes_request_id->empty()) {
     return;
   }
 
@@ -1504,20 +1485,20 @@ void OnAuctionWorkletNetworkRequestWillBeSent(
     if (ftn == nullptr) {
       return;
     }
-    const absl::optional<base::UnguessableToken>& devtools_navigation_token =
-        ftn->current_frame_host()->GetDevToolsNavigationToken();
+    const std::optional<base::UnguessableToken>& citizennotes_navigation_token =
+        ftn->current_frame_host()->GetCitizenNotesNavigationToken();
 
-    if (devtools_navigation_token.has_value()) {
-      loader_id = devtools_navigation_token->ToString();
+    if (citizennotes_navigation_token.has_value()) {
+      loader_id = citizennotes_navigation_token->ToString();
     }
 
     DispatchToAgents(
         frame_tree_node_id, &protocol::CNNetworkHandler::RequestSent,
-        /*request_id=*/request.devtools_request_id.value(),
+        /*request_id=*/request.citizennotes_request_id.value(),
         /*loader_id=*/loader_id, request.headers, *request_info,
         /*initiator_type=*/protocol::Network::Initiator::TypeEnum::Other,
         initiator_url,
-        /*initiator_devtools_request_id=*/"", timestamp);
+        /*initiator_citizennotes_request_id=*/"", timestamp);
   }
 }
 
@@ -1544,6 +1525,47 @@ void OnAuctionWorkletNetworkRequestComplete(
                    &protocol::CNNetworkHandler::LoadingComplete, request_id,
                    /*resource_type=*/protocol::Network::ResourceTypeEnum::Other,
                    status);
+}
+
+bool NeedInterestGroupAuctionEvents(int frame_tree_node_id) {
+  FrameTreeNode* ftn = FrameTreeNode::GloballyFindByID(frame_tree_node_id);
+  if (!ftn) {
+    return false;
+  }
+  CitizenNotesAgentHostImpl* agent_host = RenderFrameCitizenNotesAgentHost::GetFor(ftn);
+  if (!agent_host) {
+    return false;
+  }
+  for (auto* storage : protocol::CNStorageHandler::ForAgentHost(agent_host)) {
+    if (storage->interest_group_auction_tracking_enabled()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void OnInterestGroupAuctionEventOccurred(
+    int frame_tree_node_id,
+    base::Time event_time,
+    InterestGroupAuctionEventType type,
+    const std::string& unique_auction_id,
+    base::optional_ref<const std::string> parent_auction_id,
+    const base::Value::Dict& auction_config) {
+  /*DispatchToAgents(
+      frame_tree_node_id,
+      &protocol::CNStorageHandler::NotifyInterestGroupAuctionEventOccurred,
+      event_time, type, unique_auction_id, parent_auction_id, auction_config);*/
+}
+
+void OnInterestGroupAuctionNetworkRequestCreated(
+    int frame_tree_node_id,
+    content::InterestGroupAuctionFetchType type,
+    const std::string& request_id,
+    const std::vector<std::string>& citizennotes_auction_ids) {
+  /*DispatchToAgents(frame_tree_node_id,
+                   &protocol::CNStorageHandler::
+                       NotifyInterestGroupAuctionNetworkRequestCreated,
+                   type, request_id, citizennotes_auction_ids);*/
 }
 
 void OnNavigationRequestWillBeSent(
@@ -1584,7 +1606,7 @@ void OnNavigationRequestWillBeSent(
       "citizennotes.timeline", "ResourceWillSendRequest", TRACE_EVENT_SCOPE_PROCESS,
       timestamp, "data",
       inspector_will_send_navigation_request_event::Data(
-          navigation_request.devtools_navigation_token()));
+          navigation_request.citizennotes_navigation_token()));
 }
 
 // Notify the provided agent host of a certificate error. Returns true if one of
@@ -1796,7 +1818,7 @@ void ReportCookieIssue(
     const GURL& url,
     const net::SiteForCookies& site_for_cookies,
     blink::mojom::CookieOperation operation,
-    const absl::optional<std::string>& citizennotes_request_id) {
+    const std::optional<std::string>& citizennotes_request_id) {
   auto exclusion_reasons =
       BuildExclusionReasons(excluded_cookie->access_result.status);
   auto warning_reasons =
@@ -1887,7 +1909,7 @@ void ReportBrowserInitiatedIssue(RenderFrameHostImpl* frame,
 void BuildAndReportBrowserInitiatedIssue(
     RenderFrameHostImpl* frame,
     blink::mojom::InspectorIssueInfoPtr info) {
-/*  std::unique_ptr<protocol::Audits::InspectorIssue> issue;
+  std::unique_ptr<protocol::Audits::InspectorIssue> issue;
   if (info->code == blink::mojom::InspectorIssueCode::kHeavyAdIssue) {
     issue = BuildHeavyAdIssue(info->details->heavy_ad_issue_details);
   } else if (info->code ==
@@ -1916,13 +1938,13 @@ void BuildAndReportBrowserInitiatedIssue(
   } else {
     NOTREACHED() << "Unsupported type of browser-initiated issue";
   }
-  ReportBrowserInitiatedIssue(frame, issue.get());*/ //TODO: Cleanup
+  ReportBrowserInitiatedIssue(frame, issue.get());
 }
 
 void OnWebTransportHandshakeFailed(
     RenderFrameHostImpl* frame,
     const GURL& url,
-    const absl::optional<net::WebTransportError>& error) {
+    const std::optional<net::WebTransportError>& error) {
   FrameTreeNode* ftn = frame->frame_tree_node();
   if (!ftn) {
     return;
@@ -1997,7 +2019,7 @@ void OnServiceWorkerMainScriptFetchingFailed(
       network_handler->ResponseReceived(
           worker_token, worker_token, url,
           protocol::Network::ResourceTypeEnum::Other, *head_info,
-          requesting_frame->devtools_frame_token().ToString());
+          requesting_frame->citizennotes_frame_token().ToString());
       network_handler->frontend()->LoadingFinished(
           worker_token,
           status.completion_time.ToInternalValue() /
@@ -2020,10 +2042,10 @@ namespace {
 void MaybeAssignResourceRequestId(CitizenNotesAgentHostImpl* host,
                                   const std::string& id,
                                   network::ResourceRequest& request) {
-  DCHECK(!request.devtools_request_id.has_value());
+  DCHECK(!request.citizennotes_request_id.has_value());
   for (auto* network_handler : protocol::CNNetworkHandler::ForAgentHost(host)) {
     if (network_handler->enabled()) {
-      request.devtools_request_id = id;
+      request.citizennotes_request_id = id;
       return;
     }
   }
@@ -2302,7 +2324,7 @@ void OnFencedFrameReportRequestSent(int initiator_frame_tree_node_id,
                    /*request_id=*/citizennotes_request_id,
                    /*loader_id=*/citizennotes_request_id, headers, *request_info,
                    protocol::Network::Initiator::TypeEnum::Other,
-                   /*initiator_url=*/absl::nullopt,
+                   /*initiator_url=*/std::nullopt,
                    /*initiator_citizennotes_request_id=*/citizennotes_request_id,
                    base::TimeTicks::Now());
 }

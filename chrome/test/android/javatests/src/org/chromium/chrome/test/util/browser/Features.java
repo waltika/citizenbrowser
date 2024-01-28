@@ -6,8 +6,6 @@ package org.chromium.chrome.test.util.browser;
 
 import org.chromium.base.CommandLine;
 import org.chromium.base.test.util.FeaturesBase;
-import org.chromium.chrome.browser.flags.CachedFlag;
-import org.chromium.chrome.browser.flags.CachedFlagUtils;
 
 import java.lang.annotation.Annotation;
 import java.lang.annotation.Retention;
@@ -15,13 +13,13 @@ import java.lang.annotation.RetentionPolicy;
 import java.util.List;
 
 /**
- * Helps with setting Feature flags during tests. Relies on registering the appropriate
- * {@code Processor} rule on the test class.
- **
- * Use {@link EnableFeatures} and {@link DisableFeatures} to specify the features to register and
+ * Helps with setting Feature flags during tests. Relies on registering the appropriate {@code
+ * Processor} rule on the test class.
+ *
+ * <p>Use {@link EnableFeatures} and {@link DisableFeatures} to specify the features to register and
  * whether they should be enabled.
  *
- * Sample code:
+ * <p>Sample code:
  *
  * <pre>
  * public class Test {
@@ -36,8 +34,11 @@ import java.util.List;
  * This class also offers Singleton access to enable and disable features, letting other rules
  * affect the final configuration before the start of the test.
  *
- * See {@link FeaturesBase} for more details.
+ * <p>See {@link FeaturesBase} for more details.
+ *
+ * @deprecated Use org.chromium.base.Features instead.
  */
+@Deprecated
 public class Features extends FeaturesBase {
     @Retention(RetentionPolicy.RUNTIME)
     public @interface EnableFeatures {
@@ -62,19 +63,6 @@ public class Features extends FeaturesBase {
         return (Features) sInstance;
     }
 
-    @Override
-    protected void applyForJUnit() {
-        super.applyForJUnit();
-        CachedFlag.setFeaturesForTesting(mRegisteredState);
-    }
-
-    @Override
-    protected void applyForInstrumentation() {
-        super.applyForInstrumentation();
-        CachedFlag.setFeaturesForTesting(mRegisteredState);
-        FieldTrials.getInstance().applyFieldTrials();
-    }
-
     /**
      * Feature processor intended to be used in Robolectric and {@link BlankUiTestActivityTestCase}
      * tests. The collected feature states would be applied to {@link FeatureList}'s internal
@@ -82,7 +70,11 @@ public class Features extends FeaturesBase {
      */
     public static class JUnitProcessor extends BaseJUnitProcessor {
         public JUnitProcessor() {
-            super(EnableFeatures.class, DisableFeatures.class);
+            super(
+                    EnableFeatures.class,
+                    DisableFeatures.class,
+                    org.chromium.base.test.util.Features.EnableFeatures.class,
+                    org.chromium.base.test.util.Features.DisableFeatures.class);
             getInstance();
         }
 
@@ -90,12 +82,6 @@ public class Features extends FeaturesBase {
         protected void before() {
             getInstance();
             super.before();
-        }
-
-        @Override
-        protected void after() {
-            super.after();
-            resetCachedFlags(/* forInstrumentation= */ false);
         }
 
         @Override
@@ -111,14 +97,12 @@ public class Features extends FeaturesBase {
      */
     public static class InstrumentationProcessor extends BaseInstrumentationProcessor {
         public InstrumentationProcessor() {
-            super(EnableFeatures.class, DisableFeatures.class);
+            super(
+                    EnableFeatures.class,
+                    DisableFeatures.class,
+                    org.chromium.base.test.util.Features.EnableFeatures.class,
+                    org.chromium.base.test.util.Features.DisableFeatures.class);
             getInstance();
-        }
-
-        @Override
-        protected void after() {
-            super.after();
-            resetCachedFlags(/* forInstrumentation= */ true);
         }
 
         @Override
@@ -127,21 +111,19 @@ public class Features extends FeaturesBase {
         }
     }
 
-    /** Resets Features-related state that might persist in between tests. */
-    private static void resetCachedFlags(boolean forInstrumentation) {
-        CachedFlagUtils.resetFlagsForTesting();
-        if (forInstrumentation) {
-            CachedFlag.resetDiskForTesting();
-        }
-        FieldTrials.getInstance().reset();
-    }
-
     private static void collectFeaturesImpl(List<Annotation> annotations) {
         for (Annotation annotation : annotations) {
             if (annotation instanceof EnableFeatures) {
                 sInstance.enable(((EnableFeatures) annotation).value());
             } else if (annotation instanceof DisableFeatures) {
                 sInstance.disable(((DisableFeatures) annotation).value());
+            } else if (annotation instanceof org.chromium.base.test.util.Features.EnableFeatures) {
+                sInstance.enable(
+                        ((org.chromium.base.test.util.Features.EnableFeatures) annotation).value());
+            } else if (annotation instanceof org.chromium.base.test.util.Features.DisableFeatures) {
+                sInstance.disable(
+                        ((org.chromium.base.test.util.Features.DisableFeatures) annotation)
+                                .value());
             }
         }
     }

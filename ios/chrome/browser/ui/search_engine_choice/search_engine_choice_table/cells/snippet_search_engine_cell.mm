@@ -5,17 +5,23 @@
 #import "ios/chrome/browser/ui/search_engine_choice/search_engine_choice_table/cells/snippet_search_engine_cell.h"
 
 #import "base/check.h"
+#import "base/check_op.h"
+#import "base/notreached.h"
+#import "base/strings/sys_string_conversions.h"
 #import "ios/chrome/browser/shared/ui/symbols/symbols.h"
 #import "ios/chrome/browser/ui/search_engine_choice/search_engine_choice_constants.h"
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
-#import "ios/chrome/common/ui/favicon/favicon_container_view.h"
-#import "ios/chrome/common/ui/favicon/favicon_view.h"
 #import "ios/chrome/common/ui/table_view/table_view_cells_constants.h"
 #import "ios/chrome/common/ui/table_view/table_view_url_cell_favicon_badge_view.h"
 #import "ios/chrome/common/ui/util/constraints_ui_util.h"
+#import "ios/chrome/common/ui/util/image_util.h"
+#import "ios/chrome/grit/ios_strings.h"
+#import "ui/base/l10n/l10n_util.h"
 
 namespace {
 
+constexpr CGFloat kFaviconContainerViewRadius = 7.;
+constexpr CGFloat kFaviconContainerViewSize = 32.;
 // The size of the radio button at the side of each cell.
 constexpr CGFloat kRadioButtonSize = 22.;
 // Vertical margin for the elements in SnippetSearchEngineCell.
@@ -23,7 +29,10 @@ constexpr CGFloat kVerticalMargin = 17.;
 // Horizontal margin between elements in SnippetSearchEngineCell.
 constexpr CGFloat kInnerHorizontalMargin = 12.;
 // Chevron button size.
-constexpr CGFloat kChevronButtonSize = 24.;
+constexpr CGFloat kChevronButtonSize = 44.;
+// Horizontal chevron margin with the separtor, the name label and the snippet
+// label.
+constexpr CGFloat kChevronButtonHorizontalMargin = 2.;
 // Thickness of the vertical separator.
 constexpr CGFloat kSeparatorThickness = 1.;
 // Duration of the snippet animation when changing state.
@@ -33,7 +42,8 @@ constexpr NSTimeInterval kSnippetAnimationDurationInSecond = .3;
 
 @implementation SnippetSearchEngineCell {
   // Container View for the faviconView.
-  FaviconContainerView* _faviconContainerView;
+  UIView* _faviconContainerView;
+  UIImageView* _faviconImageView;
   NSLayoutConstraint* _showSnippetConstraint;
   NSLayoutConstraint* _hiddenSnippetConstraint;
   SnippetState _snippetState;
@@ -48,12 +58,20 @@ constexpr NSTimeInterval kSnippetAnimationDurationInSecond = .3;
   if (self) {
     UIView* contentView = self.contentView;
     contentView.clipsToBounds = YES;
-    _faviconContainerView = [[FaviconContainerView alloc] init];
+    // Add the favicon container view and the favicon image view.
+    _faviconContainerView = [[UIView alloc] init];
     _faviconContainerView.translatesAutoresizingMaskIntoConstraints = NO;
-    [_faviconContainerView
-        setFaviconBackgroundColor:[UIColor colorNamed:kBackgroundColor]];
+    _faviconContainerView.backgroundColor =
+        [UIColor colorNamed:kPrimaryBackgroundColor];
+    _faviconContainerView.layer.cornerRadius = kFaviconContainerViewRadius;
+    _faviconContainerView.layer.masksToBounds = YES;
     [contentView addSubview:_faviconContainerView];
-    [_faviconContainerView
+    _faviconImageView = [[UIImageView alloc] init];
+    _faviconImageView.translatesAutoresizingMaskIntoConstraints = NO;
+    _faviconImageView.layer.cornerRadius = kFaviconImageViewRadius;
+    _faviconImageView.clipsToBounds = YES;
+    [_faviconContainerView addSubview:_faviconImageView];
+    [_faviconImageView
         setContentCompressionResistancePriority:UILayoutPriorityRequired
                                         forAxis:
                                             UILayoutConstraintAxisHorizontal];
@@ -83,7 +101,7 @@ constexpr NSTimeInterval kSnippetAnimationDurationInSecond = .3;
         [UIButtonConfiguration plainButtonConfiguration];
     configuration.image = DefaultSymbolTemplateWithPointSize(
         kChevronDownSymbol, kSymbolAccessoryPointSize);
-    _chevronButton.tintColor = [UIColor colorNamed:kGrey700Color];
+    _chevronButton.tintColor = [UIColor colorNamed:kTextQuaternaryColor];
     _chevronButton.configuration = configuration;
     [_chevronButton addTarget:self
                        action:@selector(chevronToggleAction:)
@@ -92,7 +110,7 @@ constexpr NSTimeInterval kSnippetAnimationDurationInSecond = .3;
     // Add separator.
     UIView* separatorLine = [[UIView alloc] init];
     separatorLine.translatesAutoresizingMaskIntoConstraints = NO;
-    separatorLine.backgroundColor = [UIColor colorNamed:kGrey700Color];
+    separatorLine.backgroundColor = [UIColor colorNamed:kGrey300Color];
     [contentView addSubview:separatorLine];
     // Add the checked circle holder.
     _checkedCircleImageView = [[UIImageView alloc] init];
@@ -117,6 +135,18 @@ constexpr NSTimeInterval kSnippetAnimationDurationInSecond = .3;
                          constant:kTableViewHorizontalSpacing],
       [_faviconContainerView.centerYAnchor
           constraintEqualToAnchor:_nameLabel.centerYAnchor],
+      [_faviconContainerView.widthAnchor
+          constraintEqualToConstant:kFaviconContainerViewSize],
+      [_faviconContainerView.heightAnchor
+          constraintEqualToConstant:kFaviconContainerViewSize],
+      [_faviconImageView.centerXAnchor
+          constraintEqualToAnchor:_faviconContainerView.centerXAnchor],
+      [_faviconImageView.centerYAnchor
+          constraintEqualToAnchor:_faviconContainerView.centerYAnchor],
+      [_faviconImageView.widthAnchor
+          constraintEqualToConstant:kFaviconImageViewSize],
+      [_faviconImageView.heightAnchor
+          constraintEqualToConstant:kFaviconImageViewSize],
       [_nameLabel.topAnchor constraintEqualToAnchor:contentView.topAnchor
                                            constant:kVerticalMargin],
       [_nameLabel.leadingAnchor
@@ -124,13 +154,13 @@ constexpr NSTimeInterval kSnippetAnimationDurationInSecond = .3;
                          constant:kVerticalMargin],
       [_nameLabel.trailingAnchor
           constraintLessThanOrEqualToAnchor:_chevronButton.leadingAnchor
-                                   constant:-kInnerHorizontalMargin],
+                                   constant:-kChevronButtonHorizontalMargin],
       [_nameLabel.bottomAnchor constraintEqualToAnchor:_snippetLabel.topAnchor],
       [_snippetLabel.leadingAnchor
           constraintEqualToAnchor:_nameLabel.leadingAnchor],
       [_snippetLabel.trailingAnchor
           constraintLessThanOrEqualToAnchor:_chevronButton.leadingAnchor
-                                   constant:-kInnerHorizontalMargin],
+                                   constant:-kChevronButtonHorizontalMargin],
       [_chevronButton.heightAnchor
           constraintEqualToConstant:kChevronButtonSize],
       [_chevronButton.widthAnchor constraintEqualToConstant:kChevronButtonSize],
@@ -138,7 +168,7 @@ constexpr NSTimeInterval kSnippetAnimationDurationInSecond = .3;
           constraintEqualToAnchor:_nameLabel.centerYAnchor],
       [_chevronButton.trailingAnchor
           constraintEqualToAnchor:separatorLine.leadingAnchor
-                         constant:-kInnerHorizontalMargin],
+                         constant:-kChevronButtonHorizontalMargin],
       [separatorLine.heightAnchor
           constraintEqualToAnchor:_nameLabel.heightAnchor],
       [separatorLine.centerYAnchor
@@ -158,15 +188,21 @@ constexpr NSTimeInterval kSnippetAnimationDurationInSecond = .3;
     [NSLayoutConstraint activateConstraints:constraints];
     [self updateCellWithSnippetSate:SnippetState::kHidden animate:NO];
     [self updateCircleImageView];
+    self.userInteractionEnabled = YES;
   }
   return self;
 }
 
-#pragma mark - Properties
-
-- (FaviconView*)faviconView {
-  return _faviconContainerView.faviconView;
+- (void)updateAccessibilityTraits {
+  self.accessibilityTraits |= UIAccessibilityTraitButton;
+  if (_checked) {
+    self.accessibilityTraits |= UIAccessibilityTraitSelected;
+  } else {
+    self.accessibilityTraits &= ~UIAccessibilityTraitSelected;
+  }
 }
+
+#pragma mark - Properties
 
 - (void)setChecked:(BOOL)checked {
   if (checked == _checked) {
@@ -174,6 +210,24 @@ constexpr NSTimeInterval kSnippetAnimationDurationInSecond = .3;
   }
   _checked = checked;
   [self updateCircleImageView];
+  [self updateAccessibilityTraits];
+}
+
+- (void)setFaviconImage:(UIImage*)faviconImage {
+  CGSize faviconImageSize =
+      CGSizeMake(kFaviconImageViewSize, kFaviconImageViewSize);
+  ResizeImage(faviconImage, faviconImageSize, ProjectionMode::kAspectFit);
+  _faviconImageView.image = faviconImage;
+}
+
+- (UIImage*)faviconImage {
+  return _faviconImageView.image;
+}
+
+- (void)setSnippetState:(SnippetState)snippetState {
+  // This method should be called only when being configured, before to be
+  // added to the view. Therefore there should be no animation.
+  [self updateCellWithSnippetSate:snippetState animate:NO];
 }
 
 #pragma mark - Private
@@ -181,12 +235,22 @@ constexpr NSTimeInterval kSnippetAnimationDurationInSecond = .3;
 // Called by the chevron button.
 - (void)chevronToggleAction:(id)sender {
   switch (_snippetState) {
-    case SnippetState::kShown:
+    case SnippetState::kShown: {
+      // Need to hide the snippet.
       [self updateCellWithSnippetSate:SnippetState::kHidden animate:YES];
+      NSString* collapsedFeedback = l10n_util::GetNSString(
+          IDS_IOS_SEARCH_ENGINE_ACCESSIBILITY_SNIPPET_COLLAPSED);
+      UIAccessibilityPostNotification(UIAccessibilityAnnouncementNotification,
+                                      collapsedFeedback);
       break;
-    case SnippetState::kHidden:
+    }
+    case SnippetState::kHidden: {
+      // Need to show the snippet.
       [self updateCellWithSnippetSate:SnippetState::kShown animate:YES];
+      UIAccessibilityPostNotification(UIAccessibilityAnnouncementNotification,
+                                      self.snippetLabel.text);
       break;
+    }
   }
   if (self.chevronToggledBlock) {
     self.chevronToggledBlock(_snippetState);
@@ -244,10 +308,11 @@ constexpr NSTimeInterval kSnippetAnimationDurationInSecond = .3;
   if (_checked) {
     circleImage = DefaultSymbolWithPointSize(kCheckmarkCircleFillSymbol,
                                              kRadioButtonSize);
-    [_checkedCircleImageView setTintColor:[UIColor colorNamed:kBlue500Color]];
+    [_checkedCircleImageView setTintColor:[UIColor colorNamed:kBlueColor]];
   } else {
     circleImage = DefaultSymbolWithPointSize(kCircleSymbol, kRadioButtonSize);
-    [_checkedCircleImageView setTintColor:[UIColor colorNamed:kGrey700Color]];
+    [_checkedCircleImageView
+        setTintColor:[UIColor colorNamed:kTextQuaternaryColor]];
   }
   _checkedCircleImageView.image = circleImage;
 }
@@ -256,23 +321,37 @@ constexpr NSTimeInterval kSnippetAnimationDurationInSecond = .3;
 
 - (void)prepareForReuse {
   [super prepareForReuse];
-  [self.faviconView configureWithAttributes:nil];
+  _faviconImageView.image = nil;
+  self.nameLabel.text = nil;
+  self.nameLabel.textColor = UIColor.labelColor;
+  self.snippetLabel.text = nil;
+  [self updateCellWithSnippetSate:SnippetState::kHidden animate:NO];
+  self.checked = NO;
   self.chevronToggledBlock = nil;
+  self.accessibilityTraits |= UIAccessibilityTraitButton;
+  self.userInteractionEnabled = YES;
 }
 
 #pragma mark - Accessibility
 
 - (NSString*)accessibilityLabel {
-  NSString* accessibilityLabel = self.nameLabel.text;
-  if (self.snippetLabel.text.length > 0) {
-    accessibilityLabel = [NSString
-        stringWithFormat:@"%@. %@", accessibilityLabel, self.snippetLabel.text];
+  CHECK_NE(self.snippetLabel.text.length, 0ul, base::NotFatalUntil::M124)
+      << base::SysNSStringToUTF8(self.nameLabel.text) << " "
+      << base::SysNSStringToUTF8(self.snippetLabel.text);
+  switch (_snippetState) {
+    case SnippetState::kShown:
+      return [NSString stringWithFormat:@"%@. %@", self.nameLabel.text,
+                                        self.snippetLabel.text];
+    case SnippetState::kHidden:
+      return self.nameLabel.text;
   }
-  return accessibilityLabel;
+  NOTREACHED_NORETURN();
 }
 
 - (NSArray<NSString*>*)accessibilityUserInputLabels {
-  CHECK(self.nameLabel.text);
+  CHECK_NE(self.nameLabel.text.length, 0ul, base::NotFatalUntil::M124)
+      << base::SysNSStringToUTF8(self.nameLabel.text) << " "
+      << base::SysNSStringToUTF8(self.snippetLabel.text);
   return @[ self.nameLabel.text ];
 }
 
@@ -284,6 +363,26 @@ constexpr NSTimeInterval kSnippetAnimationDurationInSecond = .3;
 
 - (BOOL)isAccessibilityElement {
   return YES;
+}
+
+- (NSArray<UIAccessibilityCustomAction*>*)accessibilityCustomActions {
+  NSString* actionName = nil;
+  switch (_snippetState) {
+    case SnippetState::kHidden:
+      actionName = l10n_util::GetNSString(
+          IDS_IOS_SEARCH_ENGINE_ACCESSIBILITY_EXPAND_SNIPPET);
+      break;
+    case SnippetState::kShown:
+      actionName = l10n_util::GetNSString(
+          IDS_IOS_SEARCH_ENGINE_ACCESSIBILITY_COLLAPSE_SNIPPET);
+      break;
+  }
+  UIAccessibilityCustomAction* action = [[UIAccessibilityCustomAction alloc]
+      initWithName:actionName
+            target:self
+          selector:@selector(chevronToggleAction:)];
+  NSArray<UIAccessibilityCustomAction*>* actions = @[ action ];
+  return actions;
 }
 
 @end

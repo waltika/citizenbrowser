@@ -297,7 +297,7 @@ void CSSComputedStyleDeclaration::UpdateStyleAndLayoutTreeIfNeeded(
     return;
   }
 
-  document.UpdateStyleAndLayoutTreeForNode(
+  document.UpdateStyleAndLayoutTreeForElement(
       styled_element, DocumentUpdateReason::kComputedStyle);
 }
 
@@ -314,11 +314,8 @@ void CSSComputedStyleDeclaration::UpdateStyleAndLayoutIfNeeded(
 
   if (is_for_layout_dependent_property) {
     auto& doc = styled_element->GetDocument();
-    // EditingStyle uses this class with DisallowTransitionScope.
-    if (!doc.Lifecycle().StateTransitionDisallowed() && doc.View()) {
-      doc.UpdateStyleAndLayoutForNode(styled_element,
-                                      DocumentUpdateReason::kJavaScript);
-    }
+    doc.UpdateStyleAndLayoutForNode(styled_element,
+                                    DocumentUpdateReason::kJavaScript);
   }
 }
 

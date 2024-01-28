@@ -16,7 +16,7 @@
 
 namespace content {
 
-class WorkerCitizenNotesAgentHost;
+class DedicatedWorkerCitizenNotesAgentHost;
 class DedicatedWorkerHost;
 
 // Manages WorkerCitizenNotesAgentHost's for Dedicated Workers. This class lives on
@@ -26,8 +26,8 @@ class WorkerCitizenNotesManager {
   // Returns the WorkerCitizenNotesManager singleton.
   static WorkerCitizenNotesManager& GetInstance();
 
-  WorkerCitizenNotesAgentHost* GetCitizenNotesHost(DedicatedWorkerHost* host);
-  WorkerCitizenNotesAgentHost* GetCitizenNotesHostFromToken(
+  DedicatedWorkerCitizenNotesAgentHost* GetCitizenNotesHost(DedicatedWorkerHost* host);
+  DedicatedWorkerCitizenNotesAgentHost* GetCitizenNotesHostFromToken(
       const base::UnguessableToken& token);
   void WorkerCreated(
       DedicatedWorkerHost* host,
@@ -43,7 +43,9 @@ class WorkerCitizenNotesManager {
   ~WorkerCitizenNotesManager();
 
   // Retains agent hosts as long as the dedicated worker is alive.
-  std::map<DedicatedWorkerHost*, scoped_refptr<WorkerCitizenNotesAgentHost>> hosts_;
+  std::map<DedicatedWorkerHost*,
+           scoped_refptr<DedicatedWorkerCitizenNotesAgentHost>>
+      hosts_;
 };
 
 }  // namespace content

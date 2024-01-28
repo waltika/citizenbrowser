@@ -11,11 +11,15 @@ namespace autofill {
 std::vector<PatternProviderFeatureState> PatternProviderFeatureState::All() {
   return {
     {.enable = false, .active_source = nullptr},
-        {.enable = true, .active_source = "legacy"},
 #if BUILDFLAG(USE_INTERNAL_AUTOFILL_PATTERNS)
         {.enable = true, .active_source = "default"},
         {.enable = true, .active_source = "experimental"},
         {.enable = true, .active_source = "nextgen"},
+#else
+      // Builds without Autofill internal patterns default to the legacy
+      // patterns. The `active_source` feature parameter is in fact not read
+      // in this case.
+      {.enable = true, .active_source = "legacy"},
 #endif
   };
 }
@@ -41,17 +45,16 @@ FormFieldTestBase::~FormFieldTestBase() = default;
 void FormFieldTestBase::AddFormFieldData(FormControlType control_type,
                                          std::string name,
                                          std::string label,
-                                         ServerFieldType expected_type) {
+                                         FieldType expected_type) {
   AddFormFieldDataWithLength(control_type, name, label, /*max_length=*/0,
                              expected_type);
 }
 
-void FormFieldTestBase::AddFormFieldDataWithLength(
-    FormControlType control_type,
-    std::string name,
-    std::string label,
-    int max_length,
-    ServerFieldType expected_type) {
+void FormFieldTestBase::AddFormFieldDataWithLength(FormControlType control_type,
+                                                   std::string name,
+                                                   std::string label,
+                                                   int max_length,
+                                                   FieldType expected_type) {
   FormFieldData field_data;
   field_data.form_control_type = control_type;
   field_data.name = base::UTF8ToUTF16(name);
@@ -67,7 +70,7 @@ void FormFieldTestBase::AddSelectOneFormFieldData(
     std::string name,
     std::string label,
     const std::vector<SelectOption>& options,
-    ServerFieldType expected_type) {
+    FieldType expected_type) {
   AddFormFieldData(FormControlType::kSelectOne, name, label, expected_type);
   FormFieldData* field_data = list_.back().get();
   field_data->options = options;
@@ -76,7 +79,7 @@ void FormFieldTestBase::AddSelectOneFormFieldData(
 // Convenience wrapper for text control elements.
 void FormFieldTestBase::AddTextFormFieldData(std::string name,
                                              std::string label,
-                                             ServerFieldType expected_type) {
+                                             FieldType expected_type) {
   AddFormFieldData(FormControlType::kInputText, name, label, expected_type);
 }
 
@@ -89,7 +92,9 @@ void FormFieldTestBase::ClassifyAndVerify(
     const GeoIpCountryCode& client_country,
     const LanguageCode& page_language) {
   AutofillScanner scanner(list_);
-  field_ = Parse(&scanner, client_country, page_language);
+  ParsingContext context(client_country, page_language,
+                         *GetActivePatternSource());
+  field_ = Parse(context, &scanner);
 
   if (parse_result == ParseResult::NOT_PARSED) {
     ASSERT_EQ(nullptr, field_.get());
@@ -104,7 +109,7 @@ void FormFieldTestBase::ClassifyAndVerify(
 void FormFieldTestBase::TestClassificationExpectations() {
   size_t num_classifications = 0;
   for (const auto [field_id, expected_field_type] : expected_classifications_) {
-    ServerFieldType actual_field_type =
+    FieldType actual_field_type =
         field_candidates_map_.contains(field_id)
             ? field_candidates_map_[field_id].BestHeuristicType()
             : UNKNOWN_TYPE;

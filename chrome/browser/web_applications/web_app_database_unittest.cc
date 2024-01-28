@@ -80,6 +80,7 @@ class WebAppDatabaseTest : public WebAppTest {
         database_factory_, &provider_->GetCommandManager(),
         &provider_->scheduler(), &provider_->GetInstallManager());
 
+    provider_->Start();
     ON_CALL(mock_processor_, IsTrackingMetadata())
         .WillByDefault(testing::Return(true));
   }
@@ -96,7 +97,7 @@ class WebAppDatabaseTest : public WebAppTest {
     database_factory().GetStore()->CommitWriteBatch(
         std::move(write_batch),
         base::BindLambdaForTesting(
-            [&](const absl::optional<syncer::ModelError>& error) {
+            [&](const std::optional<syncer::ModelError>& error) {
               EXPECT_FALSE(error);
               run_loop.Quit();
             }));
@@ -260,7 +261,7 @@ TEST_F(WebAppDatabaseTest, OpenDatabaseAndReadRegistry) {
 TEST_F(WebAppDatabaseTest, BackwardCompatibility_WebAppWithOnlyRequiredFields) {
   const GURL start_url{"https://example.com/"};
   const webapps::AppId app_id =
-      GenerateAppId(/*manifest_id=*/absl::nullopt, start_url);
+      GenerateAppId(/*manifest_id=*/std::nullopt, start_url);
   const std::string name = "App Name";
   const bool is_locally_installed = true;
 
@@ -288,7 +289,7 @@ TEST_F(WebAppDatabaseTest, BackwardCompatibility_WebAppWithOnlyRequiredFields) {
 
   if (IsChromeOsDataMandatory()) {
     proto->mutable_chromeos_data()->set_show_in_launcher(false);
-    proto->mutable_chromeos_data()->set_show_in_search(false);
+    proto->mutable_chromeos_data()->set_show_in_search_and_shelf(false);
     proto->mutable_chromeos_data()->set_show_in_management(false);
     proto->mutable_chromeos_data()->set_is_disabled(true);
   }
@@ -311,7 +312,7 @@ TEST_F(WebAppDatabaseTest, BackwardCompatibility_WebAppWithOnlyRequiredFields) {
 
   if (IsChromeOsDataMandatory()) {
     EXPECT_FALSE(app->chromeos_data()->show_in_launcher);
-    EXPECT_FALSE(app->chromeos_data()->show_in_search);
+    EXPECT_FALSE(app->chromeos_data()->show_in_search_and_shelf);
     EXPECT_FALSE(app->chromeos_data()->show_in_management);
     EXPECT_TRUE(app->chromeos_data()->is_disabled);
   } else {
@@ -324,7 +325,7 @@ TEST_F(WebAppDatabaseTest, WebAppWithoutOptionalFields) {
 
   const auto start_url = GURL("https://example.com/");
   const webapps::AppId app_id =
-      GenerateAppId(/*manifest_id=*/absl::nullopt, GURL(start_url));
+      GenerateAppId(/*manifest_id=*/std::nullopt, GURL(start_url));
   const std::string name = "Name";
 
   auto app = std::make_unique<WebApp>(app_id);
@@ -337,7 +338,7 @@ TEST_F(WebAppDatabaseTest, WebAppWithoutOptionalFields) {
   app->SetIsLocallyInstalled(false);
   // chromeos_data should always be set on ChromeOS.
   if (IsChromeOsDataMandatory())
-    app->SetWebAppChromeOsData(absl::make_optional<WebAppChromeOsData>());
+    app->SetWebAppChromeOsData(std::make_optional<WebAppChromeOsData>());
 
   EXPECT_FALSE(app->HasAnySources());
   for (WebAppManagement::Type type : WebAppManagementTypes::All()) {
@@ -403,7 +404,7 @@ TEST_F(WebAppDatabaseTest, WebAppWithoutOptionalFields) {
   auto& chromeos_data = app_copy->chromeos_data();
   if (IsChromeOsDataMandatory()) {
     EXPECT_TRUE(chromeos_data->show_in_launcher);
-    EXPECT_TRUE(chromeos_data->show_in_search);
+    EXPECT_TRUE(chromeos_data->show_in_search_and_shelf);
     EXPECT_TRUE(chromeos_data->show_in_management);
     EXPECT_FALSE(chromeos_data->is_disabled);
     EXPECT_FALSE(chromeos_data->oem_installed);
@@ -614,7 +615,7 @@ class WebAppDatabaseProtoDataTest : public ::testing::Test {
   std::unique_ptr<WebApp> CreateMinimalWebApp() {
     GURL start_url{"https://example.com/"};
     webapps::AppId app_id =
-        GenerateAppId(/*manifest_id=*/absl::nullopt, start_url);
+        GenerateAppId(/*manifest_id=*/std::nullopt, start_url);
     auto web_app = std::make_unique<WebApp>(app_id);
     web_app->SetStartUrl(start_url);
     web_app->SetUserDisplayMode(mojom::UserDisplayMode::kBrowser);
@@ -645,10 +646,9 @@ class WebAppDatabaseProtoDataTest : public ::testing::Test {
 TEST_F(WebAppDatabaseProtoDataTest, DoesNotSetIsolationDataIfNotIsolated) {
   std::unique_ptr<WebApp> web_app = CreateMinimalWebApp();
   std::unique_ptr<WebApp> protoed_web_app = ToAndFromProto(*web_app);
-  EXPECT_THAT(*web_app,
-              AllOf(Eq(*protoed_web_app),
-                    Property("isolation_data", &WebApp::isolation_data,
-                             absl::nullopt)));
+  EXPECT_THAT(*web_app, AllOf(Eq(*protoed_web_app),
+                              Property("isolation_data",
+                                       &WebApp::isolation_data, std::nullopt)));
 }
 
 TEST_F(WebAppDatabaseProtoDataTest, SavesInstalledBundleIsolationData) {
@@ -842,12 +842,12 @@ TEST_F(WebAppDatabaseProtoDataTest, PermissionsPolicyRoundTrip) {
   const blink::ParsedPermissionsPolicy policy = {
       {blink::mojom::PermissionsPolicyFeature::kGyroscope,
        /*allowed_origins=*/{},
-       /*self_if_matches=*/absl::nullopt,
+       /*self_if_matches=*/std::nullopt,
        /*matches_all_origins=*/false,
        /*matches_opaque_src=*/true},
       {blink::mojom::PermissionsPolicyFeature::kGeolocation,
        /*allowed_origins=*/{},
-       /*self_if_matches=*/absl::nullopt,
+       /*self_if_matches=*/std::nullopt,
        /*matches_all_origins=*/true,
        /*matches_opaque_src=*/false},
       {blink::mojom::PermissionsPolicyFeature::kGamepad,
@@ -857,7 +857,7 @@ TEST_F(WebAppDatabaseProtoDataTest, PermissionsPolicyRoundTrip) {
         *blink::OriginWithPossibleWildcards::FromOriginAndWildcardsForTest(
             url::Origin::Create(GURL("https://example.net")),
             /*has_subdomain_wildcard=*/true)},
-       /*self_if_matches=*/absl::nullopt,
+       /*self_if_matches=*/std::nullopt,
        /*matches_all_origins=*/false,
        /*matches_opaque_src=*/false},
   };
@@ -872,12 +872,12 @@ TEST_F(WebAppDatabaseProtoDataTest, PermissionsPolicyProto) {
   const blink::ParsedPermissionsPolicy policy = {
       {blink::mojom::PermissionsPolicyFeature::kGyroscope,
        /*allowed_origins=*/{},
-       /*self_if_matches=*/absl::nullopt,
+       /*self_if_matches=*/std::nullopt,
        /*matches_all_origins=*/false,
        /*matches_opaque_src=*/true},
       {blink::mojom::PermissionsPolicyFeature::kGeolocation,
        /*allowed_origins=*/{},
-       /*self_if_matches=*/absl::nullopt,
+       /*self_if_matches=*/std::nullopt,
        /*matches_all_origins=*/true,
        /*matches_opaque_src=*/false},
       {blink::mojom::PermissionsPolicyFeature::kGamepad,
@@ -887,7 +887,7 @@ TEST_F(WebAppDatabaseProtoDataTest, PermissionsPolicyProto) {
         *blink::OriginWithPossibleWildcards::FromOriginAndWildcardsForTest(
             url::Origin::Create(GURL("https://example.net")),
             /*has_subdomain_wildcard=*/true)},
-       /*self_if_matches=*/absl::nullopt,
+       /*self_if_matches=*/std::nullopt,
        /*matches_all_origins=*/false,
        /*matches_opaque_src=*/false},
   };

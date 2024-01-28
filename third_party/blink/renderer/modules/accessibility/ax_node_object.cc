@@ -224,7 +224,7 @@ blink::AXObject* GetDOMTableAXAncestor(blink::Node* node,
     if (!node)
       return nullptr;
 
-    blink::AXObject* ax_object = cache.GetOrCreate(node);
+    blink::AXObject* ax_object = cache.Get(node);
     if (ax_object && !IsNeutralWithinTable(ax_object))
       return ax_object;
   }
@@ -358,14 +358,8 @@ bool HasLayoutText(const blink::AXObject* obj) {
     return false;
   }
 
-  // Display-locked nodes do not have layout objects with which to use for
-  // retrieving inline textbox children.
-  const blink::AXObject* ax_ancestor_with_node = obj;
-  while (!ax_ancestor_with_node->GetNode()) {
-    ax_ancestor_with_node = ax_ancestor_with_node->CachedParentObject();
-  }
   if (blink::DisplayLockUtilities::LockedAncestorPreventingPaint(
-          *ax_ancestor_with_node->GetNode())) {
+          *obj->GetLayoutObject())) {
     return false;
   }
 
@@ -374,12 +368,15 @@ bool HasLayoutText(const blink::AXObject* obj) {
     return false;
   }
 
-  // Layout for this node must be clean, since we are in clean layout, and any
-  // node that needs layout because of display locking would have returned early
-  // above.
-  DUMP_WILL_BE_CHECK(!obj->GetLayoutObject()->NeedsLayout())
-      << "LayoutText needed layout but was not display locked: "
-      << obj->ToString(true, true);
+  // TODO(accessibility): Unclear why text would need layout if it's not display
+  // locked and the document is currently in a clean layout state.
+  // It seems to be fairly rare, but is creating some crashes, and there is
+  // no repro case yet.
+  if (obj->GetLayoutObject()->NeedsLayout()) {
+    DCHECK(false) << "LayoutText needed layout but was not display locked: "
+                  << obj->ToString(true, true);
+    return false;
+  }
 
   return true;
 }
@@ -507,7 +504,7 @@ AXObject* AXNodeObject::ActiveDescendant() {
   if (!descendant)
     return nullptr;
 
-  AXObject* ax_descendant = AXObjectCache().GetOrCreate(descendant);
+  AXObject* ax_descendant = AXObjectCache().Get(descendant);
   return ax_descendant && ax_descendant->IsVisible() ? ax_descendant : nullptr;
 }
 
@@ -1696,7 +1693,7 @@ void AXNodeObject::AccessibilityChildrenFromAOMProperty(
     return;
   AXObjectCacheImpl& cache = AXObjectCache();
   for (const auto& element : elements) {
-    if (AXObject* child = cache.GetOrCreate(element)) {
+    if (AXObject* child = cache.Get(element)) {
       // Only aria-labelledby and aria-describedby can target hidden elements.
       if (!child)
         continue;
@@ -2118,7 +2115,7 @@ bool AXNodeObject::IsTabItemSelected() const {
     return false;
 
   for (const auto& element : elements) {
-    AXObject* tab_panel = AXObjectCache().GetOrCreate(element);
+    AXObject* tab_panel = AXObjectCache().Get(element);
 
     // A tab item should only control tab panels.
     if (!tab_panel ||
@@ -2480,7 +2477,7 @@ AXObject* AXNodeObject::InPageLinkTarget() const {
   String fragment = link_url.FragmentIdentifier();
   TreeScope& tree_scope = anchor->GetTreeScope();
   Node* target = tree_scope.FindAnchor(fragment);
-  AXObject* ax_target = AXObjectCache().GetOrCreate(target);
+  AXObject* ax_target = AXObjectCache().Get(target);
   if (!ax_target || !IsPotentialInPageLinkTarget(*ax_target->GetNode()))
     return AXObject::InPageLinkTarget();
 
@@ -2586,7 +2583,7 @@ AXObject::AXObjectVector AXNodeObject::RadioButtonsInGroup() const {
     HeapVector<Member<HTMLInputElement>> html_radio_buttons =
         FindAllRadioButtonsWithSameName(node_radio_button);
     for (HTMLInputElement* radio_button : html_radio_buttons) {
-      AXObject* ax_radio_button = AXObjectCache().GetOrCreate(radio_button);
+      AXObject* ax_radio_button = AXObjectCache().Get(radio_button);
       if (ax_radio_button)
         radio_buttons.push_back(ax_radio_button);
     }
@@ -4301,8 +4298,9 @@ int AXNodeObject::TextOffsetInFormattingContext(int offset) const {
   // compute offset mappings for empty LayoutText objects. Other text objects
   // (such as some list markers) are not affected.
   if (const LayoutText* layout_text = DynamicTo<LayoutText>(layout_obj)) {
-    if (layout_text->GetText().empty())
+    if (layout_text->HasEmptyText()) {
       return AXObject::TextOffsetInFormattingContext(offset);
+    }
   }
 
   LayoutBlockFlow* formatting_context =
@@ -4339,7 +4337,7 @@ bool AXNodeObject::ShouldLoadInlineTextBoxes() const {
     return false;
   }
 
-#if BUILDFLAG(IS_ANDROID)
+#if defined(REDUCE_AX_INLINE_TEXTBOXES)
   // On Android, once an object has loaded inline text boxes, it will keep
   // them refreshed.
   return always_load_inline_text_boxes_;
@@ -4394,7 +4392,7 @@ void AXNodeObject::LoadInlineTextBoxesHelper() {
   // The inline textbox children start empty.
   DCHECK(CachedChildrenIncludingIgnored().empty());
 
-#if BUILDFLAG(IS_ANDROID)
+#if defined(REDUCE_AX_INLINE_TEXTBOXES)
   // Keep inline text box children up-to-date for this object in the future.
   // This is only necessary on Android, which tries to skip inline text boxes
   // for most objects.
@@ -4405,11 +4403,11 @@ void AXNodeObject::LoadInlineTextBoxesHelper() {
     // Can only add new objects while processing deferred events.
     AddInlineTextBoxChildren();
     // Avoid adding these children twice.
-    children_dirty_ = false;
+    SetNeedsToUpdateChildren(false);
     // If inline text box children were added, mark the node dirty so that the
     // results are serialized.
     if (!CachedChildrenIncludingIgnored().empty()) {
-      AXObjectCache().MarkAXObjectDirtyWithDetails(
+      AXObjectCache().AddDirtyObjectToSerializationQueue(
           this, /*subtree*/ false, ax::mojom::blink::EventFrom::kNone,
           ax::mojom::blink::Action::kNone, {});
     }
@@ -4580,7 +4578,7 @@ void AXNodeObject::AddChildrenImpl() {
     return;                                                               \
   }
 
-  DCHECK(children_dirty_);
+  CHECK(NeedsToUpdateChildren());
 
   if (!CanHaveChildren()) {
     // TODO(crbug.com/1407397): Make sure this is no longer firing then
@@ -4651,7 +4649,7 @@ void AXNodeObject::AddChildren() {
 #endif
 
   AddChildrenImpl();
-  children_dirty_ = false;
+  SetNeedsToUpdateChildren(false);
 
 #if DCHECK_IS_ON()
   // All added children must be attached.
@@ -4791,10 +4789,14 @@ void AXNodeObject::InsertChild(AXObject* child,
   // - For a reused, older object, it may need to be changed to a new parent.
   child->SetParent(this);
 
+  if (ChildrenNeedToUpdateCachedValues()) {
+    child->InvalidateCachedValues();
+  }
   // Update cached values preemptively, but don't allow children changed to be
-  // called if ignored change, we are already recomputing children and don't
-  // want to recurse.
-  child->UpdateCachedAttributeValuesIfNeeded(false);
+  // called on the parent if the ignored state changes, as we are already
+  // recomputing children and don't want to recurse.
+  child->UpdateCachedAttributeValuesIfNeeded(
+      /*notify_parent_of_ignored_changes*/ false);
 
   if (!child->LastKnownIsIncludedInTreeValue()) {
     DCHECK(!is_from_aria_owns)
@@ -5151,7 +5153,7 @@ bool AXNodeObject::OnNativeSetSequentialFocusNavigationStartingPointAction() {
 void AXNodeObject::SelectedOptions(AXObjectVector& options) const {
   if (auto* select = DynamicTo<HTMLSelectElement>(GetNode())) {
     for (auto* const option : *select->selectedOptions()) {
-      AXObject* ax_option = AXObjectCache().GetOrCreate(option);
+      AXObject* ax_option = AXObjectCache().Get(option);
       if (ax_option)
         options.push_back(ax_option);
     }
@@ -5281,7 +5283,7 @@ AXObject::AXObjectVector AXNodeObject::ErrorMessageFromAria() const {
 
   AXObjectVector error_messages;
   for (Element* element : elements_from_attribute) {
-    AXObject* obj = AXObjectCache().GetOrCreate(element);
+    AXObject* obj = AXObjectCache().Get(element);
     if (obj && !obj->AccessibilityIsIgnored()) {
       error_messages.push_back(obj);
     }
@@ -5340,8 +5342,7 @@ String AXNodeObject::TextAlternativeFromTooltip(
         NameSource(*found_text_alternative, html_names::kPopovertargetAttr));
     name_sources->back().type = name_from;
   }
-  AXObject* popover_ax_object =
-      AXObjectCache().GetOrCreate(popover_target.popover);
+  AXObject* popover_ax_object = AXObjectCache().Get(popover_target.popover);
 
   // Hint popovers are used for text if and only if all of the contents are
   // plain, e.g. have no interesting semantic or interactive elements.
@@ -5681,7 +5682,7 @@ String AXNodeObject::NativeTextAlternative(
     }
     HTMLTableCaptionElement* caption = table_element->caption();
     if (caption) {
-      AXObject* caption_ax_object = AXObjectCache().GetOrCreate(caption);
+      AXObject* caption_ax_object = AXObjectCache().Get(caption);
       if (caption_ax_object) {
         text_alternative =
             RecursiveTextAlternative(*caption_ax_object, nullptr, visited);
@@ -5799,7 +5800,7 @@ String AXNodeObject::NativeTextAlternative(
     }
     HTMLElement* legend = html_field_set_element->Legend();
     if (legend) {
-      AXObject* legend_ax_object = AXObjectCache().GetOrCreate(legend);
+      AXObject* legend_ax_object = AXObjectCache().Get(legend);
       // Avoid an infinite loop
       if (legend_ax_object && !visited.Contains(legend_ax_object)) {
         text_alternative =
@@ -6100,7 +6101,7 @@ String AXNodeObject::Description(
     }
     HTMLTableCaptionElement* caption = table_element->caption();
     if (caption) {
-      AXObject* caption_ax_object = AXObjectCache().GetOrCreate(caption);
+      AXObject* caption_ax_object = AXObjectCache().Get(caption);
       if (caption_ax_object) {
         AXObjectSet visited;
         description =
@@ -6180,7 +6181,7 @@ String AXNodeObject::Description(
           description_sources->back().type = description_from;
         }
         AXObject* popover_ax_object =
-            AXObjectCache().GetOrCreate(popover_target.popover);
+            AXObjectCache().Get(popover_target.popover);
         if (popover_ax_object && popover_ax_object->IsPlainContent()) {
           AXObjectSet visited;
           description = RecursiveTextAlternative(*popover_ax_object,

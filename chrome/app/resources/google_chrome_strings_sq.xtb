@@ -81,6 +81,7 @@ Disa funksione mund të mos ofrohen dhe ndryshimet në preferenca nuk do të ruh
 <translation id="2258103955319320201">Për t'u qasur te gjërat e shfletuesit Chrome nëpër të gjitha pajisjet e tua, identifikohu dhe më pas aktivizo sinkronizimin</translation>
 <translation id="2290014774651636340">Çelësat API të Google mungojnë. Disa funksione të Chrome do të çaktivizohen.</translation>
 <translation id="2290095356545025170">Je i sigurt që dëshiron ta çinstalosh Google Chrome?</translation>
+<translation id="2298849085402457754">Për t'i pastruar të dhënat e shfletimit vetëm nga kjo pajisje, ndërkohë që i mban ato në "Llogarinë tënde të Google", <ph name="BEGIN_LINK" />dil nga Chrome<ph name="END_LINK" />.</translation>
 <translation id="2309047409763057870">Ky është instalim dytësor i Google Chrome dhe nuk mund të bëhet shfletuesi yt i parazgjedhur.</translation>
 <translation id="2345992953227471816">Chrome vuri re se këto shtesa përmbajnë softuer keqdashës:</translation>
 <translation id="2348335408836342058">Chrome ka nevojë për leje për t'u qasur te kamera dhe mikrofoni yt për këtë sajt</translation>
@@ -201,6 +202,7 @@ Disa funksione mund të mos ofrohen dhe ndryshimet në preferenca nuk do të ruh
 <translation id="4148957013307229264">Po instalohet...</translation>
 <translation id="4149882025268051530">Instaluesi nuk arriti ta nxjerrë arkivin. Shkarko përsëri Google Chrome.</translation>
 <translation id="4153934450158521343">Chrome do të mbyllet dhe do t'i fshijë të dhënat së shpejti</translation>
+<translation id="4173512894976930765">Sajtet ndoshta do të punojnë siç pritet. Do të dalësh nga shumica e sajteve kur të mbyllësh të gjitha dritaret e Chrome, përveçse nga "Llogaria jote e Google" nëse je identifikuar në Chrome.</translation>
 <translation id="4175922240926474352">Chrome e bllokoi këtë shkarkim sepse sajti nuk po përdor një lidhje të sigurt dhe mund të ketë pasur ndërhyrje te skedari</translation>
 <translation id="4191857738314598978">{0,plural, =1{Hap përsëri Chrome brenda një dite}other{Hap përsëri Chrome brenda # ditësh}}</translation>
 <translation id="4205939740494406371">Chrome nuk mund t'i kontrollojë fjalëkalimet e tua. Provo përsëri pas 24 orësh ose <ph name="BEGIN_LINK" />kontrollo fjalëkalimet në "Llogarinë tënde të Google"<ph name="END_LINK" />.</translation>
@@ -218,7 +220,6 @@ Disa funksione mund të mos ofrohen dhe ndryshimet në preferenca nuk do të ruh
 <translation id="4343195214584226067"><ph name="EXTENSION_NAME" /> është shtuar te Chrome</translation>
 <translation id="4384570495110188418">Chrome nuk mund t'i kontrollojë fjalëkalimet e tua sepse nuk je identifikuar</translation>
 <translation id="4389991535395284064">Kur shfleton në "Modalitetin 'e fshehtë'", Chrome do të të paralajmërojë para se të ngarkojë një sajt duke përdorur një lidhje të pasigurt</translation>
-<translation id="4393248995085527349">Për të marrë përditësimet e ardhshme të Google Chrome, do të të duhet macOS 10.15 ose një version i mëvonshëm. Ky kompjuter përdor macOS 10.13.</translation>
 <translation id="4427306783828095590">Mbrojtja e përmirësuar bën edhe më shumë për bllokimin e mashtrimeve dhe softuerëve keqdashës</translation>
 <translation id="4450664632294415862">Chrome - identifikimi në rrjet - <ph name="PAGE_TITLE" /></translation>
 <translation id="4458462641685292929">Një veprim tjetër në Google Chrome është në vazhdim. Provo përsëri më vonë.</translation>
@@ -306,7 +307,6 @@ Google Chrome nuk është në gjendje të rikuperojë cilësimet e tua.</transla
 <translation id="5941711191222866238">Minimizo</translation>
 <translation id="5941830788786076944">Bëje Google Chrome shfletuesin e parazgjedhur</translation>
 <translation id="6003112304606738118">Po shkarkohet... Kanë mbetur edhe <ph name="HOURS" /> orë</translation>
-<translation id="6010556343189461180">Për të marrë përditësimet e ardhshme të Google Chrome, do të të duhet macOS 10.15 ose një version i mëvonshëm. Ky kompjuter përdor macOS 10.14.</translation>
 <translation id="6014316319780893079">Me <ph name="BEGIN_LINK" />veglat nga Chrome<ph name="END_LINK" />, mund të shfletosh në mënyrë të sigurt dhe të qëndrosh në kontroll</translation>
 <translation id="6022659036123304283">Bëje Chrome shfletuesin tënd</translation>
 <translation id="6025087594896450715">Google Chrome do të riniset pas <ph name="REMAINING_TIME" /></translation>

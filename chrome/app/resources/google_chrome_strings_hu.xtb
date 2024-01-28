@@ -78,6 +78,7 @@
 <translation id="2258103955319320201">Ha szeretne minden eszközén hozzáférni a Chrome böngészőhöz tartozó anyagaihoz, jelentkezzen be, majd kapcsolja be a szinkronizálást.</translation>
 <translation id="2290014774651636340">Hiányoznak Google API-kulcsok. A Google Chrome egyes funkciói kikapcsolnak.</translation>
 <translation id="2290095356545025170">Biztos benne, hogy eltávolítja a Google Chrome-ot?</translation>
+<translation id="2298849085402457754">Ha csak erről az eszközről szeretné törölni böngészési adatait, Google-fiókjából azonban nem, <ph name="BEGIN_LINK" />jelentkezzen ki a Chrome-ból<ph name="END_LINK" />.</translation>
 <translation id="2309047409763057870">Ez a Google Chrome második telepítése, amelyet nem állíthat be az alapértelmezett böngészővé.</translation>
 <translation id="2345992953227471816">A Chrome kártékony programokat talált a következő bővítményekben:</translation>
 <translation id="2348335408836342058">A Chrome-nak engedélyre van szüksége ahhoz, hogy hozzáférjen a kamerához és a mikrofonhoz ennél a webhelynél</translation>
@@ -198,6 +199,7 @@
 <translation id="4148957013307229264">Telepítés...</translation>
 <translation id="4149882025268051530">Nem sikerült a telepítőnek kibontani a tömörített állományt. Kérjük, töltse le újra a Google Chrome böngészőt.</translation>
 <translation id="4153934450158521343">A Chrome hamarosan bezáródik, és törli az adatokat</translation>
+<translation id="4173512894976930765">A webhelyek valószínűleg a várt módon fognak működni. Az összes Chrome-ablak bezárásakor a legtöbb webhelyről kijelentkezteti a rendszer, kivéve a Google-fiókját, ha bejelentkezett a Chrome-ba.</translation>
 <translation id="4175922240926474352">A Chrome letiltotta ezt a letöltést, mert a webhely nem használ biztonságos kapcsolatot, és előfordulhat, hogy a fájlt illetéktelenül módosították</translation>
 <translation id="4191857738314598978">{0,plural, =1{A Chrome-ot 1 napon belül újra kell indítani}other{A Chrome-ot # napon belül újra kell indítani}}</translation>
 <translation id="4205939740494406371">A Chrome nem tudja ellenőrizni a jelszavait. Próbálja újra 24 óra múlva, vagy <ph name="BEGIN_LINK" />ellenőrizze jelszavait a Google-fiókjában<ph name="END_LINK" />.</translation>
@@ -215,7 +217,6 @@
 <translation id="4343195214584226067">A(z) <ph name="EXTENSION_NAME" /> hozzá lett adva a Chrome-hoz</translation>
 <translation id="4384570495110188418">A Chrome nem tudja ellenőrizni az Ön jelszavait, mert nincs bejelentkezve</translation>
 <translation id="4389991535395284064">Inkognitó módban való böngészéskor a Chrome figyelmezteti Önt a nem biztonságos kapcsolatot használó webhelyek betöltése előtt</translation>
-<translation id="4393248995085527349">Ha a jövőben Google Chrome-frissítéseket szeretne kapni, akkor a macOS 10.15-ös vagy újabb verziójára lesz szüksége. Ezen a számítógépen a macOS 10.13 fut.</translation>
 <translation id="4427306783828095590">A Speciális védelem még többet tesz annak érdekében, hogy letiltsa az adathalászatot és a rosszindulatú programokat</translation>
 <translation id="4450664632294415862">Chrome – Hálózati bejelentkezés – <ph name="PAGE_TITLE" /></translation>
 <translation id="4458462641685292929">Egy másik Google Chrome-művelet is folyamatban van. Próbálkozzon újra később.</translation>
@@ -299,7 +300,6 @@
 <translation id="5941711191222866238">Kis méret</translation>
 <translation id="5941830788786076944">A Google Chrome beállítása alapértelmezett böngészőként</translation>
 <translation id="6003112304606738118">Letöltés… <ph name="HOURS" /> óra van hátra</translation>
-<translation id="6010556343189461180">Ha a jövőben Google Chrome-frissítéseket szeretne kapni, akkor a macOS 10.15-ös vagy újabb verziójára lesz szüksége. Ezen a számítógépen a macOS 10.14 fut.</translation>
 <translation id="6014316319780893079">A <ph name="BEGIN_LINK" />Chrome eszközeivel<ph name="END_LINK" /> biztonságosan böngészhet, és kézben tarthatja az irányítást</translation>
 <translation id="6022659036123304283">Tegye személyessé a Chrome-ot</translation>
 <translation id="6025087594896450715">A Google Chrome újraindul <ph name="REMAINING_TIME" /> múlva</translation>

@@ -54,12 +54,14 @@ class MEDIA_EXPORT HlsManifestDemuxerEngine : public ManifestDemuxer::Engine,
   void Stop() override;
 
   // HlsRenditionHost implementation.
-  void ReadFromUrl(GURL uri,
-                   bool read_chunked,
-                   absl::optional<hls::types::ByteRange> range,
-                   HlsDataSourceProvider::ReadCb cb) override;
+  void ReadManifest(const GURL& uri, HlsDataSourceProvider::ReadCb cb) override;
+  void ReadMediaSegment(const hls::MediaSegment& segment,
+                        bool read_chunked,
+                        bool include_init,
+                        HlsDataSourceProvider::ReadCb cb) override;
   void ReadStream(std::unique_ptr<HlsDataSourceStream> stream,
                   HlsDataSourceProvider::ReadCb cb) override;
+  void UpdateNetworkSpeed(uint64_t bps) override;
   void UpdateRenditionManifestUri(std::string role,
                                   GURL uri,
                                   base::OnceClosure cb) override;
@@ -94,6 +96,15 @@ class MEDIA_EXPORT HlsManifestDemuxerEngine : public ManifestDemuxer::Engine,
     // Only root playlists are allowed to be multivariant.
     bool allow_multivariant_playlist;
   };
+
+  // Allows continuing any pending seeks after important network requests have
+  // completed.
+  void FinishInitialization(PipelineStatusCallback cb, PipelineStatus status);
+  void OnAdaptationComplete(PipelineStatus status);
+
+  // Helper for OnTimeUpdate/CheckState which helps record tracing macros.
+  void FinishTimeUpdate(ManifestDemuxer::DelayCallback cb,
+                        base::TimeDelta delay_time);
 
   // Calls Rendition::CheckState and binds OnStateChecked to it's closure arg,
   // and records the timetick when the state checking happened.
@@ -215,6 +226,20 @@ class MEDIA_EXPORT HlsManifestDemuxerEngine : public ManifestDemuxer::Engine,
   // Multiple renditions are allowed, and have to be synchronized.
   base::flat_map<std::string, std::unique_ptr<HlsRendition>> renditions_
       GUARDED_BY_CONTEXT(media_sequence_checker_);
+
+  size_t pending_playlist_network_requests_
+      GUARDED_BY_CONTEXT(media_sequence_checker_) = 0;
+
+  // This captures a pending seek and prevents it from interrupting manifest
+  // updates. When the last manifest update completes, the seek closure can
+  // continue.
+  base::OnceClosure pending_seek_closure_
+      GUARDED_BY_CONTEXT(media_sequence_checker_);
+
+  // Disallow seeking until all renditions are parsed.
+  bool pending_initialization_ GUARDED_BY_CONTEXT(media_sequence_checker_) =
+      false;
+  bool pending_adaptation_ GUARDED_BY_CONTEXT(media_sequence_checker_) = false;
 
   // When renditions are added, this ensures that they are all of the same
   // liveness, and allows access to the liveness check later.

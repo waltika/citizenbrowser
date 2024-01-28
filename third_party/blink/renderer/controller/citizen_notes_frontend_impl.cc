@@ -32,6 +32,7 @@
 
 #include <utility>
 
+#include "third_party/blink/renderer/bindings/core/v8/to_v8_traits.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_binding_for_core.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_citizen_notes_host.h"
 #include "third_party/blink/renderer/core/exported/web_view_impl.h"
@@ -92,11 +93,11 @@ void CitizenNotesFrontendImpl::DidClearWindowObject() {
       citizennotes_host_->DisconnectClient();
     citizennotes_host_ =
         MakeGarbageCollected<CitizenNotesHost>(this, GetSupplementable());
-    v8::Local<v8::Object> global = script_state->GetContext()->Global();
     v8::Local<v8::Value> citizennotes_host_obj =
-        ToV8(citizennotes_host_.Get(), global, script_state->GetIsolate());
+        ToV8Traits<CitizenNotesHost>::ToV8(script_state, citizennotes_host_.Get());
     DCHECK(!citizennotes_host_obj.IsEmpty());
-    global
+    script_state->GetContext()
+        ->Global()
         ->Set(script_state->GetContext(),
               V8AtomicString(isolate, "CitizenNotesHost"), citizennotes_host_obj)
         .Check();

@@ -20,6 +20,7 @@
 #include "base/check_op.h"
 #include "base/containers/adapters.h"
 #include "base/containers/contains.h"
+#include "base/memory/raw_ptr.h"
 #include "base/metrics/histogram_functions.h"
 #include "base/ranges/algorithm.h"
 #include "base/time/time.h"
@@ -106,7 +107,7 @@ bool InTabletMode() {
 }
 
 bool TopTwoVisibleWindowsBothSnapped(
-    const std::vector<aura::Window*>& windows) {
+    const std::vector<raw_ptr<aura::Window, VectorExperimental>>& windows) {
   int windows_size = windows.size();
   if (windows_size < 2)
     return false;
@@ -117,7 +118,7 @@ bool TopTwoVisibleWindowsBothSnapped(
   if (!top_snap_window_state->IsSnapped())
     return false;
 
-  for (auto* window : base::Reversed(windows)) {
+  for (aura::Window* window : base::Reversed(windows)) {
     // Skip the top one.
     if (window == windows.back())
       continue;
@@ -579,7 +580,7 @@ void SplitViewMetricsController::InitObservedWindowsOnActiveDesk() {
       current_desk_
           ->GetDeskContainerForRoot(split_view_controller_->root_window())
           ->children();
-  for (auto* window : windows) {
+  for (aura::Window* window : windows) {
     if (!CanIncludeWindowInMruList(window))
       continue;
     AddObservedWindow(window);
@@ -630,7 +631,7 @@ bool SplitViewMetricsController::
     return false;
 
   return TopTwoVisibleWindowsBothSnapped(
-      std::vector<aura::Window*>(begin_iter, iter));
+      std::vector<raw_ptr<aura::Window, VectorExperimental>>(begin_iter, iter));
 }
 
 void SplitViewMetricsController::RecordSnapTwoWindowsDuration(
@@ -666,6 +667,15 @@ void SplitViewMetricsController::RecordCloseTwoWindowsDuration(
 
 void SplitViewMetricsController::MaybeStartOrEndRecordSnapTwoWindowsDuration(
     WindowState* window_state) {
+  // If `first_snapped_window_` is no longer snapped, record the max duration to
+  // indicate a second window was never snapped on the opposite side.
+  if (first_snapped_window_ &&
+      !WindowState::Get(first_snapped_window_)->IsSnapped()) {
+    // Any state type change can change `first_snapped_window_`'s state type
+    // (i.e. float). This must be reset before we check `first_snapped_window_`
+    // below.
+    RecordSnapTwoWindowsDuration(kSequentialSnapActionMaxTime);
+  }
   if (window_state->IsSnapped()) {
     if (first_snapped_window_ && !first_snapped_time_.is_null() &&
         window_state->window() != first_snapped_window_ &&
@@ -682,11 +692,6 @@ void SplitViewMetricsController::MaybeStartOrEndRecordSnapTwoWindowsDuration(
     first_snapped_window_ = window_state->window();
     first_snapped_time_ = base::TimeTicks::Now();
     return;
-  }
-  // If `first_snapped_window_` is no longer snapped, record the max duration to
-  // indicate a second window was never snapped on the opposite side.
-  if (window_state->window() == first_snapped_window_) {
-    RecordSnapTwoWindowsDuration(kSequentialSnapActionMaxTime);
   }
 }
 

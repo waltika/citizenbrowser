@@ -158,11 +158,6 @@ void CheckClientDownloadRequestBase::FinishRequest(
     DownloadCheckResultReason reason) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
 
-  if (!request_start_time_.is_null()) {
-    base::UmaHistogramEnumeration(
-        "SBClientDownload.DownloadRequestNetworkStats", reason, REASON_MAX);
-  }
-
   auto settings = ShouldUploadBinary(reason);
   if (settings.has_value()) {
     UploadBinary(result, reason, std::move(settings.value()));
@@ -314,15 +309,12 @@ void CheckClientDownloadRequestBase::GetAdditionalPromptResult(
     // Otherwise, client Safe Browsing reports may be missed when the
     // verdict is SAFE. See https://crbug.com/1485218.
     *token = response.token();
-    LogDeepScanningPrompt();
   }
 
   // Only record the UMA metric if we're in a population that potentially
   // could prompt for deep scanning.
   if (ShouldPromptForDeepScanning(/*server_requests_prompt=*/true)) {
-    base::UmaHistogramBoolean(
-        "SBClientDownload.ServerRequestsDeepScanningPrompt",
-        deep_scanning_prompt);
+    LogDeepScanningPrompt(deep_scanning_prompt);
   }
 }
 
@@ -473,11 +465,6 @@ void CheckClientDownloadRequestBase::SendRequest() {
               "Chromium's settings by toggling 'Protect you and your device "
               "from dangerous sites' under Privacy. This feature is enabled by "
               "default."
-            chrome_policy {
-              RealTimeDownloadProtectionRequestAllowed {
-                RealTimeDownloadProtectionRequestAllowed: false
-              }
-            }
             chrome_policy {
               SafeBrowsingProtectionLevel {
                 policy_options {mode: MANDATORY}

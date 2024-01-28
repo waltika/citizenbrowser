@@ -1628,6 +1628,15 @@ Page::BackForwardCacheNotRestoredReason CNBlocklistedFeatureToProtocol(
       // Currently we add WebSchedulerTrackedFeature::kWebSerial only for
       // disabling aggressive throttling.
       NOTREACHED_NORETURN();
+    case WebSchedulerTrackedFeature::kSmartCard:
+          return Page::BackForwardCacheNotRestoredReasonEnum::
+              JsNetworkRequestReceivedCacheControlNoStoreResource;
+    case WebSchedulerTrackedFeature::kLiveMediaStreamTrack:
+          return Page::BackForwardCacheNotRestoredReasonEnum::
+              JsNetworkRequestReceivedCacheControlNoStoreResource;
+    case WebSchedulerTrackedFeature::kUnloadHandler:
+          return Page::BackForwardCacheNotRestoredReasonEnum::
+              JsNetworkRequestReceivedCacheControlNoStoreResource;
   }
 }
 
@@ -1804,7 +1813,7 @@ Page::BackForwardCacheNotRestoredReasonType CNMapNotRestoredReasonToType(
       return Page::BackForwardCacheNotRestoredReasonTypeEnum::SupportPending;
     case Reason::kBlocklistedFeatures:
       NOTREACHED();
-      return Page::BackForwardCacheNotRestoredReasonTypeEnum::PageSupportNeeded;
+    return Page::BackForwardCacheNotRestoredReasonTypeEnum::PageSupportNeeded;
   }
 }
 
@@ -1862,6 +1871,9 @@ Page::BackForwardCacheNotRestoredReasonType CNMapBlocklistedFeatureToType(
     case WebSchedulerTrackedFeature::kWebSocketSticky:
       return Page::BackForwardCacheNotRestoredReasonTypeEnum::Circumstantial;
     case WebSchedulerTrackedFeature::kWebSerial:
+    case WebSchedulerTrackedFeature::kLiveMediaStreamTrack:
+    case WebSchedulerTrackedFeature::kUnloadHandler:
+    case WebSchedulerTrackedFeature::kSmartCard:
       NOTREACHED_NORETURN();
   }
 }

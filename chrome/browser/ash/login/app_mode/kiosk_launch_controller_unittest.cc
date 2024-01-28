@@ -130,8 +130,7 @@ class FakeNetworkMonitor : public ash::NetworkUiController::NetworkMonitor {
 
  private:
   bool online_ = false;
-  raw_ptr<ash::NetworkUiController::NetworkMonitor::Observer, ExperimentalAsh>
-      observer_;
+  raw_ptr<ash::NetworkUiController::NetworkMonitor::Observer> observer_;
   base::WeakPtrFactory<FakeNetworkMonitor> weak_ptr_factory_{this};
 };
 
@@ -326,7 +325,7 @@ class KioskLaunchControllerTest : public extensions::ExtensionServiceTestBase {
       keyboard_controller_client_;
   std::unique_ptr<KioskControllerHolder> kiosk_controller_holder_;
 
-  std::unique_ptr<base::AutoReset<absl::optional<bool>>>
+  std::unique_ptr<base::AutoReset<std::optional<bool>>>
       can_configure_network_for_testing_;
 
   user_manager::TypedScopedUserManager<ash::FakeChromeUserManager>
@@ -335,8 +334,8 @@ class KioskLaunchControllerTest : public extensions::ExtensionServiceTestBase {
   std::unique_ptr<base::AutoReset<bool>>
       disable_wait_timer_and_login_operations_for_testing_;
   std::unique_ptr<FakeAppLaunchSplashScreenHandler> view_;
-  raw_ptr<FakeKioskAppLauncher, DanglingUntriaged | ExperimentalAsh>
-      app_launcher_ = nullptr;  // owned by `controller_`.
+  raw_ptr<FakeKioskAppLauncher, DanglingUntriaged> app_launcher_ =
+      nullptr;  // owned by `controller_`.
   base::WeakPtr<FakeNetworkMonitor>
       network_monitor_;  // owned by `controller_`.
   int app_launchers_created_ = 0;
@@ -973,20 +972,20 @@ class KioskLaunchControllerUsingLacrosTest : public testing::Test {
       fake_user_manager_{std::make_unique<ash::FakeChromeUserManager>()};
   TestingProfileManager testing_profile_manager_{
       TestingBrowserProcess::GetGlobal(), &testing_local_state_};
-  raw_ptr<Profile, ExperimentalAsh> profile_;
+  raw_ptr<Profile> profile_;
   crosapi::FakeBrowserManager browser_manager_;
 
   std::unique_ptr<ChromeKeyboardControllerClientTestHelper>
       keyboard_controller_client_;
   std::unique_ptr<KioskControllerHolder> kiosk_controller_holder_;
 
-  std::unique_ptr<base::AutoReset<absl::optional<bool>>>
+  std::unique_ptr<base::AutoReset<std::optional<bool>>>
       can_configure_network_for_testing_;
   std::unique_ptr<base::AutoReset<bool>>
       disable_wait_timer_and_login_operations_for_testing_;
   std::unique_ptr<FakeAppLaunchSplashScreenHandler> view_;
-  raw_ptr<FakeKioskAppLauncher, DanglingUntriaged | ExperimentalAsh>
-      app_launcher_ = nullptr;  // owned by `controller_`.
+  raw_ptr<FakeKioskAppLauncher, DanglingUntriaged> app_launcher_ =
+      nullptr;  // owned by `controller_`.
   int app_launchers_created_ = 0;
   base::test::TestFuture<bool> launcher_waiter_;
   std::unique_ptr<KioskLaunchController> controller_;

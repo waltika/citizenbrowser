@@ -130,11 +130,6 @@ HanKerning::CharType HanKerning::GetCharType(UChar ch,
   NOTREACHED_NORETURN();
 }
 
-bool HanKerning::MaybeOpen(UChar ch) {
-  const CharType type = Character::GetHanKerningCharType(ch);
-  return type == CharType::kOpen || type == CharType::kOpenQuote;
-}
-
 inline bool HanKerning::ShouldKern(CharType type, CharType last_type) {
   return type == CharType::kOpen &&
          (last_type == CharType::kOpen || last_type == CharType::kMiddle ||
@@ -164,8 +159,8 @@ void HanKerning::Compute(const String& text,
   if (!font_data.has_alternate_spacing) {
     return;
   }
-  if (UNLIKELY(font_description.GetTextSpacingTrim() !=
-               TextSpacingTrim::kSpaceFirst)) {
+  if (UNLIKELY(font_description.GetTextSpacingTrim() ==
+               TextSpacingTrim::kSpaceAll)) {
     return;
   }
   for (const hb_feature_t& feature : *features) {
@@ -177,10 +172,10 @@ void HanKerning::Compute(const String& text,
   // Compute for the first character.
   Vector<wtf_size_t, 32> indices;
   CharType last_type;
-  if (options.apply_start) {
+  if (UNLIKELY(options.apply_start)) {
     indices.push_back(start);
     last_type = GetCharType(text[start], font_data);
-  } else if (start) {
+  } else if (start && !options.is_line_start) {
     last_type = GetCharType(text[start - 1], font_data);
     const CharType type = GetCharType(text[start], font_data);
     if (ShouldKern(type, last_type)) {
@@ -194,7 +189,9 @@ void HanKerning::Compute(const String& text,
   if (font_data.has_contextual_spacing) {
     // The `chws` feature can handle charcters in a run.
     // Compute the end edge if there are following runs.
-    if (end < text.length()) {
+    if (UNLIKELY(options.apply_end)) {
+      indices.push_back(end - 1);
+    } else if (end < text.length()) {
       if (end - 1 > start) {
         last_type = GetCharType(text[end - 1], font_data);
       }
@@ -212,13 +209,17 @@ void HanKerning::Compute(const String& text,
       if (ShouldKernLast(type, last_type)) {
         DCHECK_GT(i, 0u);
         indices.push_back(i - 1);
+        unsafe_to_break_before_.push_back(i);
       } else if (ShouldKern(type, last_type)) {
         indices.push_back(i);
+        unsafe_to_break_before_.push_back(i);
       }
     }
 
     // Compute for the last character.
-    if (end < text.length()) {
+    if (UNLIKELY(options.apply_end)) {
+      indices.push_back(end - 1);
+    } else if (end < text.length()) {
       type = GetCharType(text[end], font_data);
       if (ShouldKernLast(type, last_type)) {
         indices.push_back(end - 1);

@@ -36,6 +36,8 @@ constexpr char kPerAppTrigger[] = "PerAppIphFeature_trigger";
 constexpr char kPerAppUsed[] = "PerAppIphFeature_used";
 constexpr char kLegalNoticeTrigger[] = "LegalNoticeIphFeature_trigger";
 constexpr char kLegalNoticeUsed[] = "LegalNoticeIphFeature_used";
+constexpr char kActionableAlertTrigger[] = "ActionableAlertFeature_trigger";
+constexpr char kActionableAlertUsed[] = "ActionableAlertFeature_used";
 BASE_FEATURE(kToastIphFeature,
              "IPH_ToastIphFeature",
              base::FEATURE_ENABLED_BY_DEFAULT);
@@ -48,9 +50,12 @@ BASE_FEATURE(kPerAppIphFeature,
 BASE_FEATURE(kLegalNoticeIphFeature,
              "IPH_LegalNoticeIphFeature",
              base::FEATURE_ENABLED_BY_DEFAULT);
+BASE_FEATURE(kActionableAlertFeature,
+             "IPH_ActionableAlertFeature",
+             base::FEATURE_ENABLED_BY_DEFAULT);
 const std::initializer_list<const base::Feature*> kKnownFeatures{
     &kToastIphFeature, &kSnoozeIphFeature, &kPerAppIphFeature,
-    &kLegalNoticeIphFeature};
+    &kActionableAlertFeature, &kLegalNoticeIphFeature};
 const std::initializer_list<const base::Feature*> kKnownGroups{};
 
 DEFINE_LOCAL_ELEMENT_IDENTIFIER_VALUE(kTestElementId);
@@ -85,6 +90,13 @@ std::unique_ptr<UserEducationConfigurationProvider> CreateProvider() {
       user_education::FeaturePromoSpecification::PromoSubtype::kLegalNotice);
   registry.RegisterFeature(std::move(spec));
 
+  spec = user_education::FeaturePromoSpecification::CreateForCustomAction(
+      kActionableAlertFeature, kTestElementId, IDS_CLEAR, IDS_CLOSE,
+      base::DoNothing());
+  spec.set_promo_subtype_for_testing(user_education::FeaturePromoSpecification::
+                                         PromoSubtype::kActionableAlert);
+  registry.RegisterFeature(std::move(spec));
+
   return std::make_unique<UserEducationConfigurationProvider>(
       std::move(registry));
 }
@@ -110,8 +122,13 @@ class UserEducationConfigurationProviderTest : public testing::Test {
   }
 
   auto GetDefaultTrigger(const char* name) {
+    const auto trigger =
+        base::FeatureList::IsEnabled(
+            user_education::features::kUserEducationExperienceVersion2)
+            ? kAny
+            : kLessThan5;
     return feature_engagement::EventConfig(
-        name, kLessThan3, feature_engagement::kMaxStoragePeriod,
+        name, trigger, feature_engagement::kMaxStoragePeriod,
         feature_engagement::kMaxStoragePeriod);
   }
 
@@ -133,8 +150,8 @@ class UserEducationConfigurationProviderTest : public testing::Test {
   const feature_engagement::BlockedBy kBlockedByAll;
   const feature_engagement::Comparator kEqualsZero{feature_engagement::EQUAL,
                                                    0};
-  const feature_engagement::Comparator kLessThan3{feature_engagement::LESS_THAN,
-                                                  3};
+  const feature_engagement::Comparator kLessThan5{feature_engagement::LESS_THAN,
+                                                  5};
   const feature_engagement::Comparator kAtLeast7{
       feature_engagement::GREATER_THAN_OR_EQUAL, 7};
   feature_engagement::SessionRateImpact kSessionRateImpactNone;
@@ -269,6 +286,38 @@ TEST_F(UserEducationConfigurationProviderTest,
   EXPECT_TRUE(config.groups.empty());
 }
 
+TEST_F(UserEducationConfigurationProviderTest,
+       ProvidesActionableAlertConfiguration) {
+  feature_engagement::FeatureConfig config;
+
+  EXPECT_TRUE(CreateProvider()->MaybeProvideFeatureConfiguration(
+      kActionableAlertFeature, config, kKnownFeatures, kKnownGroups));
+
+  EXPECT_TRUE(config.valid);
+
+  EXPECT_EQ(GetDefaultUsed(kActionableAlertUsed), config.used);
+
+  EXPECT_EQ(GetAnyTrigger(kActionableAlertTrigger), config.trigger);
+
+  EXPECT_TRUE(config.event_configs.empty());
+
+  EXPECT_EQ(kAny, config.session_rate);
+
+  EXPECT_EQ(kSessionRateImpactAll, config.session_rate_impact);
+
+  EXPECT_EQ(feature_engagement::BlockedBy(), config.blocked_by);
+
+  EXPECT_EQ(feature_engagement::Blocking(), config.blocking);
+
+  EXPECT_EQ(kAny, config.availability);
+
+  EXPECT_FALSE(config.tracking_only);
+
+  EXPECT_EQ(feature_engagement::SnoozeParams(), config.snooze_params);
+
+  EXPECT_TRUE(config.groups.empty());
+}
+
 TEST_F(UserEducationConfigurationProviderTest, HandlesEventConfigs) {
   feature_engagement::EventConfig event("other_event", kEqualsZero, 100, 100);
 
@@ -331,4 +380,28 @@ TEST_F(UserEducationConfigurationProviderTest, v2_DoesOverwriteValid) {
 
   EXPECT_EQ(GetDefaultTrigger("foo"), config.trigger);
   EXPECT_EQ(GetDefaultUsed("bar"), config.used);
+}
+
+TEST_F(UserEducationConfigurationProviderTest, v1_SessionRate) {
+  SetEnableV2(false);
+  feature_engagement::FeatureConfig config;
+  EXPECT_TRUE(CreateProvider()->MaybeProvideFeatureConfiguration(
+      kSnoozeIphFeature, config, kKnownFeatures, kKnownGroups));
+
+  EXPECT_EQ(feature_engagement::EQUAL, config.session_rate.type);
+  EXPECT_EQ(0U, config.session_rate.value);
+  EXPECT_EQ(feature_engagement::SessionRateImpact::Type::ALL,
+            config.session_rate_impact.type);
+}
+
+TEST_F(UserEducationConfigurationProviderTest, v2_SessionRate) {
+  SetEnableV2(true);
+  feature_engagement::FeatureConfig config;
+  EXPECT_TRUE(CreateProvider()->MaybeProvideFeatureConfiguration(
+      kSnoozeIphFeature, config, kKnownFeatures, kKnownGroups));
+
+  EXPECT_EQ(feature_engagement::ANY, config.session_rate.type);
+  EXPECT_EQ(0U, config.session_rate.value);
+  EXPECT_EQ(feature_engagement::SessionRateImpact::Type::ALL,
+            config.session_rate_impact.type);
 }

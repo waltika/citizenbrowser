@@ -9,6 +9,8 @@ import static org.chromium.chrome.browser.ui.fold_transitions.FoldTransitionCont
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Resources;
+import android.graphics.Point;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
@@ -22,8 +24,8 @@ import org.chromium.base.ApplicationStatus;
 import org.chromium.base.Callback;
 import org.chromium.base.IntentUtils;
 import org.chromium.base.ResettersForTesting;
-import org.chromium.base.TimeUtils;
 import org.chromium.base.TraceEvent;
+import org.chromium.base.cached_flags.IntCachedFieldTrialParameter;
 import org.chromium.base.library_loader.LibraryLoader;
 import org.chromium.base.lifetime.Destroyable;
 import org.chromium.base.metrics.RecordHistogram;
@@ -39,7 +41,6 @@ import org.chromium.chrome.browser.app.ChromeActivity;
 import org.chromium.chrome.browser.back_press.BackPressManager;
 import org.chromium.chrome.browser.feed.FeedFeatures;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
-import org.chromium.chrome.browser.flags.IntCachedFieldTrialParameter;
 import org.chromium.chrome.browser.homepage.HomepageManager;
 import org.chromium.chrome.browser.homepage.HomepagePolicyManager;
 import org.chromium.chrome.browser.layouts.LayoutManager;
@@ -162,7 +163,6 @@ public final class ReturnToChromeUtil {
         private final ActivityTabProvider.ActivityTabTabObserver mActivityTabObserver;
         private final ActivityTabProvider mActivityTabProvider;
         private final Supplier<Tab> mTabSupplier; // for debugging only
-        private final Supplier<Long> mLastBackPressMsSupplier;
         private LayoutStateProvider mLayoutStateProvider;
         private LayoutStateObserver mLayoutStateObserver;
         private boolean mIsHandleTabSwitcherShownEnabled;
@@ -172,7 +172,6 @@ public final class ReturnToChromeUtil {
                 Callback<Boolean> onBackPressedCallback,
                 Supplier<Tab> tabSupplier,
                 OneshotSupplier<LayoutStateProvider> layoutStateProviderSupplier,
-                Supplier<Long> lastBackPressMsSupplier,
                 boolean isHandleTabSwitcherShownEnabled) {
             mActivityTabProvider = activityTabProvider;
             mActivityTabObserver =
@@ -184,7 +183,6 @@ public final class ReturnToChromeUtil {
                     };
             mOnBackPressedCallback = onBackPressedCallback;
             mTabSupplier = tabSupplier;
-            mLastBackPressMsSupplier = lastBackPressMsSupplier;
             mIsHandleTabSwitcherShownEnabled = isHandleTabSwitcherShownEnabled;
             if (mIsHandleTabSwitcherShownEnabled) {
                 layoutStateProviderSupplier.onAvailable(this::onLayoutStateProviderAvailable);
@@ -229,13 +227,8 @@ public final class ReturnToChromeUtil {
                         mLayoutStateProvider != null
                                 ? mLayoutStateProvider.getActiveLayoutType()
                                 : LayoutType.NONE;
-                long interval = -1;
-                if (mLastBackPressMsSupplier.get() != -1) {
-                    interval = TimeUtils.elapsedRealtimeMillis() - mLastBackPressMsSupplier.get();
-                }
                 String msg =
-                        "tab %s; control tab %s; back press state %s; layout %s; isFromSS: %s;"
-                                + " interval %s";
+                        "tab %s; control tab %s; back press state %s; layout %s; isFromSS: %s;";
                 boolean isFromSS = tab != null && isTabFromStartSurface(tab);
                 assert false
                         : String.format(
@@ -244,8 +237,7 @@ public final class ReturnToChromeUtil {
                                 controlTab,
                                 tab != null && tab.canGoBack(),
                                 layoutType,
-                                isFromSS,
-                                interval);
+                                isFromSS);
                 if (BackPressManager.correctTabNavigationOnFallback()) {
                     return BackPressResult.FAILURE;
                 }
@@ -904,25 +896,18 @@ public final class ReturnToChromeUtil {
     }
 
     private static void updateFeedVisibility() {
+        Profile profile = Profile.getLastUsedRegularProfile();
         ChromeSharedPreferences.getInstance()
                 .writeBoolean(
                         ChromePreferenceKeys.FEED_ARTICLES_LIST_VISIBLE,
-                        FeedFeatures.isFeedEnabled()
-                                && UserPrefs.get(Profile.getLastUsedRegularProfile())
-                                        .getBoolean(Pref.ARTICLES_LIST_VISIBLE));
+                        FeedFeatures.isFeedEnabled(profile)
+                                && UserPrefs.get(profile).getBoolean(Pref.ARTICLES_LIST_VISIBLE));
     }
 
     /** Returns whether the Feed articles are visible. */
     public static boolean getFeedArticlesVisibility() {
         return ChromeSharedPreferences.getInstance()
                 .readBoolean(ChromePreferenceKeys.FEED_ARTICLES_LIST_VISIBLE, true);
-    }
-
-    /** Returns whether to improve Start surface when Feed is not visible. */
-    public static boolean shouldImproveStartWhenFeedIsDisabled(Context context) {
-        return ChromeFeatureList.sStartSurfaceDisabledFeedImprovement.isEnabled()
-                && !getFeedArticlesVisibility()
-                && isStartSurfaceEnabled(context);
     }
 
     /** Returns whether to move logo out of toolbar from Start surface. */
@@ -1004,6 +989,32 @@ public final class ReturnToChromeUtil {
                         && ChromeFeatureList.sStartSurfaceOnTablet.isEnabled();
     }
 
+    /**
+     * Returns the start position of the context menu of a home module.
+     *
+     * @param resources The {@link Resources} instance to load Android resources from.
+     */
+    public static Point calculateContextMenuStartPosition(Resources resources) {
+        // On the single tab module, the x starts from the right of the tab thumbnail.
+        int contextMenuStartX =
+                resources.getDimensionPixelSize(
+                                org.chromium.chrome.start_surface.R.dimen
+                                        .single_tab_module_lateral_margin)
+                        + resources.getDimensionPixelSize(
+                                org.chromium.chrome.start_surface.R.dimen
+                                        .single_tab_module_padding_bottom)
+                        + resources.getDimensionPixelSize(
+                                org.chromium.chrome.start_surface.R.dimen
+                                        .single_tab_module_tab_thumbnail_size);
+        // The y starts from the same height of the tab thumbnail.
+        int contextMenuStartY =
+                resources.getDimensionPixelSize(
+                                org.chromium.chrome.start_surface.R.dimen
+                                        .single_tab_module_padding_top)
+                        * 3;
+        return new Point(contextMenuStartX, contextMenuStartY);
+    }
+
     /** Shows the home surface UI on the given NTP on tablets. */
     static void showHomeSurfaceUiOnNtp(
             Tab ntpTab, Tab lastActiveTab, HomeSurfaceTracker homeSurfaceTracker) {
@@ -1027,7 +1038,11 @@ public final class ReturnToChromeUtil {
         // This cast is now guaranteed to succeed to a non-null value.
         NewTabPage newTabPage = (NewTabPage) nativePage;
         homeSurfaceTracker.updateHomeSurfaceAndTrackingTabs(ntpTab, lastActiveTab);
-        newTabPage.showHomeSurfaceUi(lastActiveTab);
+        if (StartSurfaceConfiguration.useMagicStack()) {
+            newTabPage.showMagicStack(lastActiveTab);
+        } else {
+            newTabPage.showHomeSurfaceUi(lastActiveTab);
+        }
     }
 
     // TODO(https://crbug.com/1450578): Removes this histogram once we understand the root cause of
