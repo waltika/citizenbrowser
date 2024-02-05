@@ -1641,6 +1641,7 @@
       'android-chrome-pie-x86-wpt-fyi-rel': {
         'args': [
           '--use-upstream-wpt',
+          '--timeout-multiplier=4',
         ],
       },
     },
@@ -1670,6 +1671,19 @@
             'os': 'Ubuntu-18.04',
           },
         },
+      },
+    },
+  },
+  'chrome_wpt_tests': {
+    'modifications': {
+      # make this experimental for now and reenable it once we switch to the new headless mode
+      'Linux Tests': {
+        'experiment_percentage': 100,
+      },
+      'linux-wpt-chromium-rel': {
+        'args': [
+          '--additional-driver-flag=--headless=new'
+        ],
       },
     },
   },
@@ -1782,9 +1796,9 @@
         },
       },
       'win-asan': {
-        # With a single shard seems to hit time limit.
+        # TODO(crbug.com/1518411): With a single shard seems to hit time limit.
         'swarming': {
-          'shards': 2,
+          'shards': 4,
         },
       },
       'win10-code-coverage': {
@@ -3656,6 +3670,12 @@
       },
     },
   },
+  'net_unittests BRYA_RELEASE_LKGM': {
+    # TODO(b/319364912): vpython cannot be delivered via CIPD on skylab builders
+    'remove_from': [
+      'chromeos-brya-chrome-skylab',
+    ],
+  },
   'not_site_per_process_blink_web_tests': {
     'remove_from': [
       # TODO(dpranke): Should we be running this step on Linux Tests (dbg)(1)?
@@ -4253,6 +4273,7 @@
       'android-webview-pie-x86-wpt-fyi-rel': {
         'args': [
           '--use-upstream-wpt',
+          '--timeout-multiplier=4',
         ],
       },
     },
@@ -4761,6 +4782,7 @@
       # TODO(crbug.com/1280418): Re-enable once more of the Pixel 6 capacity
       # is deployed.
       'Android FYI Release (Pixel 6)',
+      'Android FYI Experimental Release (Pixel 6)',
       # Not enough CrOS hardware capacity to run both on anything other than
       # VMs. See https://crbug.com/1238070.
       'Lacros FYI x64 Release (Intel)',
@@ -4832,6 +4854,7 @@
       # TODO(crbug.com/1280418): Re-enable once more of the Pixel 6 capacity
       # is deployed.
       'Android FYI Release (Pixel 6)',
+      'Android FYI Experimental Release (Pixel 6)',
     ],
     'modifications': {
       # This VM configuration is known to be significantly slower than other

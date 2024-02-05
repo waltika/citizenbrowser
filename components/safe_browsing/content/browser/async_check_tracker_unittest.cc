@@ -5,6 +5,7 @@
 #include "components/safe_browsing/content/browser/async_check_tracker.h"
 
 #include "base/functional/callback_helpers.h"
+#include "base/test/metrics/histogram_tester.h"
 #include "base/test/mock_callback.h"
 #include "base/test/scoped_feature_list.h"
 #include "components/safe_browsing/content/browser/base_ui_manager.h"
@@ -99,6 +100,7 @@ class AsyncCheckTrackerTest : public content::RenderViewHostTestHarness,
       UnsafeResource resource;
       resource.url = url_;
       resource.threat_type = SB_THREAT_TYPE_URL_PHISHING;
+      resource.navigation_id = navigation_id;
       ui_manager_->AddUnsafeResource(url_, resource);
     }
     UrlCheckerOnSB::OnCompleteCheckResult result(
@@ -107,6 +109,7 @@ class AsyncCheckTrackerTest : public content::RenderViewHostTestHarness,
         SafeBrowsingUrlCheckerImpl::PerformedCheck::kUrlRealTimeCheck,
         all_checks_completed);
     tracker_->PendingCheckerCompleted(navigation_id, result);
+    task_environment()->RunUntilIdle();
   }
 
   void CallTransferUrlChecker(int64_t navigation_id) {
@@ -122,6 +125,7 @@ class AsyncCheckTrackerTest : public content::RenderViewHostTestHarness,
         /*hash_realtime_service=*/nullptr,
         /*hash_realtime_selection=*/
         hash_realtime_utils::HashRealTimeSelection::kNone);
+    checker->AddUrlInRedirectChainForTesting(url_);
     tracker_->TransferUrlChecker(std::move(checker));
   }
 
@@ -206,7 +210,28 @@ TEST_P(AsyncCheckTrackerTest, DisplayBlockingPageCalled) {
   EXPECT_EQ(resource.render_frame_token, main_rfh()->GetFrameToken().value());
 }
 
+TEST_P(AsyncCheckTrackerTest,
+       DisplayBlockingPageCalled_DidFinishNavigationCalledFirst) {
+  content::MockNavigationHandle handle(url_, main_rfh());
+  CallTransferUrlChecker(handle.GetNavigationId());
+  CallDidFinishNavigation(handle, /*has_committed=*/true);
+  // Usually has_post_commit_interstitial_skipped is false if
+  // DidFinishNavigation is already called. It can be true if
+  // DidFinishNavigation happens to be called between when
+  // PendingCheckerCompleted is scheduled and when it is run.
+  CallPendingCheckerCompleted(handle.GetNavigationId(), /*proceed=*/false,
+                              /*has_post_commit_interstitial_skipped=*/true,
+                              /*all_checks_completed=*/true);
+  EXPECT_EQ(ui_manager_->DisplayBlockingPageCalledTimes(), 1);
+  UnsafeResource resource = ui_manager_->GetDisplayedResource();
+  EXPECT_EQ(resource.threat_type, SB_THREAT_TYPE_URL_PHISHING);
+  EXPECT_EQ(resource.url, url_);
+  EXPECT_EQ(resource.render_process_id, main_rfh()->GetGlobalId().child_id);
+  EXPECT_EQ(resource.render_frame_token, main_rfh()->GetFrameToken().value());
+}
+
 TEST_P(AsyncCheckTrackerTest, IsMainPageLoadPending) {
+  base::HistogramTester histograms;
   content::MockNavigationHandle handle(web_contents());
   UnsafeResource resource;
   resource.threat_type = SB_THREAT_TYPE_URL_PHISHING;
@@ -215,11 +240,23 @@ TEST_P(AsyncCheckTrackerTest, IsMainPageLoadPending) {
 
   AsyncCheckTracker* tracker =
       AsyncCheckTracker::FromWebContents(web_contents());
-  tracker->DidStartNavigation(&handle);
   EXPECT_TRUE(AsyncCheckTracker::IsMainPageLoadPending(resource));
 
   tracker->DidFinishNavigation(&handle);
+  // The navigation is not committed.
+  EXPECT_TRUE(AsyncCheckTracker::IsMainPageLoadPending(resource));
+  histograms.ExpectUniqueSample(
+      "SafeBrowsing.AsyncCheck.CommittedNavigationIdsSize",
+      /*sample=*/0,
+      /*expected_count=*/1);
+
+  handle.set_has_committed(true);
+  tracker->DidFinishNavigation(&handle);
   EXPECT_FALSE(AsyncCheckTracker::IsMainPageLoadPending(resource));
+  histograms.ExpectBucketCount(
+      "SafeBrowsing.AsyncCheck.CommittedNavigationIdsSize",
+      /*sample=*/1,
+      /*expected_count=*/1);
 }
 
 TEST_P(AsyncCheckTrackerTest, IsMainPageLoadPending_NoNavigationId) {
@@ -235,6 +272,29 @@ TEST_P(AsyncCheckTrackerTest, IsMainPageLoadPending_NoNavigationId) {
   // UnsafeResource::IsMainPageLoadPendingWithSyncCheck.
   resource.threat_type = SB_THREAT_TYPE_URL_CLIENT_SIDE_PHISHING;
   EXPECT_FALSE(AsyncCheckTracker::IsMainPageLoadPending(resource));
+}
+
+TEST_P(AsyncCheckTrackerTest, GetBlockedPageCommittedTimestamp) {
+  content::MockNavigationHandle handle(web_contents());
+  UnsafeResource resource;
+  resource.threat_type = SB_THREAT_TYPE_URL_PHISHING;
+  resource.frame_tree_node_id = main_rfh()->GetFrameTreeNodeId();
+  resource.navigation_id = handle.GetNavigationId();
+
+  AsyncCheckTracker* tracker =
+      AsyncCheckTracker::FromWebContents(web_contents());
+  EXPECT_FALSE(AsyncCheckTracker::GetBlockedPageCommittedTimestamp(resource)
+                   .has_value());
+
+  tracker->DidFinishNavigation(&handle);
+  // The navigation is not committed.
+  EXPECT_FALSE(AsyncCheckTracker::GetBlockedPageCommittedTimestamp(resource)
+                   .has_value());
+
+  handle.set_has_committed(true);
+  tracker->DidFinishNavigation(&handle);
+  EXPECT_TRUE(AsyncCheckTracker::GetBlockedPageCommittedTimestamp(resource)
+                  .has_value());
 }
 
 TEST_P(AsyncCheckTrackerTest,
@@ -254,12 +314,22 @@ TEST_P(AsyncCheckTrackerTest,
 
 TEST_P(AsyncCheckTrackerTest,
        PendingCheckersManagement_DeleteOldCheckersAfterDidFinishNavigation) {
+  base::HistogramTester histograms;
   content::MockNavigationHandle handle_1(url_, main_rfh());
   content::MockNavigationHandle handle_2(url_, main_rfh());
   content::MockNavigationHandle handle_3(url_, main_rfh());
   CallTransferUrlChecker(handle_1.GetNavigationId());
+  histograms.ExpectUniqueSample("SafeBrowsing.AsyncCheck.PendingCheckersSize",
+                                /*sample=*/1,
+                                /*expected_count=*/1);
   CallTransferUrlChecker(handle_2.GetNavigationId());
+  histograms.ExpectBucketCount("SafeBrowsing.AsyncCheck.PendingCheckersSize",
+                               /*sample=*/2,
+                               /*expected_count=*/1);
   CallTransferUrlChecker(handle_3.GetNavigationId());
+  histograms.ExpectBucketCount("SafeBrowsing.AsyncCheck.PendingCheckersSize",
+                               /*sample=*/3,
+                               /*expected_count=*/1);
   EXPECT_EQ(tracker_->PendingCheckersSizeForTesting(), 3u);
 
   // Only the third navigation is committed successfully.

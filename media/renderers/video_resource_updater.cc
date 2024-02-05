@@ -49,7 +49,6 @@
 #include "media/base/wait_and_replace_sync_token_client.h"
 #include "media/renderers/paint_canvas_video_renderer.h"
 #include "media/renderers/resource_sync_token_client.h"
-#include "media/video/half_float_maker.h"
 #include "third_party/khronos/GLES2/gl2.h"
 #include "third_party/khronos/GLES2/gl2ext.h"
 #include "third_party/khronos/GLES3/gl3.h"
@@ -483,13 +482,13 @@ class VideoResourceUpdater::SoftwarePlaneResource
                               ? gpu::Mailbox()
                               : viz::SharedBitmap::GenerateId()) {
     if (shared_image_interface_) {
-      shared_image_ = shared_image_interface_->CreateSharedImage(
+      auto shared_image_mapping = shared_image_interface_->CreateSharedImage(
           viz::SinglePlaneFormat::kBGRA_8888, size, color_space,
           kTopLeft_GrSurfaceOrigin, kPremul_SkAlphaType,
           gpu::SHARED_IMAGE_USAGE_CPU_WRITE, "VideoResourceUpdater");
+      shared_image_ = std::move(shared_image_mapping.shared_image);
+      shared_mapping_ = std::move(shared_image_mapping.mapping);
       CHECK(shared_image_);
-      scoped_mapping_ = shared_image_->Map();
-      CHECK(scoped_mapping_);
     } else {
       DCHECK(shared_bitmap_reporter_);
       // Allocate SharedMemory and notify display compositor of the allocation.
@@ -520,10 +519,7 @@ class VideoResourceUpdater::SoftwarePlaneResource
     return shared_image_ ? shared_image_->mailbox() : shared_bitmap_id_;
   }
 
-  void* pixels() {
-    return shared_image_ ? scoped_mapping_->Memory(0)
-                         : shared_mapping_.memory();
-  }
+  void* pixels() { return shared_mapping_.memory(); }
 
   gpu::SyncToken GetSyncToken() {
     if (shared_image_ && shared_image_interface_) {
@@ -533,30 +529,20 @@ class VideoResourceUpdater::SoftwarePlaneResource
     return gpu::SyncToken();
   }
 
-  void OnMemoryDump(
-      base::trace_event::ProcessMemoryDump* pmd,
-      const base::trace_event::MemoryAllocatorDumpGuid& buffer_dump_guid,
-      int importance) const {
-    if (shared_image_) {
-      auto* dump_manager = base::trace_event::MemoryDumpManager::GetInstance();
-      uint64_t tracing_process_id = dump_manager->GetTracingProcessId();
-      scoped_mapping_->OnMemoryDump(pmd, buffer_dump_guid, tracing_process_id,
-                                    importance);
-    } else {
-      pmd->CreateSharedMemoryOwnershipEdge(buffer_dump_guid,
-                                           shared_mapping_.guid(), importance);
-    }
+  // Returns a memory dump GUID consistent across processes.
+  base::UnguessableToken GetSharedMemoryGuid() const {
+    return shared_mapping_.guid();
   }
 
  private:
   // Used for SharedImage.
   const raw_ptr<gpu::SharedImageInterface> shared_image_interface_;
   scoped_refptr<gpu::ClientSharedImage> shared_image_;
-  std::unique_ptr<gpu::ClientSharedImage::ScopedMapping> scoped_mapping_;
 
   // Used for SharedBitmap.
   const raw_ptr<viz::SharedBitmapReporter> shared_bitmap_reporter_;
   const viz::SharedBitmapId shared_bitmap_id_;
+
   base::WritableSharedMemoryMapping shared_mapping_;
 };
 
@@ -606,11 +592,17 @@ class VideoResourceUpdater::HardwarePlaneResource
         use_gpu_memory_buffer_resources &&
         sii->GetCapabilities().supports_scanout_shared_images &&
         CanCreateGpuMemoryBufferForSinglePlaneSharedImageFormat(format);
-    // These SharedImages will have the contents of VideoFrames written into
-    // them via the GLES2 interface and then will be sent over to the display
-    // compositor as TransferableResources.
-    uint32_t shared_image_usage = gpu::SHARED_IMAGE_USAGE_GLES2_WRITE |
-                                  gpu::SHARED_IMAGE_USAGE_DISPLAY_READ;
+    // These SharedImages will be sent over to the display compositor as
+    // TransferableResources.
+    uint32_t shared_image_usage = gpu::SHARED_IMAGE_USAGE_DISPLAY_READ;
+    if (CanUseRasterInterface()) {
+      // RasterInterface which in turn uses RasterDecoder writes the contents of
+      // video frames into SharedImages.
+      shared_image_usage |= gpu::SHARED_IMAGE_USAGE_RASTER_WRITE;
+    } else {
+      // GLES2 interface writes the contents of video frames into SharedImages.
+      shared_image_usage |= gpu::SHARED_IMAGE_USAGE_GLES2_WRITE;
+    }
     if (overlay_candidate_) {
       shared_image_usage |= gpu::SHARED_IMAGE_USAGE_SCANOUT;
       texture_target_ = gpu::GetBufferTextureTarget(
@@ -1159,6 +1151,9 @@ viz::SharedImageFormat VideoResourceUpdater::YuvSharedImageFormat(
   if (caps.texture_norm16 && shared_image_caps.supports_r16_shared_images) {
     return viz::SinglePlaneFormat::kR_16;
   }
+  if (shared_image_caps.is_r16f_supported) {
+    return viz::SinglePlaneFormat::kR_F16;
+  }
   if (caps.texture_half_float_linear &&
       shared_image_caps.supports_luminance_shared_images) {
     return viz::SinglePlaneFormat::kLUMINANCE_F16;
@@ -1341,8 +1336,7 @@ bool VideoResourceUpdater::WriteYUVPixelsPerPlaneToPerTexture(
     scoped_refptr<VideoFrame> video_frame,
     HardwarePlaneResource* plane_resource,
     size_t bits_per_channel,
-    size_t plane_index,
-    HalfFloatMaker* half_float_maker) {
+    size_t plane_index) {
   const viz::SharedImageFormat plane_si_format = plane_resource->si_format();
 
   // |video_stride_bytes| is the width of the |video_frame| we are uploading
@@ -1377,6 +1371,7 @@ bool VideoResourceUpdater::WriteYUVPixelsPerPlaneToPerTexture(
   // if the need a bit downshift or if the strides need to be reconciled.
   const bool needs_conversion =
       plane_si_format == viz::SinglePlaneFormat::kLUMINANCE_F16 ||
+      plane_si_format == viz::SinglePlaneFormat::kR_F16 ||
       needs_bit_downshifting;
 
   constexpr size_t kDefaultUnpackRowLength = 0;
@@ -1418,14 +1413,21 @@ bool VideoResourceUpdater::WriteYUVPixelsPerPlaneToPerTexture(
       }
     }
 
-    if (plane_si_format == viz::SinglePlaneFormat::kLUMINANCE_F16) {
-      for (int row = 0; row < resource_size_pixels.height(); ++row) {
-        uint16_t* dst = reinterpret_cast<uint16_t*>(
-            &upload_pixels_[upload_image_stride * row]);
-        const uint16_t* src = reinterpret_cast<const uint16_t*>(
-            video_frame->data(plane_index) + (video_stride_bytes * row));
-        half_float_maker->MakeHalfFloats(src, bytes_per_row / 2, dst);
-      }
+    if (plane_si_format == viz::SinglePlaneFormat::kLUMINANCE_F16 ||
+        plane_si_format == viz::SinglePlaneFormat::kR_F16) {
+      int max_value = 1 << bits_per_channel;
+      // Use 1.0/max_value to be consistent with multiplanar shared images
+      // which create TextureDrawQuads and don't take in a multiplier, offset.
+      // This is consistent with GpuMemoryBufferVideoFramePool as well which
+      // performs libyuv conversion for converting I420 to buffer. This is
+      // sub-optimal but okay as it is only used for 16-bit float formats with
+      // slower software pixel upload path here.
+      float libyuv_multiplier = 1.f / max_value;
+      libyuv::HalfFloatPlane(
+          reinterpret_cast<const uint16_t*>(video_frame->data(plane_index)),
+          video_stride_bytes, reinterpret_cast<uint16_t*>(upload_pixels_.get()),
+          upload_image_stride, libyuv_multiplier, resource_size_pixels.width(),
+          resource_size_pixels.height());
     } else if (needs_bit_downshifting) {
       DCHECK(plane_si_format == viz::SinglePlaneFormat::kLUMINANCE_8 ||
              plane_si_format == viz::SinglePlaneFormat::kR_8);
@@ -1614,20 +1616,11 @@ VideoFrameExternalResources VideoResourceUpdater::CreateForSoftwarePlanes(
   const auto yuv_si_format = output_si_format;
   DCHECK(yuv_si_format.is_single_plane());
   DCHECK(yuv_si_format == viz::SinglePlaneFormat::kLUMINANCE_F16 ||
+         yuv_si_format == viz::SinglePlaneFormat::kR_F16 ||
          yuv_si_format == viz::SinglePlaneFormat::kR_16 ||
          yuv_si_format == viz::SinglePlaneFormat::kLUMINANCE_8 ||
          yuv_si_format == viz::SinglePlaneFormat::kR_8)
       << yuv_si_format.ToString();
-
-  std::unique_ptr<HalfFloatMaker> half_float_maker;
-  if (yuv_si_format == viz::SinglePlaneFormat::kLUMINANCE_F16) {
-    half_float_maker = HalfFloatMaker::NewHalfFloatMaker(bits_per_channel);
-    external_resources.offset = half_float_maker->Offset();
-    external_resources.multiplier = half_float_maker->Multiplier();
-  } else if (yuv_si_format == viz::SinglePlaneFormat::kR_16) {
-    external_resources.multiplier = 65535.0f / ((1 << bits_per_channel) - 1);
-    external_resources.offset = 0;
-  }
 
   // We need to transfer data from |video_frame| to the plane resources.
   for (size_t i = 0; i < plane_resources.size(); ++i) {
@@ -1643,8 +1636,7 @@ VideoFrameExternalResources VideoResourceUpdater::CreateForSoftwarePlanes(
            plane_si_format == subplane_si_format.value_or(yuv_si_format));
 
     if (!WriteYUVPixelsPerPlaneToPerTexture(video_frame, plane_resource,
-                                            bits_per_channel, i,
-                                            half_float_maker.get())) {
+                                            bits_per_channel, i)) {
       // Return empty resources if this fails.
       return VideoFrameExternalResources();
     }
@@ -1759,7 +1751,9 @@ bool VideoResourceUpdater::OnMemoryDump(
     // Resources are shared across processes and require a shared GUID to
     // prevent double counting the memory.
     if (software_compositor()) {
-      resource->AsSoftware()->OnMemoryDump(pmd, dump->guid(), kImportance);
+      base::UnguessableToken shm_guid =
+          resource->AsSoftware()->GetSharedMemoryGuid();
+      pmd->CreateSharedMemoryOwnershipEdge(dump->guid(), shm_guid, kImportance);
     } else {
       base::trace_event::MemoryAllocatorDumpGuid guid =
           gpu::GetSharedImageGUIDForTracing(resource->AsHardware()->mailbox());

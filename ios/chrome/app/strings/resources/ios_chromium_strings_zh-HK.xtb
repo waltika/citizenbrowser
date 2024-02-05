@@ -102,6 +102,7 @@
 <translation id="3955621079070267756">從任何應用程式開啟 Chromium</translation>
 <translation id="4005283307739974863">在 Chromium 中開啟並執行「安全檢查」。</translation>
 <translation id="4043291146360695975">密碼只會儲存至此裝置上的「密碼管理工具」。</translation>
+<translation id="4076589763479456892">如果忘記密碼短語或想變更此設定，請<ph name="BEGIN_LINK" />清除帳戶中的 Chromium 資料<ph name="END_LINK" />。</translation>
 <translation id="4099085513035183040">Chromium Beta 版本上不支援此功能</translation>
 <translation id="4106512142782407609">已使用 <ph name="EMAIL" /> 的身分登入。
 
@@ -153,6 +154,7 @@
 <translation id="5534584691915394889">系統會透過此操作，在 Chromium 和「Google 智能鏡頭」的「Apple 日曆」中建立活動。</translation>
 <translation id="5571094606370987472">開啟 Chromium 最近開啟的分頁。</translation>
 <translation id="5623083843656850677">在你離開 Chromium 或切換至其他應用程式時鎖定無痕式分頁。</translation>
+<translation id="5671188105328420281">Chromium 提示</translation>
 <translation id="5688047395118852662">此資訊卡會建議您如何充分運用 Chromium 的功能。</translation>
 <translation id="5700709190537129682">Chromium 無法檢查密碼</translation>
 <translation id="5777187867430702742">Chromium 頁面</translation>
@@ -283,6 +285,7 @@
 <translation id="8776843108004031667">此帳戶和所有未儲存的資料將從 Chromium 中移除。</translation>
 <translation id="88376265765385899">開啟 Chromium 書籤。</translation>
 <translation id="8860548555286245440">在 Chromium 無痕模式中開啟網址</translation>
+<translation id="8866191443434488382">當你瀏覽網站時，Chromium 會在網站上偵測是否有追蹤號碼，並在「新分頁」顯示包裹最新消息。為提供此功能，系統會將包裹追蹤編號和網站名稱傳送給 Chromium，為所有人改善購物功能。你可隨時在「<ph name="BEGIN_LINK" />包裹追蹤設定<ph name="END_LINK" />」進行更新。</translation>
 <translation id="8909995017390087892">Chromium iOS 版</translation>
 <translation id="8924617840944134898">開啟 Chromium 無痕式分頁</translation>
 <translation id="894437814105052438">登出時，Chromium 將不會同步任何新資料至您的 Google 帳戶。不過，先前已同步處理的資料仍會保存在帳戶中。</translation>

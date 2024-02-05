@@ -9,11 +9,14 @@
 
 #include "base/metrics/histogram_functions.h"
 #include "base/timer/elapsed_timer.h"
+#include "google_apis/gaia/google_service_auth_error.h"
 
 namespace ash::quick_start {
 
 namespace {
 
+constexpr const char kChallengeBytesFetchResultHistogramName[] =
+    "QuickStart.ChallengeBytes.FetchResult";
 constexpr const char kAttestationCertificateFailureReasonHistogramName[] =
     "QuickStart.AttestationCertificate.FailureReason";
 constexpr const char kAttestationCertificateFetchResultHistogramName[] =
@@ -69,6 +72,10 @@ constexpr const char kGaiaTransferResultName[] =
     "QuickStart.GaiaTransferResult";
 constexpr const char kGaiaTransferResultFailureReasonName[] =
     "QuickStart.GaiaTransferResult.FailureReason";
+constexpr const char kGaiaAuthenticationResultHistogramName[] =
+    "QuickStart.GaiaAuthentication.Result";
+constexpr const char kGaiaAuthenticationDurationHistogramName[] =
+    "QuickStart.GaiaAuthentication.Duration";
 constexpr const char kScreenOpened[] = "QuickStart.ScreenOpened";
 
 std::string MapMessageTypeToMetric(
@@ -152,6 +159,17 @@ void QuickStartMetrics::RecordGaiaTransferAttempted(bool attempted) {
   base::UmaHistogramBoolean(kGaiaTransferAttemptedName, attempted);
 }
 
+void QuickStartMetrics::RecordChallengeBytesRequested() {
+  // TODO(b/322293969): Add timer metrics.
+}
+
+void QuickStartMetrics::RecordChallengeBytesRequestEnded(
+    const GoogleServiceAuthError& status) {
+  const bool is_success = status.state() == GoogleServiceAuthError::State::NONE;
+  base::UmaHistogramBoolean(kChallengeBytesFetchResultHistogramName,
+                            /*sample=*/is_success);
+}
+
 void QuickStartMetrics::RecordAttestationCertificateRequested() {
   CHECK(!attestation_certificate_timer_)
       << "Only 1 attestation certificate request can be active at a time";
@@ -177,6 +195,22 @@ void QuickStartMetrics::RecordAttestationCertificateRequestEnded(
   base::UmaHistogramTimes(kAttestationCertificateFetchDurationHistogramName,
                           attestation_certificate_timer_->Elapsed());
   attestation_certificate_timer_.reset();
+}
+
+void QuickStartMetrics::RecordGaiaAuthenticationStarted() {
+  CHECK(!gaia_authentication_timer_)
+      << "Only 1 Gaia authentication request can be active at a time";
+  gaia_authentication_timer_ = std::make_unique<base::ElapsedTimer>();
+}
+
+void QuickStartMetrics::RecordGaiaAuthenticationRequestEnded(
+    const GaiaAuthenticationResult& result) {
+  CHECK(gaia_authentication_timer_) << "Gaia authentication request timer was "
+                                       "not active. Unexpected response.";
+  base::UmaHistogramEnumeration(kGaiaAuthenticationResultHistogramName, result);
+  base::UmaHistogramTimes(kGaiaAuthenticationDurationHistogramName,
+                          gaia_authentication_timer_->Elapsed());
+  gaia_authentication_timer_.reset();
 }
 
 // static

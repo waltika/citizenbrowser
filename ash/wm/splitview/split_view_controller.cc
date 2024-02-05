@@ -560,7 +560,7 @@ bool SplitViewController::CanKeepCurrentSnapRatio(
                            .value_or(chromeos::kDefaultSnapRatio));
 }
 
-std::optional<float> SplitViewController::ComputeSnapRatio(
+std::optional<float> SplitViewController::ComputeAutoSnapRatio(
     aura::Window* window) {
   // If there is no default snapped window, or it doesn't have a stored snap
   // ratio try snapping it to 1/2.
@@ -1285,7 +1285,9 @@ void SplitViewController::OnPostWindowStateTypeChange(
       do_divider_spawn_animation = true;
     }
 
-    OnWindowSnapped(window, old_type, WindowSnapActionSource::kNotSpecified);
+    OnWindowSnapped(window, old_type,
+                    window_state->snap_action_source().value_or(
+                        WindowSnapActionSource::kNotSpecified));
     if (do_divider_spawn_animation) {
       DoSplitDividerSpawnAnimation(window);
     }
@@ -1384,7 +1386,7 @@ void SplitViewController::OnOverviewModeEnding(
         continue;
       }
 
-      std::optional<float> snap_ratio = ComputeSnapRatio(window);
+      std::optional<float> snap_ratio = ComputeAutoSnapRatio(window);
       if (!snap_ratio.has_value()) {
         continue;
       }
@@ -2194,9 +2196,6 @@ void SplitViewController::OnSnappedWindowDetached(aura::Window* window,
     EndSplitView(reason == WindowDetachedReason::kWindowDragged
                      ? EndReason::kWindowDragStarted
                      : EndReason::kNormal);
-
-    // TODO(crbug.com/1351562): Consider not allowing one snapped window to be
-    // floated. Then this should be a DCHECK.
   } else {
     DCHECK(InTabletSplitViewMode());
     aura::Window* other_window =

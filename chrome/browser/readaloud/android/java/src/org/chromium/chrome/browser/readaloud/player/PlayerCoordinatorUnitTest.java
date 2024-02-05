@@ -178,6 +178,7 @@ public class PlayerCoordinatorUnitTest {
         mPlayerCoordinator.playbackReady(mPlayback, PlaybackListener.State.PLAYING);
         mPlayerCoordinator.expand();
         verify(mExpandedPlayer).show();
+        verify(mMiniPlayer).dismiss(/* animate= */ eq(false));
     }
 
     @Test
@@ -292,6 +293,12 @@ public class PlayerCoordinatorUnitTest {
         mPlayerCoordinator.restorePlayers();
         verify(mExpandedPlayer, never()).show();
         verify(mMiniPlayer, never()).show(eq(true));
+    }
+
+    @Test
+    public void testOnScreenStatusChanged() {
+        mPlayerCoordinator.onScreenStatusChanged(true);
+        verify(mMediator).onScreenStatusChanged(true);
     }
 
     @Test

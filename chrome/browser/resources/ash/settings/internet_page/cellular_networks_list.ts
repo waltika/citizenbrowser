@@ -207,6 +207,16 @@ export class CellularNetworksListElement extends
             'cellularDeviceState.inhibitReason)',
       },
       /**
+       * Return true if instant hotspot rebrand feature flag is enabled
+       */
+      isInstantHotspotRebrandEnabled_: {
+        type: Boolean,
+        value() {
+          return loadTimeData.valueExists('isInstantHotspotRebrandEnabled') &&
+              loadTimeData.getBoolean('isInstantHotspotRebrandEnabled');
+        },
+      },
+      /**
        * Return true if SmdsSupportEnabled feature flag is enabled.
        */
       smdsSupportEnabled_: {
@@ -233,6 +243,7 @@ export class CellularNetworksListElement extends
   private euicc_: EuiccRemote|null;
   private installingESimProfile_: ESimProfileRemote|null;
   private isDeviceInhibited_: boolean;
+  private isInstantHotspotRebrandEnabled_: boolean;
   private multiDevicePageContentData_: MultiDevicePageContentData|null;
   private networkConfig_: CrosNetworkConfigInterface;
   private profilesMap_: Map<string, ESimProfileRemote>;
@@ -278,7 +289,10 @@ export class CellularNetworksListElement extends
     const response = await profile.getProperties();
 
     const eSimPendingProfileItem = this.eSimPendingProfileItems_.find(item => {
-      return item.customData.iccid === response.properties.iccid;
+      if (typeof item.customData === 'object') {
+        return item.customData!.iccid === response.properties.iccid;
+      }
+      return false;
     });
     if (!eSimPendingProfileItem) {
       return;
@@ -420,6 +434,9 @@ export class CellularNetworksListElement extends
   private shouldShowTetherSection_(pageContentData: MultiDevicePageContentData|
                                    null): boolean {
     if (!pageContentData) {
+      return false;
+    }
+    if (this.isInstantHotspotRebrandEnabled_) {
       return false;
     }
     return pageContentData.instantTetheringState ===

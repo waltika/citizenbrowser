@@ -35,6 +35,7 @@
 #include "net/base/ip_address.h"
 #include "net/base/net_errors.h"
 #include "net/base/network_anonymization_key.h"
+#include "net/base/session_usage.h"
 #include "net/base/trace_constants.h"
 #include "net/base/tracing.h"
 #include "net/cert/cert_verifier.h"
@@ -55,6 +56,7 @@
 #include "net/quic/quic_crypto_client_stream_factory.h"
 #include "net/quic/quic_http_stream.h"
 #include "net/quic/quic_server_info.h"
+#include "net/quic/quic_session_key.h"
 #include "net/socket/client_socket_factory.h"
 #include "net/socket/next_proto.h"
 #include "net/socket/socket_performance_watcher.h"
@@ -942,12 +944,13 @@ QuicSessionRequest::~QuicSessionRequest() {
 int QuicSessionRequest::Request(
     url::SchemeHostPort destination,
     quic::ParsedQuicVersion quic_version,
+    const ProxyChain& proxy_chain,
+    SessionUsage session_usage,
     PrivacyMode privacy_mode,
     RequestPriority priority,
     const SocketTag& socket_tag,
     const NetworkAnonymizationKey& network_anonymization_key,
     SecureDnsPolicy secure_dns_policy,
-    bool use_dns_aliases,
     bool require_dns_https_alpn,
     int cert_verify_flags,
     const GURL& url,
@@ -965,9 +968,11 @@ int QuicSessionRequest::Request(
   failed_on_default_network_callback_ =
       std::move(failed_on_default_network_callback);
 
-  session_key_ = QuicSessionKey(HostPortPair::FromURL(url), privacy_mode,
-                                socket_tag, network_anonymization_key,
-                                secure_dns_policy, require_dns_https_alpn);
+  session_key_ =
+      QuicSessionKey(HostPortPair::FromURL(url), privacy_mode, proxy_chain,
+                     session_usage, socket_tag, network_anonymization_key,
+                     secure_dns_policy, require_dns_https_alpn);
+  bool use_dns_aliases = session_usage == SessionUsage::kProxy ? false : true;
 
   int rv = pool_->RequestSession(session_key_, std::move(destination),
                                  quic_version, priority, use_dns_aliases,
@@ -1068,16 +1073,18 @@ void QuicSessionRequest::SetSession(
 
 bool QuicSessionRequest::CanUseExistingSession(
     const GURL& url,
+    const ProxyChain& proxy_chain,
     PrivacyMode privacy_mode,
+    SessionUsage session_usage,
     const SocketTag& socket_tag,
     const NetworkAnonymizationKey& network_anonymization_key,
     SecureDnsPolicy secure_dns_policy,
     bool require_dns_https_alpn,
     const url::SchemeHostPort& destination) const {
   return pool_->CanUseExistingSession(
-      QuicSessionKey(HostPortPair::FromURL(url), privacy_mode, socket_tag,
-                     network_anonymization_key, secure_dns_policy,
-                     require_dns_https_alpn),
+      QuicSessionKey(HostPortPair::FromURL(url), privacy_mode, proxy_chain,
+                     session_usage, socket_tag, network_anonymization_key,
+                     secure_dns_policy, require_dns_https_alpn),
       destination);
 }
 

@@ -1856,7 +1856,6 @@ String AXObject::KeyboardShortcut() const {
 void AXObject::SerializeOtherScreenReaderAttributes(
     ui::AXNodeData* node_data) const {
   DCHECK_NE(node_data->role, ax::mojom::blink::Role::kUnknown);
-  DCHECK_NE(node_data->role, ax::mojom::blink::Role::kNone);
 
   if (IsA<Document>(GetNode())) {
     // The busy attribute is only relevant for actual Documents, not popups.
@@ -5765,15 +5764,18 @@ void AXObject::UpdateChildrenIfNecessary() {
     return;
   }
 
-  if (!CanHaveChildren()) {
-    SetNeedsToUpdateChildren(false);
-    return;
-  }
-
   CHECK(!AXObjectCache().IsFrozen())
       << "Object should have already had its children updated in "
          "AXObjectCacheImpl::UpdateTreeIfNeeded(): "
       << ToString(true, true);
+
+  if (!CanHaveChildren()) {
+    // Clear any children in case the node previously allowed children.
+    ClearChildren();
+    SetNeedsToUpdateChildren(false);
+    child_cached_values_need_update_ = false;
+    return;
+  }
 
   UpdateCachedAttributeValuesIfNeeded();
 

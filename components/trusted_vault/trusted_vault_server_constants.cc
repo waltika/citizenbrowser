@@ -45,7 +45,7 @@ GURL GetJoinSecurityDomainURL(const GURL& server_url,
 }
 
 GURL GetGetSecurityDomainMembersURLForTesting(
-    const absl::optional<std::string>& next_page_token,
+    const std::optional<std::string>& next_page_token,
     const GURL& server_url) {
   GURL url = GetGetSecurityDomainMembersURL(server_url);
   if (next_page_token) {
@@ -86,7 +86,7 @@ std::string GetSecurityDomainName(SecurityDomainId domain) {
   }
 }
 
-absl::optional<SecurityDomainId> GetSecurityDomainByName(
+std::optional<SecurityDomainId> GetSecurityDomainByName(
     base::StringPiece name) {
   static_assert(static_cast<int>(SecurityDomainId::kMaxValue) == 1,
                 "Update GetSecurityDomainByName when adding SecurityDomainId "
@@ -97,21 +97,8 @@ absl::optional<SecurityDomainId> GetSecurityDomainByName(
           {kPasskeysSecurityDomainName, SecurityDomainId::kPasskeys},
       });
   return base::Contains(kSecurityDomainNames, name)
-             ? absl::make_optional(kSecurityDomainNames.at(name))
-             : absl::nullopt;
-}
-
-std::string GetSecurityDomainNameForHistograms(SecurityDomainId domain) {
-  switch (domain) {
-    // These strings get embedded in histogram names and so should not be
-    // changed.
-    case SecurityDomainId::kChromeSync:
-      return "ChromeSync";
-    case SecurityDomainId::kPasskeys:
-      return "HwProtected";
-      // If adding a new value, also update the variants for SecurityDomainId
-      // in tools/metrics/histograms/metadata/trusted_vault/histograms.xml.
-  }
+             ? std::make_optional(kSecurityDomainNames.at(name))
+             : std::nullopt;
 }
 
 }  // namespace trusted_vault

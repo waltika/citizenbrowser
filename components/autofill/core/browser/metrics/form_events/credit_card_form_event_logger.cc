@@ -116,6 +116,30 @@ void CreditCardFormEventLogger::OnDidShowSuggestions(
   has_logged_suggestion_with_metadata_shown_ = true;
 }
 
+void CreditCardFormEventLogger::LogDeprecatedCreditCardSelectedMetric(
+    const CreditCard& credit_card,
+    const FormStructure& form,
+    AutofillMetrics::PaymentsSigninState signin_state_for_metrics) {
+  signin_state_for_metrics_ = signin_state_for_metrics;
+
+  switch (credit_card.record_type()) {
+    case CreditCard::RecordType::kLocalCard:
+    case CreditCard::RecordType::kFullServerCard:
+    case CreditCard::RecordType::kVirtualCard:
+      // No need to log selections for these types; crbug/1513307 only focused
+      // on masked server cards.
+      break;
+    case CreditCard::RecordType::kMaskedServerCard:
+      Log(DEPRECATED_FORM_EVENT_MASKED_SERVER_CARD_SUGGESTION_SELECTED, form);
+      if (!has_logged_legacy_masked_server_card_suggestion_selected_) {
+        has_logged_legacy_masked_server_card_suggestion_selected_ = true;
+        Log(DEPRECATED_FORM_EVENT_MASKED_SERVER_CARD_SUGGESTION_SELECTED_ONCE,
+            form);
+      }
+      break;
+  }
+}
+
 void CreditCardFormEventLogger::OnDidSelectCardSuggestion(
     const CreditCard& credit_card,
     const FormStructure& form,
@@ -199,9 +223,9 @@ void CreditCardFormEventLogger::OnDidSelectCardSuggestion(
 
     if (suggestions_.size() > 1) {
       CHECK(personal_data_manager_);
-      // Keeps track of which issuers with metadata were not selected. Can be
-      // zero issuers if there was only one card suggestion and that card was
-      // selected.
+      // Keeps track of which issuers and networks with metadata were not
+      // selected. Can be none if there was only one card suggestion displayed
+      // and that card was selected.
       for (const Suggestion& suggestion : suggestions_) {
         // TODO(crbug.com/1121806): Use instrument ID for server credit cards.
         CreditCard* suggested_credit_card =
@@ -215,8 +239,16 @@ void CreditCardFormEventLogger::OnDidSelectCardSuggestion(
         if (credit_card.issuer_id() != suggested_credit_card->issuer_id() &&
             (suggested_credit_card->HasRichCardArtImageFromMetadata() ||
              !suggested_credit_card->product_description().empty())) {
-          metadata_logging_context_.not_selected_issuer_ids.insert(
+          metadata_logging_context_.not_selected_issuer_ids_and_networks.insert(
               suggested_credit_card->issuer_id());
+        }
+        // Skip American Express and Discover as they are an issuer and
+        // network. They are already covered in the `issuer_id` check above.
+        if (credit_card.network() != kAmericanExpressCard &&
+            credit_card.network() != kDiscoverCard &&
+            credit_card.network() != suggested_credit_card->network()) {
+          metadata_logging_context_.not_selected_issuer_ids_and_networks.insert(
+              suggested_credit_card->network());
         }
       }
     }

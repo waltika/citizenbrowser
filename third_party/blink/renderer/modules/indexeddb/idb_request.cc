@@ -397,8 +397,9 @@ bool IDBRequest::CanStillSendResult() const {
   // but before `ContextDestroyed()` has been called. See
   // https://crbug.com/733642
   const ExecutionContext* execution_context = GetExecutionContext();
-  if (!execution_context)
+  if (!execution_context || execution_context->IsContextDestroyed()) {
     return false;
+  }
 
   DCHECK(ready_state_ == PENDING || ready_state_ == DONE);
   if (request_aborted_)
@@ -722,6 +723,12 @@ void IDBRequest::SetResult(IDBAny* result) {
 }
 
 void IDBRequest::SendResultValue(std::unique_ptr<IDBValue> value) {
+  // See crbug.com/1519989
+  if (!CanStillSendResult()) {
+    metrics_.RecordAndReset();
+    return;
+  }
+
   if (pending_cursor_) {
     // Value should be null, signifying the end of the cursor's range.
     DCHECK(value->IsNull());

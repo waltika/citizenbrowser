@@ -1525,6 +1525,7 @@ test("content_browsertests") {
     "../browser/renderer_host/render_widget_host_view_child_frame_browsertest.cc",
     "../browser/renderer_host/scroll_into_view_browsertest.cc",
     "../browser/renderer_host/sec_fetch_browsertest.cc",
+    "../browser/renderer_host/spare_render_process_host_manager_browsertest.cc",
     "../browser/renderer_host/speculative_render_view_host_browsertest.cc",
     "../browser/renderer_host/unassigned_site_instance_browsertest.cc",
     "../browser/resource_loading_browsertest.cc",
@@ -2787,6 +2788,7 @@ test("content_unittests") {
     "../common/input/touchpad_pinch_event_queue_unittest.cc",
     "../common/pseudonymization_salt_unittest.cc",
     "../common/service_worker/race_network_request_url_loader_client_unittest.cc",
+    "../common/service_worker/race_network_request_write_buffer_manager_unittest.cc",
     "../common/service_worker/service_worker_router_evaluator_unittest.cc",
     "../common/url_utils_unittest.cc",
     "../common/user_agent_unittest.cc",
@@ -3178,8 +3180,8 @@ test("content_unittests") {
       ]
       sources += [
         "../browser/media/capture/desktop_capture_device_unittest.cc",
-        "../browser/renderer_host/media/captured_surface_controller_permission_manager_unittest.cc",
-        "../browser/renderer_host/media/captured_surface_controller_unittest.cc",
+        "../browser/media/captured_surface_controller_permission_manager_unittest.cc",
+        "../browser/media/captured_surface_controller_unittest.cc",
         "../browser/renderer_host/media/sub_capture_target_id_web_contents_helper_unittest.cc",
       ]
     }
@@ -3266,7 +3268,6 @@ test("content_unittests") {
       "../browser/android/overscroll_controller_android_unittest.cc",
       "../browser/android/scoped_surface_request_manager_unittest.cc",
       "../browser/font_unique_name_lookup/font_unique_name_lookup_unittest.cc",
-      "../browser/host_zoom_map_impl_android_unittest.cc",
       "../browser/renderer_host/render_widget_host_view_android_unittest.cc",
       "../browser/sms/sms_provider_gms_unittest.cc",
       "../renderer/java/gin_java_bridge_value_converter_unittest.cc",
@@ -3491,4 +3492,16 @@ group("gpu_pytype") {
     ":telemetry_gpu_integration_test_support",
     "//testing:pytype_dependencies",
   ]
+}
+
+if (is_fuchsia) {
+  group("telemetry_gpu_integration_test_fuchsia") {
+    testonly = true
+    data = [ "//content/test/gpu/run_gpu_integration_test_fuchsia.py" ]
+    data_deps = [
+      "//content/test:fuchsia_telemetry_test_data",
+      "//content/test:telemetry_gpu_integration_test_support",
+      "//tools/perf/chrome_telemetry_build:telemetry_chrome_test",
+    ]
+  }
 }

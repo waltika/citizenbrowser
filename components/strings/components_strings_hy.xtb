@@ -89,7 +89,6 @@
 <translation id="1151972924205500581">Պահանջվում է գաղտնաբառ</translation>
 <translation id="1156303062776767266">Դուք տեղային կամ ընդհանուր ֆայլ եք դիտում</translation>
 <translation id="1158211211994409885"><ph name="HOST_NAME" />-ն անսպասելիորեն ընդհատեց կապակցումը:</translation>
-<translation id="115926840831309955">Ստուգեք ձեր CVC կոդը և նորից փորձեք, կամ փոփոխեք վավերականության ժամկետը</translation>
 <translation id="1161325031994447685">Նորից միանալ Wi-Fi-ին</translation>
 <translation id="11635448457105324">«Կառավարել հասցեները» կոճակ․ ակտիվացրեք՝ հասցեներ ավելացնելու և դրանք Chrome-ի կարգավորումներում կառավարելու համար</translation>
 <translation id="1165039591588034296">Սխալ</translation>
@@ -469,6 +468,7 @@
 <translation id="1828959155404624835">Մեքենայի վարձույթ</translation>
 <translation id="1834321415901700177">Այս կայքը պարունակում է վնասաբեր ծրագրեր</translation>
 <translation id="1838374766361614909">Մաքրել որոնումը</translation>
+<translation id="1839331950812095887">ձեր կարծիքը՝ առնվազն մի քանի բառով</translation>
 <translation id="1839551713262164453">Չհաջողվեց ստուգել կանոնի արժեքները</translation>
 <translation id="1842969606798536927">Վճարել</translation>
 <translation id="1846432862466000825">Պլաստիկ (արխիվային)</translation>
@@ -521,6 +521,8 @@
 <translation id="1956486093533522234">Գտնել և պաշտպանել սարքը, ինչպես նաև ջնջել դրա տվյալները</translation>
 <translation id="1958218078413065209">Ձեր լավագույն արդյունքը՝ <ph name="SCORE" />։</translation>
 <translation id="1959001866257244765">Օգնեք բարձրացնել անվտանգության մակարդակը համացանցում՝ Google-ին ուղարկելով <ph name="BEGIN_WHITEPAPER_LINK" />ձեր այցելած որոշ էջերի հասցեներն ու բովանդակությունը և որոշակի տեղեկություններ համակարգի մասին<ph name="END_WHITEPAPER_LINK" />։ <ph name="BEGIN_PRIVACY_PAGE_LINK" />Գաղտնիության քաղաքականություն<ph name="END_PRIVACY_PAGE_LINK" /></translation>
+<translation id="1959445535228047762">Ձեր տեքստը և էջի բովանդակությունը ուղարկվում են Google-ին և կարող են օգտագործվել այս գործառույթը բարելավելու համար։
+  <ph name="BEGIN_LINK" />Իմանալ ավելին<ph name="END_LINK" /></translation>
 <translation id="1962204205936693436"><ph name="DOMAIN" /> տիրույթի էջանիշներ</translation>
 <translation id="196752089528718902">Սովորաբար դուք անվտանգ եղանակով եք միանում այս կայքերին, սակայն այս անգամ Chrome-ին չհաջողվեց անվտանգ միացում օգտագործել։ Հաքերները կարող են փորձել լրտեսել ձեր կապը կամ փոփոխել այն։ <ph name="BEGIN_LEARN_MORE_LINK" />Իմանալ ավելին<ph name="END_LEARN_MORE_LINK" /></translation>
 <translation id="1973335181906896915">Serialization error</translation>
@@ -700,6 +702,7 @@
 <translation id="2293443924986248631">Երբ այս կարգավորումը միացված է, կայքերը չեն կարող օգտագործել քուքիները, որոնց միջոցով հետագծվում են ձեր գործողությունները համացանցում։ Որոշ կայքերում գործառույթները կարող են չաշխատել։</translation>
 <translation id="2295831393422400053">«Օգնիր ինձ գրել» գործառույթն օգտագործելու համար միացրեք «Բարելավել որոնումն ու էջերի դիտումը» պարամետրը</translation>
 <translation id="2300306941146563769">Վերբեռնված չէ</translation>
+<translation id="2301098101308036335">Որ կայքերն են օգտատերերն այցելում և երբ։</translation>
 <translation id="230286397113210245">«Բացել ինկոգնիտո պատուհան» կոճակ․ ակտիվացրեք՝ նոր ինկոգնիտո պատուհան բացելու համար</translation>
 <translation id="2312234273148520048">Համեմունքներ և սոուսներ</translation>
 <translation id="2316087952091171402"><ph name="UPPER_ESTIMATE" />-ից պակաս։ Որոշ կայքեր կարող են ավելի դանդաղ բեռնվել հաջորդ այցելության ժամանակ։</translation>
@@ -724,6 +727,7 @@
 <translation id="2354430244986887761">Google Ապահով դիտարկումը վերջերս <ph name="BEGIN_LINK" />վնասարար հավելվածներ է հայտնաբերել<ph name="END_LINK" /> <ph name="SITE" /> կայքում:</translation>
 <translation id="2355395290879513365">Հարձակվողները կարող են տեսնել պատկերները, որոնք դիտում եք, և խաբել ձեզ` դրանք ձևափոխելով:</translation>
 <translation id="2356070529366658676">Հարցնել</translation>
+<translation id="2356926036049612643">V8 լավարկիչ</translation>
 <translation id="2357481397660644965">Ձեր սարքը կառավարվում է <ph name="DEVICE_MANAGER" />-ի կողմից, իսկ ձեր հաշիվը՝ <ph name="ACCOUNT_MANAGER" />-ի կողմից:</translation>
 <translation id="2359629602545592467">Մի քանի</translation>
 <translation id="2359808026110333948">Շարունակել</translation>
@@ -1368,6 +1372,7 @@
 <translation id="3655670868607891010">Եթե հաճախակի եք տեսնում այս հաղորդագրությունը, փորձեք հետևյալ <ph name="HELP_LINK" />-ը:</translation>
 <translation id="365641980390710834">Ամենօրյա հագուստ</translation>
 <translation id="3658742229777143148">Տարբերակ</translation>
+<translation id="3659521826520353662">Ադմինիստրատորի կողմից սահմանված որ կայքերն են օգտատերերն այցելում և երբ՝ <ph name="ALLOWLISTED_WEBSITES" /></translation>
 <translation id="3664782872746246217">Հիմնաբառեր՝</translation>
 <translation id="3665100783276035932">Կայքերի մեծ մասը պետք է պատշաճ կերպով աշխատի</translation>
 <translation id="3667704023705708645">Վենչուրային կապիտալ</translation>
@@ -1458,6 +1463,7 @@
 <translation id="3812398568375898177">Սա կարևոր թարմացում է, որը բարելավում է Android-ի համար հավելվածների և ChromeOS-ի արդյունավետությունը</translation>
 <translation id="3815434930383843058">8 x 12 դյույմ</translation>
 <translation id="3816482573645936981">Արժեքը (փոխարինված է)</translation>
+<translation id="382115839591654906"><ph name="CARD_NAME" /> քարտի CVC</translation>
 <translation id="3823019343150397277">IBAN</translation>
 <translation id="3823402221513322552">Ձեր դիտարկիչը կառավարվում է <ph name="BROWSER_DOMAIN" /> տիրույթի կողմից, իսկ պրոֆիլը՝ <ph name="PROFILE_DOMAIN" /> տիրույթի կողմից</translation>
 <translation id="382518646247711829">Եթե օգտագործում եք պրոքսի սերվեր…</translation>
@@ -1821,7 +1827,6 @@
 <translation id="455113658016510503">A9</translation>
 <translation id="4556069465387849460">Դուք օգտագործում եք էկրանի կողպումը գաղտնաբառերի լրացման համար</translation>
 <translation id="4558551763791394412">Փորձեք անջատել ձեր ընդլայնումները</translation>
-<translation id="456043042661026303">Կատարվում է ձեր վճարման մանրամասների անվտանգ ստուգում</translation>
 <translation id="4566017918361049074">Բացօթյա ժամանց</translation>
 <translation id="4567686777917670400">Ձեր ադմինիստրատորը կարող է հեռակա փոխել ձեր դիտարկիչի կարգավորումները։ Սարքում արվող գործողությունները նույնպես կարող են կառավարվել Chromium-ից դուրս։ <ph name="BEGIN_LINK" />Իմանալ ավելին<ph name="END_LINK" /></translation>
 <translation id="4569155249847375786">Հաստատված</translation>
@@ -2039,7 +2044,6 @@
 <translation id="4989809363548539747">Այս փլագինը չի աջակցվում</translation>
 <translation id="4990241977441916452">Envelope A2</translation>
 <translation id="4992066212339426712">Միացնել ձայնը</translation>
-<translation id="4995216769782533993">Հաստատեք անվտանգության կոդը՝ ձեր քարտի տվյալներով այս կայքի հետ կիսվելու համար</translation>
 <translation id="4995474875135717171">Փոփոխման ամսաթիվը՝</translation>
 <translation id="4995749490935861684"><ph name="CUSTOMIZE_SEARCH_ENGINES_FOCUSED_FRIENDLY_MATCH_TEXT" />։ Սեղմեք Tab, ապա սեղմեք Enter՝ կայքում որոնումը և կանխադրված որոնողական համակարգը կառավարելու համար</translation>
 <translation id="4998950033665438990">Միակողմանի</translation>
@@ -2063,7 +2067,6 @@
 <translation id="503498442187459473"><ph name="HOST" /> կայքն ուզում է օգտագործել տեսախցիկն ու խոսափողը</translation>
 <translation id="5035135400558156732">Այգեգործություն</translation>
 <translation id="503574301575803523">SRA3</translation>
-<translation id="5036337510084622581">Նորից մուտք գործեք, այնուհետև վերադարձեք այս ներդիր՝ գրելու հետ կապված օգնություն ստանալու համար</translation>
 <translation id="5039762155821394373">Տառաչափ</translation>
 <translation id="5039804452771397117">Թույլ տալ</translation>
 <translation id="5040262127954254034">Գաղտնիություն</translation>
@@ -2602,6 +2605,7 @@
 <translation id="6124432979022149706">Chrome Enterprise-ի միակցիչներ</translation>
 <translation id="6126565365696310362">Envelope Chinese #2</translation>
 <translation id="6127379762771434464">Տարրը հեռացվեց</translation>
+<translation id="6131824478727057281">տեղադրություն</translation>
 <translation id="6132161237766805930"><ph name="BEGIN_LINK" />Իմանալ ավելին Chrome-ի ինկոգնիտո ռեժիմի մասին<ph name="END_LINK" /></translation>
 <translation id="6133320744616005677">Թույլատրել</translation>
 <translation id="6133984428121856852">Ֆայլի ընդլայնումը նշված չէ կամ սխալ ձևաչափով է։</translation>
@@ -2671,7 +2675,6 @@
 <translation id="6272088941196661550">Շարունակել որոնումը՝ Chrome-ի պատմության մեջ նման հարցումները դիտելու համար</translation>
 <translation id="6272383483618007430">Google Update</translation>
 <translation id="6279183038361895380">Նշորդը ցուցադրելու համար սեղմեք |<ph name="ACCELERATOR" />|</translation>
-<translation id="628016388715774955">Ընտրվել է ամբողջական հասցեի լրացման տարբերակը</translation>
 <translation id="6280223929691119688">Այս հասցեով հնարավոր չէ առաքել: Ընտրեք այլ հասցե:</translation>
 <translation id="6284292079994426700">26 x 38 դյույմ</translation>
 <translation id="6284517535531159884">Տարբերակների նախնական տեսակ</translation>
@@ -2943,7 +2946,6 @@
 <translation id="6807791860691150411">Կրթություն</translation>
 <translation id="681021252041861472">Պարտադիր դաշտ</translation>
 <translation id="6810899417690483278">Կարգավորման ID</translation>
-<translation id="681459028290894216">Լրացնել ամբողջական հասցեն</translation>
 <translation id="6816109178681043245">Սպորտային ապրանքներ</translation>
 <translation id="6817217109584391709">javascript</translation>
 <translation id="6820143000046097424">հաջորդական միացքներ</translation>
@@ -3214,6 +3216,7 @@
 <translation id="7341357280245177602">Օգտագործված ավտոմեքենաներ</translation>
 <translation id="7346048084945669753">Փոխկապակցված է՝</translation>
 <translation id="7346062987309535530">Սպասք</translation>
+<translation id="7346081071264046066">«ոգևորությամբ պատասխանեք «այո» այս հարսանեկան հրավերին»</translation>
 <translation id="7352651011704765696">Ինչ-որ սխալ տեղի ունեցավ</translation>
 <translation id="7353601530677266744">Հրամանատող</translation>
 <translation id="7354880545102894991">Մատչելի և վառվող տուրեր</translation>

@@ -158,14 +158,13 @@ void RecordModelAvailableAtRegistration(
 }  // namespace
 
 PredictionManager::ModelRegistrationInfo::ModelRegistrationInfo(
-    absl::optional<proto::Any> metadata,
+    std::optional<proto::Any> metadata,
     OptimizationTargetModelObserver* model_observer)
     : metadata(metadata), model_observer(model_observer) {}
 
 PredictionManager::ModelRegistrationInfo::~ModelRegistrationInfo() = default;
 
 PredictionManager::PredictionManager(
-    base::WeakPtr<OptimizationGuideStore> model_and_features_store,
     PredictionModelStore* prediction_model_store,
     scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory,
     PrefService* pref_service,
@@ -176,7 +175,6 @@ PredictionManager::PredictionManager(
     BackgroundDownloadServiceProvider background_download_service_provider,
     ComponentUpdatesEnabledProvider component_updates_enabled_provider)
     : prediction_model_download_manager_(nullptr),
-      model_and_features_store_(model_and_features_store),
       prediction_model_store_(prediction_model_store),
       url_loader_factory_(url_loader_factory),
       optimization_guide_logger_(optimization_guide_logger),
@@ -194,9 +192,7 @@ PredictionManager::PredictionManager(
       application_locale_(application_locale),
       model_cache_key_(GetModelCacheKey(application_locale_)),
       models_dir_path_(models_dir_path) {
-  DCHECK(!features::IsInstallWideModelStoreEnabled() ||
-         prediction_model_store_);
-  DCHECK(!model_and_features_store_ || !prediction_model_store_);
+  DCHECK(prediction_model_store_);
   Initialize(std::move(background_download_service_provider));
 }
 
@@ -207,23 +203,15 @@ PredictionManager::~PredictionManager() {
 
 void PredictionManager::Initialize(
     BackgroundDownloadServiceProvider background_download_service_provider) {
-  if (features::IsInstallWideModelStoreEnabled()) {
-    store_is_ready_ = true;
-    LoadPredictionModels(GetRegisteredOptimizationTargets());
-    LOCAL_HISTOGRAM_BOOLEAN(
-        "OptimizationGuide.PredictionManager.StoreInitialized", true);
-  } else if (model_and_features_store_) {
-    model_and_features_store_->Initialize(
-        switches::ShouldPurgeModelAndFeaturesStoreOnStartup(),
-        base::BindOnce(&PredictionManager::OnStoreInitialized,
-                       ui_weak_ptr_factory_.GetWeakPtr(),
-                       std::move(background_download_service_provider)));
-  }
+  store_is_ready_ = true;
+  LoadPredictionModels(GetRegisteredOptimizationTargets());
+  LOCAL_HISTOGRAM_BOOLEAN(
+      "OptimizationGuide.PredictionManager.StoreInitialized", true);
 }
 
 void PredictionManager::AddObserverForOptimizationTargetModel(
     proto::OptimizationTarget optimization_target,
-    const absl::optional<proto::Any>& model_metadata,
+    const std::optional<proto::Any>& model_metadata,
     OptimizationTargetModelObserver* observer) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   DCHECK(model_registration_info_map_.find(optimization_target) ==
@@ -445,7 +433,7 @@ void PredictionManager::FetchModels() {
 
 void PredictionManager::OnModelsFetched(
     const std::vector<proto::ModelInfo> models_request_info,
-    absl::optional<std::unique_ptr<proto::GetModelsResponse>>
+    std::optional<std::unique_ptr<proto::GetModelsResponse>>
         get_models_response_data) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   DCHECK(store_is_ready_);
@@ -471,9 +459,6 @@ void PredictionManager::OnModelsFetched(
 void PredictionManager::UpdateModelMetadata(
     const proto::PredictionModel& model) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  if (!features::IsInstallWideModelStoreEnabled()) {
-    return;
-  }
 
   // Model update is needed when download URL is set, which indicates the model
   // has changed.
@@ -504,9 +489,6 @@ bool PredictionManager::ShouldDownloadNewModel(
   // No download needed if URL is not set.
   if (model.model().download_url().empty()) {
     return false;
-  }
-  if (!features::IsInstallWideModelStoreEnabled()) {
-    return true;
   }
   // Though the server set the download URL indicating the model is old or does
   // not exist in client, the same version model could exist in the store, if
@@ -575,14 +557,6 @@ void PredictionManager::UpdatePredictionModels(
         prediction_models) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
-  // Check whether the model store from the original profile still exists.
-  if (!features::IsInstallWideModelStoreEnabled() && !model_and_features_store_)
-    return;
-
-  std::unique_ptr<StoreUpdateData> prediction_model_update_data =
-      StoreUpdateData::CreatePredictionModelStoreUpdateData(
-          clock_->Now() + features::StoredModelsValidDuration());
-  bool has_models_to_update = false;
   std::set<proto::OptimizationTarget> received_optimization_targets;
   for (const auto& model : prediction_models) {
     auto optimization_target = model.model_info().optimization_target();
@@ -602,24 +576,14 @@ void PredictionManager::UpdatePredictionModels(
     }
 
     RecordModelUpdateVersion(model.model_info());
-    if (features::IsInstallWideModelStoreEnabled()) {
-      DCHECK(prediction_model_store_->HasModel(optimization_target,
-                                               model_cache_key_));
-      // Load the model from the store to see whether it is valid or not.
-      prediction_model_store_->LoadModel(
-          optimization_target, model_cache_key_,
-          base::BindOnce(
-              &PredictionManager::MaybeDownloadOrUpdatePredictionModel,
-              ui_weak_ptr_factory_.GetWeakPtr(), optimization_target, model));
-    } else {
-      // Storing the model regardless of whether the model is valid or not.
-      // Model will be removed from store if it fails to load.
-      has_models_to_update = true;
-      prediction_model_update_data->CopyPredictionModelIntoUpdateData(model);
-      OnLoadPredictionModel(optimization_target,
-                            /*record_availability_metrics=*/false,
-                            std::make_unique<proto::PredictionModel>(model));
-    }
+    DCHECK(prediction_model_store_->HasModel(optimization_target,
+                                             model_cache_key_));
+    // Load the model from the store to see whether it is valid or not.
+    prediction_model_store_->LoadModel(
+        optimization_target, model_cache_key_,
+        base::BindOnce(&PredictionManager::MaybeDownloadOrUpdatePredictionModel,
+                       ui_weak_ptr_factory_.GetWeakPtr(), optimization_target,
+                       model));
     if (optimization_guide_logger_->ShouldEnableDebugLogs()) {
       OPTIMIZATION_GUIDE_LOGGER(
           optimization_guide_common::mojom::LogSource::MODEL_MANAGEMENT,
@@ -638,22 +602,12 @@ void PredictionManager::UpdatePredictionModels(
           PredictionModelStoreModelRemovalReason::kNoModelInGetModelsResponse);
     }
   }
-
-  if (has_models_to_update && model_and_features_store_) {
-    model_and_features_store_->UpdatePredictionModels(
-        std::move(prediction_model_update_data),
-        base::BindOnce(&PredictionManager::OnPredictionModelsStored,
-                       ui_weak_ptr_factory_.GetWeakPtr()));
-  }
 }
 
 void PredictionManager::OnModelReady(const base::FilePath& base_model_dir,
                                      const proto::PredictionModel& model) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   if (switches::IsModelOverridePresent())
-    return;
-
-  if (!features::IsInstallWideModelStoreEnabled() && !model_and_features_store_)
     return;
 
   DCHECK(model.model_info().has_version() &&
@@ -673,22 +627,11 @@ void PredictionManager::OnModelReady(const base::FilePath& base_model_dir,
   }
 
   // Store the received model in the store.
-  if (features::IsInstallWideModelStoreEnabled()) {
-    prediction_model_store_->UpdateModel(
-        model.model_info().optimization_target(), model_cache_key_,
-        model.model_info(), base_model_dir,
-        base::BindOnce(&PredictionManager::OnPredictionModelsStored,
-                       ui_weak_ptr_factory_.GetWeakPtr()));
-  } else {
-    std::unique_ptr<StoreUpdateData> prediction_model_update_data =
-        StoreUpdateData::CreatePredictionModelStoreUpdateData(
-            clock_->Now() + features::StoredModelsValidDuration());
-    prediction_model_update_data->CopyPredictionModelIntoUpdateData(model);
-    model_and_features_store_->UpdatePredictionModels(
-        std::move(prediction_model_update_data),
-        base::BindOnce(&PredictionManager::OnPredictionModelsStored,
-                       ui_weak_ptr_factory_.GetWeakPtr()));
-  }
+  prediction_model_store_->UpdateModel(
+      model.model_info().optimization_target(), model_cache_key_,
+      model.model_info(), base_model_dir,
+      base::BindOnce(&PredictionManager::OnPredictionModelsStored,
+                     ui_weak_ptr_factory_.GetWeakPtr()));
 
   if (model_registration_info_map_.contains(
           model.model_info().optimization_target())) {
@@ -770,10 +713,7 @@ void PredictionManager::OnPredictionModelsStored() {
 void PredictionManager::MaybeInitializeModelDownloads(
     download::BackgroundDownloadService* background_download_service) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-
-  if (features::IsInstallWideModelStoreEnabled()) {
-    init_time_ = base::TimeTicks::Now();
-  }
+  init_time_ = base::TimeTicks::Now();
 
   // Create the download manager here if we are allowed to.
   if (features::IsModelDownloadingEnabled() && !off_the_record_ &&
@@ -800,35 +740,6 @@ void PredictionManager::MaybeInitializeModelDownloads(
   }
 }
 
-void PredictionManager::OnStoreInitialized(
-    BackgroundDownloadServiceProvider background_download_service_provider) {
-  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  DCHECK(!features::IsInstallWideModelStoreEnabled());
-
-  store_is_ready_ = true;
-  init_time_ = base::TimeTicks::Now();
-  LOCAL_HISTOGRAM_BOOLEAN(
-      "OptimizationGuide.PredictionManager.StoreInitialized", true);
-
-  // Purge any inactive models from the store.
-  if (model_and_features_store_)
-    model_and_features_store_->PurgeInactiveModels();
-
-  MaybeInitializeModelDownloads(
-      background_download_service_provider && !off_the_record_
-          ? std::move(background_download_service_provider).Run()
-          : nullptr);
-
-  // Only load models if there are optimization targets registered.
-  if (model_registration_info_map_.empty()) {
-    return;
-  }
-
-  // The store is ready so start loading models for the registered optimization
-  // targets.
-  LoadPredictionModels(GetRegisteredOptimizationTargets());
-}
-
 void PredictionManager::OnPredictionModelOverrideLoaded(
     proto::OptimizationTarget optimization_target,
     std::unique_ptr<proto::PredictionModel> prediction_model) {
@@ -843,53 +754,28 @@ void PredictionManager::LoadPredictionModels(
     const base::flat_set<proto::OptimizationTarget>& optimization_targets) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
-  if (switches::IsModelOverridePresent()) {
-    for (proto::OptimizationTarget optimization_target : optimization_targets) {
+  const bool has_overrides = switches::IsModelOverridePresent();
+  for (proto::OptimizationTarget optimization_target : optimization_targets) {
+    // Give preference to any overrides given on the command line.
+    if (has_overrides) {
       base::FilePath base_model_dir =
           GetBaseModelDirForDownload(optimization_target);
-      BuildPredictionModelFromCommandLineForOptimizationTarget(
-          optimization_target, base_model_dir,
-          base::BindOnce(&PredictionManager::OnPredictionModelOverrideLoaded,
-                         ui_weak_ptr_factory_.GetWeakPtr(),
-                         optimization_target));
-    }
-    return;
-  }
-
-  if (features::IsInstallWideModelStoreEnabled()) {
-    for (const auto optimization_target : optimization_targets) {
-      if (!prediction_model_store_->HasModel(optimization_target,
-                                             model_cache_key_)) {
-        RecordModelAvailableAtRegistration(optimization_target, false);
+      if (BuildPredictionModelFromCommandLineForOptimizationTarget(
+              optimization_target, base_model_dir,
+              base::BindOnce(
+                  &PredictionManager::OnPredictionModelOverrideLoaded,
+                  ui_weak_ptr_factory_.GetWeakPtr(), optimization_target))) {
         continue;
       }
-      prediction_model_store_->LoadModel(
-          optimization_target, model_cache_key_,
-          base::BindOnce(&PredictionManager::OnLoadPredictionModel,
-                         ui_weak_ptr_factory_.GetWeakPtr(), optimization_target,
-                         /*record_availability_metrics=*/true));
     }
-    return;
-  }
 
-  DCHECK(!features::IsInstallWideModelStoreEnabled());
-  if (!model_and_features_store_)
-    return;
-
-  OptimizationGuideStore::EntryKey model_entry_key;
-  for (const auto& optimization_target : optimization_targets) {
-    // The prediction model for this optimization target has already been
-    // loaded.
-    bool model_stored_locally =
-        model_and_features_store_->FindPredictionModelEntryKey(
-            optimization_target, &model_entry_key);
-    if (!model_stored_locally) {
-      RecordModelAvailableAtRegistration(optimization_target,
-                                         model_stored_locally);
+    if (!prediction_model_store_->HasModel(optimization_target,
+                                           model_cache_key_)) {
+      RecordModelAvailableAtRegistration(optimization_target, false);
       continue;
     }
-    model_and_features_store_->LoadPredictionModel(
-        model_entry_key,
+    prediction_model_store_->LoadModel(
+        optimization_target, model_cache_key_,
         base::BindOnce(&PredictionManager::OnLoadPredictionModel,
                        ui_weak_ptr_factory_.GetWeakPtr(), optimization_target,
                        /*record_availability_metrics=*/true));
@@ -934,28 +820,11 @@ void PredictionManager::OnProcessLoadedModel(
 void PredictionManager::RemoveModelFromStore(
     proto::OptimizationTarget optimization_target,
     PredictionModelStoreModelRemovalReason model_removal_reason) {
-  if (features::IsInstallWideModelStoreEnabled()) {
-    if (prediction_model_store_->HasModel(optimization_target,
-                                          model_cache_key_)) {
-      prediction_model_store_->RemoveModel(
-          optimization_target, model_cache_key_, model_removal_reason);
-      NotifyObserversOfNewModel(optimization_target, absl::nullopt);
-    }
-    return;
-  }
-
-  // Remove model from store if it exists.
-  OptimizationGuideStore::EntryKey model_entry_key;
-  if (model_and_features_store_ &&
-      model_and_features_store_->FindPredictionModelEntryKey(
-          optimization_target, &model_entry_key)) {
-    base::UmaHistogramBoolean(
-        "OptimizationGuide.PredictionModelRemoved." +
-            GetStringNameForOptimizationTarget(optimization_target),
-        true);
-    model_and_features_store_->RemovePredictionModelFromEntryKey(
-        model_entry_key);
-    NotifyObserversOfNewModel(optimization_target, absl::nullopt);
+  if (prediction_model_store_->HasModel(optimization_target,
+                                        model_cache_key_)) {
+    prediction_model_store_->RemoveModel(optimization_target, model_cache_key_,
+                                         model_removal_reason);
+    NotifyObserversOfNewModel(optimization_target, std::nullopt);
   }
 }
 
@@ -1035,11 +904,8 @@ void PredictionManager::SetClockForTesting(const base::Clock* clock) {
 
 base::FilePath PredictionManager::GetBaseModelDirForDownload(
     proto::OptimizationTarget optimization_target) {
-  return features::IsInstallWideModelStoreEnabled()
-             ? prediction_model_store_->GetBaseModelDirForModelCacheKey(
-                   optimization_target, model_cache_key_)
-             : models_dir_path_.AppendASCII(
-                   base::Uuid::GenerateRandomV4().AsLowercaseString());
+  return prediction_model_store_->GetBaseModelDirForModelCacheKey(
+      optimization_target, model_cache_key_);
 }
 
 void PredictionManager::OverrideTargetModelForTesting(
@@ -1047,7 +913,7 @@ void PredictionManager::OverrideTargetModelForTesting(
     std::unique_ptr<ModelInfo> model_info) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
-  absl::optional<ModelInfo> model_info_copy;
+  std::optional<ModelInfo> model_info_copy;
   if (model_info) {
     model_info_copy = *model_info;
   }

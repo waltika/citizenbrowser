@@ -321,7 +321,8 @@ void PersonalizationAppSeaPenProviderBase::OpenFeedbackDialog(
 
 void PersonalizationAppSeaPenProviderBase::ShouldShowSeaPenTermsOfServiceDialog(
     ShouldShowSeaPenTermsOfServiceDialogCallback callback) {
-  if (!features::IsSeaPenEnabled()) {
+  if (!features::IsSeaPenEnabled() &&
+      !features::IsVcBackgroundReplaceEnabled()) {
     sea_pen_receiver_.ReportBadMessage(
         "Cannot call `ShouldShowSeaPenWallpaperTermsDialog()` without Sea Pen "
         "feature enabled");

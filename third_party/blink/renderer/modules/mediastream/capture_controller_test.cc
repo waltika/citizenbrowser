@@ -100,7 +100,8 @@ MediaStreamTrack* MakeTrack(V8TestingScope& v8_scope,
   device.display_media_info = media::mojom::DisplayMediaInformation::New(
       display_surface,
       /*logical_surface=*/true, media::mojom::CursorCaptureType::NEVER,
-      /*capture_handle=*/nullptr);
+      /*capture_handle=*/nullptr,
+      /*initial_zoom_level=*/100);
   media_stream_video_source->SetDevice(device);
 
   auto media_stream_video_track = std::make_unique<MediaStreamVideoTrack>(
@@ -460,7 +461,7 @@ TEST_F(CaptureControllerSetZoomLevelTest, SetZoomLevelFailsIfLevelTooLow) {
   // Avoid false-positives through different error paths terminating in
   // exception with the same code.
   EXPECT_EQ(GetDOMExceptionMessage(v8_scope, promise_tester.Value()),
-            "Invalid zoom_level.");
+            "Only values returned by getSupportedZoomLevels() are valid.");
 }
 
 TEST_F(CaptureControllerSetZoomLevelTest, SetZoomLevelFailsIfLevelTooHigh) {
@@ -485,7 +486,7 @@ TEST_F(CaptureControllerSetZoomLevelTest, SetZoomLevelFailsIfLevelTooHigh) {
   // Avoid false-positives through different error paths terminating in
   // exception with the same code.
   EXPECT_EQ(GetDOMExceptionMessage(v8_scope, promise_tester.Value()),
-            "Invalid zoom_level.");
+            "Only values returned by getSupportedZoomLevels() are valid.");
 }
 
 // This test is distinct from SetZoomLevelFailsIfLevelTooLow and
@@ -519,7 +520,7 @@ TEST_F(CaptureControllerSetZoomLevelTest, SetZoomLevelFailsIfUnsupportedValue) {
   // Avoid false-positives through different error paths terminating in
   // exception with the same code.
   EXPECT_EQ(GetDOMExceptionMessage(v8_scope, promise_tester.Value()),
-            "Invalid zoom_level.");
+            "Only values returned by getSupportedZoomLevels() are valid.");
 }
 
 // Note that the setup differs from that of SetZoomLevelSuccess only in the

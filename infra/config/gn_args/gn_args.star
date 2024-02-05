@@ -107,6 +107,13 @@ gn_args.config(
 )
 
 gn_args.config(
+    name = "android_low_end",
+    args = {
+        "is_high_end_android": False,
+    },
+)
+
+gn_args.config(
     name = "android_low_end_secondary_toolchain",
     args = {
         "is_high_end_android_secondary_toolchain": False,
@@ -716,6 +723,11 @@ gn_args.config(
     args = {
         "ios_code_signing_identity_description": "iPhone Developer",
     },
+)
+
+gn_args.config(
+    name = "ios_developer",
+    configs = ["ios_simulator", "debug"],
 )
 
 gn_args.config(

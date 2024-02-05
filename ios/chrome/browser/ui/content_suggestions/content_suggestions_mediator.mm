@@ -14,6 +14,7 @@
 #import "base/functional/bind.h"
 #import "base/functional/callback.h"
 #import "base/ios/ios_util.h"
+#import "base/memory/raw_ptr.h"
 #import "base/metrics/histogram_macros.h"
 #import "base/metrics/user_metrics.h"
 #import "base/metrics/user_metrics_action.h"
@@ -148,7 +149,6 @@ const CGFloat kMagicStackMostVisitedFaviconMinimalSize = 18;
                                           ReadingListModelBridgeObserver,
                                           PrefObserverDelegate,
                                           SafetyCheckManagerObserver,
-                                          SetUpListMediatorObserver,
                                           SyncedSessionsObserver> {
   std::unique_ptr<ntp_tiles::MostVisitedSites> _mostVisitedSites;
   std::unique_ptr<ntp_tiles::MostVisitedSitesObserverBridge> _mostVisitedBridge;
@@ -216,9 +216,9 @@ const CGFloat kMagicStackMostVisitedFaviconMinimalSize = 18;
   // Registrar for pref changes notifications.
   PrefChangeRegistrar _prefChangeRegistrar;
   // Local State prefs.
-  PrefService* _localState;
+  raw_ptr<PrefService> _localState;
   // Used by SetUpList to get the sync status.
-  syncer::SyncService* _syncService;
+  raw_ptr<syncer::SyncService> _syncService;
   // Used by the Safety Check (Magic Stack) module for the current Safety Check
   // state.
   SafetyCheckState* _safetyCheckState;
@@ -242,7 +242,7 @@ const CGFloat kMagicStackMostVisitedFaviconMinimalSize = 18;
   // `magicStackOrder:` if kSegmentationPlatformIosModuleRanker is disabled) and
   // any additions beyond `_magicStackOrderFromSegmentation` (e.g. Set Up List).
   NSArray<NSNumber*>* _latestMagicStackOrder;
-  commerce::ShoppingService* _shoppingService;
+  raw_ptr<commerce::ShoppingService> _shoppingService;
   NSArray<ParcelTrackingItem*>* _parcelTrackingItems;
   FaviconAttributesProvider* _mostVisitedAttributesProvider;
   std::map<GURL, FaviconCompletionHandler> _mostVisitedFetchFaviconCallbacks;
@@ -1046,22 +1046,7 @@ const CGFloat kMagicStackMostVisitedFaviconMinimalSize = 18;
     [self.consumer setMostVisitedTilesConfig:_mostVisitedConfig];
   }
   if ([self shouldShowSetUpList]) {
-    _setUpListMediator.consumer = self.consumer;
-    _setUpListMediator.delegate = self.delegate;
-    NSArray<SetUpListItemViewData*>* items = [self setUpListItems];
-    if (IsMagicStackEnabled() && [_setUpListMediator allItemsComplete]) {
-      SetUpListItemViewData* allSetItem =
-          [[SetUpListItemViewData alloc] initWithType:SetUpListItemType::kAllSet
-                                             complete:NO];
-      [self.consumer showSetUpListWithItems:@[ allSetItem ]];
-    } else {
-      [self.consumer showSetUpListWithItems:items];
-    }
-    [self.contentSuggestionsMetricsRecorder recordSetUpListShown];
-    for (SetUpListItemViewData* item in items) {
-      [self.contentSuggestionsMetricsRecorder
-          recordSetUpListItemShown:item.type];
-    }
+    [self showSetUpList];
   }
   // Show shorcuts if:
   // 1) Magic Stack is enabled (always show shortcuts in Magic Stack).
@@ -1452,18 +1437,17 @@ const CGFloat kMagicStackMostVisitedFaviconMinimalSize = 18;
 }
 
 - (void)addSetUpListToMagicStackOrder:(NSMutableArray*)order {
-  if (set_up_list_utils::ShouldShowCompactedSetUpListModule()) {
-    [order addObject:@(int(ContentSuggestionsModuleType::kCompactedSetUpList))];
-  } else {
     if ([_setUpListMediator allItemsComplete]) {
       [order addObject:@(int(ContentSuggestionsModuleType::kSetUpListAllSet))];
+    } else if (set_up_list_utils::ShouldShowCompactedSetUpListModule()) {
+      [order
+          addObject:@(int(ContentSuggestionsModuleType::kCompactedSetUpList))];
     } else {
       for (SetUpListItemViewData* model in _setUpListMediator.setUpListItems) {
         [order
             addObject:@(int(SetUpListModuleTypeForSetUpListType(model.type)))];
       }
     }
-  }
 }
 
 // Adds the Safety Check module to `order` based on the current Safety Check
@@ -1502,17 +1486,14 @@ const CGFloat kMagicStackMostVisitedFaviconMinimalSize = 18;
   return [_setUpListMediator allItems];
 }
 
-// Returns an array of items to display in the Set Up List.
-- (NSArray<SetUpListItemViewData*>*)setUpListItems {
-  NSArray<SetUpListItemViewData*>* items = [_setUpListMediator setUpListItems];
-  // For the compacted Set Up List Module in the Magic Stack, there will only be
-  // two items shown.
-  if (IsMagicStackEnabled() &&
-      set_up_list_utils::ShouldShowCompactedSetUpListModule() &&
-      [items count] > 2) {
-    return [items subarrayWithRange:NSMakeRange(0, 2)];
-  }
-  return items;
+// Sends the SetUpList items up to the consumer.
+- (void)showSetUpList {
+  _setUpListMediator.consumer = self.consumer;
+  _setUpListMediator.commandHandler = self.presentationDelegate;
+  _setUpListMediator.delegate = self.delegate;
+  _setUpListMediator.contentSuggestionsMetricsRecorder =
+      self.contentSuggestionsMetricsRecorder;
+  [_setUpListMediator showSetUpList];
 }
 
 // Shows the tab resumption tile if there is a `_tabResumptionItem` to present.

@@ -11,6 +11,7 @@
 #import <memory>
 
 #import "base/apple/foundation_util.h"
+#import "base/memory/raw_ptr.h"
 #import "base/test/scoped_feature_list.h"
 #import "components/content_settings/core/browser/host_content_settings_map.h"
 #import "components/open_from_clipboard/fake_clipboard_recent_content.h"
@@ -18,9 +19,9 @@
 #import "components/supervised_user/core/common/features.h"
 #import "ios/chrome/browser/bookmarks/model/local_or_syncable_bookmark_model_factory.h"
 #import "ios/chrome/browser/content_settings/model/host_content_settings_map_factory.h"
-#import "ios/chrome/browser/favicon/favicon_service_factory.h"
-#import "ios/chrome/browser/favicon/ios_chrome_favicon_loader_factory.h"
-#import "ios/chrome/browser/favicon/ios_chrome_large_icon_service_factory.h"
+#import "ios/chrome/browser/favicon/model/favicon_service_factory.h"
+#import "ios/chrome/browser/favicon/model/ios_chrome_favicon_loader_factory.h"
+#import "ios/chrome/browser/favicon/model/ios_chrome_large_icon_service_factory.h"
 #import "ios/chrome/browser/feature_engagement/model/tracker_factory.h"
 #import "ios/chrome/browser/history/model/history_service_factory.h"
 #import "ios/chrome/browser/lens/model/lens_browser_agent.h"
@@ -410,12 +411,12 @@ class BrowserViewControllerTest : public BlockCleanupTest {
   TabStripLegacyCoordinator* legacy_tab_strip_coordinator_;
   SideSwipeMediator* side_swipe_mediator_;
   BookmarksCoordinator* bookmarks_coordinator_;
-  FullscreenController* fullscreen_controller_;
+  raw_ptr<FullscreenController> fullscreen_controller_;
   TabEventsMediator* tab_events_mediator_;
   NewTabPageCoordinator* NTPCoordinator_;
-  TabUsageRecorderBrowserAgent* tab_usage_recorder_browser_agent_;
+  raw_ptr<TabUsageRecorderBrowserAgent> tab_usage_recorder_browser_agent_;
   SafeAreaProvider* safe_area_provider_;
-  PagePlaceholderBrowserAgent* page_placeholder_browser_agent_;
+  raw_ptr<PagePlaceholderBrowserAgent> page_placeholder_browser_agent_;
   id mockApplicationCommandHandler_;
   base::test::ScopedFeatureList scoped_feature_list_;
 };

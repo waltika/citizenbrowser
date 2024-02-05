@@ -16,11 +16,13 @@
 #include "base/test/scoped_feature_list.h"
 #include "base/version.h"
 #include "build/build_config.h"
+#include "build/chromeos_buildflags.h"
 #include "components/country_codes/country_codes.h"
 #include "components/policy/core/common/mock_policy_service.h"
 #include "components/policy/core/common/policy_namespace.h"
 #include "components/policy/core/common/policy_types.h"
 #include "components/policy/policy_constants.h"
+#include "components/prefs/pref_service.h"
 #include "components/prefs/testing_pref_service.h"
 #include "components/search_engines/eea_countries_ids.h"
 #include "components/search_engines/prepopulated_engines.h"
@@ -35,11 +37,48 @@
 #include "components/version_info/version_info.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
+#if BUILDFLAG(IS_ANDROID)
+#include "base/android/jni_android.h"
+#include "base/android/jni_string.h"
+#include "components/search_engines/android/test_utils_jni_headers/SearchEngineChoiceServiceTestUtil_jni.h"
+#endif
+
 using search_engines::RepromptResult;
 using search_engines::WipeSearchEngineChoiceReason;
 using ::testing::NiceMock;
 
 namespace search_engines {
+namespace {
+#if BUILDFLAG(IS_ANDROID)
+class TestSupportAndroid {
+ public:
+  TestSupportAndroid() {
+    JNIEnv* env = base::android::AttachCurrentThread();
+    base::android::ScopedJavaLocalRef<jobject> java_ref =
+        Java_SearchEngineChoiceServiceTestUtil_Constructor(env);
+    java_test_util_ref_.Reset(env, java_ref.obj());
+  }
+
+  ~TestSupportAndroid() {
+    JNIEnv* env = base::android::AttachCurrentThread();
+    Java_SearchEngineChoiceServiceTestUtil_destroy(env, java_test_util_ref_);
+  }
+
+  void ReturnDeviceCountry(const std::string& device_country) {
+    JNIEnv* env = base::android::AttachCurrentThread();
+    Java_SearchEngineChoiceServiceTestUtil_returnDeviceCountry(
+        env, java_test_util_ref_,
+        base::android::ConvertUTF8ToJavaString(env, device_country));
+  }
+
+ private:
+  base::android::ScopedJavaGlobalRef<jobject> java_test_util_ref_;
+};
+#endif
+
+const int kBelgiumCountryId = country_codes::CountryCharsToCountryID('B', 'E');
+
+}  // namespace
 
 class SearchEngineChoiceServiceTest : public ::testing::Test {
  public:
@@ -295,12 +334,7 @@ TEST_F(SearchEngineChoiceServiceTest,
        DoNotShowChoiceScreenIfCountryOutOfScope) {
   base::CommandLine::ForCurrentProcess()->AppendSwitchASCII(
       switches::kSearchEngineChoiceCountry, "US");
-#if BUILDFLAG(IS_IOS)
-  // TODO(b/318820137): There should not be a dependency on the country here.
-  EXPECT_FALSE(search_engine_choice_service().ShouldShowUpdatedSettings());
-#else
   EXPECT_TRUE(search_engine_choice_service().ShouldShowUpdatedSettings());
-#endif
   EXPECT_EQ(search_engine_choice_service().GetStaticChoiceScreenConditions(
                 policy_service(), /*is_regular_profile=*/true,
                 template_url_service()),
@@ -448,10 +482,7 @@ TEST_F(SearchEngineChoiceServiceTest,
   );
 }
 
-TEST_F(SearchEngineChoiceServiceTest, GetSearchEngineChoiceCountryId) {
-  const int kBelgiumCountryId =
-      country_codes::CountryCharsToCountryID('B', 'E');
-
+TEST_F(SearchEngineChoiceServiceTest, GetCountryIdCommandLineOverride) {
   // The test is set up to use the command line to simulate the country as being
   // Belgium.
   EXPECT_EQ(search_engine_choice_service().GetCountryId(), kBelgiumCountryId);
@@ -460,14 +491,6 @@ TEST_F(SearchEngineChoiceServiceTest, GetSearchEngineChoiceCountryId) {
   // device locale.
   base::CommandLine::ForCurrentProcess()->RemoveSwitch(
       switches::kSearchEngineChoiceCountry);
-  EXPECT_EQ(search_engine_choice_service().GetCountryId(),
-            country_codes::GetCurrentCountryID());
-
-  // When the command line value is invalid, it is ignored.
-  base::CommandLine::ForCurrentProcess()->AppendSwitchASCII(
-      switches::kSearchEngineChoiceCountry, "USA");
-  EXPECT_EQ(search_engine_choice_service().GetCountryId(),
-            country_codes::GetCurrentCountryID());
 
   // Note that if the format matches (2-character strings), we might get a
   // country ID that is not valid/supported.
@@ -475,12 +498,121 @@ TEST_F(SearchEngineChoiceServiceTest, GetSearchEngineChoiceCountryId) {
       switches::kSearchEngineChoiceCountry, "??");
   EXPECT_EQ(search_engine_choice_service().GetCountryId(),
             country_codes::CountryCharsToCountryID('?', '?'));
+}
 
-  // The value set from the pref is reflected otherwise.
-  pref_service()->SetInteger(country_codes::kCountryIDAtInstall,
-                             kBelgiumCountryId);
+TEST_F(SearchEngineChoiceServiceTest,
+       GetCountryIdCommandLineOverrideSetsToUnknownOnFormatMismatch) {
   base::CommandLine::ForCurrentProcess()->RemoveSwitch(
       switches::kSearchEngineChoiceCountry);
+
+  // When the command line value is invalid, the country code should be unknown.
+  base::CommandLine::ForCurrentProcess()->AppendSwitchASCII(
+      switches::kSearchEngineChoiceCountry, "USA");
+  EXPECT_EQ(search_engine_choice_service().GetCountryId(),
+            country_codes::kCountryIDUnknown);
+}
+
+#if BUILDFLAG(IS_ANDROID)
+TEST_F(SearchEngineChoiceServiceTest, PlayResponseBeforeGetCountryId) {
+  base::CommandLine::ForCurrentProcess()->RemoveSwitch(
+      switches::kSearchEngineChoiceCountry);
+  TestSupportAndroid test_support;
+  test_support.ReturnDeviceCountry(
+      country_codes::CountryIDToCountryString(kBelgiumCountryId));
+
+  // We got response from Play API before `GetCountryId` was invoked for the
+  // first time this run, so the new value should be used right away.
+  EXPECT_EQ(search_engine_choice_service().GetCountryId(), kBelgiumCountryId);
+  // The pref should be updated as well.
+  EXPECT_EQ(pref_service()->GetInteger(country_codes::kCountryIDAtInstall),
+            kBelgiumCountryId);
+}
+
+TEST_F(SearchEngineChoiceServiceTest, GetCountryIdBeforePlayResponse) {
+  base::CommandLine::ForCurrentProcess()->RemoveSwitch(
+      switches::kSearchEngineChoiceCountry);
+
+  TestSupportAndroid test_support;
+  // We didn't get a response from Play API before `GetCountryId` was invoked,
+  // so the last known country from prefs should be used.
+  EXPECT_EQ(search_engine_choice_service().GetCountryId(),
+            country_codes::GetCurrentCountryID());
+
+  // Simulate a response arriving after the first `GetCountryId` call.
+  test_support.ReturnDeviceCountry(
+      country_codes::CountryIDToCountryString(kBelgiumCountryId));
+
+  // The pref should be updated so the new country can be used the next run.
+  EXPECT_EQ(pref_service()->GetInteger(country_codes::kCountryIDAtInstall),
+            kBelgiumCountryId);
+  // However, `GetCountryId` result shouldn't change until the next run.
+  EXPECT_EQ(search_engine_choice_service().GetCountryId(),
+            country_codes::GetCurrentCountryID());
+}
+
+TEST_F(SearchEngineChoiceServiceTest, GetCountryIdPrefAlreadyWritten) {
+  // The value set from the pref should be used.
+  pref_service()->SetInteger(country_codes::kCountryIDAtInstall,
+                             kBelgiumCountryId);
+  // Don't create `TestSupportAndroid` - since the pref isn't set we should not
+  // reach out to Java.
+  EXPECT_EQ(search_engine_choice_service().GetCountryId(), kBelgiumCountryId);
+}
+#endif  // BUILDFLAG(IS_ANDROID)
+
+TEST_F(SearchEngineChoiceServiceTest, GetCountryIdDefault) {
+#if BUILDFLAG(IS_ANDROID)
+  // On Android, Play API is used when kSearchEngineChoice is enabled.
+  feature_list()->Reset();
+  feature_list()->InitAndDisableFeature(switches::kSearchEngineChoiceTrigger);
+#endif  // BUILDFLAG(IS_ANDROID)
+
+  // Remove the command line flag set by the test.
+  base::CommandLine::ForCurrentProcess()->RemoveSwitch(
+      switches::kSearchEngineChoiceCountry);
+
+  // The default value should be based on the device locale.
+  EXPECT_EQ(search_engine_choice_service().GetCountryId(),
+            country_codes::GetCurrentCountryID());
+}
+
+TEST_F(SearchEngineChoiceServiceTest, GetCountryIdFromPrefs) {
+#if BUILDFLAG(IS_ANDROID)
+  // On Android, Play API is used when kSearchEngineChoice is enabled.
+  feature_list()->Reset();
+  feature_list()->InitAndDisableFeature(switches::kSearchEngineChoiceTrigger);
+#endif  // BUILDFLAG(IS_ANDROID)
+
+  // Remove the command line flag set by the test.
+  base::CommandLine::ForCurrentProcess()->RemoveSwitch(
+      switches::kSearchEngineChoiceCountry);
+
+  // The value set from the pref should be used.
+  pref_service()->SetInteger(country_codes::kCountryIDAtInstall,
+                             kBelgiumCountryId);
+  EXPECT_EQ(search_engine_choice_service().GetCountryId(), kBelgiumCountryId);
+}
+
+TEST_F(SearchEngineChoiceServiceTest, GetCountryIdChangesAfterReading) {
+#if BUILDFLAG(IS_ANDROID)
+  // On Android, Play API is used when kSearchEngineChoice is enabled.
+  feature_list()->Reset();
+  feature_list()->InitAndDisableFeature(switches::kSearchEngineChoiceTrigger);
+#endif  // BUILDFLAG(IS_ANDROID)
+
+  // Remove the command line flag set by the test.
+  base::CommandLine::ForCurrentProcess()->RemoveSwitch(
+      switches::kSearchEngineChoiceCountry);
+
+  // The value set from the pref should be used.
+  pref_service()->SetInteger(country_codes::kCountryIDAtInstall,
+                             kBelgiumCountryId);
+  EXPECT_EQ(search_engine_choice_service().GetCountryId(), kBelgiumCountryId);
+
+  // Change the value in pref.
+  pref_service()->SetInteger(country_codes::kCountryIDAtInstall,
+                             country_codes::CountryCharsToCountryID('U', 'S'));
+  // The value returned by `GetCountryId` shouldn't change.
   EXPECT_EQ(search_engine_choice_service().GetCountryId(), kBelgiumCountryId);
 }
 
@@ -524,12 +656,9 @@ TEST_F(SearchEngineChoiceServiceTest,
 TEST_F(SearchEngineChoiceServiceTest, RecordChoiceMade) {
   base::CommandLine::ForCurrentProcess()->RemoveSwitch(
       switches::kSearchEngineChoiceCountry);
-
   // Test that the choice is not recorded for countries outside the EEA region.
-  const int kUnitedStatesCountryId =
-      country_codes::CountryCharsToCountryID('U', 'S');
-  pref_service()->SetInteger(country_codes::kCountryIDAtInstall,
-                             kUnitedStatesCountryId);
+  base::CommandLine::ForCurrentProcess()->AppendSwitchASCII(
+      switches::kSearchEngineChoiceCountry, "US");
 
   const TemplateURL* default_search_engine =
       template_url_service().GetDefaultSearchProvider();
@@ -549,10 +678,11 @@ TEST_F(SearchEngineChoiceServiceTest, RecordChoiceMade) {
       prefs::kDefaultSearchProviderChoiceScreenCompletionVersion));
 
   // Revert to an EEA region country.
-  const int kBelgiumCountryId =
-      country_codes::CountryCharsToCountryID('B', 'E');
-  pref_service()->SetInteger(country_codes::kCountryIDAtInstall,
-                             kBelgiumCountryId);
+  base::CommandLine::ForCurrentProcess()->RemoveSwitch(
+      switches::kSearchEngineChoiceCountry);
+  base::CommandLine::ForCurrentProcess()->AppendSwitchASCII(
+      switches::kSearchEngineChoiceCountry,
+      country_codes::CountryIDToCountryString(kBelgiumCountryId));
 
   // Test that the choice is recorded if it wasn't previously done.
   search_engine_choice_service().RecordChoiceMade(
@@ -660,10 +790,10 @@ TEST_F(SearchEngineChoiceServiceTest, RepromptForMissingChoiceVersion) {
 
 struct RepromptTestParam {
   // Whether the user should be reprompted or not.
-  absl::optional<WipeSearchEngineChoiceReason> wipe_reason;
+  std::optional<WipeSearchEngineChoiceReason> wipe_reason;
   // Internal results of the reprompt computation.
-  absl::optional<RepromptResult> wildcard_result;
-  absl::optional<RepromptResult> country_result;
+  std::optional<RepromptResult> wildcard_result;
+  std::optional<RepromptResult> country_result;
   // Version of the choice.
   const base::StringPiece choice_version;
   // The reprompt params, as sent by the server.  Use `CURRENT_VERSION` for the
@@ -780,24 +910,24 @@ constexpr RepromptTestParam kRepromptTestParams[] = {
      RepromptResult::kNoDictionaryKey, "10.10.1.1",
      R"( {"*":"30.45.678.9100"} )"},
     // Reprompt a specific country.
-    {WipeSearchEngineChoiceReason::kReprompt, absl::nullopt,
+    {WipeSearchEngineChoiceReason::kReprompt, std::nullopt,
      RepromptResult::kReprompt, "1.0.0.0", R"( {"BE":"1.0.0.1"} )"},
     // Reprompt for params inclusive of current version
-    {WipeSearchEngineChoiceReason::kReprompt, absl::nullopt,
+    {WipeSearchEngineChoiceReason::kReprompt, std::nullopt,
      RepromptResult::kReprompt, "1.0.0.0", R"( {"BE":"CURRENT_VERSION"} )"},
     // Reprompt when the choice version is malformed.
-    {WipeSearchEngineChoiceReason::kInvalidChoiceVersion, absl::nullopt,
-     absl::nullopt, "Blah", ""},
+    {WipeSearchEngineChoiceReason::kInvalidChoiceVersion, std::nullopt,
+     std::nullopt, "Blah", ""},
     // Reprompt when both the country and the wild card are specified, as long
     // as one of them qualifies.
-    {WipeSearchEngineChoiceReason::kReprompt, absl::nullopt,
+    {WipeSearchEngineChoiceReason::kReprompt, std::nullopt,
      RepromptResult::kReprompt, "1.0.0.0",
      R"( {"*":"1.0.0.1","BE":"1.0.0.1"} )"},
-    {WipeSearchEngineChoiceReason::kReprompt, absl::nullopt,
+    {WipeSearchEngineChoiceReason::kReprompt, std::nullopt,
      RepromptResult::kReprompt, "1.0.0.0",
      R"( {"*":"FUTURE_VERSION","BE":"1.0.0.1"} )"},
     // Still works with irrelevant parameters for other countries.
-    {WipeSearchEngineChoiceReason::kReprompt, absl::nullopt,
+    {WipeSearchEngineChoiceReason::kReprompt, std::nullopt,
      RepromptResult::kReprompt, "1.0.0.0",
      R"(
        {
@@ -808,34 +938,34 @@ constexpr RepromptTestParam kRepromptTestParams[] = {
        } )"},
 
     // Don't reprompt when the choice was made in the current version.
-    {absl::nullopt, RepromptResult::kRecentChoice,
+    {std::nullopt, RepromptResult::kRecentChoice,
      RepromptResult::kNoDictionaryKey, version_info::GetVersionNumber(),
      "{\"*\":\"CURRENT_VERSION\"}"},
     // Don't reprompt when the choice was recent enough.
-    {absl::nullopt, RepromptResult::kRecentChoice,
+    {std::nullopt, RepromptResult::kRecentChoice,
      RepromptResult::kNoDictionaryKey, "2.0.0.0", R"( {"*":"1.0.0.1"} )"},
     // Don't reprompt for another country.
-    {absl::nullopt, RepromptResult::kNoDictionaryKey,
+    {std::nullopt, RepromptResult::kNoDictionaryKey,
      RepromptResult::kNoDictionaryKey, "1.0.0.0", R"( {"FR":"1.0.0.1"} )"},
-    {absl::nullopt, RepromptResult::kNoDictionaryKey,
+    {std::nullopt, RepromptResult::kNoDictionaryKey,
      RepromptResult::kNoDictionaryKey, "1.0.0.0", R"( {"US":"1.0.0.1"} )"},
-    {absl::nullopt, RepromptResult::kNoDictionaryKey,
+    {std::nullopt, RepromptResult::kNoDictionaryKey,
      RepromptResult::kNoDictionaryKey, "1.0.0.0", R"( {"XX":"1.0.0.1"} )"},
-    {absl::nullopt, RepromptResult::kNoDictionaryKey,
+    {std::nullopt, RepromptResult::kNoDictionaryKey,
      RepromptResult::kNoDictionaryKey, "1.0.0.0",
      R"( {"INVALID_COUNTRY":"1.0.0.1"} )"},
-    {absl::nullopt, absl::nullopt, RepromptResult::kChromeTooOld, "1.0.0.0",
+    {std::nullopt, std::nullopt, RepromptResult::kChromeTooOld, "1.0.0.0",
      R"( {"FR":"1.0.0.1","BE":"FUTURE_VERSION"} )"},
     // Don't reprompt for future versions.
-    {absl::nullopt, RepromptResult::kChromeTooOld,
+    {std::nullopt, RepromptResult::kChromeTooOld,
      RepromptResult::kNoDictionaryKey, "1.0.0.0",
      R"( {"*":"FUTURE_VERSION"} )"},
     // Wildcard is overridden by specific country.
-    {absl::nullopt, absl::nullopt, RepromptResult::kChromeTooOld, "1.0.0.0",
+    {std::nullopt, std::nullopt, RepromptResult::kChromeTooOld, "1.0.0.0",
      R"( {"*":"1.0.0.1","BE":"FUTURE_VERSION"} )"},
     // Combination of right version for wrong country and wrong version for
     // right country.
-    {absl::nullopt, absl::nullopt, RepromptResult::kChromeTooOld, "2.0.0.0",
+    {std::nullopt, std::nullopt, RepromptResult::kChromeTooOld, "2.0.0.0",
      R"(
        {
           "*":"1.1.0.0",
@@ -843,16 +973,16 @@ constexpr RepromptTestParam kRepromptTestParams[] = {
           "FR":"2.0.0.1"
         } )"},
     // Empty dictionary.
-    {absl::nullopt, RepromptResult::kNoDictionaryKey,
+    {std::nullopt, RepromptResult::kNoDictionaryKey,
      RepromptResult::kNoDictionaryKey, "1.0.0.0", "{}"},
     // Empty parameter.
-    {absl::nullopt, RepromptResult::kNoDictionaryKey,
+    {std::nullopt, RepromptResult::kNoDictionaryKey,
      RepromptResult::kNoDictionaryKey, "1.0.0.0", ""},
     // Wrong number of components.
-    {absl::nullopt, RepromptResult::kInvalidVersion,
+    {std::nullopt, RepromptResult::kInvalidVersion,
      RepromptResult::kNoDictionaryKey, "1.0.0.0", R"( {"*":"2.0"} )"},
     // Wildcard in version.
-    {absl::nullopt, RepromptResult::kInvalidVersion,
+    {std::nullopt, RepromptResult::kInvalidVersion,
      RepromptResult::kNoDictionaryKey, "1.0.0.0", R"( {"*":"2.0.0.*"} )"},
 };
 
@@ -860,8 +990,7 @@ INSTANTIATE_TEST_SUITE_P(,
                          SearchEngineChoiceUtilsParamTest,
                          ::testing::ValuesIn(kRepromptTestParams));
 
-#if !BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_FUCHSIA) || \
-    BUILDFLAG(CHROME_FOR_TESTING)
+#if !BUILDFLAG(IS_ANDROID)
 
 class SearchEngineChoiceUtilsResourceIdsTest : public ::testing::Test {
  public:
@@ -908,7 +1037,56 @@ TEST_F(SearchEngineChoiceUtilsResourceIdsTest, GetIconResourceId) {
   }
 }
 
-#endif  // !BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_FUCHSIA) ||
-        // BUILDFLAG(CHROME_FOR_TESTING)
+#endif  // !BUILDFLAG(IS_ANDROID)
+
+#if BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_LINUX)
+
+class SearchEngineChoiceServiceWithVariationsTest : public ::testing::Test {
+ public:
+  SearchEngineChoiceServiceWithVariationsTest() {
+    feature_list_.InitAndEnableFeatureWithParameters(
+        switches::kSearchEngineChoiceTrigger,
+        {{switches::kSearchEngineChoiceTriggerForTaggedProfilesOnly.name,
+          "false"}});
+    TemplateURLPrepopulateData::RegisterProfilePrefs(pref_service_.registry());
+  }
+
+  PrefService& pref_service() { return pref_service_; }
+
+ private:
+  base::test::ScopedFeatureList feature_list_;
+  sync_preferences::TestingPrefServiceSyncable pref_service_;
+};
+
+// Tests that the country falls back to `country_codes::GetCurrentCountryID()`
+// when the variations country is not available.
+TEST_F(SearchEngineChoiceServiceWithVariationsTest, NoVariationsCountry) {
+  ASSERT_FALSE(base::CommandLine::ForCurrentProcess()->HasSwitch(
+      switches::kSearchEngineChoiceCountry));
+  SearchEngineChoiceService search_engine_choice_service(
+      pref_service(), country_codes::kCountryIDUnknown);
+
+  EXPECT_EQ(search_engine_choice_service.GetCountryId(),
+            country_codes::GetCurrentCountryID());
+}
+
+// Tests that the country is read from the variations service when available.
+TEST_F(SearchEngineChoiceServiceWithVariationsTest, WithVariationsCountry) {
+  ASSERT_FALSE(base::CommandLine::ForCurrentProcess()->HasSwitch(
+      switches::kSearchEngineChoiceCountry));
+
+  int variation_country_id = country_codes::CountryStringToCountryID("FR");
+  if (country_codes::GetCurrentCountryCode() == "FR") {
+    // Make sure to use a country different from the current one.
+    variation_country_id = country_codes::CountryStringToCountryID("DE");
+  }
+
+  SearchEngineChoiceService search_engine_choice_service(pref_service(),
+                                                         variation_country_id);
+
+  EXPECT_EQ(variation_country_id, search_engine_choice_service.GetCountryId());
+}
+
+#endif  // BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_LINUX)
 
 }  // namespace search_engines

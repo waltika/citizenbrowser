@@ -4,8 +4,12 @@
 
 #include "components/autofill/core/browser/metrics/payments/iban_metrics.h"
 
+#include <string>
+#include <vector>
+
 #include "base/metrics/histogram_functions.h"
 #include "base/metrics/histogram_macros.h"
+#include "base/strings/strcat.h"
 #include "components/autofill/core/browser/data_model/iban.h"
 #include "components/autofill/core/common/autofill_clock.h"
 
@@ -61,6 +65,26 @@ void LogIbanSaveNotOfferedDueToMaxStrikesMetric(
     AutofillMetrics::SaveTypeMetric metric) {
   base::UmaHistogramEnumeration(
       "Autofill.StrikeDatabase.IbanSaveNotOfferedDueToMaxStrikes", metric);
+}
+
+void LogUploadIbanMetric(UploadIbanOriginMetric origin_metric,
+                         UploadIbanActionMetric action_metric) {
+  std::string histogram_name = "Autofill.UploadIban.";
+  switch (action_metric) {
+    case UploadIbanActionMetric::kOffered:
+      histogram_name += "Offered";
+      break;
+    case UploadIbanActionMetric::kAccepted:
+      histogram_name += "Accepted";
+      break;
+    case UploadIbanActionMetric::kDeclined:
+      histogram_name += "Declined";
+      break;
+    case UploadIbanActionMetric::kIgnored:
+      histogram_name += "Ignored";
+      break;
+  }
+  base::UmaHistogramEnumeration(histogram_name, origin_metric);
 }
 
 void LogSaveIbanBubbleOfferMetric(SaveIbanPromptOffer metric,

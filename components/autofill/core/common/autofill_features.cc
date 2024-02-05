@@ -63,25 +63,12 @@ BASE_FEATURE(kAutofillAssociateForms,
 const base::FeatureParam<base::TimeDelta> kAutofillAssociateFormsTTL{
     &kAutofillAssociateForms, "associate_forms_ttl", base::Minutes(5)};
 
-// If enabled, the country calling code for nationally formatted phone numbers
-// is inferred from the profile's country, if available.
-// TODO(crbug.com/1311937): Cleanup when launched.
-BASE_FEATURE(kAutofillInferCountryCallingCode,
-             "AutofillInferCountryCallingCode",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
 // If enabled, label inference considers strings entirely made up of  '(', ')'
 // and '-' as valid labels.
 // TODO(crbug.com/1311937): Cleanup when launched.
 BASE_FEATURE(kAutofillConsiderPhoneNumberSeparatorsValidLabels,
              "AutofillConsiderPhoneNumberSeparatorsValidLabels",
              base::FEATURE_DISABLED_BY_DEFAULT);
-
-// If enabled, contenteditables are extracted and filled.
-// TODO(crbug.com/1490372): Cleanup when launched.
-BASE_FEATURE(kAutofillContentEditables,
-             "AutofillContentEditables",
-             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Crowdsourcing already prefers PHONE_HOME_CITY_AND_NUMBER over
 // PHONE_HOME_WHOLE_NUMBER. With this feature, local heuristics do the same.
@@ -303,6 +290,12 @@ BASE_FEATURE(kAutofillEnableSupportForPhoneNumberTrunkTypes,
              "AutofillEnableSupportForPhoneNumberTrunkTypes",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
+// Changes the mechanisms of FormTracker and the requirements for firing
+// submission on formless elements.
+BASE_FEATURE(kAutofillImproveSubmissionDetection,
+             "AutofillImproveSubmissionDetection",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
 // If enabled, whenever form controls are removed from the DOM, the ChromeClient
 // is informed about this. This enables Autofill to trigger a reparsing of
 // forms.
@@ -325,9 +318,23 @@ BASE_FEATURE(kAutofillUseAddressRewriterInProfileSubsetComparison,
 
 // Enables using the newer i18n address model, overriding the legacy one.
 // This includes:
+// - Using newer i18n address hierarchies.
 // - Using newer i18n address format strings.
+// - Using newer i18n address parsing rules.
 BASE_FEATURE(kAutofillUseI18nAddressModel,
              "AutofillUseI18nAddressModel",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+// Enables using the a custom address model for Germany, overriding the legacy
+// one.
+BASE_FEATURE(kAutofillUseDEAddressModel,
+             "AutofillUseDEAddressModel",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+// Enables using the a custom address model for India, overriding the legacy
+// one.
+BASE_FEATURE(kAutofillUseINAddressModel,
+             "AutofillUseINAddressModel",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Changes Autofill Clear Form into Undo Autofill.
@@ -337,7 +344,7 @@ BASE_FEATURE(kAutofillUndo, "AutofillUndo", base::FEATURE_DISABLED_BY_DEFAULT);
 // merging.
 BASE_FEATURE(kAutofillConvergeToExtremeLengthStreetAddress,
              "AutofillConvergeToExtremeLengthStreetAddress",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 const base::FeatureParam<bool> kAutofillConvergeToLonger{
     &kAutofillConvergeToExtremeLengthStreetAddress, "converge_to_longer", true};
@@ -345,13 +352,6 @@ const base::FeatureParam<bool> kAutofillConvergeToLonger{
 BASE_FEATURE(kAutofillStreetNameOrHouseNumberPrecedenceOverAutocomplete,
              "AutofillStreetNameOrHouseNumberPrecedenceOverAutocomplete",
              base::FEATURE_ENABLED_BY_DEFAULT);
-
-// When enabled, HTML autocomplete values that do not map to any known type, but
-// look reasonable (e.g. contain "address") are simply ignored. Without the
-// feature, Autofill is disabled on such fields.
-BASE_FEATURE(kAutofillIgnoreUnmappableAutocompleteValues,
-             "AutofillIgnoreUnmappableAutocompleteValues",
-             base::FEATURE_DISABLED_BY_DEFAULT);
 
 // When enabled, some local heuristic predictions will take precedence over the
 // autocomplete attribute and server predictions, when determining a field's
@@ -364,12 +364,6 @@ BASE_FEATURE(kAutofillLocalHeuristicsOverrides,
 // TODO(crbug/1248585): Remove when launched.
 BASE_FEATURE(kAutofillHighlightOnlyChangedValuesInPreviewMode,
              "AutofillHighlightOnlyChangedValuesInPreviewMode",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
-// When enabled, Autofill will use new logic to strip both prefixes
-// and suffixes when setting FormStructure::parseable_name_
-BASE_FEATURE(kAutofillLabelAffixRemoval,
-             "AutofillLabelAffixRemoval",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 // When enabled, all behaviours related to the on-device machine learning
@@ -430,13 +424,6 @@ BASE_FEATURE(kAutofillPageLanguageDetection,
              "AutofillPageLanguageDetection",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-// If enabled, local heuristics fall back to interpreting the fields' name as an
-// autocomplete type.
-// TODO(crbug.com/1345879) Remove once launched.
-BASE_FEATURE(kAutofillParseNameAsAutocompleteType,
-             "AutofillParseNameAsAutocompleteType",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
 // If enabled, the placeholder is not used as a fallback during label inference.
 // Instead, local heuristics treat it as a separate source in addition to the
 // label. The placeholder is matched against the same regex as the label.
@@ -459,14 +446,6 @@ BASE_FEATURE(kAutofillPopupDoesNotOverlapWithContextMenu,
              "AutofillPopupDoesNotOverlapWithContextMenu",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-// If the feature is enabled, then custom cursor exceeding the (24 dips)
-// dimension limit are disallowed in extension-hosted content. This feature is
-// dependent on `kAutofillPopupMultiWindowCursorSuppression` - if the latter is
-// disabled, so is this.
-BASE_FEATURE(kAutofillPopupExtensionCursorSuppression,
-             "AutofillPopupExtensionCursorSuppression",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 // If the feature is enabled, then the time when the Autofill popup is
 // considered to have been shown is measured only once the UI thread has become
 // idle. The intent behind this is to avoid situations in which the OS message
@@ -475,12 +454,6 @@ BASE_FEATURE(kAutofillPopupExtensionCursorSuppression,
 BASE_FEATURE(kAutofillPopupImprovedTimingChecks,
              "AutofillPopupImprovedTimingChecks",
              base::FEATURE_DISABLED_BY_DEFAULT);
-
-// If the feature is enabled, custom cursors exceeding the (24 dips) dimension
-// limit are disallowed for all active tabs in all active windows.
-BASE_FEATURE(kAutofillPopupMultiWindowCursorSuppression,
-             "AutofillPopupMultiWindowCursorSuppression",
-             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Controls whether the threshold for accepting Autofill popup suggestions
 // should take into account latency information of the user event.

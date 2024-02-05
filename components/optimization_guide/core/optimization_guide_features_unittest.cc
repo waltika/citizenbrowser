@@ -99,36 +99,40 @@ TEST(OptimizationGuideFeaturesTest, ModelQualityLoggingDefault) {
 
   scoped_feature_list.InitAndEnableFeature(features::kModelQualityLogging);
 
-  // By default compose feature should be disabled.
   EXPECT_TRUE(features::IsModelQualityLoggingEnabled());
-  EXPECT_FALSE(features::IsModelQualityLoggingEnabledForFeature(
-      proto::MODEL_EXECUTION_FEATURE_COMPOSE));
 
-  // Both wallpaper search and tab organization should be enabled by default.
+  // Compose, wallpaper search and tab organization should be enabled by
+  // default whereas test feature should be disabled.
+  EXPECT_TRUE(features::IsModelQualityLoggingEnabledForFeature(
+      proto::MODEL_EXECUTION_FEATURE_COMPOSE));
   EXPECT_TRUE(features::IsModelQualityLoggingEnabledForFeature(
       proto::MODEL_EXECUTION_FEATURE_TAB_ORGANIZATION));
   EXPECT_TRUE(features::IsModelQualityLoggingEnabledForFeature(
       proto::MODEL_EXECUTION_FEATURE_WALLPAPER_SEARCH));
+  EXPECT_FALSE(features::IsModelQualityLoggingEnabledForFeature(
+      proto::MODEL_EXECUTION_FEATURE_TEST));
 }
 
-TEST(OptimizationGuideFeaturesTest, ComposeModelQualityLoggingEnabled) {
+TEST(OptimizationGuideFeaturesTest, ComposeModelQualityLoggingDisabled) {
   base::test::ScopedFeatureList scoped_feature_list;
 
   scoped_feature_list.InitAndEnableFeatureWithParameters(
       features::kModelQualityLogging,
-      {{"model_execution_feature_compose", "true"},
+      {{"model_execution_feature_compose", "false"},
        {"model_execution_feature_wallpaper_search", "false"},
        {"model_execution_feature_tab_organization", "false"}});
 
   EXPECT_TRUE(features::IsModelQualityLoggingEnabled());
-  EXPECT_TRUE(features::IsModelQualityLoggingEnabledForFeature(
-      proto::MODEL_EXECUTION_FEATURE_COMPOSE));
 
-  // Both wallpaper search and tab organization should be disabled.
+  // All features should be disabled for logging.
+  EXPECT_FALSE(features::IsModelQualityLoggingEnabledForFeature(
+      proto::MODEL_EXECUTION_FEATURE_COMPOSE));
   EXPECT_FALSE(features::IsModelQualityLoggingEnabledForFeature(
       proto::MODEL_EXECUTION_FEATURE_TAB_ORGANIZATION));
   EXPECT_FALSE(features::IsModelQualityLoggingEnabledForFeature(
       proto::MODEL_EXECUTION_FEATURE_WALLPAPER_SEARCH));
+  EXPECT_FALSE(features::IsModelQualityLoggingEnabledForFeature(
+      proto::MODEL_EXECUTION_FEATURE_TEST));
 }
 
 TEST(OptimizationGuideFeaturesTest, ModelQualityLoggingDisabled) {
@@ -144,6 +148,8 @@ TEST(OptimizationGuideFeaturesTest, ModelQualityLoggingDisabled) {
       proto::MODEL_EXECUTION_FEATURE_TAB_ORGANIZATION));
   EXPECT_FALSE(features::IsModelQualityLoggingEnabledForFeature(
       proto::MODEL_EXECUTION_FEATURE_WALLPAPER_SEARCH));
+  EXPECT_FALSE(features::IsModelQualityLoggingEnabledForFeature(
+      proto::MODEL_EXECUTION_FEATURE_TEST));
 }
 
 TEST(OptimizationGuideFeaturesTest,
@@ -255,7 +261,7 @@ TEST(OptimizationGuideFeaturesTest, TestOverrideNumThreadsForOptTarget) {
     std::string label;
     bool enabled;
     std::map<std::string, std::string> params;
-    std::vector<std::pair<proto::OptimizationTarget, absl::optional<int>>> want;
+    std::vector<std::pair<proto::OptimizationTarget, std::optional<int>>> want;
   };
 
   struct TestCase tests[] = {
@@ -265,8 +271,8 @@ TEST(OptimizationGuideFeaturesTest, TestOverrideNumThreadsForOptTarget) {
           .params = {},
           .want =
               {
-                  {proto::OPTIMIZATION_TARGET_PAINFUL_PAGE_LOAD, absl::nullopt},
-                  {proto::OPTIMIZATION_TARGET_PAGE_VISIBILITY, absl::nullopt},
+                  {proto::OPTIMIZATION_TARGET_PAINFUL_PAGE_LOAD, std::nullopt},
+                  {proto::OPTIMIZATION_TARGET_PAGE_VISIBILITY, std::nullopt},
               },
       },
       {
@@ -275,8 +281,8 @@ TEST(OptimizationGuideFeaturesTest, TestOverrideNumThreadsForOptTarget) {
           .params = {},
           .want =
               {
-                  {proto::OPTIMIZATION_TARGET_PAINFUL_PAGE_LOAD, absl::nullopt},
-                  {proto::OPTIMIZATION_TARGET_PAGE_VISIBILITY, absl::nullopt},
+                  {proto::OPTIMIZATION_TARGET_PAINFUL_PAGE_LOAD, std::nullopt},
+                  {proto::OPTIMIZATION_TARGET_PAGE_VISIBILITY, std::nullopt},
               },
       },
       {
@@ -288,7 +294,7 @@ TEST(OptimizationGuideFeaturesTest, TestOverrideNumThreadsForOptTarget) {
               },
           .want =
               {
-                  {proto::OPTIMIZATION_TARGET_PAINFUL_PAGE_LOAD, absl::nullopt},
+                  {proto::OPTIMIZATION_TARGET_PAINFUL_PAGE_LOAD, std::nullopt},
                   {proto::OPTIMIZATION_TARGET_PAGE_VISIBILITY, 1},
               },
       },
@@ -301,8 +307,8 @@ TEST(OptimizationGuideFeaturesTest, TestOverrideNumThreadsForOptTarget) {
               },
           .want =
               {
-                  {proto::OPTIMIZATION_TARGET_PAINFUL_PAGE_LOAD, absl::nullopt},
-                  {proto::OPTIMIZATION_TARGET_PAGE_VISIBILITY, absl::nullopt},
+                  {proto::OPTIMIZATION_TARGET_PAINFUL_PAGE_LOAD, std::nullopt},
+                  {proto::OPTIMIZATION_TARGET_PAGE_VISIBILITY, std::nullopt},
               },
       },
       {
@@ -314,8 +320,8 @@ TEST(OptimizationGuideFeaturesTest, TestOverrideNumThreadsForOptTarget) {
               },
           .want =
               {
-                  {proto::OPTIMIZATION_TARGET_PAINFUL_PAGE_LOAD, absl::nullopt},
-                  {proto::OPTIMIZATION_TARGET_PAGE_VISIBILITY, absl::nullopt},
+                  {proto::OPTIMIZATION_TARGET_PAINFUL_PAGE_LOAD, std::nullopt},
+                  {proto::OPTIMIZATION_TARGET_PAGE_VISIBILITY, std::nullopt},
               },
       },
       {
@@ -327,7 +333,7 @@ TEST(OptimizationGuideFeaturesTest, TestOverrideNumThreadsForOptTarget) {
               },
           .want =
               {
-                  {proto::OPTIMIZATION_TARGET_PAINFUL_PAGE_LOAD, absl::nullopt},
+                  {proto::OPTIMIZATION_TARGET_PAINFUL_PAGE_LOAD, std::nullopt},
                   {proto::OPTIMIZATION_TARGET_PAGE_VISIBILITY, -1},
               },
       },
@@ -375,7 +381,7 @@ TEST(OptimizationGuideFeaturesTest, TestOverrideNumThreadsForOptTarget) {
 
     for (const auto& expectation : test.want) {
       proto::OptimizationTarget opt_target = expectation.first;
-      absl::optional<int> num_threads = expectation.second;
+      std::optional<int> num_threads = expectation.second;
 
       EXPECT_EQ(num_threads,
                 features::OverrideNumThreadsForOptTarget(opt_target))

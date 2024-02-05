@@ -496,6 +496,10 @@
 #include "chrome/browser/fuchsia/chrome_browser_main_parts_fuchsia.h"
 #endif
 
+#if !BUILDFLAG(IS_ANDROID)
+#include "chrome/browser/preloading/preview/preview_navigation_throttle.h"
+#endif  // !BUILDFLAG(IS_ANDROID)
+
 #if BUILDFLAG(IS_CHROMEOS)
 #include "base/debug/leak_annotations.h"
 #include "chrome/browser/apps/app_service/app_install/app_install_navigation_throttle.h"
@@ -725,7 +729,6 @@
 #endif  // defined(_WINDOWS_)
 
 #if BUILDFLAG(ENABLE_SCREEN_AI_SERVICE)
-#include "chrome/browser/accessibility/accessibility_state_utils.h"
 #include "chrome/browser/accessibility/pdf_ocr_controller.h"
 #include "chrome/browser/accessibility/pdf_ocr_controller_factory.h"
 #include "components/services/screen_ai/public/cpp/utilities.h"
@@ -3325,13 +3328,14 @@ bool ChromeContentBrowserClient::IsSharedStorageAllowed(
     content::BrowserContext* browser_context,
     content::RenderFrameHost* rfh,
     const url::Origin& top_frame_origin,
-    const url::Origin& accessing_origin) {
+    const url::Origin& accessing_origin,
+    std::string* out_debug_message) {
   Profile* profile = Profile::FromBrowserContext(browser_context);
   auto* privacy_sandbox_settings =
       PrivacySandboxSettingsFactory::GetForProfile(profile);
   DCHECK(privacy_sandbox_settings);
   bool allowed = privacy_sandbox_settings->IsSharedStorageAllowed(
-      top_frame_origin, accessing_origin, rfh);
+      top_frame_origin, accessing_origin, out_debug_message, rfh);
   if (rfh) {
     content_settings::PageSpecificContentSettings::BrowsingDataAccessed(
         rfh, blink::StorageKey::CreateFirstParty(accessing_origin),
@@ -3343,13 +3347,14 @@ bool ChromeContentBrowserClient::IsSharedStorageAllowed(
 bool ChromeContentBrowserClient::IsSharedStorageSelectURLAllowed(
     content::BrowserContext* browser_context,
     const url::Origin& top_frame_origin,
-    const url::Origin& accessing_origin) {
+    const url::Origin& accessing_origin,
+    std::string* out_debug_message) {
   Profile* profile = Profile::FromBrowserContext(browser_context);
   auto* privacy_sandbox_settings =
       PrivacySandboxSettingsFactory::GetForProfile(profile);
   DCHECK(privacy_sandbox_settings);
   return privacy_sandbox_settings->IsSharedStorageSelectURLAllowed(
-      top_frame_origin, accessing_origin);
+      top_frame_origin, accessing_origin, out_debug_message);
 }
 
 bool ChromeContentBrowserClient::IsPrivateAggregationAllowed(
@@ -5227,6 +5232,11 @@ ChromeContentBrowserClient::CreateThrottlesForNavigation(
                    &throttles);
 #endif  // BUILDFLAG(IS_CHROMEOS)
 
+#if !BUILDFLAG(IS_ANDROID)
+  MaybeAddThrottle(PreviewNavigationThrottle::MaybeCreateThrottleFor(handle),
+                   &throttles);
+#endif  // !BUILDFLAG(IS_ANDROID)
+
   return throttles;
 }
 
@@ -5329,6 +5339,29 @@ ChromeContentBrowserClient::GetDevToolsBackgroundServiceExpirations(
   }
 
   return expiration_times;
+}
+
+std::optional<base::TimeDelta>
+ChromeContentBrowserClient::GetSpareRendererDelayForSiteURL(
+    const GURL& site_url) {
+  if (!base::FeatureList::IsEnabled(
+          features::kDeferredSpareRendererForTopChromeWebUI)) {
+    return std::nullopt;
+  }
+
+  if (!IsTopChromeWebUIURL(site_url)) {
+    return std::nullopt;
+  }
+
+  // Prevent new spare renderer creation until page loading completes, signaled
+  // by WebContentsImpl::DidStopLoading. When enabled, delay spare renderer
+  // creation indefinitely by returning the maximum TimeDelta value.
+  if (features::kSpareRendererWarmupDelayUntilPageStopsLoading.Get()) {
+    return base::TimeDelta::Max();
+  }
+
+  // Otherwise, schedule new spare renderer creation after a predefined delay.
+  return features::kSpareRendererWarmupDelay.Get();
 }
 
 std::unique_ptr<content::CitizenNotesManagerDelegate>
@@ -6145,7 +6178,7 @@ void ChromeContentBrowserClient::
 #endif  // BUILDFLAG(ENABLE_EXTENSIONS)
 }
 
-bool ChromeContentBrowserClient::WillCreateURLLoaderFactory(
+void ChromeContentBrowserClient::WillCreateURLLoaderFactory(
     content::BrowserContext* browser_context,
     content::RenderFrameHost* frame,
     int render_process_id,
@@ -6153,15 +6186,13 @@ bool ChromeContentBrowserClient::WillCreateURLLoaderFactory(
     const url::Origin& request_initiator,
     std::optional<int64_t> navigation_id,
     ukm::SourceIdObj ukm_source_id,
-    mojo::PendingReceiver<network::mojom::URLLoaderFactory>* factory_receiver,
+    network::URLLoaderFactoryBuilder& factory_builder,
     mojo::PendingRemote<network::mojom::TrustedURLLoaderHeaderClient>*
         header_client,
     bool* bypass_redirect_checks,
     bool* disable_secure_dns,
     network::mojom::URLLoaderFactoryOverridePtr* factory_override,
     scoped_refptr<base::SequencedTaskRunner> navigation_response_task_runner) {
-  bool use_proxy = false;
-
 #if BUILDFLAG(ENABLE_EXTENSIONS)
   auto* web_request_api =
       extensions::BrowserContextKeyedAPIFactory<extensions::WebRequestAPI>::Get(
@@ -6173,17 +6204,16 @@ bool ChromeContentBrowserClient::WillCreateURLLoaderFactory(
     bool use_proxy_for_web_request =
         web_request_api->MaybeProxyURLLoaderFactory(
             browser_context, frame, render_process_id, type,
-            std::move(navigation_id), ukm_source_id, factory_receiver,
+            std::move(navigation_id), ukm_source_id, factory_builder,
             header_client, navigation_response_task_runner, request_initiator);
     if (bypass_redirect_checks)
       *bypass_redirect_checks = use_proxy_for_web_request;
-    use_proxy |= use_proxy_for_web_request;
   }
 #endif
 
-  use_proxy |= signin::ProxyingURLLoaderFactory::MaybeProxyRequest(
+  signin::ProxyingURLLoaderFactory::MaybeProxyRequest(
       frame, type == URLLoaderFactoryType::kNavigation, request_initiator,
-      factory_receiver);
+      factory_builder);
 
 #if BUILDFLAG(ENABLE_CAPTIVE_PORTAL_DETECTION)
   if (disable_secure_dns) {
@@ -6195,8 +6225,6 @@ bool ChromeContentBrowserClient::WillCreateURLLoaderFactory(
             ->is_captive_portal_window();
   }
 #endif
-
-  return use_proxy;
 }
 
 std::vector<std::unique_ptr<content::URLLoaderRequestInterceptor>>
@@ -6885,8 +6913,7 @@ bool ChromeContentBrowserClient::HandleWebUI(
 }
 
 #if BUILDFLAG(IS_CHROMEOS)
-content::SmartCardDelegate* ChromeContentBrowserClient::GetSmartCardDelegate(
-    content::BrowserContext* browser_context) {
+content::SmartCardDelegate* ChromeContentBrowserClient::GetSmartCardDelegate() {
   if (!smart_card_delegate_) {
     smart_card_delegate_ = std::make_unique<ChromeOsSmartCardDelegate>();
   }
@@ -7218,12 +7245,10 @@ ui::AXMode ChromeContentBrowserClient::GetAXModeForBrowserContext(
     ax_mode.set_mode(ui::AXMode::kLabelImages, true);
   }
 #if BUILDFLAG(ENABLE_SCREEN_AI_SERVICE)
-  if (features::IsPdfOcrEnabled() &&
-      (accessibility_state_utils::IsScreenReaderEnabled() ||
-       (features::IsAccessibilityPdfOcrForSelectToSpeakEnabled() &&
-        accessibility_state_utils::IsSelectToSpeakEnabled()))) {
-    // PdfOcrController will be created when the user turns on a screen reader
-    // before or even after starting the browser.
+  if (features::IsPdfOcrEnabled()) {
+    // PdfOcrController will be enabled when the user turns on a screen reader
+    // or any other accessibility feature that needs it; before or even after
+    // starting the browser.
     auto* pdf_ocr_controller =
         screen_ai::PdfOcrControllerFactory::GetForProfile(profile);
     if (pdf_ocr_controller && pdf_ocr_controller->IsEnabled()) {
@@ -7487,11 +7512,16 @@ bool ChromeContentBrowserClient::IsClipboardCopyAllowed(
     const GURL& url,
     size_t data_size_in_bytes,
     std::u16string& replacement_data) {
+#if BUILDFLAG(ENTERPRISE_DATA_CONTROLS)
+  return enterprise_data_protection::IsClipboardCopyAllowedByPolicy(
+      browser_context, url, data_size_in_bytes, replacement_data);
+#else
   ClipboardRestrictionService* service =
       ClipboardRestrictionServiceFactory::GetInstance()->GetForBrowserContext(
           browser_context);
   return service->IsUrlAllowedToCopy(url, data_size_in_bytes,
                                      &replacement_data);
+#endif  // BUILDFLAG(ENTERPRISE_DATA_CONTROLS)
 }
 
 #if BUILDFLAG(ENABLE_VR)

@@ -5,6 +5,7 @@
 #include "components/webapps/browser/banners/app_banner_manager.h"
 
 #include <algorithm>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -38,7 +39,6 @@
 #include "mojo/public/cpp/bindings/pending_remote.h"
 #include "mojo/public/cpp/bindings/remote.h"
 #include "services/service_manager/public/cpp/interface_provider.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 #include "third_party/blink/public/common/manifest/manifest_util.h"
 #include "third_party/blink/public/common/permissions_policy/permissions_policy.h"
 #include "third_party/blink/public/mojom/installation/installation.mojom.h"
@@ -391,7 +391,9 @@ void AppBannerManager::OnDidGetManifest(const InstallableData& data) {
   if (content::HasWebUIScheme(validated_url_) &&
       (validated_url_.host() ==
        password_manager::kChromeUIPasswordManagerHost)) {
-    if (IsWebAppConsideredInstalled()) {
+    if (WebappsClient::Get()->IsWebAppConsideredFullyInstalled(
+            web_contents()->GetBrowserContext(), manifest_->start_url,
+            manifest_id_)) {
       TrackDisplayEvent(DISPLAY_EVENT_INSTALLED_PREVIOUSLY);
       SetInstallableWebAppCheckResult(
           InstallableWebAppCheckResult::kNo_AlreadyInstalled);
@@ -455,7 +457,11 @@ void AppBannerManager::OnDidPerformInstallableWebAppCheck(
     return;
   }
 
-  if (IsWebAppConsideredInstalled() && !ShouldAllowWebAppReplacementInstall()) {
+  WebappsClient* client = WebappsClient::Get();
+  if (client->IsWebAppConsideredFullyInstalled(
+          web_contents()->GetBrowserContext(), manifest().start_url,
+          manifest_id_) &&
+      !ShouldAllowWebAppReplacementInstall()) {
     TrackDisplayEvent(DISPLAY_EVENT_INSTALLED_PREVIOUSLY);
     SetInstallableWebAppCheckResult(
         InstallableWebAppCheckResult::kNo_AlreadyInstalled);

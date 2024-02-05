@@ -11,6 +11,7 @@ import androidx.annotation.VisibleForTesting;
 
 import org.chromium.base.BundleUtils;
 import org.chromium.base.ObserverList;
+import org.chromium.chrome.browser.lifecycle.ActivityLifecycleDispatcher;
 import org.chromium.chrome.browser.readaloud.ReadAloudPrefs;
 import org.chromium.chrome.browser.readaloud.player.expanded.ExpandedPlayerCoordinator;
 import org.chromium.chrome.browser.readaloud.player.mini.MiniPlayerCoordinator;
@@ -39,6 +40,7 @@ public class PlayerCoordinator implements Player {
     private Playback mPlayback;
     private boolean mRestoreMiniPlayer;
     private boolean mRestoreExpandedPlayer;
+    private final ActivityLifecycleDispatcher mActivityLifecycleDispatcher;
 
     // TODO remove internal call and then remove this constructor
     public PlayerCoordinator(
@@ -69,6 +71,10 @@ public class PlayerCoordinator implements Player {
         mExpandedPlayer = new ExpandedPlayerCoordinator(contextForInflation, delegate, model);
         mMediator = new PlayerMediator(/* coordinator= */ this, delegate, model);
         mDelegate = delegate;
+        mActivityLifecycleDispatcher = delegate.getActivityLifecycleDispatcher();
+        if (mActivityLifecycleDispatcher != null) {
+            mActivityLifecycleDispatcher.register(mExpandedPlayer);
+        }
     }
 
     @VisibleForTesting
@@ -82,6 +88,10 @@ public class PlayerCoordinator implements Player {
         mMediator = mediator;
         mDelegate = delegate;
         mExpandedPlayer = player;
+        mActivityLifecycleDispatcher = delegate.getActivityLifecycleDispatcher();
+        if (mActivityLifecycleDispatcher != null) {
+            mActivityLifecycleDispatcher.register(mExpandedPlayer);
+        }
     }
 
     @Override
@@ -99,6 +109,9 @@ public class PlayerCoordinator implements Player {
         dismissPlayers();
         mMediator.destroy();
         mMiniPlayer.destroy();
+        if (mActivityLifecycleDispatcher != null) {
+            mActivityLifecycleDispatcher.unregister(mExpandedPlayer);
+        }
     }
 
     @Override
@@ -106,7 +119,7 @@ public class PlayerCoordinator implements Player {
         mMediator.setPlayback(null);
         mMediator.setPlaybackState(PlaybackListener.State.BUFFERING);
         if (!mExpandedPlayer.anySheetShowing()) {
-            mMiniPlayer.show(true);
+            mMiniPlayer.show(/* animate= */ true);
         }
     }
 
@@ -131,12 +144,12 @@ public class PlayerCoordinator implements Player {
     /** Show expanded player. */
     void expand() {
         mExpandedPlayer.show();
-        mMiniPlayer.dismiss(true);
+        mMiniPlayer.dismiss(/* animate= */ false);
     }
 
     @Override
     public void restoreMiniPlayer() {
-        mMiniPlayer.show(true);
+        mMiniPlayer.show(/* animate= */ true);
         mMediator.setHiddenAndPlaying(false);
     }
 
@@ -146,7 +159,7 @@ public class PlayerCoordinator implements Player {
         // dismissed when stopping the playback.
         mMediator.setPlayback(null);
         mMediator.setPlaybackState(PlaybackListener.State.STOPPED);
-        mMiniPlayer.dismiss(true);
+        mMiniPlayer.dismiss(/* animate= */ true);
         mExpandedPlayer.dismiss();
         mMediator.setHiddenAndPlaying(false);
     }
@@ -156,8 +169,8 @@ public class PlayerCoordinator implements Player {
         int miniPlayerVisibility = mMiniPlayer.getVisibility();
         if (miniPlayerVisibility == VisibilityState.SHOWING
                 || miniPlayerVisibility == VisibilityState.VISIBLE) {
-        mMiniPlayer.dismiss(true);
-        mMediator.setHiddenAndPlaying(true);
+            mMiniPlayer.dismiss(/* animate= */ true);
+            mMediator.setHiddenAndPlaying(true);
         }
     }
 
@@ -174,7 +187,7 @@ public class PlayerCoordinator implements Player {
                 || miniPlayerVisibility == VisibilityState.VISIBLE) {
             mRestoreMiniPlayer = true;
             mRestoreExpandedPlayer = false;
-            mMiniPlayer.dismiss(true);
+            mMiniPlayer.dismiss(/* animate= */ true);
         }
 
         mMediator.setHiddenAndPlaying(true);
@@ -190,6 +203,11 @@ public class PlayerCoordinator implements Player {
             mRestoreExpandedPlayer = false;
             mMediator.setHiddenAndPlaying(false);
         }
+    }
+
+    @Override
+    public void onScreenStatusChanged(boolean isScreenLocked) {
+        mMediator.onScreenStatusChanged(isScreenLocked);
     }
 
     /** To be called when the close button is clicked. */

@@ -11,11 +11,6 @@
 
 namespace flag_descriptions {
 
-const char kAppStoreRatingName[] = "Enable the App Store Rating promo.";
-const char kAppStoreRatingDescription[] =
-    "When enabled, App Store Rating promo will be presented to eligible "
-    "users.";
-
 const char kAutofillCreditCardUploadName[] =
     "Offers uploading Autofilled credit cards";
 const char kAutofillCreditCardUploadDescription[] =
@@ -148,12 +143,6 @@ const char kBottomOmniboxDefaultSettingDescription[] =
     "hasn't already changed the setting, changes the omnibox position to top "
     "or bottom of the screen on iPhone. The default is top omnibox.";
 
-const char kBottomOmniboxDeviceSwitcherResultsName[] =
-    "Bottom omnibox device switcher results.";
-const char kBottomOmniboxDeviceSwitcherResultsDescription[] =
-    "Enabled by default. Retrieve device switcher results for the default "
-    "omnibox position.";
-
 const char kBottomOmniboxPromoAppLaunchName[] =
     "Bottom omnibox promo app-launch";
 const char kBottomOmniboxPromoAppLaunchDescription[] =
@@ -173,10 +162,6 @@ const char kBottomOmniboxPromoRegionFilterName[] =
 const char kBottomOmniboxPromoRegionFilterDescription[] =
     "When enabled the bottom omnibox promo is limited to some regions.";
 
-const char kBottomOmniboxSteadyStateName[] = "Bottom Omnibox (Steady)";
-const char kBottomOmniboxSteadyStateDescription[] =
-    "Move the omnibox to the bottom in steady state";
-
 const char kSpotlightDonateNewIntentsName[] = "Donate New Spotlight Intents";
 const char kSpotlightDonateNewIntentsDescription[] =
     "Donates relevant intents to Siri when corresponding features are used";
@@ -193,12 +178,6 @@ extern const char kAppleCalendarExperienceKitName[] =
 extern const char kAppleCalendarExperienceKitDescription[] =
     "When enabled, long pressing on dates will trigger Experience Kit Apple "
     "Calendar event handling.";
-
-const char kClearUndecryptablePasswordsOnSyncName[] =
-    "Enable cleaning up of password store on initial Sync";
-const char kClearUndecryptablePasswordsOnSyncDescription[] =
-    "Once password sync starts for the first time, the currently undecryptable "
-    "passwords will be silently cleaned up";
 
 const char kContentPushNotificationsName[] = "Content Push Notifications";
 const char kContentPushNotificationsDescription[] =
@@ -243,12 +222,6 @@ const char kEnableFamilyLinkControlsDescription[] =
 extern const char kOneTapForMapsName[] = "Enable one Tap Experience for Maps";
 extern const char kOneTapForMapsDescription[] =
     "Enables the one tap experience for maps experience kit.";
-
-const char kUseAnnotationsForLanguageDetectionName[] =
-    "Enable Shared Web Page Text Fetching";
-const char kUseAnnotationsForLanguageDetectionDescription[] =
-    "When enabled, both full page intent detection and language detection will "
-    "use the same text manager to fetch web page text.";
 
 const char kEnablePopoutOmniboxIpadName[] = "Popout omnibox (iPad)";
 const char kEnablePopoutOmniboxIpadDescription[] =
@@ -558,12 +531,6 @@ const char kIOSPasswordBottomSheetAutofocusName[] =
     "IOS Password Manager Bottom Sheet Autofocus";
 const char kIOSPasswordBottomSheetAutofocusDescription[] =
     "Enables triggering the password bottom sheet on autofocus on IOS.";
-
-const char kIOSPasswordSettingsBulkUploadLocalPasswordsName[] =
-    "iOS Bulk Upload Local Passwords";
-const char kIOSPasswordSettingsBulkUploadLocalPasswordsDescription[] =
-    "Enables bulk uploading local passwords for eligible users in the iOS "
-    "password settings.";
 
 const char kIOSPasswordSignInUffName[] = "Password sign-in uff";
 const char kIOSPasswordSignInUffDescription[] =
@@ -905,12 +872,6 @@ const char kShowAutofillTypePredictionsDescription[] =
     "Annotates web forms with Autofill field type predictions as placeholder "
     "text.";
 
-const char kSkipUndecryptablePasswordsName[] =
-    "Enable silent ignoring of undecryptable passwords";
-const char kSkipUndecryptablePasswordsDescription[] =
-    "The password store will silently skip undecryptable passwords when "
-    "reading them";
-
 const char kSpotlightOpenTabsSourceName[] = "Show Open local tabs in Spotlight";
 const char kSpotlightOpenTabsSourceDescription[] =
     "Donate local open tabs items to iOS Search Engine Spotlight";
@@ -918,6 +879,12 @@ const char kSpotlightOpenTabsSourceDescription[] =
 const char kSpotlightReadingListSourceName[] = "Show Reading List in Spotlight";
 const char kSpotlightReadingListSourceDescription[] =
     "Donate Reading List items to iOS Search Engine Spotlight";
+
+const char kSyncRememberCustomPassphraseAfterSignoutName[] =
+    "Remember custom passphrase after sign-out";
+const char kSyncRememberCustomPassphraseAfterSignoutDescription[] =
+    "Remember custom passphrase after sign-out, instead of asking the user to "
+    "re-enter it after every sign-in.";
 
 const char kSyncSandboxName[] = "Use Chrome Sync sandbox";
 const char kSyncSandboxDescription[] =

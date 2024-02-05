@@ -5,10 +5,12 @@
 package org.chromium.chrome.browser.readaloud.player.expanded;
 
 import android.content.Context;
+import android.content.res.Configuration;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
+import org.chromium.chrome.browser.lifecycle.ConfigurationChangedObserver;
 import org.chromium.chrome.browser.readaloud.player.InteractionHandler;
 import org.chromium.chrome.browser.readaloud.player.PlayerProperties;
 import org.chromium.chrome.browser.readaloud.player.VisibilityState;
@@ -21,7 +23,7 @@ import org.chromium.ui.modelutil.PropertyKey;
 import org.chromium.ui.modelutil.PropertyModel;
 import org.chromium.ui.modelutil.PropertyModelChangeProcessor;
 
-public class ExpandedPlayerCoordinator {
+public class ExpandedPlayerCoordinator implements ConfigurationChangedObserver {
     private final Context mContext;
     private final Delegate mDelegate;
     private boolean mSheetVisible;
@@ -41,19 +43,26 @@ public class ExpandedPlayerCoordinator {
                         mMediator.setShowMiniPlayerOnDismiss(true);
                     }
 
+                    // If showing the player again, resume player UI updates.
+                    if (newContent == mSheetContent) {
+                        mMediator.setHiddenAndPlaying(false);
+                    }
+
                     mTrackedContent = newContent;
                 }
 
                 @Override
                 public void onSheetOpened(@StateChangeReason int reason) {
                     mSheetVisible = true;
-                    if (mTrackedContent == mSheetContent) {
-                        mMediator.setVisibility(VisibilityState.VISIBLE);
-                    }
 
                     InteractionHandler handler = mModel.get(PlayerProperties.INTERACTION_HANDLER);
                     if (handler != null) {
                         handler.onShouldHideMiniPlayer();
+                    }
+
+                    if (mTrackedContent == mSheetContent) {
+                        mMediator.setVisibility(VisibilityState.VISIBLE);
+                        mMediator.setHiddenAndPlaying(false);
                     }
                 }
 
@@ -143,5 +152,10 @@ public class ExpandedPlayerCoordinator {
     @VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
     void setSheetContent(ExpandedPlayerSheetContent sheetContent) {
         mSheetContent = sheetContent;
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        mSheetContent.onOrientationChange(newConfig.orientation);
     }
 }

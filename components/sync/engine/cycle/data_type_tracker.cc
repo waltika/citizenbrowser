@@ -102,6 +102,7 @@ base::TimeDelta GetDefaultLocalChangeNudgeDelay(ModelType model_type) {
     case SECURITY_EVENTS:
     case WIFI_CONFIGURATIONS:
     case WEB_APPS:
+    case WEB_APKS:
     case OS_PREFERENCES:
     case OS_PRIORITY_PREFERENCES:
     case WORKSPACE_DESK:
@@ -161,6 +162,7 @@ bool CanGetCommitsFromExtensions(ModelType model_type) {
     case SECURITY_EVENTS:
     case WIFI_CONFIGURATIONS:
     case WEB_APPS:
+    case WEB_APKS:
     case OS_PREFERENCES:
     case OS_PRIORITY_PREFERENCES:
     case WORKSPACE_DESK:
@@ -409,9 +411,9 @@ void DataTypeTracker::SetLocalChangeNudgeDelayIgnoringMinForTest(
 }
 
 void DataTypeTracker::SetQuotaParamsIfExtensionType(
-    absl::optional<int> max_tokens,
-    absl::optional<base::TimeDelta> refill_interval,
-    absl::optional<base::TimeDelta> depleted_quota_nudge_delay) {
+    std::optional<int> max_tokens,
+    std::optional<base::TimeDelta> refill_interval,
+    std::optional<base::TimeDelta> depleted_quota_nudge_delay) {
   if (!quota_) {
     return;
   }

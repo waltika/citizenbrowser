@@ -148,10 +148,6 @@ BASE_FEATURE(kEnableStartupImprovements,
              "EnableStartupImprovements",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-BASE_FEATURE(kEnableExpKitAppleCalendar,
-             "EnableExpKitAppleCalendar",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 BASE_FEATURE(kTCRexKillSwitch,
              "kTCRexKillSwitch",
              base::FEATURE_DISABLED_BY_DEFAULT);
@@ -217,10 +213,6 @@ BASE_FEATURE(kNewNTPOmniboxLayout,
              "kNewNTPOmniboxLayout",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
-BASE_FEATURE(kBottomOmniboxSteadyState,
-             "BottomOmniboxSteadyState",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 const char kBottomOmniboxDefaultSettingParam[] =
     "BottomOmniboxDefaultSettingParam";
 const char kBottomOmniboxDefaultSettingParamTop[] = "Top";
@@ -231,21 +223,11 @@ BASE_FEATURE(kBottomOmniboxDefaultSetting,
              "BottomOmniboxDefaultSetting",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-BASE_FEATURE(kBottomOmniboxDeviceSwitcherResults,
-             "BottomOmniboxDeviceSwitcherResults",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 bool IsBottomOmniboxSteadyStateEnabled() {
   // Bottom omnibox is only available on phones.
-  if (ui::GetDeviceFormFactor() != ui::DEVICE_FORM_FACTOR_PHONE) {
-    return false;
-  }
-  return base::FeatureList::IsEnabled(kBottomOmniboxSteadyState);
-}
-
-bool IsBottomOmniboxDeviceSwitcherResultsEnabled() {
-  return IsBottomOmniboxSteadyStateEnabled() &&
-         base::FeatureList::IsEnabled(kBottomOmniboxDeviceSwitcherResults);
+  // TODO(crbug.com/1508532): Cleanup usage of this function as the feature flag
+  // is now enabled by default.
+  return ui::GetDeviceFormFactor() == ui::DEVICE_FORM_FACTOR_PHONE;
 }
 
 BASE_FEATURE(kBottomOmniboxPromoFRE,

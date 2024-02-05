@@ -8,6 +8,7 @@
 #include <memory>
 
 #include "base/memory/weak_ptr.h"
+#include "base/time/time.h"
 #include "components/safe_browsing/content/browser/url_checker_on_sb.h"
 #include "components/security_interstitials/core/unsafe_resource.h"
 #include "content/public/browser/web_contents.h"
@@ -44,6 +45,11 @@ class AsyncCheckTracker
   static bool IsMainPageLoadPending(
       const security_interstitials::UnsafeResource& resource);
 
+  // Returns the timestamp when the navigation associated with `resource` is
+  // committed. Returns nullopt if the navigation has not committed.
+  static std::optional<base::TimeTicks> GetBlockedPageCommittedTimestamp(
+      const security_interstitials::UnsafeResource& resource);
+
   AsyncCheckTracker(const AsyncCheckTracker&) = delete;
   AsyncCheckTracker& operator=(const AsyncCheckTracker&) = delete;
 
@@ -60,8 +66,12 @@ class AsyncCheckTracker
   // Returns whether navigation is pending.
   bool IsNavigationPending(int64_t navigation_id);
 
+  // Returns the time when the navigation is committed. Returns nullopt if the
+  // navigation has not yet committed.
+  std::optional<base::TimeTicks> GetNavigationCommittedTimestamp(
+      int64_t navigation_id);
+
   // content::WebContentsObserver methods:
-  void DidStartNavigation(content::NavigationHandle* handle) override;
   void DidFinishNavigation(content::NavigationHandle* handle) override;
 
   size_t PendingCheckersSizeForTesting();
@@ -72,6 +82,7 @@ class AsyncCheckTracker
   friend class content::WebContentsUserData<AsyncCheckTracker>;
   friend class SBBrowserUrlLoaderThrottleTestBase;
   friend class AsyncCheckTrackerTest;
+  friend class SafeBrowsingBlockingPageTestHelper;
 
   AsyncCheckTracker(content::WebContents* web_contents,
                     scoped_refptr<BaseUIManager> ui_manager);
@@ -82,10 +93,23 @@ class AsyncCheckTracker
 
   // Deletes all pending checkers in `pending_checkers_` except the checker that
   // is keyed by `excluded_navigation_id`.
-  void DeletePendingCheckers(absl::optional<int64_t> excluded_navigation_id);
+  void DeletePendingCheckers(std::optional<int64_t> excluded_navigation_id);
+
+  // Displays an interstitial if there is unsafe resource associated with
+  // `redirect_chain` and `navigation_id`.
+  void MaybeDisplayBlockingPage(const std::vector<GURL>& redirect_chain,
+                                int64_t navigation_id);
 
   // Displays an interstitial on `resource`.
   void DisplayBlockingPage(security_interstitials::UnsafeResource resource);
+
+  // Sets callback to be used once all checkers are completed. Used only for
+  // tests.
+  void SetOnAllCheckersCompletedForTesting(base::OnceClosure callback);
+
+  // May call |on_all_checkers_completed_callback_for_testing_| if there are no
+  // |pending_checkers_| remaining.
+  void MaybeCallOnAllCheckersCompletedCallback();
 
   // Used to display a warning.
   scoped_refptr<BaseUIManager> ui_manager_;
@@ -98,8 +122,15 @@ class AsyncCheckTracker
   // called. Reset to false after interstitial is triggered.
   bool show_interstitial_after_finish_navigation_ = false;
 
-  // A set of navigation ids that are pending.
-  base::flat_set<int64_t> pending_navigation_ids_;
+  // Time when a navigation is committed, keyed by the navigation_id.
+  // Whether a navigation id is in the map can be used to determine if a
+  // navigation has committed. The time when the navigation has committed is
+  // used for logging metrics.
+  base::flat_map<int64_t, base::TimeTicks> committed_navigation_timestamps_;
+
+  // Callback that is called once all checkers are completed. Used only for
+  // tests.
+  base::OnceClosure on_all_checkers_completed_callback_for_testing_;
 
   base::WeakPtrFactory<AsyncCheckTracker> weak_factory_{this};
 

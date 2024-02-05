@@ -43,6 +43,7 @@ class ExternalVkImageBacking final : public ClearTrackingSharedImageBacking {
       GrSurfaceOrigin surface_origin,
       SkAlphaType alpha_type,
       uint32_t usage,
+      std::string debug_label,
       const base::flat_map<VkFormat, VkImageUsageFlags>& image_usage_cache,
       base::span<const uint8_t> pixel_data);
 
@@ -57,6 +58,7 @@ class ExternalVkImageBacking final : public ClearTrackingSharedImageBacking {
       GrSurfaceOrigin surface_origin,
       SkAlphaType alpha_type,
       uint32_t usage,
+      std::string debug_label,
       std::optional<gfx::BufferUsage> buffer_usage = std::nullopt);
 
   static std::unique_ptr<ExternalVkImageBacking> CreateWithPixmap(
@@ -70,6 +72,7 @@ class ExternalVkImageBacking final : public ClearTrackingSharedImageBacking {
       GrSurfaceOrigin surface_origin,
       SkAlphaType alpha_type,
       uint32_t usage,
+      std::string debug_label,
       gfx::BufferUsage buffer_usage);
 
   ExternalVkImageBacking(
@@ -81,6 +84,7 @@ class ExternalVkImageBacking final : public ClearTrackingSharedImageBacking {
       GrSurfaceOrigin surface_origin,
       SkAlphaType alpha_type,
       uint32_t usage,
+      std::string debug_label,
       size_t estimated_size_bytes,
       scoped_refptr<SharedContextState> context_state,
       std::vector<TextureHolderVk> vk_textures,
@@ -121,7 +125,8 @@ class ExternalVkImageBacking final : public ClearTrackingSharedImageBacking {
       return !use_separate_gl_texture() && !gl_textures_.empty();
     }
 
-    if ((usage() & SHARED_IMAGE_USAGE_RASTER) &&
+    if ((usage() &
+         (SHARED_IMAGE_USAGE_RASTER_READ | SHARED_IMAGE_USAGE_RASTER_WRITE)) &&
         (usage() & SHARED_IMAGE_USAGE_SCANOUT)) {
       return true;
     }

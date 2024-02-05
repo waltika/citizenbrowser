@@ -17,6 +17,7 @@
 #include "base/strings/utf_string_conversions.h"
 #include "base/test/bind.h"
 #include "base/test/icu_test_util.h"
+#include "base/test/run_until.h"
 #include "base/test/test_future.h"
 #include "base/test/test_timeouts.h"
 #include "build/build_config.h"
@@ -1775,6 +1776,28 @@ class WebAppFrameToolbarBrowserTest_AdditionalWindowingControls
         browser(), std::move(web_app_info), start_url);
   }
 
+  bool RunUntil(base::FunctionRef<bool(void)> condition) {
+    // TODO(crbug.com/1519551):`base::test::RunUntil` is flaky on Mac.
+#if BUILDFLAG(IS_MAC)
+    while (!condition()) {
+      base::test::TestFuture<void> future;
+      base::SingleThreadTaskRunner::GetCurrentDefault()->PostDelayedTask(
+          FROM_HERE, future.GetCallback(), TestTimeouts::tiny_timeout());
+      if (!future.Wait()) {
+        return false;  // Timed out.
+      }
+    }
+    return true;
+#else
+    return base::test::RunUntil(condition);
+#endif
+  }
+
+  bool MatchMediaMatches(content::WebContents* web_contents,
+                         std::string match_media_script) {
+    return EvalJs(web_contents, match_media_script).ExtractBool();
+  }
+
   void SetResizableAndWait(content::WebContents* web_contents,
                            bool resizable,
                            bool expected) {
@@ -1782,19 +1805,12 @@ class WebAppFrameToolbarBrowserTest_AdditionalWindowingControls
         content::JsReplace("window.setResizable($1)", resizable);
     EXPECT_TRUE(ExecJs(web_contents, set_resizable_script));
     content::WaitForLoadStop(web_contents);
-
-    auto MatchMediaMatches = [&web_contents, &expected]() {
-      auto match_media_script = content::JsReplace(
-          "window.matchMedia('(resizable: $1)').matches", expected);
-      return EvalJs(web_contents, match_media_script).ExtractBool();
-    };
-
-    while (!MatchMediaMatches()) {
-      base::RunLoop run_loop;
-      base::SingleThreadTaskRunner::GetCurrentDefault()->PostDelayedTask(
-          FROM_HERE, run_loop.QuitClosure(), TestTimeouts::tiny_timeout());
-      run_loop.Run();
-    }
+    RunUntil([&]() {
+      return MatchMediaMatches(
+          web_contents,
+          content::JsReplace("window.matchMedia('(resizable: $1)').matches",
+                             expected));
+    });
   }
 
   void CheckCanResize(bool browser_view_can_resize_expected,
@@ -1945,9 +1961,6 @@ IN_PROC_BROWSER_TEST_F(
   }
 }
 
-// TODO(crbug.com/1466855): Disabled on non-Aura due to WaitForResizeComplete()
-// not being implemented.
-#if defined(USE_AURA)
 IN_PROC_BROWSER_TEST_F(
     WebAppFrameToolbarBrowserTest_AdditionalWindowingControls,
     WindowSetResizableBlocksResizeToAndResizeByApis) {
@@ -1964,7 +1977,9 @@ IN_PROC_BROWSER_TEST_F(
 
   // Set the initial window size to something != 1000x1000.
   EXPECT_TRUE(ExecJs(web_contents, "window.resizeTo(800,800);"));
-  WaitForResizeComplete(web_contents);
+  EXPECT_TRUE(RunUntil([&]() {
+    return EvalJs(web_contents, "window.outerWidth").ExtractInt() == 800;
+  }));
 
   gfx::Size client_view_size_before =
       browser_view->frame()->client_view()->size();
@@ -1974,13 +1989,13 @@ IN_PROC_BROWSER_TEST_F(
 
   // window.resizeTo API no longer takes action.
   EXPECT_TRUE(ExecJs(web_contents, "window.resizeTo(1000,1000);"));
-  WaitForResizeComplete(web_contents);
+  base::RunLoop().RunUntilIdle();
   EXPECT_TRUE(CheckAreSameSize(client_view_size_before,
                                browser_view->frame()->client_view()->size()));
 
   // window.resizeBy API no longer takes action.
   EXPECT_TRUE(ExecJs(web_contents, "window.resizeBy(10,10);"));
-  WaitForResizeComplete(web_contents);
+  base::RunLoop().RunUntilIdle();
   EXPECT_TRUE(CheckAreSameSize(client_view_size_before,
                                browser_view->frame()->client_view()->size()));
 }
@@ -1996,11 +2011,18 @@ IN_PROC_BROWSER_TEST_F(
   browser_view->SetCanResize(true);
   auto* web_contents = browser_view->GetActiveWebContents();
 
+  auto ScreenXYMatches = [&web_contents](const gfx::Point point) {
+    return EvalJs(web_contents, "window.screenX").ExtractInt() == point.x() &&
+           EvalJs(web_contents, "window.screenY").ExtractInt() == point.y();
+  };
+
   // Set the initial window size to something small and close to the origin of
   // the screen.
   EXPECT_TRUE(ExecJs(web_contents, "window.resizeTo(100,100);"));
-  EXPECT_TRUE(ExecJs(web_contents, "window.moveTo(10,10);"));
-  WaitForResizeComplete(web_contents);
+  EXPECT_TRUE(ExecJs(web_contents, "window.moveTo(50,50);"));
+  gfx::Point initial_pos(50, 50);
+  EXPECT_TRUE(RunUntil([&]() { return ScreenXYMatches(initial_pos); }));
+
   int initial_pos_x = EvalJs(web_contents, "window.screenX").ExtractInt();
   int initial_pos_y = EvalJs(web_contents, "window.screenY").ExtractInt();
 
@@ -2009,19 +2031,143 @@ IN_PROC_BROWSER_TEST_F(
 
   // window.moveBy API still takes action.
   EXPECT_TRUE(ExecJs(web_contents, "window.moveBy(10,10);"));
-  WaitForResizeComplete(web_contents);
+  EXPECT_TRUE(RunUntil([&]() {
+    return ScreenXYMatches(
+        gfx::Point(initial_pos.x() + 10, initial_pos.y() + 10));
+  }));
+
   EXPECT_EQ(EvalJs(web_contents, "window.screenX").ExtractInt(),
             initial_pos_x + 10);
   EXPECT_EQ(EvalJs(web_contents, "window.screenY").ExtractInt(),
             initial_pos_y + 10);
 
   // window.moveTo API still takes action.
-  EXPECT_TRUE(ExecJs(web_contents, "window.moveTo(10,10);"));
-  WaitForResizeComplete(web_contents);
-  EXPECT_EQ(EvalJs(web_contents, "window.screenX").ExtractInt(), initial_pos_x);
-  EXPECT_EQ(EvalJs(web_contents, "window.screenY").ExtractInt(), initial_pos_y);
+  EXPECT_TRUE(ExecJs(web_contents, "window.moveTo(50,50);"));
+  EXPECT_TRUE(RunUntil([&]() { return ScreenXYMatches(initial_pos); }));
 }
-#endif  // defined(USE_AURA)
+
+IN_PROC_BROWSER_TEST_F(
+    WebAppFrameToolbarBrowserTest_AdditionalWindowingControls,
+    MinimizeWindowWithApi) {
+  InstallAndLaunchWebApp();
+  helper()->GrantWindowManagementPermission();
+  auto* web_contents = helper()->browser_view()->GetActiveWebContents();
+
+  // Ensure minimizing is allowed.
+  helper()->browser_view()->SetCanMinimize(true);
+  EXPECT_TRUE(helper()->browser_view()->CanMinimize());
+  content::WaitForLoadStop(web_contents);
+
+  // Minimize window
+  EXPECT_TRUE(ExecJs(web_contents, "window.minimize()"));
+  EXPECT_TRUE(
+      RunUntil([&]() { return helper()->browser_view()->IsMinimized(); }));
+
+  // On Windows the minimizing seems to be so fast that it doesn't have
+  // sufficient time to update the CSS before it already minimized.
+#if !BUILDFLAG(IS_WIN)
+  EXPECT_TRUE(RunUntil([&]() {
+    return MatchMediaMatches(
+        web_contents,
+        "window.matchMedia('(display-state: minimized)').matches");
+  }));
+#endif
+}
+
+IN_PROC_BROWSER_TEST_F(
+    WebAppFrameToolbarBrowserTest_AdditionalWindowingControls,
+    MaximizeAndRestoreWindowWithApi) {
+  InstallAndLaunchWebApp();
+  helper()->GrantWindowManagementPermission();
+  auto* web_contents = helper()->browser_view()->GetActiveWebContents();
+
+  // Ensure maximizing is allowed.
+  helper()->browser_view()->SetCanMaximize(true);
+  EXPECT_TRUE(helper()->browser_view()->CanMaximize());
+  content::WaitForLoadStop(web_contents);
+
+  // Maximize window
+  EXPECT_TRUE(ExecJs(web_contents, "window.maximize()"));
+  EXPECT_TRUE(
+      RunUntil([&]() { return helper()->browser_view()->IsMaximized(); }));
+  EXPECT_TRUE(RunUntil([&]() {
+    return MatchMediaMatches(
+        web_contents,
+        "window.matchMedia('(display-state: maximized)').matches");
+  }));
+
+  // Restore window
+  EXPECT_TRUE(ExecJs(web_contents, "window.restore()"));
+  EXPECT_TRUE(
+      RunUntil([&]() { return !helper()->browser_view()->IsMaximized(); }));
+  EXPECT_TRUE(RunUntil([&]() {
+    return MatchMediaMatches(
+        web_contents, "window.matchMedia('(display-state: normal)').matches");
+  }));
+}
+
+#if !BUILDFLAG(IS_MAC)
+IN_PROC_BROWSER_TEST_F(
+    WebAppFrameToolbarBrowserTest_AdditionalWindowingControls,
+    WindowSetResizableBlocksMaximizingNormalWindow) {
+  InstallAndLaunchWebApp();
+  helper()->GrantWindowManagementPermission();
+
+  auto* browser_view = helper()->browser_view();
+  browser_view->SetCanResize(true);
+  browser_view->SetCanMaximize(true);
+  auto* web_contents = browser_view->GetActiveWebContents();
+
+  // Restore window to make sure we start from the normal state.
+  EXPECT_TRUE(ExecJs(web_contents, "window.restore()"));
+  EXPECT_TRUE(
+      RunUntil([&]() { return !helper()->browser_view()->IsMaximized(); }));
+  EXPECT_TRUE(RunUntil([&]() {
+    return MatchMediaMatches(
+        web_contents, "window.matchMedia('(display-state: normal)').matches");
+  }));
+
+  // Block resizing
+  SetResizableAndWait(web_contents, /*resizable=*/false, /*expected=*/false);
+  CheckCanResize(false, false);
+
+  // window.maximize() API no longer takes action
+  EXPECT_TRUE(ExecJs(web_contents, "window.maximize()"));
+  base::RunLoop().RunUntilIdle();
+  EXPECT_FALSE(browser_view->IsMaximized());
+}
+
+IN_PROC_BROWSER_TEST_F(
+    WebAppFrameToolbarBrowserTest_AdditionalWindowingControls,
+    WindowSetResizableBlocksRestoringMaximizedWindow) {
+  InstallAndLaunchWebApp();
+  helper()->GrantWindowManagementPermission();
+
+  auto* browser_view = helper()->browser_view();
+  browser_view->SetCanResize(true);
+  browser_view->SetCanMaximize(true);
+  auto* web_contents = browser_view->GetActiveWebContents();
+
+  // Maximize window
+  EXPECT_TRUE(ExecJs(web_contents, "window.maximize()"));
+  EXPECT_TRUE(
+      RunUntil([&]() { return helper()->browser_view()->IsMaximized(); }));
+  EXPECT_TRUE(RunUntil([&]() {
+    return MatchMediaMatches(
+        web_contents,
+        "window.matchMedia('(display-state: maximized)').matches");
+  }));
+
+  // Block resizing
+  SetResizableAndWait(web_contents, /*resizable=*/false, /*expected=*/false);
+  CheckCanResize(false, false);
+
+  // window.restore() API no longer takes action
+  EXPECT_TRUE(ExecJs(web_contents, "window.restore()"));
+  base::RunLoop().RunUntilIdle();
+  EXPECT_TRUE(browser_view->IsMaximized());
+}
+#endif  // !BUILDFLAG(IS_MAC)
 #endif  // !BUILDFLAG(IS_ANDROID)
 
 class OriginTextVisibilityWaiter : public views::ViewObserver {

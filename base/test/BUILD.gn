@@ -301,6 +301,7 @@ static_library("test_support") {
     sources += [
       "../fuchsia/test_component_context_for_process.cc",
       "../fuchsia/test_component_context_for_process.h",
+      "fidl_matchers.h",
       "scoped_dev_zero_fuchsia.cc",
       "scoped_dev_zero_fuchsia.h",
     ]
@@ -639,6 +640,7 @@ if (is_android) {
     ]
 
     sources = [
+      "android/javatests/src/org/chromium/base/test/transit/BatchedPublicTransitRule.java",
       "android/javatests/src/org/chromium/base/test/transit/CallbackCondition.java",
       "android/javatests/src/org/chromium/base/test/transit/Condition.java",
       "android/javatests/src/org/chromium/base/test/transit/ConditionChecker.java",

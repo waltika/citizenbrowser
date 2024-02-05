@@ -30,6 +30,7 @@
 #include "net/base/network_change_notifier.h"
 #include "net/base/network_handle.h"
 #include "net/base/proxy_server.h"
+#include "net/base/session_usage.h"
 #include "net/cert/cert_database.h"
 #include "net/dns/public/secure_dns_policy.h"
 #include "net/http/http_server_properties.h"
@@ -134,22 +135,22 @@ class NET_EXPORT_PRIVATE QuicSessionRequest {
 
   ~QuicSessionRequest();
 
-  // |cert_verify_flags| is bitwise OR'd of CertVerifier::VerifyFlags and it is
+  // `cert_verify_flags` is bitwise OR'd of CertVerifier::VerifyFlags and it is
   // passed to CertVerifier::Verify.
-  // |destination| will be resolved and resulting IPEndPoint used to open a
+  // `destination` will be resolved and resulting IPEndPoint used to open a
   // quic::QuicConnection.  This can be different than
   // HostPortPair::FromURL(url).
-  // When |use_dns_aliases| is true, any DNS aliases found in host resolution
-  // are stored in the |dns_aliases_by_session_key_| map. |use_dns_aliases|
-  // should be false in the case of a proxy.
+  // When `session_usage` is `kDestination`, any DNS aliases found in host
+  // resolution are stored in the `dns_aliases_by_session_key_` map.
   int Request(url::SchemeHostPort destination,
               quic::ParsedQuicVersion quic_version,
+              const ProxyChain& proxy_chain,
+              SessionUsage session_usage,
               PrivacyMode privacy_mode,
               RequestPriority priority,
               const SocketTag& socket_tag,
               const NetworkAnonymizationKey& network_anonymization_key,
               SecureDnsPolicy secure_dns_policy,
-              bool use_dns_aliases,
               bool require_dns_https_alpn,
               int cert_verify_flags,
               const GURL& url,
@@ -167,14 +168,6 @@ class NET_EXPORT_PRIVATE QuicSessionRequest {
   // ERR_IO_PENDING.
   bool WaitForHostResolution(CompletionOnceCallback callback);
 
-  // Tells QuicSessionRequest it should expect OnHostResolutionComplete()
-  // to be called in the future.
-  void ExpectOnHostResolution();
-
-  // Will be called by the associated QuicSessionPool::Job when host
-  // resolution completes asynchronously after Request().
-  void OnHostResolutionComplete(int rv);
-
   // This function must be called after Request() returns ERR_IO_PENDING.
   // Returns true if no QUIC session has been created yet. If true is returned,
   // `callback` will be run when the QUIC session has been created and will be
@@ -183,12 +176,31 @@ class NET_EXPORT_PRIVATE QuicSessionRequest {
   // `callback` will be run with ERR_IO_PENDING.
   bool WaitForQuicSessionCreation(CompletionOnceCallback callback);
 
-  // Tells QuicSessionRequest it should expect OnQuicSessionCreationComplete()
-  // to be called in the future.
+  // QuicSessionPool::Jobs may notify associated requests at two points in the
+  // connection process before completion: host resolution and session creation.
+  // The `Expect` methods below inform the request whether it should expect
+  // these notifications.
+
+  // Tells QuicSessionRequest that `QuicSessionPool::Job` will call
+  // `OnHostResolutionComplete()` in the future. Must be called before
+  // `WaitForHostResolution()`
+  void ExpectOnHostResolution();
+
+  // Will be called by the associated `QuicSessionPool::Job` when host
+  // resolution completes asynchronously after Request(), if
+  // `ExpectOnHostResolution()` was called. This is called after the Job can
+  // make no further progress, and includes the result of that progress, perhaps
+  // `ERR_IO_PENDING`.
+  void OnHostResolutionComplete(int rv);
+
+  // Tells QuicSessionRequest that `QuicSessionPool::Job` will call
+  // `OnQuicSessionCreationComplete()` in the future. Must be called before
+  // `WaitForQuicSessionCreation()`.
   void ExpectQuicSessionCreation();
 
-  // Will be called by the associated QuicSessionPool::Job when session
-  // creation completes asynchronously after Request().
+  // Will be called by the associated `QuicSessionPool::Job` when session
+  // creation completes asynchronously after Request(), if
+  // `ExpectQuicSessionCreation` was called.
   void OnQuicSessionCreationComplete(int rv);
 
   void OnRequestComplete(int rv);
@@ -220,7 +232,9 @@ class NET_EXPORT_PRIVATE QuicSessionRequest {
 
   bool CanUseExistingSession(
       const GURL& url,
+      const ProxyChain& proxy_chain,
       PrivacyMode privacy_mode,
+      SessionUsage session_usage,
       const SocketTag& socket_tag,
       const NetworkAnonymizationKey& network_anonymization_key,
       SecureDnsPolicy secure_dns_policy,

@@ -56,6 +56,7 @@ import './os_people_page/os_sync_controls_subpage.js';
 import './os_people_page/os_sync_subpage.js';
 import './os_privacy_page/manage_users_subpage.js';
 import './os_privacy_page/privacy_hub_camera_subpage.js';
+import './os_privacy_page/privacy_hub_geolocation_advanced_subpage.js';
 import './os_privacy_page/privacy_hub_geolocation_subpage.js';
 import './os_privacy_page/privacy_hub_microphone_subpage.js';
 import './os_privacy_page/privacy_hub_subpage.js';
@@ -126,17 +127,11 @@ import './os_printing_page/cups_printers_entry.js';
 import './os_printing_page/cups_saved_printers.js';
 import './os_printing_page/cups_settings_add_printer_dialog.js';
 import './os_printing_page/printer_status.js';
+import './os_privacy_page/secure_dns.js';
+import './os_privacy_page/secure_dns_input.js';
 import './os_reset_page/os_powerwash_dialog.js';
 import './os_reset_page/os_powerwash_dialog_esim_item.js';
-import '/shared/settings/privacy_page/secure_dns.js';
-import '/shared/settings/privacy_page/secure_dns_input.js';
 
-/**
- * With the optimize_webui() build step, the generated JS files are bundled
- * into a single JS file. The exports below are necessary so they can be
- * imported into browser tests.
- */
-export {SettingsRadioGroupElement} from '/shared/settings/controls/settings_radio_group.js';
 export {LifetimeBrowserProxyImpl} from '/shared/settings/lifetime_browser_proxy.js';
 export {NetworkListElement} from 'chrome://resources/ash/common/network/network_list.js';
 export {AddSmbShareDialogElement} from 'chrome://resources/ash/common/smb_shares/add_smb_share_dialog.js';
@@ -148,6 +143,12 @@ export {AppManagementSupportedLinksOverlappingAppsDialogElement} from 'chrome://
 export {sanitizeInnerHtml} from 'chrome://resources/js/parse_html_subset.js';
 export {AppLanguageSelectionDialogElement} from './common/app_language_selection_dialog/app_language_selection_dialog.js';
 export {AppLanguageSelectionItemElement} from './common/app_language_selection_dialog/app_language_selection_item.js';
+/**
+ * With the optimize_webui() build step, the generated JS files are bundled
+ * into a single JS file. The exports below are necessary so they can be
+ * imported into browser tests.
+ */
+export {SettingsRadioGroupElement} from './controls/settings_radio_group.js';
 export {BruschettaSubpageElement} from './crostini_page/bruschetta_subpage.js';
 export {SettingsCrostiniArcAdbElement} from './crostini_page/crostini_arc_adb.js';
 export {CrostiniBrowserProxy, CrostiniBrowserProxyImpl, CrostiniDiskInfo, CrostiniPortActiveSetting, CrostiniPortProtocol, CrostiniPortSetting} from './crostini_page/crostini_browser_proxy.js';
@@ -312,9 +313,13 @@ export {SettingsManageUsersSubpageElement} from './os_privacy_page/manage_users_
 export {MediaDevicesProxy} from './os_privacy_page/media_devices_proxy.js';
 export {PrivacyHubBrowserProxy, PrivacyHubBrowserProxyImpl} from './os_privacy_page/privacy_hub_browser_proxy.js';
 export {SettingsPrivacyHubCameraSubpage} from './os_privacy_page/privacy_hub_camera_subpage.js';
+export {SettingsPrivacyHubGeolocationAdvancedSubpage} from './os_privacy_page/privacy_hub_geolocation_advanced_subpage.js';
 export {SettingsPrivacyHubGeolocationSubpage} from './os_privacy_page/privacy_hub_geolocation_subpage.js';
 export {SettingsPrivacyHubMicrophoneSubpage} from './os_privacy_page/privacy_hub_microphone_subpage.js';
 export {SettingsPrivacyHubSubpage} from './os_privacy_page/privacy_hub_subpage.js';
+export {SecureDnsResolverType, SettingsSecureDnsElement} from './os_privacy_page/secure_dns.js';
+export {SettingsSecureDnsDialogElement} from './os_privacy_page/secure_dns_dialog.js';
+export {SecureDnsInputElement} from './os_privacy_page/secure_dns_input.js';
 export {SettingsSmartPrivacySubpage} from './os_privacy_page/smart_privacy_subpage.js';
 export {OsSettingsPowerwashDialogElement} from './os_reset_page/os_powerwash_dialog.js';
 export {OsResetBrowserProxyImpl} from './os_reset_page/os_reset_browser_proxy.js';

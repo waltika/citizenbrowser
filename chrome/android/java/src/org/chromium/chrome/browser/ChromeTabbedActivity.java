@@ -6,6 +6,7 @@ package org.chromium.chrome.browser;
 
 import static org.chromium.chrome.browser.ui.IncognitoRestoreAppLaunchDrawBlocker.IS_INCOGNITO_SELECTED;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.ShortcutManager;
 import android.content.res.Configuration;
@@ -109,6 +110,7 @@ import org.chromium.chrome.browser.homepage.HomepageManager;
 import org.chromium.chrome.browser.hub.DefaultPaneOrderController;
 import org.chromium.chrome.browser.hub.HubFieldTrial;
 import org.chromium.chrome.browser.hub.HubLayoutDependencyHolder;
+import org.chromium.chrome.browser.hub.HubManager;
 import org.chromium.chrome.browser.hub.HubProvider;
 import org.chromium.chrome.browser.hub.Pane;
 import org.chromium.chrome.browser.hub.PaneId;
@@ -123,6 +125,7 @@ import org.chromium.chrome.browser.init.ActivityProfileProvider;
 import org.chromium.chrome.browser.layouts.LayoutStateProvider;
 import org.chromium.chrome.browser.layouts.LayoutType;
 import org.chromium.chrome.browser.lifecycle.ActivityLifecycleDispatcher;
+import org.chromium.chrome.browser.lifecycle.ActivityLifecycleDispatcher.ActivityState;
 import org.chromium.chrome.browser.locale.LocaleManager;
 import org.chromium.chrome.browser.magic_stack.ModuleDelegate.ModuleType;
 import org.chromium.chrome.browser.magic_stack.ModuleRegistry;
@@ -186,6 +189,7 @@ import org.chromium.chrome.browser.tabmodel.ChromeTabCreator.OverviewNtpCreator;
 import org.chromium.chrome.browser.tabmodel.IncognitoTabHost;
 import org.chromium.chrome.browser.tabmodel.IncognitoTabHostRegistry;
 import org.chromium.chrome.browser.tabmodel.IncognitoTabHostUtils;
+import org.chromium.chrome.browser.tabmodel.MismatchedIndicesHandler;
 import org.chromium.chrome.browser.tabmodel.NextTabPolicy.NextTabPolicySupplier;
 import org.chromium.chrome.browser.tabmodel.TabModel;
 import org.chromium.chrome.browser.tabmodel.TabModelSelector;
@@ -258,10 +262,11 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * This is the main activity for ChromeMobile when not running in document mode.  All the tabs
- * are accessible via a chrome specific tab switching UI.
+ * This is the main activity for ChromeMobile when not running in document mode. All the tabs are
+ * accessible via a chrome specific tab switching UI.
  */
-public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent> {
+public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent>
+        implements MismatchedIndicesHandler {
     private static final String TAG = "ChromeTabbedActivity";
 
     protected static final String WINDOW_INDEX = "window_index";
@@ -302,6 +307,8 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
 
     private static final String TAG_MULTI_INSTANCE = "MultiInstance";
     private static final String SOURCE_ACTIVITY_REFERRER_OS = "android-app://android";
+
+    private static final long BACK_TO_BACK_CTA_CREATION_TIMESTAMP_DIFF_THRESHOLD_MS = 1000;
 
     /**
      * Identifies a histogram to use in {@link #maybeDispatchExplicitMainViewIntent(Intent, int)}.
@@ -397,6 +404,7 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
     private ObservableSupplierImpl<Tab> mStartSurfaceParentTabSupplier =
             new ObservableSupplierImpl<>();
     private HubProvider mHubProvider;
+    private OneshotSupplierImpl<HubManager> mHubManagerSupplier = new OneshotSupplierImpl<>();
     private ObservableSupplierImpl<TabModelStartupInfo> mTabModelStartupInfoSupplier;
     // Calls isStartSurfaceRefactorEnabled() instead of using this variable directly.
     private Boolean mIsStartSurfaceRefactorEnabled;
@@ -819,7 +827,7 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
                             toolbarContainerView,
                             tabHoverCardViewStub,
                             getWindowAndroid(),
-                            getToolbarManager().getTabStripHeightSupplier());
+                            getToolbarManager());
             mLayoutStateProviderSupplier.set(mLayoutManager);
         }
     }
@@ -905,6 +913,12 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
                         () -> {
                             return createTabSwitcherPane(true);
                         }));
+        mHubProvider
+                .getHubManagerSupplier()
+                .onAvailable(
+                        manager -> {
+                            mHubManagerSupplier.set(manager);
+                        });
     }
 
     private Pane createTabSwitcherPane(boolean isIncognito) {
@@ -1489,12 +1503,18 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
      * has left Chrome for a while.
      */
     private void setInitialOverviewStateWithNtp() {
-        ReturnToChromeUtil.setInitialOverviewStateOnResumeWithNtp(
-                mTabModelSelector.isIncognitoSelected(),
-                shouldShowNtpHomeSurfaceOnStartup(),
-                getCurrentTabModel(),
-                getTabCreator(false),
-                mHomeSurfaceTracker);
+        boolean showedNtp =
+                ReturnToChromeUtil.setInitialOverviewStateOnResumeWithNtp(
+                        mTabModelSelector.isIncognitoSelected(),
+                        shouldShowNtpHomeSurfaceOnStartup(),
+                        getCurrentTabModel(),
+                        getTabCreator(false),
+                        mHomeSurfaceTracker);
+        if (showedNtp
+                && HubFieldTrial.isHubEnabled()
+                && mLayoutManager.isLayoutVisible(LayoutType.TAB_SWITCHER)) {
+            mLayoutManager.showLayout(LayoutType.BROWSING, /* animate= */ false);
+        }
     }
 
     private void logMainIntentBehavior(Intent intent) {
@@ -2042,7 +2062,12 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
         // Android FrameMetrics allow tracking of java views and their deadline misses (frame
         // drops/janks).
         if (ChromeFeatureList.sCollectAndroidFrameTimelineMetrics.isEnabled()) {
-            mJankTracker = new JankTrackerImpl(this);
+            // We delay initialization because we have noticed a impact on started up, but this
+            // metric collection isn't critical. Delaying gets us past start up and lets Chrome's
+            // scheduler decide its priority.
+            mJankTracker =
+                    new JankTrackerImpl(
+                            this, JankTrackerExperiment.JANK_TRACKER_DELAYED_START_MS.getValue());
         } else {
             mJankTracker = new PlaceholderJankTracker();
         }
@@ -2096,6 +2121,7 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
                 mStartSurfaceSupplier,
                 mTabSwitcherSupplier,
                 mIncognitoTabSwitcherSupplier,
+                mHubManagerSupplier,
                 mIntentMetadataOneshotSupplier,
                 mLayoutStateProviderSupplier,
                 mStartSurfaceParentTabSupplier,
@@ -2343,6 +2369,7 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
                         getProfileProviderSupplier(),
                         this,
                         mNextTabPolicySupplier,
+                        this,
                         mWindowId);
         if (!tabModelWasCreated) {
             finishAndRemoveTask();
@@ -2727,8 +2754,7 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
                                 + " AsyncInitializationActivity#onCreate() that could potentially"
                                 + " create a new Chrome instance.\n"
                                 + logMessage;
-                ChromePureJavaExceptionReporter.reportJavaException(
-                        new Throwable(logMessage), /* withLogWarning= */ true);
+                ChromePureJavaExceptionReporter.reportJavaException(new Throwable(logMessage));
             } else if (isMainIntent) {
                 logMessage =
                         "This is not a crash. Logging info for MAIN intent received in"
@@ -2736,8 +2762,7 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
                                 + " AsyncInitializationActivity#onCreate() that could potentially"
                                 + " create a new Chrome instance.\n"
                                 + logMessage;
-                ChromePureJavaExceptionReporter.reportJavaException(
-                        new Throwable(logMessage), /* withLogWarning= */ true);
+                ChromePureJavaExceptionReporter.reportJavaException(new Throwable(logMessage));
             }
         }
     }
@@ -2948,7 +2973,7 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
 
             new QuickDeleteController(
                     this,
-                    new QuickDeleteDelegateImpl(),
+                    new QuickDeleteDelegateImpl(mTabSwitcherSupplier),
                     getModalDialogManager(),
                     getSnackbarManager(),
                     getLayoutManager(),
@@ -3833,6 +3858,39 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
         ShortcutManager shortcutManager = getSystemService(ShortcutManager.class);
         shortcutManager.reportShortcutUsed(
                 isIncognito ? "new-incognito-tab-shortcut" : "new-tab-shortcut");
+    }
+
+    @Override
+    public boolean handleMismatchedIndices(Activity preLaunchedActivity) {
+        if (!ChromeFeatureList.sTabWindowManagerIndexReassignmentOnMismatch.isEnabled()
+                || !(preLaunchedActivity instanceof ChromeTabbedActivity preLaunchedTabbedActivity)
+                || !preLaunchedActivity.isFinishing()) {
+            return false;
+        }
+
+        // Destroy the TabPersistentStore instance maintained by the finishing activity. Save the
+        // tab state first to align with the current flow of execution when the store is destroyed.
+        var tabModelOrchestrator =
+                preLaunchedTabbedActivity.getTabModelOrchestratorSupplier().get();
+        // If the two activities launched within a short span, simply destroy the persistent store
+        // instance of the finishing activity, assuming no changes have been made to the tab state
+        // during this time.
+        // TODO (crbug.com/1520923): Add a histogram to track the time difference to possibly refine
+        // the threshold value, and also make this Finch configurable.
+        long onCreateTimeDelta =
+                Math.abs(
+                        preLaunchedTabbedActivity.getOnCreateTimestampMs()
+                                - this.getOnCreateTimestampMs());
+        boolean shouldSaveState =
+                preLaunchedTabbedActivity.getLifecycleDispatcher().getCurrentActivityState()
+                        < ActivityState.STOPPED_WITH_NATIVE;
+        if (shouldSaveState
+                && onCreateTimeDelta > BACK_TO_BACK_CTA_CREATION_TIMESTAMP_DIFF_THRESHOLD_MS) {
+            // Save state only if #onStopWithNative() that invokes this, has not run yet.
+            tabModelOrchestrator.getTabPersistentStore().saveState();
+        }
+        tabModelOrchestrator.destroyTabPersistentStore();
+        return true;
     }
 
     public MultiInstanceManager getMultiInstanceMangerForTesting() {

@@ -16,6 +16,7 @@ import android.graphics.PointF;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
+import android.os.SystemClock;
 import android.util.DisplayMetrics;
 import android.view.DragEvent;
 import android.view.View;
@@ -66,6 +67,7 @@ public class TabDragSource implements View.OnDragListener {
     private MultiInstanceManager mMultiInstanceManager;
     private DragAndDropDelegate mDragAndDropDelegate;
     private Supplier<StripLayoutHelper> mStripLayoutHelperSupplier;
+    private Supplier<Boolean> mStripLayoutVisibilitySupplier;
     private Supplier<TabContentManager> mTabContentManagerSupplier;
     private Supplier<LayerTitleCache> mLayerTitleCacheSupplier;
     private BrowserControlsStateProvider mBrowserControlStateProvider;
@@ -89,6 +91,8 @@ public class TabDragSource implements View.OnDragListener {
     private int mLastAction;
     private boolean mHoveringInStrip;
     private boolean mIsDeviceSamsung;
+    // Local state used by Drag Drop metrics. Not-null when a tab dragging is in progress.
+    private @Nullable DragLocalUmaState mUmaState;
 
     /**
      * Prepares the toolbar view to listen to the drag events and data drop after the drag is
@@ -108,6 +112,7 @@ public class TabDragSource implements View.OnDragListener {
     public TabDragSource(
             @NonNull Context context,
             @NonNull Supplier<StripLayoutHelper> stripLayoutHelperSupplier,
+            @NonNull Supplier<Boolean> stripLayoutVisibilitySupplier,
             @NonNull Supplier<TabContentManager> tabContentManagerSupplier,
             @NonNull Supplier<LayerTitleCache> layerTitleCacheSupplier,
             @NonNull MultiInstanceManager multiInstanceManager,
@@ -118,6 +123,7 @@ public class TabDragSource implements View.OnDragListener {
         mPxToDp = 1.f / context.getResources().getDisplayMetrics().density;
         mTabStripHeightSupplier = tabStripHeightSupplier;
         mStripLayoutHelperSupplier = stripLayoutHelperSupplier;
+        mStripLayoutVisibilitySupplier = stripLayoutVisibilitySupplier;
         mTabContentManagerSupplier = tabContentManagerSupplier;
         mLayerTitleCacheSupplier = layerTitleCacheSupplier;
         mMultiInstanceManager = multiInstanceManager;
@@ -224,6 +230,7 @@ public class TabDragSource implements View.OnDragListener {
                 res =
                         onDragStart(
                                 dragEvent.getX(), dragEvent.getY(), dragEvent.getClipDescription());
+                if (res) mUmaState = new DragLocalUmaState();
                 break;
             case DragEvent.ACTION_DRAG_ENDED:
                 res =
@@ -233,6 +240,7 @@ public class TabDragSource implements View.OnDragListener {
                                 dragEvent.getY(),
                                 dragEvent.getResult(),
                                 mLastAction == DragEvent.ACTION_DRAG_EXITED);
+                mUmaState = null;
                 break;
             case DragEvent.ACTION_DRAG_ENTERED:
                 // We'll trigger #onDragEnter when handling the following ACTION_DRAG_LOCATION so we
@@ -285,9 +293,13 @@ public class TabDragSource implements View.OnDragListener {
             return false;
         }
 
-        // Return false when dropping onto strip is disabled to not receive further events until
-        // dragEnd.
-        if (!isDragSource()) return !TabUiFeatureUtilities.DISABLE_STRIP_TO_STRIP_DD.getValue();
+        // Return true only when the tab strip is visible and dropping onto strip is not disabled.
+        // Otherwise, return false to not receive further events until dragEnd.
+        if (!isDragSource()) {
+            return Boolean.TRUE.equals(mStripLayoutVisibilitySupplier.get())
+                    && !TabUiFeatureUtilities.DISABLE_STRIP_TO_STRIP_DD.getValue();
+        }
+
         mStartScreenPos = new PointF(xPx, yPx);
         mLastXDp = xPx * mPxToDp;
         return true;
@@ -295,7 +307,11 @@ public class TabDragSource implements View.OnDragListener {
 
     private boolean onDragEnter(float xPx) {
         mHoveringInStrip = true;
-        if (isDragSource() || TabUiFeatureUtilities.isTabDragAsWindowEnabled()) {
+        boolean isDragSource = isDragSource();
+        if (!isDragSource && mUmaState.mTabEnteringDestStripSystemElapsedTime < 0) {
+            mUmaState.mTabEnteringDestStripSystemElapsedTime = SystemClock.elapsedRealtime();
+        }
+        if (isDragSource || TabUiFeatureUtilities.isTabDragAsWindowEnabled()) {
             showDragShadow(false);
         }
         mStripLayoutHelperSupplier
@@ -304,7 +320,7 @@ public class TabDragSource implements View.OnDragListener {
                         LayoutManagerImpl.time(),
                         xPx * mPxToDp,
                         mLastXDp,
-                        isDragSource(),
+                        isDragSource,
                         isDraggedTabIncognito());
         return true;
     }
@@ -328,7 +344,10 @@ public class TabDragSource implements View.OnDragListener {
         int groupRootId = helper.getTabDropGroupId();
         helper.onUpOrCancel(LayoutManagerImpl.time());
 
-        if (isDragSource()) return true;
+        if (isDragSource()) {
+            DragDropMetricUtils.recordTabReorderStripWithDragDrop(mUmaState.mDragEverLeftStrip);
+            return true;
+        }
 
         if (dropEvent.getClipDescription() == null
                 || !dropEvent.getClipDescription().hasMimeType(MimeTypeUtils.CHROME_MIMETYPE_TAB)) {
@@ -359,6 +378,7 @@ public class TabDragSource implements View.OnDragListener {
             helper.mergeToGroupForTabDropIfNeeded(groupRootId, tabBeingDragged.getId(), tabIndex);
         }
         DragDropMetricUtils.recordTabDragDropType(DragDropType.TAB_STRIP_TO_TAB_STRIP);
+        mUmaState.mTabLeavingDestStripSystemElapsedTime = SystemClock.elapsedRealtime();
         return true;
     }
 
@@ -368,7 +388,18 @@ public class TabDragSource implements View.OnDragListener {
 
         // No-op for destination strip. Note: If we add updates for target strip, also check for
         // !TabUiFeatureUtilities.DISABLE_STRIP_TO_STRIP_DD.getValue()
-        if (!isDragSource()) return false;
+        if (!isDragSource()) {
+            if (mUmaState.mTabEnteringDestStripSystemElapsedTime > 0
+                    && mUmaState.mTabLeavingDestStripSystemElapsedTime > 0) {
+                long duration =
+                        mUmaState.mTabLeavingDestStripSystemElapsedTime
+                                - mUmaState.mTabEnteringDestStripSystemElapsedTime;
+                assert duration >= 0
+                        : "Duration when the drag is within the destination strip is invalid";
+                DragDropMetricUtils.recordTabDurationWithinDestStrip(duration);
+            }
+            return false;
+        }
 
         // If tab was dragged and dropped out of source toolbar but the drop was not handled,
         // move to a new window.
@@ -403,6 +434,10 @@ public class TabDragSource implements View.OnDragListener {
 
     private boolean onDragExit() {
         mHoveringInStrip = false;
+        mUmaState.mDragEverLeftStrip = true;
+        if (!isDragSource()) {
+            mUmaState.mTabLeavingDestStripSystemElapsedTime = SystemClock.elapsedRealtime();
+        }
         // Show drag shadow when drag exits strip.
         showDragShadow(true);
         mStripLayoutHelperSupplier
@@ -651,5 +686,20 @@ public class TabDragSource implements View.OnDragListener {
 
     View getShadowViewForTesting() {
         return mShadowView;
+    }
+
+    static class DragLocalUmaState {
+        // Whether the tab drag has ever left the source strip.
+        boolean mDragEverLeftStrip;
+        // The SystemElapsedTime when the tab dragged first enters the destination strip.
+        long mTabEnteringDestStripSystemElapsedTime;
+        // The SystemElapsedTime when the tab dragged exits or drops into the destination strip.
+        long mTabLeavingDestStripSystemElapsedTime;
+
+        DragLocalUmaState() {
+            mDragEverLeftStrip = false;
+            mTabEnteringDestStripSystemElapsedTime = -1;
+            mTabLeavingDestStripSystemElapsedTime = -1;
+        }
     }
 }

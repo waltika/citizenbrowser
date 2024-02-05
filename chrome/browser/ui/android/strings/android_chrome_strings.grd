@@ -1476,8 +1476,11 @@ Your Google account may have other forms of browsing history like searches and a
       <message name="IDS_SAFETY_CHECK_UPDATES_TITLE" desc="Title for the updates section.">
         Updates
       </message>
-      <message name="IDS_SAFETY_CHECK_PASSWORDS_TITLE" desc="Title for the passwords section.">
+      <message name="IDS_SAFETY_CHECK_PASSWORDS_TITLE" desc="Title for the passwords check for the local passwords stored on user's device only.">
         Passwords
+      </message>
+      <message name="IDS_SAFETY_CHECK_PASSWORDS_ACCOUNT_TITLE" desc="Title for the passwords check for the synced passwords stored in the user's account store.">
+        Passwords saved on <ph name="USERNAME">%1$s<ex>elisa.becket@gmail.com</ex></ph>.
       </message>
       <message name="IDS_SAFETY_CHECK_BUTTON" desc="Text for the button to start Safety check.">
         Check now
@@ -1909,11 +1912,14 @@ Your Google account may have other forms of browsing history like searches and a
       <message name="IDS_OPEN_DOWNLOAD_DIALOG_TITLE" desc="Title of the dialog for asking user to confirm they want to open a downloaded pdf file.">
         Open PDF?
       </message>
-      <message name="IDS_OPEN_DOWNLOAD_DIALOG_TEXT" desc="Message shown on a dialog to ask user to confirm they want to open a downloaded pdf file.">
-        Chrome can open your downloaded PDF
+      <message name="IDS_OPEN_DOWNLOAD_WITH_APP_DIALOG_TITLE" desc="Title of the dialog for asking user to confirm they want to open a downloaded pdf file with another app.">
+        Open PDF with <ph name="APP_NAME">%1$s<ex>Drive PDF Viewer</ex></ph>?
       </message>
       <message name="IDS_OPEN_DOWNLOAD_DIALOG_OPEN_TEXT" desc="Text label for the button on the open download dialog for user to open the downloaded pdf.">
         Open
+      </message>
+      <message name="IDS_OPEN_DOWNLOAD_DIALOG_CONTINUE_TEXT" desc="Text label for the button on the open download dialog for user to continue to select pdf viewers to open the downloaded pdf.">
+        Continue
       </message>
       <message name="IDS_OPEN_DOWNLOAD_DIALOG_CANCEL_TEXT" desc="Text label for the button on the open download dialog for user to cancel opening a downloaded pdf.">
         Cancel
@@ -1924,8 +1930,11 @@ Your Google account may have other forms of browsing history like searches and a
       <message name="IDS_AUTO_OPEN_PDF_ENABLED_TITLE" desc="Title for preference that allows the user to indicate whether they want to automatically open a pdf after download completion if the download is triggered by an external app.">
         Automatically open PDFs
       </message>
-      <message name="IDS_AUTO_OPEN_PDF_ENABLED_DESCRIPTION" desc="Description for preference that allows the user to indicate whether they want to automatically open a pdf after download completion if the download is triggered by an external app.">
+      <message name="IDS_AUTO_OPEN_PDF_ENABLED_DESCRIPTION" desc="Description for preference that allows other apps to automatically open a pdf after download completion if the download is triggered by an external app.">
         Downloaded PDFs automatically open with one of the PDF viewers on your device
+      </message>
+      <message name="IDS_AUTO_OPEN_PDF_ENABLED_WITH_APP_DESCRIPTION" desc="Description for preference that allows another app to automatically open a pdf after download completion if the download is triggered by an external app.">
+        Downloaded PDFs automatically open with <ph name="APP_NAME">%1$s<ex>Drive PDF Viewer</ex></ph>
       </message>
 
       <!-- About Chrome preferences -->
@@ -2650,6 +2659,21 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
       </message>
       <message name="IDS_NOTIFICATION_SITE_SETTINGS_BUTTON" desc="Text of a button shown on notifications, that opens the Site Settings of the website that showed the notification. (If it isn't possible to fit within the char limit, the string will be ellipsized if 3 buttons are shown side by side, so try to ensure that the user can guess the meaning from the first 8 characters). [CHAR_LIMIT=9]">
         Settings
+      </message>
+      <message name="IDS_NOTIFICATION_UNSUBSCRIBE_BUTTON" desc="Text of a button shown by the system on all notifications, allowing the user to unsubscribe from notifications from a web site in a single click (with an option to undo later). Note: there is very little horizontal space for this button. If it isn't possible to fit within the char limit, the string will be ellipsized if 3 buttons are shown side by side, so try to ensure that the user can guess the meaning from the first 8 characters. [CHAR_LIMIT=11]">
+        Unsubscribe
+      </message>
+      <message name="IDS_NOTIFICATION_PROVISIONALLY_UNSUBSCRIBED_TITLE" desc="Title of a system notification informing the user that they have successfully unsubscribed from receiving notifications from a web site.">
+        Unsubscribed from notifications
+      </message>
+      <message name="IDS_NOTIFICATION_PROVISIONALLY_UNSUBSCRIBED_BODY" desc="Body text of a system notification informing the user that they have successfully unsubscribed from receiving notifications from a web site.">
+        You'll no longer receive notifications from <ph name="DOMAIN">%1$s<ex>example.com</ex></ph>.
+      </message>
+      <message name="IDS_NOTIFICATION_UNDO_UNSUBSCRIBE_BUTTON" desc="Label for an action button on a system notification informing the user that they have successfully unsubscribed from receiving notifications from a web site. Clicking the button allows the user to undo unsubscribing, and continue receiving notifications instead.">
+        Undo
+      </message>
+      <message name="IDS_NOTIFICATION_COMMIT_UNSUBSCRIBE_BUTTON" desc="Label for an action button on a system notification informing the user that they have successfully unsubscribed from receiving notifications from a web site. Clicking the button allows the user to acknowledge unsubscribing and dismiss this notification.">
+        Okay
       </message>
       <message name="IDS_NOTIFICATION_MANAGE_BUTTON" desc="Text of a button shown on notifications, that opens the Chrome notifications settings page. This allows users to edit notification settings when a site asks them to allow notifications. [CHAR_LIMIT=9]">
         Manage
@@ -3506,6 +3530,9 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
       <message name="IDS_CUSTOM_TAB_MINIMIZE_BUTTON_IPH_BUBBLE_TEXT" desc="The message on the text bubble shown to educate the user about the minimize button on the custom tab toolbar.">
         Minimize tab to return to it later
       </message>
+      <message name="IDS_MINIMIZE_FAILURE_TOAST" desc="Toast shown when minimizing the tab using the minimize button fails.">
+        Couldn’t minimize tab. Try again later.
+      </message>
       <message name="IDS_ADAPTIVE_TOOLBAR_BUTTON_PREFERENCE_NEW_TAB" desc="Title name for the new tab option in the preference.">
         New tab
       </message>
@@ -4063,9 +4090,6 @@ To change this setting, <ph name="BEGIN_LINK">&lt;resetlink&gt;</ph>reset sync<p
       </message>
       <message name="IDS_RDS_GLOBAL_DEFAULT_ON_MESSAGE_BUTTON" desc="Text on the button reflecting an opt-out of the default setting update.">
         Update settings
-      </message>
-      <message name="IDS_RDS_GLOBAL_OPT_IN_MESSAGE_TITLE" desc="Title of the message shown for the user to opt in to the desktop site global setting based on device conditions.">
-        Request desktop sites by default?
       </message>
       <message name="IDS_RDS_WINDOW_SETTING_MESSAGE_TITLE" desc="Title of the message shown after window setting changes the page layout from desktop to mobile.">
         Chrome will request the mobile site when the screen is narrow

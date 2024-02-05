@@ -53,6 +53,8 @@ constexpr StorageAccessResult GetStorageAccessResult(
       return StorageAccessResult::ACCESS_BLOCKED;
     case ThirdPartyCookieAllowMechanism::kAllowByExplicitSetting:
     case ThirdPartyCookieAllowMechanism::kAllowByGlobalSetting:
+    case ThirdPartyCookieAllowMechanism::
+        kAllowByEnterprisePolicyCookieAllowedForUrls:
       return StorageAccessResult::ACCESS_ALLOWED;
     case ThirdPartyCookieAllowMechanism::kAllowBy3PCDMetadata:
       return StorageAccessResult::ACCESS_ALLOWED_3PCD_METADATA_GRANT;
@@ -84,6 +86,8 @@ constexpr std::optional<SettingSource> GetSettingSource(
     case ThirdPartyCookieAllowMechanism::kNone:
     case ThirdPartyCookieAllowMechanism::kAllowByExplicitSetting:
     case ThirdPartyCookieAllowMechanism::kAllowByGlobalSetting:
+    case ThirdPartyCookieAllowMechanism::
+        kAllowByEnterprisePolicyCookieAllowedForUrls:
     case ThirdPartyCookieAllowMechanism::kAllowByStorageAccess:
     case ThirdPartyCookieAllowMechanism::kAllowByTopLevelStorageAccess:
     case ThirdPartyCookieAllowMechanism::kAllowByCORSException:
@@ -107,27 +111,17 @@ CookieSettingsBase::CookieSettingsBase()
 
 CookieSettingsBase::CookieSettingWithMetadata::CookieSettingWithMetadata(
     ContentSetting cookie_setting,
-    std::optional<ThirdPartyBlockingScope> third_party_blocking_scope,
+    bool allow_partitioned_cookies,
     bool is_explicit_setting,
     ThirdPartyCookieAllowMechanism third_party_cookie_allow_mechanism)
     : cookie_setting_(cookie_setting),
-      third_party_blocking_scope_(third_party_blocking_scope),
+      allow_partitioned_cookies_(allow_partitioned_cookies),
       is_explicit_setting_(is_explicit_setting),
-      third_party_cookie_allow_mechanism_(third_party_cookie_allow_mechanism) {
-  DCHECK(!third_party_blocking_scope_.has_value() ||
-         !IsAllowed(cookie_setting_));
-}
+      third_party_cookie_allow_mechanism_(third_party_cookie_allow_mechanism) {}
 
 bool CookieSettingsBase::CookieSettingWithMetadata::
     BlockedByThirdPartyCookieBlocking() const {
-  return !IsAllowed(cookie_setting_) && third_party_blocking_scope_.has_value();
-}
-
-bool CookieSettingsBase::CookieSettingWithMetadata::IsPartitionedStateAllowed()
-    const {
-  return IsAllowed(cookie_setting_) ||
-         third_party_blocking_scope_ ==
-             ThirdPartyBlockingScope::kUnpartitionedOnly;
+  return !IsAllowed(cookie_setting_) && allow_partitioned_cookies_;
 }
 
 // static
@@ -183,10 +177,14 @@ bool CookieSettingsBase::ShouldDeleteCookieOnExit(
   if (setting == CONTENT_SETTING_ALLOW) {
     return false;
   }
-  // Non-secure cookies are readable by secure sites. We need to check for
-  // the secure pattern if non-secure is not allowed. The section below is
-  // independent of the scheme so we can just retry from here.
-  if (scheme != net::CookieSourceScheme::kSecure) {
+  // When scheme bound cookies are not enabled, non-secure cookies are readable
+  // by secure sites. We need to check for the secure pattern if non-secure is
+  // not allowed. The section below is independent of the scheme so we can just
+  // retry from here. When scheme bound cookies are enables, this is also done
+  // if the scheme is unset.
+  if ((scheme == net::CookieSourceScheme::kNonSecure &&
+       !net::cookie_util::IsSchemeBoundCookiesEnabled()) ||
+      scheme == net::CookieSourceScheme::kUnset) {
     return ShouldDeleteCookieOnExit(cookie_settings, domain,
                                     net::CookieSourceScheme::kSecure);
   }
@@ -351,6 +349,7 @@ CookieSettingsBase::DecideAccess(const GURL& url,
                                  bool is_third_party_request,
                                  net::CookieSettingOverrides overrides,
                                  const ContentSetting& setting,
+                                 const SettingSource& setting_source,
                                  bool is_explicit_setting) const {
   CHECK(!url.SchemeIsWSOrWSS());
 
@@ -358,6 +357,10 @@ CookieSettingsBase::DecideAccess(const GURL& url,
     return BlockAllCookies{};
   }
   if (is_explicit_setting) {
+    if (setting_source == SettingSource::SETTING_SOURCE_POLICY) {
+      return AllowAllCookies{ThirdPartyCookieAllowMechanism::
+                                 kAllowByEnterprisePolicyCookieAllowedForUrls};
+    }
     return AllowAllCookies{
         ThirdPartyCookieAllowMechanism::kAllowByExplicitSetting};
   }
@@ -450,12 +453,11 @@ CookieSettingsBase::GetCookieSettingInternal(
     if (info) {
       *info = SettingInfo{};
     }
-    return CookieSettingWithMetadata{
-        /*cookie_setting=*/CONTENT_SETTING_ALLOW,
-        /*third_party_blocking_scope=*/std::nullopt,
-        /*is_explicit_setting=*/false,
-        /*third_party_cookie_allow_mechanism=*/
-        ThirdPartyCookieAllowMechanism::kNone};
+    return CookieSettingWithMetadata{/*cookie_setting=*/CONTENT_SETTING_ALLOW,
+                                     /*allow_partitioned_cookies=*/true,
+                                     /*is_explicit_setting=*/false,
+                                     /*third_party_cookie_allow_mechanism=*/
+                                     ThirdPartyCookieAllowMechanism::kNone};
   }
 
   SettingInfo setting_info;
@@ -468,7 +470,8 @@ CookieSettingsBase::GetCookieSettingInternal(
 
   const absl::variant<AllowAllCookies, AllowPartitionedCookies, BlockAllCookies>
       choice = DecideAccess(url, first_party_url, is_third_party_request,
-                            overrides, cookie_setting, is_explicit_setting);
+                            overrides, cookie_setting, setting_info.source,
+                            is_explicit_setting);
 
   if (const AllowAllCookies* allow_cookies =
           absl::get_if<AllowAllCookies>(&choice)) {
@@ -487,12 +490,12 @@ CookieSettingsBase::GetCookieSettingInternal(
     }
     const CookieSettingWithMetadata out{
         cookie_setting,
-        /*third_party_blocking_scope=*/std::nullopt,
+        /*allow_partitioned_cookies=*/true,
         is_explicit_setting,
         /*third_party_cookie_allow_mechanism=*/allow_cookies->mechanism,
     };
     CHECK(!out.BlockedByThirdPartyCookieBlocking());
-    CHECK(out.IsPartitionedStateAllowed());
+    CHECK(out.allow_partitioned_cookies());
     return out;
   }
 
@@ -504,12 +507,12 @@ CookieSettingsBase::GetCookieSettingInternal(
     }
     const CookieSettingWithMetadata out{
         CONTENT_SETTING_BLOCK,
-        ThirdPartyBlockingScope::kUnpartitionedOnly,
+        /*allow_partitioned_cookies=*/true,
         is_explicit_setting,
         ThirdPartyCookieAllowMechanism::kNone,
     };
     CHECK(out.BlockedByThirdPartyCookieBlocking());
-    CHECK(out.IsPartitionedStateAllowed());
+    CHECK(out.allow_partitioned_cookies());
     return out;
   }
 
@@ -521,12 +524,12 @@ CookieSettingsBase::GetCookieSettingInternal(
   }
   const CookieSettingWithMetadata out{
       CONTENT_SETTING_BLOCK,
-      /*third_party_blocking_scope=*/std::nullopt,
+      /*allow_partitioned_cookies=*/false,
       is_explicit_setting,
       ThirdPartyCookieAllowMechanism::kNone,
   };
   CHECK(!out.BlockedByThirdPartyCookieBlocking());
-  CHECK(!out.IsPartitionedStateAllowed());
+  CHECK(!out.allow_partitioned_cookies());
   return out;
 }
 

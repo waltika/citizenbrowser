@@ -5077,19 +5077,26 @@ be describing additional metrics about the same event.
       01/2024.
     </obsolete>
     <summary>
-      The total number times a page (whose main frame is both the outermost main
-      frame and is local) is estimated to have attempted a sync- scroll update
-      (i.e., synchronizing an effect with scroll) between navigation and First
-      Contentful Paint.
+      Counts whether a possible sync-scroll update is attempted during an
+      animation update of the outermost main frame of a page between navigation
+      and First Contentful Paint (see sync_scroll_attempt_heuristic.h for
+      details).
+
+      The heuristic is checked once per main frame update. The recorded value
+      will be either 1 or 0 for a sampled frame depending on whether the
+      heuristic determined that there was a possible sync-scroll update.
     </summary>
   </metric>
   <metric name="PossibleSynchronizedScrollCount2">
     <summary>
-      The number times a page (whose main frame is both the outermost main frame
-      and is local) is estimated to have attempted a sync- scroll update (i.e.,
-      synchronizing an effect with scroll) between navigation and First
-      Contentful Paint. We consider only effects realized by either changing
-      inline style or updating scroll offset.
+      Counts whether a possible sync-scroll update is attempted during an
+      animation update of the outermost main frame of a page between navigation
+      and First Contentful Paint (see sync_scroll_attempt_heuristic.h for
+      details).
+
+      The heuristic is checked once per main frame update. The recorded value
+      will be either 1 or 0 for a sampled frame depending on whether the
+      heuristic determined that there was a possible sync-scroll update.
     </summary>
   </metric>
   <metric name="PrePaint">
@@ -6160,40 +6167,39 @@ be describing additional metrics about the same event.
       01/2024.
     </obsolete>
     <summary>
-      The total number times a page (whose main frame is both the outermost main
-      frame and is local) is estimated to have attempted a sync- scroll update
-      (i.e., synchronizing an effect with scroll).
+      Counts whether a possible sync-scroll update is attempted during an
+      animation update of the outermost main frame of a page (see
+      sync_scroll_attempt_heuristic.h for details).
+
+      The heuristic is checked once per main frame update. The recorded value
+      will be either 1 or 0 for a sampled frame depending on whether the
+      heuristic determined that there was a possible sync-scroll update.
     </summary>
-    <aggregation>
-      <history>
-        <statistics>
-          <quantiles type="std-percentiles"/>
-        </statistics>
-      </history>
-    </aggregation>
   </metric>
   <metric name="PossibleSynchronizedScrollCount2">
     <summary>
-      The number times a page (whose main frame is both the outermost main frame
-      and is local) is estimated to have attempted a sync- scroll update (i.e.,
-      synchronizing an effect with scroll). We consider only effects realized by
-      either changing inline style or updating scroll offset.
+      Counts whether a possible sync-scroll update is attempted during an
+      animation update of the outermost main frame of a page (see
+      sync_scroll_attempt_heuristic.h for details).
+
+      The heuristic is checked once per main frame update. The recorded value
+      will be either 1 or 0 for a sampled frame depending on whether the
+      heuristic determined that there was a possible sync-scroll update.
     </summary>
-    <aggregation>
-      <history>
-        <statistics>
-          <quantiles type="std-percentiles"/>
-        </statistics>
-      </history>
-    </aggregation>
   </metric>
   <metric name="PossibleSynchronizedScrollCount2BeginMainFrame">
     <summary>
-      The number times a page (whose main frame is both the outermost main frame
-      and is local) is estimated to have attempted a sync- scroll update (i.e.,
-      synchronizing an effect with scroll) during begin main frame updates. We
-      consider only effects realized by either changing inline style or updating
-      scroll offset.
+      Counts whether a possible sync-scroll update is attempted during an
+      animation update of the outermost main frame of a page (see
+      sync_scroll_attempt_heuristic.h for details).
+
+      The heuristic is checked once per main frame update. The recorded value
+      will be either 1 or 0 for a sampled frame depending on whether the
+      heuristic determined that there was a possible sync-scroll update.
+
+      Note that since the check happens during main frame updates, there should
+      be no difference between this metric and PossibleSynchronizedScrollCount2
+      above.
     </summary>
   </metric>
   <metric name="PossibleSynchronizedScrollCountBeginMainFrame">
@@ -6203,9 +6209,17 @@ be describing additional metrics about the same event.
       Deprecated 01/2024.
     </obsolete>
     <summary>
-      The total number times a page (whose main frame is both the outermost main
-      frame and is local) is estimated to have attempted a sync- scroll update
-      (i.e., synchronizing an effect with scroll).
+      Counts whether a possible sync-scroll update is attempted during an
+      animation update of the outermost main frame of a page (see
+      sync_scroll_attempt_heuristic.h for details).
+
+      The heuristic is checked once per main frame update. The recorded value
+      will be either 1 or 0 for a sampled frame depending on whether the
+      heuristic determined that there was a possible sync-scroll update.
+
+      Note that since the check happens during main frame updates, there should
+      be no difference between this metric and PossibleSynchronizedScrollCount2
+      above.
     </summary>
   </metric>
   <metric name="PrePaint">
@@ -7876,9 +7890,11 @@ be describing additional metrics about the same event.
   <owner>chrome-compose-frontend@google.com</owner>
   <owner>petewil@chromium.org</owner>
   <owner>dewittj@chromium.org</owner>
+  <owner>carlosk@chromium.org</owner>
   <summary>
     Reported at PrimaryPageChanged (or tab destruction) if any metrics have been
-    recorded. This collects user actions in the compose feature for this page.
+    recorded. This collects user actions in the compose feature (and some of its
+    effects) for this page.
   </summary>
   <metric name="ComposeTextInserted">
     <summary>
@@ -7896,6 +7912,92 @@ be describing additional metrics about the same event.
     <summary>
       The number of times the Compose context menu item was shown for an element
       on the page. Uses exponential buckets for privacy.
+    </summary>
+  </metric>
+  <metric name="MissingFormData">
+    <summary>
+      The number of times the Compose context menu item was clicked but the
+      expected dialog was not presented because Autofill could not obtain the
+      text field's respective FormData. Uses exponential buckets for privacy.
+    </summary>
+  </metric>
+  <metric name="MissingFormFieldData">
+    <summary>
+      The number of times the Compose context menu item was clicked but the
+      expected dialog was not presented because Autofill could not obtain the
+      text field's respective FormFieldData. Uses exponential buckets for
+      privacy.
+    </summary>
+  </metric>
+</event>
+
+<event name="Compose.SessionProgress">
+  <owner>chrome-compose-frontend@google.com</owner>
+  <owner>petewil@chromium.org</owner>
+  <owner>dewittj@chromium.org</owner>
+  <summary>
+    Reported at the end of every compose session. There may be more than one
+    compose session per pageload. This collects user actions in the compose
+    dialogs for this URL.
+  </summary>
+  <metric name="Canceled" enum="Boolean">
+    <summary>
+      If the user canceled this session with the &quot;X&quot; button. This does
+      not include dismissing the dialog by losing focus.
+    </summary>
+  </metric>
+  <metric name="CasualCount">
+    <summary>
+      How many times the user pressed the &quot;shorten&quot; button in this
+      session. Uses exponential buckets for privacy.
+    </summary>
+  </metric>
+  <metric name="ComposeCount">
+    <summary>
+      How many times the user pressed the &quot;generate&quot; button in this
+      session. Uses exponential buckets for privacy.
+    </summary>
+  </metric>
+  <metric name="DialogShownCount">
+    <summary>
+      How many times the compose dialog was shown to the user. Uses exponential
+      buckets for privacy.
+    </summary>
+  </metric>
+  <metric name="FormalCount">
+    <summary>
+      How many times the user pressed the &quot;formal&quot; button in this
+      session. Uses exponential buckets for privacy.
+    </summary>
+  </metric>
+  <metric name="InsertedResults" enum="Boolean">
+    <summary>
+      If the user inserted results back to the web page in this session, either
+      by pressing the &quot;insert&quot; or &quot;replace&quot; button.
+    </summary>
+  </metric>
+  <metric name="LengthenCount">
+    <summary>
+      How many times the user pressed the &quot;elaborate&quot; button in this
+      session. Uses exponential buckets for privacy.
+    </summary>
+  </metric>
+  <metric name="RegenerateCount">
+    <summary>
+      How many times the user pressed the &quot;regenerate&quot; button in this
+      session. Uses exponential buckets for privacy.
+    </summary>
+  </metric>
+  <metric name="ShortenCount">
+    <summary>
+      How many times the user pressed the &quot;shorten&quot; button in this
+      session. Uses exponential buckets for privacy.
+    </summary>
+  </metric>
+  <metric name="UndoCount">
+    <summary>
+      How many times the user pressed the &quot;undo&quot; button in this
+      session. Uses exponential buckets for privacy.
     </summary>
   </metric>
 </event>
@@ -8468,12 +8570,12 @@ be describing additional metrics about the same event.
   </metric>
 </event>
 
-<event name="Cookies.FirstPartyPartitionedInCrossSiteContext">
+<event name="Cookies.FirstPartyPartitionedInCrossSiteContextV2">
   <owner>selya@chromium.org</owner>
   <owner>dylancutler@google.com</owner>
   <summary>
-    Recorded when a page loads that has a first-party partitioned cookie present
-    and is in a cross site context.
+    Recorded when a page loads that has a first-party partitioned cookie
+    present.
   </summary>
   <metric name="CookiePresent" enum="Boolean">
     <summary>
@@ -9077,27 +9179,62 @@ be describing additional metrics about the same event.
       then it is considered medium; if this is greater than 64 presented frames,
       then it is considered large.
     </summary>
+    <aggregation>
+      <history>
+        <statistics>
+          <quantiles type="std-percentiles"/>
+        </statistics>
+      </history>
+    </aggregation>
   </metric>
   <metric name="PredictorJankyFrameCount">
     <summary>
       The number of frames that are deemed janky to the human eye after Chrome
       has applied its scroll prediction algorithm..
     </summary>
+    <aggregation>
+      <history>
+        <statistics>
+          <quantiles type="std-percentiles"/>
+        </statistics>
+      </history>
+    </aggregation>
   </metric>
   <metric name="ScrollJank.DelayedFrameCount">
     <summary>
       The number of delayed frames.
     </summary>
+    <aggregation>
+      <history>
+        <statistics>
+          <quantiles type="std-percentiles"/>
+        </statistics>
+      </history>
+    </aggregation>
   </metric>
   <metric name="ScrollJank.MissedVsyncsMax">
     <summary>
       The maximum number of vsyncs missed during any and all janks.
     </summary>
+    <aggregation>
+      <history>
+        <statistics>
+          <quantiles type="std-percentiles"/>
+        </statistics>
+      </history>
+    </aggregation>
   </metric>
   <metric name="ScrollJank.MissedVsyncsSum">
     <summary>
       The total number of vsyncs missed during any and all janks that occurred.
     </summary>
+    <aggregation>
+      <history>
+        <statistics>
+          <quantiles type="std-percentiles"/>
+        </statistics>
+      </history>
+    </aggregation>
   </metric>
   <metric name="VsyncCount">
     <summary>
@@ -9106,6 +9243,13 @@ be describing additional metrics about the same event.
       greater than 16 and less than or equal to 64 vsyncs, then it is considered
       medium; if this is greater than 64 vsyncs, then is considered large.
     </summary>
+    <aggregation>
+      <history>
+        <statistics>
+          <quantiles type="std-percentiles"/>
+        </statistics>
+      </history>
+    </aggregation>
   </metric>
 </event>
 
@@ -9203,6 +9347,13 @@ be describing additional metrics about the same event.
       threshold, the scroll is considered fast. This also helps to determine
       what the threshold for jank should be.
     </summary>
+    <aggregation>
+      <history>
+        <statistics>
+          <quantiles type="std-percentiles"/>
+        </statistics>
+      </history>
+    </aggregation>
   </metric>
   <metric name="ScrollUpdate.MissedVsync.FrameAboveJankyThreshold2">
     <summary>
@@ -9210,6 +9361,13 @@ be describing additional metrics about the same event.
       frame relative to its neighboring frames in the sequence, if the previous
       vsync was missed.
     </summary>
+    <aggregation>
+      <history>
+        <statistics>
+          <quantiles type="std-percentiles"/>
+        </statistics>
+      </history>
+    </aggregation>
   </metric>
   <metric name="ScrollUpdate.NoMissedVsync.FrameAboveJankyThreshold2">
     <summary>
@@ -9217,6 +9375,13 @@ be describing additional metrics about the same event.
       frame relative to its neighboring frames in the sequence, if the previous
       vsync was not missed.
     </summary>
+    <aggregation>
+      <history>
+        <statistics>
+          <quantiles type="std-percentiles"/>
+        </statistics>
+      </history>
+    </aggregation>
   </metric>
 </event>
 
@@ -9526,6 +9691,27 @@ be describing additional metrics about the same event.
         </statistics>
       </history>
     </aggregation>
+  </metric>
+</event>
+
+<event name="FamilyLinkUser.BlockedContent">
+  <owner>chrome-kids-eng@google.com</owner>
+  <summary>
+    Logged whenever a page load for a supervised user had some or all of its
+    content blocked. Either MainFrameBlocked is true, or NumBlockedIframes is
+    non-zero.
+  </summary>
+  <metric name="MainFrameBlocked" enum="Boolean">
+    <summary>
+      Whether the main frame for the navigation was blocked (in which case) none
+      of the content of the site is loaded.
+    </summary>
+  </metric>
+  <metric name="NumBlockedIframes">
+    <summary>
+      The number of Iframes that were blocked by the supervised user filtering
+      logic in this page load. Exponentially bucketed.
+    </summary>
   </metric>
 </event>
 
@@ -16487,6 +16673,16 @@ be describing additional metrics about the same event.
   <metric name="NumAbandonedCarts">
     <summary>
       Number of abandoned carts associated with the cluster.
+    </summary>
+  </metric>
+  <metric name="NumTimesSeenLast24h">
+    <summary>
+      Number of times the cluster was seen by the user in the last 24 hours.
+    </summary>
+  </metric>
+  <metric name="NumTimesUsedLast24h">
+    <summary>
+      Number of times the cluster was used by the user in the last 24 hours.
     </summary>
   </metric>
   <metric name="NumTotalVisits">
@@ -26290,7 +26486,8 @@ be describing additional metrics about the same event.
 </event>
 
 <event name="Unload" singular="True">
-  <owner>kdillon@chromium.org</owner>
+  <owner>shaseley@chromium.org</owner>
+  <owner>speed-metrics-dev@chromium.org</owner>
   <summary>
     Metrics associated with a unloading in preparation for a navigation.
   </summary>

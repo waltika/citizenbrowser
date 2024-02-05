@@ -20,10 +20,8 @@ namespace blink {
 TextPainterBase::TextPainterBase(GraphicsContext& context,
                                  const Font& font,
                                  const LineRelativeOffset& text_origin,
-                                 InlinePaintContext* inline_context,
                                  bool horizontal)
-    : inline_context_(inline_context),
-      graphics_context_(context),
+    : graphics_context_(context),
       font_(font),
       text_origin_(text_origin),
       horizontal_(horizontal) {}
@@ -211,7 +209,8 @@ void TextPainterBase::PaintDecorationsOnlyLineThrough(
     return;
 
   GraphicsContextStateSaver state_saver(graphics_context_);
-  UpdateGraphicsContext(text_style, state_saver);
+  UpdateGraphicsContext(graphics_context_, text_style, state_saver,
+                        ShadowMode::kBothShadowsAndTextProper);
 
   for (wtf_size_t applied_decoration_index = 0;
        applied_decoration_index < decoration_info.AppliedDecorationCount();

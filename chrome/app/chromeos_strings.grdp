@@ -628,7 +628,7 @@
     Language
   </message>
   <message name="IDS_KEYBOARD_DROPDOWN_TITLE" desc="Title of keyboard selection dropdown menu" meaning="Small title near keyboard dropdown menu suggesting that this is a keyboard layout selector.">
-    Keyboard
+    Input method
   </message>
   <message name="IDS_COUNTRY_DROPDOWN_TITLE" desc="Title of country selection dropdown menu" meaning="Small title near country dropdown menu suggesting that this is a country selector.">
     Country
@@ -643,7 +643,7 @@
     Select language and keyboard button. Currently selected language is <ph name="LANGUAGE">$1<ex>English (United States)</ex></ph>.
   </message>
   <message name="IDS_LANGUAGE_SECTION_TITLE" desc="Title of language selection screen" meaning="A title of the dialog where user should select ChromeOS UI language and default keyboard layout during initial device setup.">
-    Choose your language &amp; keyboard
+    Language and input method
   </message>
   <message name="IDS_LANGUAGE_SECTION_HINT" desc="Under-title line on the language selection screen" meaning="A hint to the user that language files are shared among users.">
     Language files are shared among users to save disk space.
@@ -1642,9 +1642,6 @@
   </message>
   <message name="IDS_LOGIN_PASSWORD_CHANGED_INCORRECT_OLD_PASSWORD" desc="Error that is shown when incorrect old password was supplied for user cryptohome migration.">
     Incorrect password
-  </message>
-  <message name="IDS_LOGIN_PASSWORD_CHANGED_PROCEED_ANYWAY_BUTTON" desc="Button to proceed without providing old password on the password changed dialog.">
-    Proceed anyway
   </message>
   <message name="IDS_LOGIN_PASSWORD_CHANGED_TITLE" desc="Title for the password changed dialog box">
     To unlock and restore your local data, please enter your old <ph name="DEVICE_TYPE">$1<ex>Chromebook</ex></ph> password.
@@ -4607,7 +4604,7 @@
     Can't load Google Play Terms of Service
   </message>
   <message name="IDS_CONSOLIDATED_CONSENT_PLAY_LOAD_ERROR_MESSAGE" desc="Text of the Link to Goolge Privacy Policy in opt-in screen">
-    Make sure your <ph name="DEVICE_TYPE">$1<ex>Chromebook</ex></ph> is connected to the internet and try again. You can also visit play.google.com/about/play-terms on another device.
+    Make sure your <ph name="DEVICE_TYPE">$1<ex>Chromebook</ex></ph> is connected to the internet and try again. You can also visit play.google/play-terms on another device.
   </message>
 
   <!-- Guest ToS Screen -->
@@ -5568,6 +5565,9 @@
   </message>
 
   <!-- Strings for EcheApp -->
+  <message name="IDS_ECHE_APP_NAME" desc="Public facing name for the Eche App.">
+    App Streaming
+  </message>
   <message name="IDS_ECHE_APP_SCREEN_LOCK_SETTINGS_BUTTON" desc="Label for the button in the screen lock notification of EcheApp to open the settings app.">
     Settings
   </message>

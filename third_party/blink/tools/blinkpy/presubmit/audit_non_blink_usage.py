@@ -105,6 +105,7 @@ _CONFIG = [
             'base::Milliseconds',
             'base::Minutes',
             'base::Nanoseconds',
+            'base::NotFatalUntil',
             'base::OptionalFromPtr',
             'base::OptionalToPtr',
             'base::Overloaded',
@@ -1876,6 +1877,15 @@ _CONFIG = [
         ],
         'allowed': [
             'base::CommandLine',
+        ]
+    },
+    {
+        'paths': [
+            'third_party/blink/renderer/controller/blink_leak_detector.cc',
+        ],
+        'allowed': [
+            'base::CommandLine',
+            'switches::kEnableLeakDetectionHeapSnapshot',
         ]
     },
     {

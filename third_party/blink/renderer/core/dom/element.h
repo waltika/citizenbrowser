@@ -95,16 +95,15 @@ class ElementIntersectionObserverData;
 class ElementRareDataVector;
 class ExceptionState;
 class FocusOptions;
-class GetInnerHTMLOptions;
 class HTMLTemplateElement;
 class Image;
 class InputDeviceCapabilities;
 class Locale;
 class MutableCSSPropertyValueSet;
 class NamedNodeMap;
+class OutOfFlowData;
 class PointerLockOptions;
 class PopoverData;
-class PositionFallbackData;
 class PseudoElement;
 class ResizeObservation;
 class ResizeObserver;
@@ -186,16 +185,14 @@ class CORE_EXPORT Element : public ContainerNode, public Animatable {
           Document*,
           ConstructionType = kCreateElement);
 
-  // IncludeShadowRoots and ForceHtml are used as parameters for HTML
-  // serialization and parsing functions in Element and serialization.h.
-  // IncludeShadowRoots specifies whether ShadowRoots should be included in the
-  // serialized HTML.
+  // ParseDeclarativeShadowRoots specifies whether declarative shadow roots
+  // should be parsed by the HTML parser.
+  enum class ParseDeclarativeShadowRoots {
+    kDontParse = 0,
+    kParse = 1,
+  };
   // ForceHtml specifies whether the HTML parser should be used when parsing
   // markup even if we are in an XML document.
-  enum class IncludeShadowRoots {
-    kDontInclude = 0,
-    kInclude = 1,
-  };
   enum class ForceHtml {
     kDontForce = 0,
     kForce = 1,
@@ -735,14 +732,23 @@ class CORE_EXPORT Element : public ContainerNode, public Animatable {
   bool AttachDeclarativeShadowRoot(HTMLTemplateElement&,
                                    ShadowRootType,
                                    FocusDelegation,
-                                   SlotAssignmentMode);
+                                   SlotAssignmentMode,
+                                   bool serializable);
 
   ShadowRoot& CreateUserAgentShadowRoot();
-  ShadowRoot& AttachShadowRootInternal(
-      ShadowRootType,
-      FocusDelegation focus_delegation = FocusDelegation::kNone,
-      SlotAssignmentMode slot_assignment_mode = SlotAssignmentMode::kNamed,
-      CustomElementRegistry* registry = nullptr);
+  ShadowRoot& AttachShadowRootInternal(ShadowRootType,
+                                       FocusDelegation,
+                                       SlotAssignmentMode,
+                                       CustomElementRegistry*,
+                                       bool serializable);
+  // This version is for testing only, and allows easy attachment of a shadow
+  // root, specifying only the type and none of the other arguments.
+  ShadowRoot& AttachShadowRootForTesting(ShadowRootType type) {
+    return AttachShadowRootInternal(type, FocusDelegation::kNone,
+                                    SlotAssignmentMode::kNamed,
+                                    /*registry*/ nullptr,
+                                    /*serializable*/ false);
+  }
 
   // Returns the shadow root attached to this element if it is a shadow host.
   ShadowRoot* GetShadowRoot() const;
@@ -858,6 +864,7 @@ class CORE_EXPORT Element : public ContainerNode, public Animatable {
     kStyleAndLayout,
     kNoneForAccessibility,
     kNoneForIsFocused,
+    kNoneForClearingFocus,
   };
   // IsFocusable is true if the element SupportsFocus(), and is currently
   // focusable (using the mouse). This method can be called when layout is not
@@ -925,7 +932,6 @@ class CORE_EXPORT Element : public ContainerNode, public Animatable {
   String outerHTML() const;
   void setInnerHTML(const String&, ExceptionState& = ASSERT_NO_EXCEPTION);
   void setInnerHTMLWithDeclarativeShadowDOMForTesting(const String& html);
-  String getInnerHTML(const GetInnerHTMLOptions* options) const;
   void setOuterHTML(const String&, ExceptionState& = ASSERT_NO_EXCEPTION);
   // https://github.com/whatwg/html/pull/9538
   void setHTMLUnsafe(const String& html, ExceptionState&);
@@ -1197,8 +1203,8 @@ class CORE_EXPORT Element : public ContainerNode, public Animatable {
   StyleScopeData& EnsureStyleScopeData();
   StyleScopeData* GetStyleScopeData() const;
 
-  PositionFallbackData& EnsurePositionFallbackData();
-  PositionFallbackData* GetPositionFallbackData() const;
+  OutOfFlowData& EnsureOutOfFlowData();
+  OutOfFlowData* GetOutOfFlowData() const;
 
   // See PostStyleUpdateScope::PseudoData::AddPendingBackdrop
   void ApplyPendingBackdropPseudoElementUpdate();
@@ -1289,6 +1295,11 @@ class CORE_EXPORT Element : public ContainerNode, public Animatable {
   PopoverData* EnsurePopoverData();
   PopoverData* GetPopoverData() const;
 
+  // Retrieves the element pointed to by this element's 'anchor' content
+  // attribute, if that element exists.
+  Element* anchorElement();
+  void setAnchorElement(Element*);
+
   AnchorPositionScrollData& EnsureAnchorPositionScrollData();
   void RemoveAnchorPositionScrollData();
   AnchorPositionScrollData* GetAnchorPositionScrollData() const;
@@ -1298,8 +1309,9 @@ class CORE_EXPORT Element : public ContainerNode, public Animatable {
   void DecrementImplicitlyAnchoredElementCount();
   void IncrementImplicitlyAnchoredElementCount();
 
-  AnchorElementObserver& EnsureAnchorElementObserver();
-  AnchorElementObserver* GetAnchorElementObserver() const;
+  bool HasAnchorElementObserverForTesting() const {
+    return GetAnchorElementObserver();
+  }
 
   // https://drafts.csswg.org/css-anchor-1/#implicit-anchor-element
   Element* ImplicitAnchorElement();
@@ -1423,10 +1435,8 @@ class CORE_EXPORT Element : public ContainerNode, public Animatable {
 
   TextDirection ParentDirectionality() const;
   bool RecalcSelfOrAncestorHasDirAuto();
-  template <typename Traversal>
   absl::optional<TextDirection> ResolveAutoDirectionality(
-      bool& is_deferred,
-      Node* stay_within) const;
+      bool& is_deferred) const;
 
  private:
   friend class AXObject;
@@ -1463,6 +1473,9 @@ class CORE_EXPORT Element : public ContainerNode, public Animatable {
   void SetInlineStyleFromString(const AtomicString&);
 
   void NotifyAXOfAttachedSubtree();
+
+  AnchorElementObserver& EnsureAnchorElementObserver();
+  AnchorElementObserver* GetAnchorElementObserver() const;
 
   // If the only inherited changes in the parent element are independent,
   // these changes can be directly propagated to this element (the child).
@@ -1696,10 +1709,11 @@ class CORE_EXPORT Element : public ContainerNode, public Animatable {
                                                         const QualifiedName&,
                                                         const AtomicString&);
 
-  void SetInnerHTMLInternal(const String&,
-                            IncludeShadowRoots include_shadow_roots,
-                            ForceHtml force_html_over_xml,
-                            ExceptionState&);
+  void SetInnerHTMLInternal(
+      const String&,
+      ParseDeclarativeShadowRoots parse_declarative_shadows,
+      ForceHtml force_html_over_xml,
+      ExceptionState&);
 
   ElementRareDataVector* GetElementRareData() const;
   ElementRareDataVector& EnsureElementRareData();

@@ -280,9 +280,6 @@ BASE_FEATURE(kIPHRequestDesktopSiteAppMenuFeature,
 BASE_FEATURE(kIPHRequestDesktopSiteDefaultOnFeature,
              "IPH_RequestDesktopSiteDefaultOn",
              base::FEATURE_ENABLED_BY_DEFAULT);
-BASE_FEATURE(kIPHRequestDesktopSiteOptInFeature,
-             "IPH_RequestDesktopSiteOptIn",
-             base::FEATURE_ENABLED_BY_DEFAULT);
 BASE_FEATURE(kIPHRequestDesktopSiteExceptionsGenericFeature,
              "IPH_RequestDesktopSiteExceptionsGeneric",
              base::FEATURE_ENABLED_BY_DEFAULT);
@@ -589,6 +586,18 @@ BASE_FEATURE(kIPHiOSDockingPromoFeature,
              base::FEATURE_DISABLED_BY_DEFAULT);
 BASE_FEATURE(kIPHiOSDockingPromoRemindMeLaterFeature,
              "IPH_iOSDockingPromoRemindMeLater",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+BASE_FEATURE(kIPHiOSPromoAllTabsFeature,
+             "IPH_iOSPromoAllTabs",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+BASE_FEATURE(kIPHiOSPromoMadeForIOSFeature,
+             "IPH_iOSPromoMadeForIOS",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+BASE_FEATURE(kIPHiOSPromoStaySafeFeature,
+             "IPH_iOSPromoStaySafe",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+BASE_FEATURE(kIPHiOSSwipeBackForwardFeature,
+             "IPH_iOSSwipeBackForward",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Non-FET feature.

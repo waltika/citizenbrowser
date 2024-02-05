@@ -6,6 +6,7 @@
 
 #import "base/apple/bundle_locations.h"
 #import "base/apple/foundation_util.h"
+#import "base/memory/raw_ptr.h"
 #import "base/metrics/histogram_functions.h"
 #import "base/metrics/user_metrics.h"
 #import "base/metrics/user_metrics_action.h"
@@ -21,7 +22,7 @@
 #import "ios/chrome/browser/bookmarks/model/local_or_syncable_bookmark_model_factory.h"
 #import "ios/chrome/browser/bring_android_tabs/model/bring_android_tabs_to_ios_service.h"
 #import "ios/chrome/browser/bring_android_tabs/model/bring_android_tabs_to_ios_service_factory.h"
-#import "ios/chrome/browser/favicon/ios_chrome_favicon_loader_factory.h"
+#import "ios/chrome/browser/favicon/model/ios_chrome_favicon_loader_factory.h"
 #import "ios/chrome/browser/feature_engagement/model/tracker_factory.h"
 #import "ios/chrome/browser/find_in_page/model/find_tab_helper.h"
 #import "ios/chrome/browser/find_in_page/model/util.h"
@@ -152,11 +153,11 @@ bool FindNavigatorShouldBePresentedInBrowser(Browser* browser) {
                                   TabPresentationDelegate> {
   // Use an explicit ivar instead of synthesizing as the setter isn't using the
   // ivar.
-  Browser* _incognitoBrowser;
+  raw_ptr<Browser> _incognitoBrowser;
 
   // Browser that contain tabs, from the regular browser, that have not been
   // open since a certain amount of time.
-  Browser* _inactiveBrowser;
+  raw_ptr<Browser> _inactiveBrowser;
 
   // The coordinator that shows the bookmarking UI after the user taps the Add
   // to Bookmarks button.
@@ -310,7 +311,7 @@ bool FindNavigatorShouldBePresentedInBrowser(Browser* browser) {
   // Ensure browser which is actually used by the incognito coordinator is
   // returned, as it may have been updated.
   return _incognitoGridCoordinator ? _incognitoGridCoordinator.browser
-                                   : _incognitoBrowser;
+                                   : _incognitoBrowser.get();
 }
 
 - (void)setIncognitoBrowser:(Browser*)incognitoBrowser {

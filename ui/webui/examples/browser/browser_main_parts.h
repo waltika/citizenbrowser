@@ -27,7 +27,6 @@ class WebContentsViewDelegate;
 
 namespace webui_examples {
 
-class BrowserContext;
 class WebUIControllerFactory;
 
 class BrowserMainParts : public content::BrowserMainParts {

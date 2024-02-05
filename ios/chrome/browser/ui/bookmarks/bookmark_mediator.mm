@@ -7,6 +7,7 @@
 #import <MaterialComponents/MaterialSnackbar.h>
 
 #import "base/i18n/message_formatter.h"
+#import "base/memory/raw_ptr.h"
 #import "base/metrics/histogram_functions.h"
 #import "base/metrics/user_metrics.h"
 #import "base/metrics/user_metrics_action.h"
@@ -30,7 +31,7 @@
 #import "ios/chrome/browser/ui/bookmarks/bookmark_utils_ios.h"
 #import "ios/chrome/browser/ui/ntp/metrics/home_metrics.h"
 #import "ios/chrome/grit/ios_strings.h"
-#import "net/base/mac/url_conversions.h"
+#import "net/base/apple/url_conversions.h"
 #import "ui/base/l10n/l10n_util.h"
 
 using bookmarks::BookmarkModel;
@@ -43,13 +44,13 @@ using bookmarks::BookmarkNode;
   base::WeakPtr<bookmarks::BookmarkModel> _accountBookmarkModel;
 
   // Prefs model for this mediator.
-  PrefService* _prefs;
+  raw_ptr<PrefService> _prefs;
 
   // Authentication service for this mediator.
   base::WeakPtr<AuthenticationService> _authenticationService;
 
   // Sync service for this mediator.
-  syncer::SyncService* _syncService;
+  raw_ptr<syncer::SyncService> _syncService;
 }
 
 + (void)registerBrowserStatePrefs:(user_prefs::PrefRegistrySyncable*)registry {
@@ -312,7 +313,7 @@ using bookmarks::BookmarkNode;
             pattern, "count", count, "title", title));
   } else {
     return base::SysUTF16ToNSString(
-        l10n_util::GetPluralStringFUTF16(IDS_IOS_BOOKMARK_PAGE_SAVED, count));
+        l10n_util::GetPluralStringFUTF16(IDS_IOS_BOOKMARKS_BULK_SAVED, count));
   }
 }
 
@@ -331,9 +332,8 @@ using bookmarks::BookmarkNode;
         l10n_util::GetStringUTF16(IDS_IOS_BOOKMARKS_BULK_SAVED_ACCOUNT),
         "count", count, "email", base::SysNSStringToUTF16(identity.userEmail));
   } else {
-    result = base::i18n::MessageFormatter::FormatWithNamedArgs(
-        l10n_util::GetStringUTF16(IDS_IOS_BOOKMARKS_BULK_SAVED), "count",
-        count);
+    result =
+        l10n_util::GetPluralStringFUTF16(IDS_IOS_BOOKMARKS_BULK_SAVED, count);
   }
 
   return base::SysUTF16ToNSString(result);

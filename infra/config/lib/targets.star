@@ -9,21 +9,222 @@ load("@stdlib//internal/luci/common.star", "keys")
 load("./args.star", "args")
 load("./nodes.star", "nodes")
 
-# The binary for a target. gtests and isolated scripts must reference a binary,
-# or it defaults to one with the same name  as the test.
+# A target that can be built to run a test
+#
+# Created by:
+# * functions in targets.binaries
+#
+# Parents:
+# * legacy-test (>=0)
+#   * created by targets.test.gtest_test and targets.tests.isolated_script_test
+#   * traversed when generating details in test_suites.pyl for a test in a basic
+#     suite that references a binary
 _TARGET_BINARY = nodes.create_unscoped_node_type("target-binary")
+
+# A mapping from the ninja target name to GN label and associated details.
+#
+# Created by:
+# * functions in targets.binaries
+# * targets.tests.junit_test
+#   * a mapping with type "generated_script" and the same name as the test is
+#     created
+# * targets.compile_target
+#   * a mapping is created if name != "all"
+#
+# Parents:
+# * project (1)
+#   * created for all mappings
+#   * traversed to generate entries in gn_isolate_map.pyl
+_TARGET_LABEL_MAPPING = nodes.create_unscoped_node_type("target-label-mapping")
+
+# A set of modifications to make when expanding tests in a suite
+#
+# Created by:
+# * targets.mixin
+#
+# Parents:
+# * project (1)
+#   * created for all mixins
+#   * traversed to generate entries in mixins.pyl
+# * legacy-matrix-config (>=0)
+#   * created when the matrix config for a basic suite in a matrix compound
+#     suite references a mixin
+#   * traversed to generate the mixins field in test_suites.pyl for the config
+#     for a basic suite in a matrix compound suite
+# TODO(gbeaty) add necessary edges to generate mixins fields in basic suites
 _TARGET_MIXIN = nodes.create_unscoped_node_type("target-mixin")
+
+# A set of modifications to make when multiply expanding a test in a matrix
+# compound suite
+#
+# Created by:
+# * targets.variant
+#
+# Parents:
+# * project (1)
+#   * created for all binaries
+#   * traversed to generate entries in variants.pyl
+# * legacy-matrix-config (>=0)
+#   * created when the matrix config for a basic suite in a matrix compound
+#     suite references a variant
+#   * traversed to generate the variants field in test_suites.pyl for the config
+#     for a basic suite in a matrix compound suite
 _TARGET_VARIANT = nodes.create_unscoped_node_type("target-variant")
 
 # A test that can be included in a basic suite
+#
+# Created by:
+# * functions in targets.tests
+#
+# Children:
+# * target-binary (0 or 1)
+#   * created by targets.test.gtest_test and targets.tests.isolated_script_test
+#   * traversed when generating details in test_suites.pyl for a test in a basic
+#     suite that references a binary
+#
+# Parents:
+# * legacy-basic-suite (>=0)
+#   * created when a basic suite references a test
+#   * traversed to generate the details for a test when generating a basic suite
+#     in test_suites.pyl
 _LEGACY_TEST = nodes.create_unscoped_node_type("legacy-test")
+
+# A basic suite, which is a set of tests with optional modifications
+#
+# Created by:
+# * targets.legacy_basic_suite
+#
+# Children:
+# * legacy-test (>0)
+#   * created when a basic suite references a test
+#   * traversed to generate the details for a test when generating a basic suite
+#     in test_suites.pyl
+#
+# Parents:
+# * project (1)
+#   * created for all basic suites
+#   * traversed to generate the basic_suites entries in test_suites.pyl
+# * legacy-compound-suite (>=0)
+#   * created when a compound suite includes a basic suite
+#   * traversed to generate the basic suite reference when generating a compound
+#     suite in test_suites.pyl
+# * legacy-matrix-compound-suite (>=0)
+#   * created when a matrix compound suite includes a basic suite
+#   * not traversed, created only to ensure the basic suite exists
 _LEGACY_BASIC_SUITE = nodes.create_unscoped_node_type("legacy-basic-suite")
+
+# A compound suite, which is a set of basic suites
+#
+# Created by:
+# * targets.legacy_compound_suite
+#
+# Children:
+# * legacy-basic-suite (>0)
+#   * created when a compound suite includes a basic suite
+#   * traversed to generate the basic suite reference when generating a compound
+#     suite in test_suites.pyl
+#
+# Parents:
+# * project (1)
+#   * create for all compound suites
+#   * traversed to generate the compound_suites entries in test_suites.pyl
 _LEGACY_COMPOUND_SUITE = nodes.create_unscoped_node_type("legacy-compound-suite")
+
+# A matrix compound suite, which is a set of basic suites that can be optionally
+# expanded with multiple variants
+#
+# Created by:
+# * targets.legacy_matrix_compound_suite
+#
+# Children:
+# * legacy-basic-suite (>0)
+#   * created when a matrix compound suite includes a basic suite
+#   * not traversed, created only to ensure the basic suite exists
+# * legacy-matrix-config (>0)
+#   * created for each basic suite in the matrix compound suite
+#   * traversed to generate the details for a basic suite when generating a
+#     matrix compound suite in test_suites.pyl
+#
+# Parents:
+# * project (1)
+#   * created for all matrix compound suites
+#   * traversed to generate the matrix_compound_suites entries in
+#     test_suites.pyl
 _LEGACY_MATRIX_COMPOUND_SUITE = nodes.create_unscoped_node_type("legacy-matrix-compound-suite")
+
+# The modifications to apply to tests in a basic suite included in a matix
+# compound suite
+#
+# Created by:
+# * targets.legacy_matrix_compound_suite
+#
+# Children:
+# * target-mixin (>=0)
+#   * created when the matrix config for a basic suite in a matrix compound
+#     suite references a mixin
+#   * traversed to generate the mixins field in test_suites.pyl for the config
+#     for a basic suite in a matrix compound suite
+# * target-variant (>=0)
+#   * created when the matrix config for a basic suite in a matrix compound
+#     suite references a variant
+#   * traversed to generate the variants field in test_suites.pyl for the config
+#     for a basic suite in a matrix compound suite
+#
+# Parents:
+# * legacy-matrix-compound-suite (1)
+#   * created for each basic suite in the matrix compound suite
+#   * traversed to generate the details for a basic suite when generating a
+#     matrix compound suite in test_suites.pyl
 _LEGACY_MATRIX_CONFIG = nodes.create_scoped_node_type("legacy-matrix-config", _LEGACY_MATRIX_COMPOUND_SUITE.kind)
 
+# Compile targets, which can be specified as additional compile targets in a
+# bundle
+#
+# Created by:
+# * targets.compile_target
+# * functions in targets.binaries
+#   * a compile target with the same name as the binary will be created
+# * targets.tests.junit_test
+#   * a compile target with the same name as the test will be created
+#
+# Parents:
+# * target-bundle (>=0)
+#   * created when a bundle references a compile target in
+#     additional_compile_targets
+#   * not traversed, created only to ensure the compile target exists
+# TODO(gbeaty) Traverse the edge from target-bundle instead of storing the
+# additional_compile_targets as node props
 _COMPILE_TARGET = nodes.create_unscoped_node_type("compile-target")
-TARGET_BUNDLE = nodes.create_unscoped_node_type("bundle", allow_unnamed = True)
+
+# A collection of compile targets to build and tests to run with optional
+# modifications
+#
+# Created by:
+# * targets.bundle
+#   * unnamed instances can be created inline to apply builder-specific
+#     modifications or apply modifications to subgroupings of targets
+# * functions in targets.tests
+#   * creates a bundle with the same name as the test containing only that test
+# * builders.builder
+#   * if the builder sets targets, then a bundle is created with the
+#     bucket-qualified name of the builder)
+#
+# Children:
+# * target-bundle (>=0)
+#   * created when a bundle references another bundle in targets
+#   * traversed when generating targets spec files for builders that have their
+#     tests defined in starlark
+#
+# Parents:
+# * builder-config (0 or 1)
+#   * created when a builder sets targets
+#   * traversed when generating targets spec files for builders that have their
+#     targets defined in starlark
+# * target-bundle (>=0)
+#   * created when a bundle references another bundle in targets
+#   * traversed when generating targets spec files for builders that have their
+#     targets defined in starlark
+_TARGET_BUNDLE = nodes.create_unscoped_node_type("bundle", allow_unnamed = True)
 
 def _binary_test_config(*, results_handler = None, merge = None, resultdb = None):
     """The details for a test provided by the test's binary.
@@ -48,6 +249,29 @@ def _binary_test_config(*, results_handler = None, merge = None, resultdb = None
 def _create_compile_target(*, name):
     _COMPILE_TARGET.add(name)
 
+def _create_label_mapping(
+        *,
+        name,
+        type,
+        label,
+        label_type = None,
+        executable = None,
+        executable_suffix = None,
+        script = None,
+        skip_usage_check = False,
+        args = None):
+    mapping_key = _TARGET_LABEL_MAPPING.add(name, props = dict(
+        type = type,
+        label = label,
+        label_type = label_type,
+        executable = executable,
+        executable_suffix = executable_suffix,
+        script = script,
+        skip_usage_check = skip_usage_check,
+        args = args,
+    ))
+    graph.add_edge(keys.project(), mapping_key)
+
 def _create_binary(
         *,
         name,
@@ -60,7 +284,8 @@ def _create_binary(
         skip_usage_check = False,
         args = None,
         test_config = None):
-    binary_key = _TARGET_BINARY.add(name, props = dict(
+    _create_label_mapping(
+        name = name,
         type = type,
         label = label,
         label_type = label_type,
@@ -69,9 +294,11 @@ def _create_binary(
         script = script,
         skip_usage_check = skip_usage_check,
         args = args,
+    )
+
+    _TARGET_BINARY.add(name, props = dict(
         test_config = test_config,
     ))
-    graph.add_edge(keys.project(), binary_key)
 
     _create_compile_target(
         name = name,
@@ -113,7 +340,7 @@ def _create_legacy_test(*, name, basic_suite_test_config):
     ))
 
 def _create_bundle(*, name, additional_compile_targets = [], targets = [], builder_group = None, test_spec_by_name = {}, modifications_by_name = {}):
-    key = TARGET_BUNDLE.add(name, props = dict(
+    key = _TARGET_BUNDLE.add(name, props = dict(
         builder_group = builder_group,
         additional_compile_targets = set(additional_compile_targets),
         test_spec_by_name = test_spec_by_name,
@@ -125,7 +352,7 @@ def _create_bundle(*, name, additional_compile_targets = [], targets = [], build
     for t in additional_compile_targets:
         graph.add_edge(key, _COMPILE_TARGET.key(t))
     for t in targets:
-        graph.add_edge(key, TARGET_BUNDLE.key(t))
+        graph.add_edge(key, _TARGET_BUNDLE.key(t))
     return key
 
 def _create_test_target(*, name, spec_type, spec_value):
@@ -169,21 +396,18 @@ def _compile_target(*, name, label = None, skip_usage_check = False):
 
     # The all target is a special ninja target that doesn't map to a GN label
     # and so we don't create an entry in gn_isolate_map.pyl
-    if name == "all":
-        if label != None:
-            fail("label should not be set for compile target all")
-        _create_compile_target(
+    if name != "all":
+        if label == None:
+            fail("label must be set in compile_target {}".format(name))
+        _create_label_mapping(
             name = name,
+            type = "additional_compile_target",
+            label = label,
+            skip_usage_check = skip_usage_check,
         )
-        return
 
-    if label == None:
-        fail("label must be set in compile_target {}".format(name))
-    _create_binary(
+    _create_compile_target(
         name = name,
-        type = "additional_compile_target",
-        label = label,
-        skip_usage_check = skip_usage_check,
     )
 
 def _console_test_launcher(
@@ -471,7 +695,10 @@ def _junit_test(*, name, label, skip_usage_check = False):
 
     # We don't need to reuse the test binary for multiple junit tests, so just
     # define the isolate entry as part of the test declaration
-    _create_binary(
+    _create_compile_target(
+        name = name,
+    )
+    _create_label_mapping(
         name = name,
         type = "generated_script",
         label = label,
@@ -1090,6 +1317,123 @@ targets = struct(
     skylab = _skylab,
 )
 
+################################################################################
+# Code for generating targets spec files                                       #
+################################################################################
+
+def register_targets(*, parent_key, name, targets):
+    """Register the targets for a builder.
+
+    This will create the necessary nodes and edges so that the targets spec for
+    the builder can be generated via get_targets_spec_generator.
+
+    Args:
+      parent_key - The graph key of the parent node to register the targets for.
+      name - The name to use for the registered bundle. This will allow for
+        other builders to specify their targets in terms of another builder's.
+      targets - The targets for the builder. Can take the form of the name of a
+        separately-declared bundle, an unnamed targets.bundle instance or a list
+        of such elements.
+    """
+    targets_key = _create_bundle(
+        name = name,
+        targets = args.listify(targets),
+    )
+
+    graph.add_edge(parent_key, targets_key)
+
+def _get_bundle_resolver():
+    def resolved_bundle(*, additional_compile_targets, test_spec_and_source_by_name):
+        return struct(
+            additional_compile_targets = additional_compile_targets,
+            test_spec_and_source_by_name = test_spec_and_source_by_name,
+        )
+
+    def visitor(_, children):
+        return [c for c in children if c.key.kind == _TARGET_BUNDLE.kind]
+
+    resolved_bundle_by_bundle_node = {}
+
+    def resolve(bundle_node):
+        for n in graph.descendants(bundle_node.key, visitor = visitor, topology = graph.DEPTH_FIRST):
+            if n in resolved_bundle_by_bundle_node:
+                continue
+
+            # TODO: crbug.com/1420012 - Update the handling of conflicting defs
+            # so that more context is provided about where the error is
+            # resulting from
+            additional_compile_targets = set(n.props.additional_compile_targets)
+            test_spec_and_source_by_name = {name: (spec, n.key) for name, spec in n.props.test_spec_by_name.items()}
+            for child in graph.children(n.key, kind = _TARGET_BUNDLE.kind):
+                child_resolved_bundle = resolved_bundle_by_bundle_node[child]
+                additional_compile_targets = additional_compile_targets | child_resolved_bundle.additional_compile_targets
+                for name, (spec, source) in child_resolved_bundle.test_spec_and_source_by_name.items():
+                    if name in test_spec_and_source_by_name:
+                        existing_spec, existing_source = test_spec_and_source_by_name[name]
+                        if existing_spec != spec:
+                            fail("target {} has conflicting definitions in deps of {}\n  {}: {}\n  {}: {}".format(
+                                name,
+                                n.key,
+                                existing_source,
+                                existing_spec,
+                                source,
+                                spec,
+                            ))
+                    test_spec_and_source_by_name[name] = (spec, source)
+
+            resolved_bundle_by_bundle_node[n] = resolved_bundle(
+                additional_compile_targets = additional_compile_targets,
+                test_spec_and_source_by_name = test_spec_and_source_by_name,
+            )
+
+        resolved = resolved_bundle_by_bundle_node[bundle_node]
+        return (
+            resolved.additional_compile_targets,
+            {name: spec for name, (spec, _) in resolved.test_spec_and_source_by_name.items()},
+        )
+
+    return resolve
+
+def get_targets_spec_generator():
+    """Get a generator for builders' targets specs.
+
+    Returns:
+      A function that can be used to get the targets specs for a builder. The
+      function takes a single argument that is a node. If the node corresponds
+      to a builder that has tests registered using register_targets, then a dict
+      will be returned with the target specs for the builder. Otherwise, None
+      will be returned.
+    """
+    bundle_resolver = _get_bundle_resolver()
+
+    def get_targets_spec(parent_node):
+        bundle_nodes = graph.children(parent_node.key, _TARGET_BUNDLE.kind)
+        if not bundle_nodes:
+            return None
+        if len(bundle_nodes) > 1:
+            fail("internal error: there should be at most 1 targets_spec")
+        bundle_node = bundle_nodes[0]
+
+        additional_compile_targets, test_spec_by_name = bundle_resolver(bundle_node)
+        sort_key_and_specs_by_type_key = {}
+        for name, spec in test_spec_by_name.items():
+            type_key, sort_key, spec = spec.spec_type.finalize(name, spec.spec_value)
+            sort_key_and_specs_by_type_key.setdefault(type_key, []).append((sort_key, spec))
+
+        specs_by_type_key = {}
+        if additional_compile_targets:
+            specs_by_type_key["additional_compile_targets"] = sorted(additional_compile_targets)
+        for type_key, sort_key_and_specs in sorted(sort_key_and_specs_by_type_key.items()):
+            specs_by_type_key[type_key] = [spec for _, spec in sorted(sort_key_and_specs)]
+
+        return specs_by_type_key
+
+    return get_targets_spec
+
+################################################################################
+# Generators for legacy .pyl files                                             #
+################################################################################
+
 _PYL_HEADER_FMT = """\
 # THIS IS A GENERATED FILE DO NOT EDIT!!!
 # Instead:
@@ -1104,7 +1448,7 @@ _PYL_HEADER_FMT = """\
 
 def _generate_gn_isolate_map_pyl(ctx):
     entries = []
-    for n in graph.children(keys.project(), _TARGET_BINARY.kind, graph.KEY_ORDER):
+    for n in graph.children(keys.project(), _TARGET_LABEL_MAPPING.kind, graph.KEY_ORDER):
         entries.append('  "{}": {{'.format(n.key.id))
         entries.append('    "label": "{}",'.format(n.props.label))
         if n.props.label_type != None:

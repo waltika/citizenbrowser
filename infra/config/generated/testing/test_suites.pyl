@@ -709,8 +709,8 @@
           '--env-var',
           'LIBVA_DRIVER_NAME',
           'libfake',
-          'test-25fps.vp9',
-          'test-25fps.vp9.json',
+          '../../media/test/data/test-25fps.vp9',
+          '../../media/test/data/test-25fps.vp9.json',
         ],
         'ci_only': True,
         'experiment_percentage': 100,
@@ -1402,6 +1402,7 @@
         'args': [
           '--flag-specific=enable-skia-graphite',
           '--skipped=always',
+          '--timeout-ms=20000',
           '--num-retries=3',
         ],
         'swarming': {
@@ -1424,6 +1425,7 @@
         'args': [
           '--flag-specific=enable-skia-graphite',
           '--skipped=always',
+          '--timeout-ms=20000',
           '--num-retries=3',
         ],
         'swarming': {
@@ -2161,7 +2163,6 @@
 
     'fuchsia_chrome_small_gtests': {
       'courgette_unittests': {},
-      'extensions_unittests': {},
       'headless_unittests': {},
       'message_center_unittests': {},
       'views_examples_unittests': {
@@ -2722,7 +2723,7 @@
           'webgpu_telemetry_cts',
         ],
         'args': [
-          '--extra-browser-args=--use-angle=gl --use-webgpu-adapter=opengles --enable-webgpu-developer-features',
+          '--extra-browser-args=--use-angle=gl --use-webgpu-adapter=opengles --enable-blink-features=WebGPUExperimentalFeatures',
         ],
         'swarming': {
           'shards': 14,
@@ -4004,7 +4005,12 @@
       'angle_unittests': {
         'use_isolated_scripts_api': True,
       },
-      'base_unittests': {},
+      'base_unittests': {
+        'args': [
+          '--test-launcher-bot-mode',
+          '--test-launcher-filter-file=testing/buildbot/filters/ios.base_unittests.filter',
+        ],
+      },
       'blink_common_unittests': {},
       'blink_fuzzer_unittests': {},
       'blink_heap_unittests': {},
@@ -5715,6 +5721,7 @@
             '--verbose',
           ],
         },
+        'experiment_percentage': 100,
       },
     },
 
@@ -5755,6 +5762,7 @@
             '--verbose',
           ],
         },
+        'experiment_percentage': 100,
       },
     },
 
@@ -5776,6 +5784,7 @@
             '--verbose',
           ],
         },
+        'experiment_percentage': 100,
       },
     },
   },

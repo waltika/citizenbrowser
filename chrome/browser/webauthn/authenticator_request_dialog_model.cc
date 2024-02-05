@@ -25,8 +25,10 @@
 #include "chrome/browser/password_manager/chrome_webauthn_credentials_delegate.h"
 #include "chrome/browser/password_manager/chrome_webauthn_credentials_delegate_factory.h"
 #include "chrome/browser/profiles/profile.h"
+#include "chrome/browser/ui/webauthn/authenticator_request_bubble.h"
 #include "chrome/browser/ui/webauthn/authenticator_request_dialog.h"
 #include "chrome/browser/ui/webauthn/authenticator_request_window.h"
+#include "chrome/browser/webauthn/authenticator_reference.h"
 #include "chrome/browser/webauthn/authenticator_transport.h"
 #include "chrome/browser/webauthn/passkey_model_factory.h"
 #include "chrome/browser/webauthn/webauthn_metrics_util.h"
@@ -383,6 +385,10 @@ StepUIType step_ui_type(AuthenticatorRequestDialogModel::Step step) {
 
     case AuthenticatorRequestDialogModel::Step::kRecoverSecurityDomain:
       return StepUIType::WINDOW;
+
+    case AuthenticatorRequestDialogModel::Step::kGPMCreate:
+    case AuthenticatorRequestDialogModel::Step::kTrustThisComputer:
+      return StepUIType::BUBBLE;
 
     default:
       return StepUIType::DIALOG;
@@ -1648,8 +1654,7 @@ void AuthenticatorRequestDialogModel::SetCurrentStep(Step step) {
         break;
 
       case StepUIType::BUBBLE:
-        // TODO(enclave): build this.
-        // ShowAuthenticatorRequestBubble(web_contents, this);
+        ShowAuthenticatorRequestBubble(web_contents, this);
         break;
 
       case StepUIType::WINDOW:
@@ -2427,6 +2432,8 @@ void AuthenticatorRequestDialogModel::
     type = device::AuthenticatorType::kEnclave;
   }
 
+  std::vector<AuthenticatorReference>& authenticators =
+      ephemeral_state_.saved_authenticators_.authenticator_list();
 #if BUILDFLAG(IS_WIN)
   // The Windows-native UI already handles retrying so we do not offer a second
   // level of retry in that case.
@@ -2436,13 +2443,23 @@ void AuthenticatorRequestDialogModel::
 #elif BUILDFLAG(IS_MAC)
   // If there are multiple platform authenticators, one of them is the default.
   if (!type.has_value() &&
+      base::FeatureList::IsEnabled(
+          device::kWebAuthnPreferVirtualPlatformAuthenticator)) {
+    if (base::ranges::any_of(
+            authenticators, [](const AuthenticatorReference& ref) {
+              return ref.type == device::AuthenticatorType::kOther &&
+                     ref.transport == device::FidoTransportProtocol::kInternal;
+            })) {
+      type = device::AuthenticatorType::kOther;
+    }
+  }
+
+  if (!type.has_value() &&
       base::FeatureList::IsEnabled(device::kWebAuthnICloudKeychain)) {
     type = device::AuthenticatorType::kTouchID;
   }
 #endif
 
-  auto& authenticators =
-      ephemeral_state_.saved_authenticators_.authenticator_list();
   auto platform_authenticator_it = base::ranges::find_if(
       authenticators, [type](const AuthenticatorReference& ref) -> bool {
         if (type && *type == device::AuthenticatorType::kEnclave) {

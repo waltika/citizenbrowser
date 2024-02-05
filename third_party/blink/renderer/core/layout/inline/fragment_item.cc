@@ -986,14 +986,18 @@ std::pair<LayoutUnit, LayoutUnit> FragmentItem::LineLeftAndRightForOffsets(
     // TODO(layout-dev): Move caret position out of ShapeResult and into a
     // separate support class that can take a ShapeResult or ShapeResultView.
     // Allows for better code separation and avoids the extra copy below.
-    scoped_refptr<ShapeResult> shape_result =
-        TextShapeResult()->CreateShapeResult();
-    start_position =
-        LayoutUnit::FromFloatFloor(shape_result->CaretPositionForOffset(
-            start_offset, text, AdjustMidCluster::kToStart));
-    end_position =
-        LayoutUnit::FromFloatCeil(shape_result->CaretPositionForOffset(
-            end_offset, text, AdjustMidCluster::kToEnd));
+    const ShapeResult* shape_result = TextShapeResult()->CreateShapeResult();
+    float unrounded_start_position = shape_result->CaretPositionForOffset(
+        start_offset, text, AdjustMidCluster::kToStart);
+    float unrounded_end_position = shape_result->CaretPositionForOffset(
+        end_offset, text, AdjustMidCluster::kToEnd);
+    if (UNLIKELY(unrounded_start_position > unrounded_end_position)) {
+      start_position = LayoutUnit::FromFloatCeil(unrounded_start_position);
+      end_position = LayoutUnit::FromFloatFloor(unrounded_end_position);
+    } else {
+      start_position = LayoutUnit::FromFloatFloor(unrounded_start_position);
+      end_position = LayoutUnit::FromFloatCeil(unrounded_end_position);
+    }
   } else {
     // This fragment is a flow control because otherwise ShapeResult exists.
     DCHECK(IsFlowControl());

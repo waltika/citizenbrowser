@@ -434,7 +434,8 @@ export class RealboxMatchElement extends PolymerElement {
   private showActionsInlined_(): boolean {
     // Always show inlined div when feature is enabled, so that it will
     // grow and push other elements like remove button to the right.
-    return this.inlinedActions && !this.showCrNonInlinedHoverFill;
+    return this.inlinedActions && !this.showCrNonInlinedHoverFill &&
+        this.sideType === SideType.kDefaultPrimary;
   }
 
   private showActionsUnderneath_(match: AutocompleteMatch): boolean {
@@ -492,18 +493,24 @@ export class RealboxMatchElement extends PolymerElement {
   }
 
   updateSelection(selection: OmniboxPopupSelection) {
+    this.$['focus-indicator'].classList.toggle(
+        'selected-within',
+        selection.state !== SelectionLineState.kNormal &&
+            selection.line === this.matchIndex);
+
     this.$.remove.classList.toggle(
         'selected',
-        selection.state === SelectionLineState.kFocusedButtonRemoveSuggestion);
+        selection.state === SelectionLineState.kFocusedButtonRemoveSuggestion &&
+            selection.line === this.matchIndex);
 
-    const actions =
-        Array.from(this.shadowRoot!.querySelectorAll('cr-realbox-action'));
-    actions.forEach((action, index) => {
-      action.classList.toggle(
-          'selected',
-          selection.state === SelectionLineState.kFocusedButtonAction &&
-              selection.actionIndex === index);
-    });
+    [...this.shadowRoot!.querySelectorAll('cr-realbox-action')].forEach(
+        (action, index) => {
+          action.classList.toggle(
+              'selected',
+              selection.state === SelectionLineState.kFocusedButtonAction &&
+                  selection.actionIndex === index &&
+                  selection.line === this.matchIndex);
+        });
   }
 }
 

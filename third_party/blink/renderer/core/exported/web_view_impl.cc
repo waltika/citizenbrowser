@@ -1430,6 +1430,10 @@ void WebViewImpl::SetScreenOrientationOverrideForTesting(
 
 void WebViewImpl::SetWindowRectSynchronouslyForTesting(
     const gfx::Rect& new_window_rect) {
+  // We need to call UpdateScreenRects to ensure the 'move' event is enqueued.
+  // TODO(jfernandez): Ideally updating the window rect should do that
+  // automatically.
+  web_widget_->UpdateScreenRects(new_window_rect, new_window_rect);
   web_widget_->SetWindowRectSynchronouslyForTesting(new_window_rect);
 }
 
@@ -1563,9 +1567,6 @@ void WebView::ApplyWebPreferences(const web_pref::WebPreferences& prefs,
       prefs.webgl_errors_to_console_enabled);
 
   settings->SetHideScrollbars(prefs.hide_scrollbars);
-
-  RuntimeEnabledFeatures::SetWebKitScrollbarStylingEnabled(
-      prefs.enable_webkit_scrollbar_styling);
 
   // Enable gpu-accelerated 2d canvas if requested on the command line.
   RuntimeEnabledFeatures::SetAccelerated2dCanvasEnabled(

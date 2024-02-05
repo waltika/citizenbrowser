@@ -918,7 +918,7 @@ int Database::SqlitePrepareFlags() const {
 }
 
 sqlite3_file* Database::GetSqliteVfsFile() {
-  DCHECK(db_) << "Database not opened";
+  CHECK(db_) << "Database not opened";
 
   // sqlite3_file_control() accepts a null pointer to mean the "main" database
   // attached to a connection. https://www.sqlite.org/c3ref/file_control.html
@@ -1179,12 +1179,6 @@ bool Database::Delete(const base::FilePath& path) {
   CHECK(vfs);
   CHECK(vfs->xDelete);
   CHECK(vfs->xAccess);
-
-  // We only work with the VFS implementations listed below. If you're trying to
-  // use this code with any other VFS, you're not in a good place.
-  CHECK(strncmp(vfs->zName, "unix", 4) == 0 ||
-        strncmp(vfs->zName, "win32", 5) == 0 ||
-        strcmp(vfs->zName, "storage_service") == 0);
 
   vfs->xDelete(vfs, journal_str.c_str(), 0);
   vfs->xDelete(vfs, wal_str.c_str(), 0);
@@ -1825,10 +1819,6 @@ bool Database::OpenInternal(const std::string& db_file_path,
   DCHECK(!poisoned_) << "sql::Database is already open.";
   poisoned_ = false;
 
-  // Custom memory-mapping VFS which reads pages using regular I/O on first hit.
-  sqlite3_vfs* vfs = VFSWrapper();
-  const char* vfs_name = (vfs ? vfs->zName : nullptr);
-
   // The flags are documented at https://www.sqlite.org/c3ref/open.html.
   //
   // Chrome uses SQLITE_OPEN_PRIVATECACHE because SQLite is used by many
@@ -1857,8 +1847,8 @@ bool Database::OpenInternal(const std::string& db_file_path,
 #endif  // BUILDFLAG(IS_WIN)
   }
 
-  auto sqlite_result_code = ToSqliteResultCode(
-      sqlite3_open_v2(uri_file_path.c_str(), &db_, open_flags, vfs_name));
+  auto sqlite_result_code = ToSqliteResultCode(sqlite3_open_v2(
+      uri_file_path.c_str(), &db_, open_flags, /*zVfs=*/nullptr));
   if (sqlite_result_code != SqliteResultCode::kOk) {
     // sqlite3_open_v2() will usually create a database connection handle, even
     // if an error occurs (see https://www.sqlite.org/c3ref/open.html).
@@ -1927,7 +1917,7 @@ bool Database::OpenInternal(const std::string& db_file_path,
       base::StringPrintf("PRAGMA page_size=%d", options_.page_size);
   std::ignore = ExecuteWithTimeout(page_size_sql.c_str(), kBusyTimeout);
 
-  // http://www.sqlite.org/pragma.html#pragma_journal_mode
+  // https://www.sqlite.org/pragma.html#pragma_journal_mode
   // WAL - Use a write-ahead log instead of a journal file.
   // DELETE (default) - delete -journal file to commit.
   // TRUNCATE - truncate -journal file to commit.
@@ -1953,8 +1943,29 @@ bool Database::OpenInternal(const std::string& db_file_path,
     // TODO(shuagga@microsoft.com): We should probably catch a failure here.
     std::ignore = Execute("PRAGMA journal_mode=WAL");
   } else {
-    std::ignore = Execute("PRAGMA journal_mode=TRUNCATE");
+    // For speed, change the journal mode from the default DELETE to TRUNCATE.
+    // Both modes will delete the rollback journal at the conclusion of every
+    // transaction, but TRUNCATE is faster because it avoids touching the
+    // journal's parent directory[0].
+    //
+    // PERSIST may be even faster because it zeroes out the journal's header
+    // without fully deleting its contents. Chrome used PERSIST until 2015, but
+    // switched to TRUNCATE to ensure that potentially-sensitive information is
+    // deleted from disk[1].
+    //
+    // Per the SQLite docs[2], setting the journal mode has a sharp edge: the
+    // operation may succeed without actually changing the mode! It only makes
+    // sense to tolerate this successful failure because the default mode also
+    // deletes the journal's contents.
+    //
+    // [0]: https://crbug.com/118470#c4
+    // [1]: https://crbug.com/493008
+    // [2]: https://www.sqlite.org/pragma.html#pragma_journal_mode
+    if (!Execute("PRAGMA journal_mode=TRUNCATE")) {
+      return false;
+    }
   }
+  CHECK(db_);
 
   if (options_.flush_to_media)
     std::ignore = Execute("PRAGMA fullfsync=1");

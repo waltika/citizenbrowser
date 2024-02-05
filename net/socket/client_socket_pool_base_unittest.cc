@@ -58,6 +58,7 @@
 #include "net/socket/transport_client_socket_pool.h"
 #include "net/socket/transport_connect_job.h"
 #include "net/ssl/ssl_cert_request_info.h"
+#include "net/ssl/ssl_config.h"
 #include "net/test/gtest_util.h"
 #include "net/test/test_with_task_environment.h"
 #include "net/traffic_annotation/network_traffic_annotation.h"
@@ -91,7 +92,8 @@ ClientSocketPool::GroupId TestGroupId(
         NetworkAnonymizationKey()) {
   return ClientSocketPool::GroupId(url::SchemeHostPort(scheme, host, port),
                                    privacy_mode, network_anonymization_key,
-                                   SecureDnsPolicy::kAllow);
+                                   SecureDnsPolicy::kAllow,
+                                   /*disable_cert_network_fetches=*/false);
 }
 
 // Make sure |handle| sets load times correctly when it has been assigned a
@@ -546,7 +548,7 @@ class TestConnectJobFactory : public ConnectJobFactory {
       Endpoint endpoint,
       const ProxyChain& proxy_chain,
       const absl::optional<NetworkTrafficAnnotationTag>& proxy_annotation_tag,
-      const SSLConfig* ssl_config_for_origin,
+      const std::vector<SSLConfig::CertAndStatus>& allowed_bad_certs,
       ConnectJobFactory::AlpnMode alpn_mode,
       bool force_tunnel,
       PrivacyMode privacy_mode,
@@ -555,6 +557,7 @@ class TestConnectJobFactory : public ConnectJobFactory {
       SocketTag socket_tag,
       const NetworkAnonymizationKey& network_anonymization_key,
       SecureDnsPolicy secure_dns_policy,
+      bool disable_cert_network_fetches,
       const CommonConnectJobParams* common_connect_job_params,
       ConnectJob::Delegate* delegate) const override {
     EXPECT_TRUE(!job_types_ || !job_types_->empty());
@@ -893,7 +896,8 @@ TEST_F(ClientSocketPoolBaseTest, GroupSeparation) {
             ClientSocketPool::GroupId group_id(
                 url::SchemeHostPort(scheme, host_port_pair.host(),
                                     host_port_pair.port()),
-                privacy_mode, network_anonymization_key, secure_dns_policy);
+                privacy_mode, network_anonymization_key, secure_dns_policy,
+                /*disable_cert_network_fetches=*/false);
 
             EXPECT_FALSE(pool_->HasGroupForTesting(group_id));
 

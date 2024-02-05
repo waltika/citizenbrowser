@@ -7,6 +7,7 @@
 #import <memory>
 
 #import "base/apple/foundation_util.h"
+#import "base/memory/raw_ptr.h"
 #import "base/metrics/histogram_macros.h"
 #import "base/metrics/user_metrics.h"
 #import "base/metrics/user_metrics_action.h"
@@ -21,8 +22,8 @@
 #import "components/search_engines/template_url_service_observer.h"
 #import "components/signin/public/base/signin_switches.h"
 #import "components/strings/grit/components_strings.h"
-#import "ios/chrome/browser/favicon/favicon_loader.h"
-#import "ios/chrome/browser/favicon/ios_chrome_favicon_loader_factory.h"
+#import "ios/chrome/browser/favicon/model/favicon_loader.h"
+#import "ios/chrome/browser/favicon/model/ios_chrome_favicon_loader_factory.h"
 #import "ios/chrome/browser/search_engines/model/search_engine_choice_service_factory.h"
 #import "ios/chrome/browser/search_engines/model/search_engine_observer_bridge.h"
 #import "ios/chrome/browser/search_engines/model/template_url_service_factory.h"
@@ -37,7 +38,7 @@
 #import "ios/chrome/common/ui/favicon/favicon_constants.h"
 #import "ios/chrome/common/ui/favicon/favicon_view.h"
 #import "ios/chrome/grit/ios_strings.h"
-#import "net/base/mac/url_conversions.h"
+#import "net/base/apple/url_conversions.h"
 #import "ui/base/l10n/l10n_util_mac.h"
 
 namespace {
@@ -80,8 +81,8 @@ const char kUmaSelectDefaultSearchEngine[] =
 @end
 
 @implementation SearchEngineTableViewController {
-  TemplateURLService* _templateURLService;  // weak
-  PrefService* _prefService;
+  raw_ptr<TemplateURLService> _templateURLService;  // weak
+  raw_ptr<PrefService> _prefService;
   std::unique_ptr<SearchEngineObserverBridge> _observer;
   // The list of choice screen search engines retrieved from the
   // TemplateURLService.
@@ -101,7 +102,7 @@ const char kUmaSelectDefaultSearchEngine[] =
   std::vector<TemplateURL*> _secondList;
   // FaviconLoader is a keyed service that uses LargeIconService to retrieve
   // favicon images.
-  FaviconLoader* _faviconLoader;
+  raw_ptr<FaviconLoader> _faviconLoader;
   // Determines which version of the settings UI should be displayed.
   BOOL _shouldShowUpdatedSettings;
 }
@@ -125,6 +126,8 @@ const char kUmaSelectDefaultSearchEngine[] =
     search_engines::SearchEngineChoiceService* search_engine_choice_service =
         ios::SearchEngineChoiceServiceFactory::GetForBrowserState(browserState);
     _shouldShowUpdatedSettings =
+        search_engines::IsEeaChoiceCountry(
+            search_engine_choice_service->GetCountryId()) &&
         search_engine_choice_service->ShouldShowUpdatedSettings();
     [self setTitle:l10n_util::GetNSString(IDS_IOS_SEARCH_ENGINE_SETTING_TITLE)];
     self.shouldDisableDoneButtonOnEdit = YES;

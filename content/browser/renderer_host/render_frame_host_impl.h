@@ -227,6 +227,7 @@ class UrgentMessageScope;
 
 namespace network {
 class ResourceRequestBody;
+class URLLoaderFactoryBuilder;
 }  // namespace network
 
 namespace ukm {
@@ -244,6 +245,9 @@ CONTENT_EXPORT BASE_DECLARE_FEATURE(
 
 // Feature to evict when accessibility events occur while in back/forward cache.
 CONTENT_EXPORT BASE_DECLARE_FEATURE(kEvictOnAXEvents);
+
+CONTENT_EXPORT BASE_DECLARE_FEATURE(kDoNotEvictOnAXLocationChange);
+
 }  // namespace features
 
 namespace content {
@@ -3240,6 +3244,9 @@ class CONTENT_EXPORT RenderFrameHostImpl
                            BlockNameUpdateForBackForwardCache);
   FRIEND_TEST_ALL_PREFIXES(RenderFrameHostImplBrowserTest,
                            BlockNameUpdateForPendingDelete);
+  FRIEND_TEST_ALL_PREFIXES(
+      BackForwardCacheBrowserTestWithFlagForAXLocationChange,
+      EvictOnAXLocationChangeOrNot);
   FRIEND_TEST_ALL_PREFIXES(BackForwardCacheBrowsingContextStateBrowserTest,
                            SlowUnloadHandlerInIframe);
   FRIEND_TEST_ALL_PREFIXES(RenderFrameHostImplBrowserTest,
@@ -3518,7 +3525,7 @@ class CONTENT_EXPORT RenderFrameHostImpl
   // factories before they are sent to a renderer process.
   void WillCreateURLLoaderFactory(
       const url::Origin& request_initiator,
-      mojo::PendingReceiver<network::mojom::URLLoaderFactory>* factory_receiver,
+      network::URLLoaderFactoryBuilder& factory_builder,
       ukm::SourceIdObj ukm_source_id,
       mojo::PendingRemote<network::mojom::TrustedURLLoaderHeaderClient>*
           header_client = nullptr,

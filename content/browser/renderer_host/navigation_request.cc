@@ -38,7 +38,6 @@
 #include "base/time/time.h"
 #include "base/timer/elapsed_timer.h"
 #include "base/trace_event/base_tracing.h"
-#include "base/trace_event/trace_conversion_helper.h"
 #include "base/types/optional_util.h"
 #include "base/types/pass_key.h"
 #include "build/build_config.h"
@@ -238,7 +237,7 @@ const char kIsolatedAppCSP[] =
     "default-src 'self';"
     "object-src 'none';"
     "frame-src 'self' https: blob: data:;"
-    "connect-src 'self' https: wss:;"
+    "connect-src 'self' https: wss: blob: data:;"
     "script-src 'self' 'wasm-unsafe-eval';"
     "img-src 'self' https: blob: data:;"
     "media-src 'self' https: blob: data:;"
@@ -2158,7 +2157,7 @@ NavigationRequest::~NavigationRequest() {
           "navigation", "Navigation StartToCommit",
           TRACE_ID_WITH_SCOPE("StartToCommit", TRACE_ID_LOCAL(this)), "URL",
           common_params_->url.spec(), "Net Error Code", net_error_);
-      MaybeRecordTraceEvents();
+      MaybeRecordTraceEventsAndHistograms();
     }
 
     // Abandon the prerender host reserved for activation if it exists.
@@ -3409,8 +3408,8 @@ void NavigationRequest::OnRequestRedirected(
   // the spare at this time (note that the actual behavior depends on
   // RenderProcessHostImpl::IsSpareProcessKeptAtAllTimes).
   if (!site_instance->HasProcess()) {
-    RenderProcessHostImpl::NotifySpareManagerAboutRecentlyUsedBrowserContext(
-        site_instance->GetBrowserContext());
+    RenderProcessHostImpl::NotifySpareManagerAboutRecentlyUsedSiteInstance(
+        site_instance.get());
   }
 
   // Check what the process of the SiteInstance is. It will be passed to the
@@ -6024,8 +6023,8 @@ void NavigationRequest::CommitNavigation() {
   // Give SpareRenderProcessHostManager a heads-up about the most recently used
   // BrowserContext.  This is mostly needed to make sure the spare is warmed-up
   // if it wasn't done in RenderProcessHostImpl::GetProcessHostForSiteInstance.
-  RenderProcessHostImpl::NotifySpareManagerAboutRecentlyUsedBrowserContext(
-      GetRenderFrameHost()->GetSiteInstance()->GetBrowserContext());
+  RenderProcessHostImpl::NotifySpareManagerAboutRecentlyUsedSiteInstance(
+      GetRenderFrameHost()->GetSiteInstance());
 
   SendDeferredConsoleMessages();
 }
@@ -10242,11 +10241,12 @@ bool NavigationRequest::HasLoader() const {
   return loader_.get() != nullptr;
 }
 
-void NavigationRequest::MaybeRecordTraceEvents() {
+void NavigationRequest::MaybeRecordTraceEventsAndHistograms() {
   if (navigation_handle_timing_.navigation_commit_sent_time.is_null() ||
       IsSameDocument() || IsRestore() ||
       NavigationTypeUtils::IsHistory(common_params_->navigation_type) ||
-      NavigationTypeUtils::IsReload(common_params_->navigation_type)) {
+      NavigationTypeUtils::IsReload(common_params_->navigation_type) ||
+      !common_params_->url.SchemeIsHTTPOrHTTPS()) {
     return;
   }
 
@@ -10256,7 +10256,7 @@ void NavigationRequest::MaybeRecordTraceEvents() {
   const auto trace_id = TRACE_ID_WITH_SCOPE("NavigationBreakdown",
                                             TRACE_ID_LOCAL(navigation_id_));
 
-#define TRACE_WITH_TIMESTAMP0(name, begin_time, end_time)                     \
+#define MAYBE_RECORD_TRACE_AND_HISTOGRAM0(name, begin_time, end_time)         \
   do {                                                                        \
     if (!begin_time.is_null() && !end_time.is_null() &&                       \
         navigation_start_time <= begin_time &&                                \
@@ -10265,44 +10265,55 @@ void NavigationRequest::MaybeRecordTraceEvents() {
                                                        trace_id, begin_time); \
       TRACE_EVENT_NESTABLE_ASYNC_END_WITH_TIMESTAMP0("navigation", name,      \
                                                      trace_id, end_time);     \
+      base::UmaHistogramTimes(                                                \
+          "Navigation.MainFrame.NewNavigation.IgnoreRestore."                 \
+          "IsHTTPOrHTTPS." name ".Time",                                      \
+          end_time - begin_time);                                             \
     }                                                                         \
   } while (0)
 
-#define TRACE_WITH_TIMESTAMP1(name, begin_time, end_time, arg1_name, arg1_val) \
-  do {                                                                         \
-    if (!begin_time.is_null() && !end_time.is_null() &&                        \
-        navigation_start_time <= begin_time &&                                 \
-        end_time <= navigation_handle_timing_.navigation_commit_sent_time) {   \
-      TRACE_EVENT_NESTABLE_ASYNC_BEGIN_WITH_TIMESTAMP1(                        \
-          "navigation", name, trace_id, begin_time, arg1_name, arg1_val);      \
-      TRACE_EVENT_NESTABLE_ASYNC_END_WITH_TIMESTAMP0("navigation", name,       \
-                                                     trace_id, end_time);      \
-    }                                                                          \
+#define MAYBE_RECORD_TRACE_AND_HISTOGRAM1(name, begin_time, end_time,        \
+                                          arg1_name, arg1_val)               \
+  do {                                                                       \
+    if (!begin_time.is_null() && !end_time.is_null() &&                      \
+        navigation_start_time <= begin_time &&                               \
+        end_time <= navigation_handle_timing_.navigation_commit_sent_time) { \
+      TRACE_EVENT_NESTABLE_ASYNC_BEGIN_WITH_TIMESTAMP1(                      \
+          "navigation", name, trace_id, begin_time, arg1_name, arg1_val);    \
+      TRACE_EVENT_NESTABLE_ASYNC_END_WITH_TIMESTAMP0("navigation", name,     \
+                                                     trace_id, end_time);    \
+      base::UmaHistogramTimes(                                               \
+          "Navigation.MainFrame.NewNavigation.IgnoreRestore."                \
+          "IsHTTPOrHTTPS." name ".Time",                                     \
+          end_time - begin_time);                                            \
+    }                                                                        \
   } while (0)
 
-  TRACE_WITH_TIMESTAMP0("NavigationStartToBeginNavigation",
-                        navigation_start_time, begin_navigation_time_);
-  TRACE_WITH_TIMESTAMP0("BeginNavigationToLoaderStart", begin_navigation_time_,
-                        loader_start_time_);
-  TRACE_WITH_TIMESTAMP1("LoaderStartToReceiveResponse", loader_start_time_,
-                        receive_response_time_, "URL",
-                        common_params_->url.spec());
-  TRACE_WITH_TIMESTAMP0("LoaderStartToFetchStart", loader_start_time_,
-                        first_fetch_start_time_);
-  TRACE_WITH_TIMESTAMP0("FetchStart", first_fetch_start_time_,
-                        navigation_handle_timing_.first_request_start_time);
-  TRACE_WITH_TIMESTAMP0("ReceiveHeaders",
-                        navigation_handle_timing_.first_request_start_time,
-                        final_receive_headers_end_time_);
-  TRACE_WITH_TIMESTAMP0("ReceiveHeadersToReceiveResponse",
-                        final_receive_headers_end_time_,
-                        receive_response_time_);
-  TRACE_WITH_TIMESTAMP0("ReceiveResponseToCommitNavigation",
-                        receive_response_time_,
-                        navigation_handle_timing_.navigation_commit_sent_time);
+  MAYBE_RECORD_TRACE_AND_HISTOGRAM0("NavigationStartToBeginNavigation",
+                                    navigation_start_time,
+                                    begin_navigation_time_);
+  MAYBE_RECORD_TRACE_AND_HISTOGRAM0("BeginNavigationToLoaderStart",
+                                    begin_navigation_time_, loader_start_time_);
+  MAYBE_RECORD_TRACE_AND_HISTOGRAM1("LoaderStartToReceiveResponse",
+                                    loader_start_time_, receive_response_time_,
+                                    "URL", common_params_->url.spec());
+  MAYBE_RECORD_TRACE_AND_HISTOGRAM0(
+      "LoaderStartToFetchStart", loader_start_time_, first_fetch_start_time_);
+  MAYBE_RECORD_TRACE_AND_HISTOGRAM0(
+      "FetchStart", first_fetch_start_time_,
+      navigation_handle_timing_.first_request_start_time);
+  MAYBE_RECORD_TRACE_AND_HISTOGRAM0(
+      "ReceiveHeaders", navigation_handle_timing_.first_request_start_time,
+      final_receive_headers_end_time_);
+  MAYBE_RECORD_TRACE_AND_HISTOGRAM0("ReceiveHeadersToReceiveResponse",
+                                    final_receive_headers_end_time_,
+                                    receive_response_time_);
+  MAYBE_RECORD_TRACE_AND_HISTOGRAM0(
+      "ReceiveResponseToCommitNavigation", receive_response_time_,
+      navigation_handle_timing_.navigation_commit_sent_time);
 
-#undef TRACE_WITH_TIMESTAMP0
-#undef TRACE_WITH_TIMESTAMP1
+#undef MAYBE_RECORD_TRACE_AND_HISTOGRAM0
+#undef MAYBE_RECORD_TRACE_AND_HISTOGRAM1
 }
 
 }  // namespace content

@@ -102,7 +102,6 @@ class TestBufferCollection {
 class TestSharedImageInterface : public gpu::SharedImageInterface {
  public:
   TestSharedImageInterface() = default;
-  ~TestSharedImageInterface() override = default;
 
   scoped_refptr<gpu::ClientSharedImage> CreateSharedImage(
       viz::SharedImageFormat format,
@@ -159,7 +158,7 @@ class TestSharedImageInterface : public gpu::SharedImageInterface {
     return base::MakeRefCounted<gpu::ClientSharedImage>(result);
   }
 
-  scoped_refptr<gpu::ClientSharedImage> CreateSharedImage(
+  SharedImageInterface::SharedImageMapping CreateSharedImage(
       viz::SharedImageFormat format,
       const gfx::Size& size,
       const gfx::ColorSpace& color_space,
@@ -167,7 +166,8 @@ class TestSharedImageInterface : public gpu::SharedImageInterface {
       SkAlphaType alpha_type,
       uint32_t usage,
       base::StringPiece debug_label) override {
-    return base::MakeRefCounted<gpu::ClientSharedImage>(gpu::Mailbox());
+    return {base::MakeRefCounted<gpu::ClientSharedImage>(gpu::Mailbox()),
+            base::WritableSharedMemoryMapping()};
   }
 
   scoped_refptr<gpu::ClientSharedImage> CreateSharedImage(
@@ -271,6 +271,9 @@ class TestSharedImageInterface : public gpu::SharedImageInterface {
     return shared_image_capabilities_;
   }
 
+ protected:
+  ~TestSharedImageInterface() override = default;
+
  private:
   gpu::Mailbox GenerateMailboxForGMBHandle(
       gfx::GpuMemoryBufferHandle buffer_handle) {
@@ -300,7 +303,9 @@ class TestRasterContextProvider
     : public base::RefCountedThreadSafe<TestRasterContextProvider>,
       public viz::RasterContextProvider {
  public:
-  TestRasterContextProvider() {}
+  TestRasterContextProvider()
+      : shared_image_interface_(
+            base::MakeRefCounted<TestSharedImageInterface>()) {}
 
   TestRasterContextProvider(TestRasterContextProvider&) = delete;
   TestRasterContextProvider& operator=(TestRasterContextProvider&) = delete;
@@ -338,7 +343,7 @@ class TestRasterContextProvider
     return nullptr;
   }
   gpu::SharedImageInterface* SharedImageInterface() override {
-    return &shared_image_interface_;
+    return shared_image_interface_.get();
   }
   const gpu::Capabilities& ContextCapabilities() const override {
     ADD_FAILURE();
@@ -372,7 +377,7 @@ class TestRasterContextProvider
       std::move(on_destroyed_).Run();
   }
 
-  TestSharedImageInterface shared_image_interface_;
+  scoped_refptr<TestSharedImageInterface> shared_image_interface_;
   viz::TestContextSupport gpu_context_support_;
 
   base::OnceClosure on_destroyed_;

@@ -15,7 +15,6 @@
 #include "components/global_media_controls/public/media_item_ui.h"
 #include "components/global_media_controls/public/views/media_item_ui_device_selector.h"
 #include "components/global_media_controls/public/views/media_item_ui_footer.h"
-#include "components/global_media_controls/public/views/media_notification_view_ash_impl.h"
 #include "components/media_message_center/media_notification_container.h"
 #include "components/media_message_center/media_notification_view_impl.h"
 #include "media/base/media_switches.h"
@@ -34,6 +33,7 @@ class SlideOutController;
 
 namespace global_media_controls {
 
+enum class MediaDisplayPage;
 class MediaItemUIObserver;
 
 // MediaItemUIView holds a media notification for display
@@ -59,11 +59,11 @@ class COMPONENT_EXPORT(GLOBAL_MEDIA_CONTROLS) MediaItemUIView
       base::WeakPtr<media_message_center::MediaNotificationItem> item,
       std::unique_ptr<MediaItemUIFooter> footer_view,
       std::unique_ptr<MediaItemUIDeviceSelector> device_selector_view,
-      absl::optional<media_message_center::NotificationTheme>
-          notification_theme = absl::nullopt,
-      absl::optional<media_message_center::MediaColorTheme> media_color_theme =
-          absl::nullopt,
-      absl::optional<MediaDisplayPage> media_display_page = absl::nullopt);
+      std::optional<media_message_center::NotificationTheme>
+          notification_theme = std::nullopt,
+      std::optional<media_message_center::MediaColorTheme> media_color_theme =
+          std::nullopt,
+      std::optional<MediaDisplayPage> media_display_page = std::nullopt);
   MediaItemUIView(const MediaItemUIView&) = delete;
   MediaItemUIView& operator=(const MediaItemUIView&) = delete;
   ~MediaItemUIView() override;

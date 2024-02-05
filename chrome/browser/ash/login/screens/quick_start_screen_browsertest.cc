@@ -4,6 +4,7 @@
 
 #include <memory>
 #include "ash/constants/ash_features.h"
+#include "ash/public/cpp/login_screen_test_api.h"
 #include "base/memory/scoped_refptr.h"
 #include "base/run_loop.h"
 #include "base/test/metrics/histogram_tester.h"
@@ -13,7 +14,9 @@
 #include "chrome/browser/ash/login/screens/quick_start_screen.h"
 #include "chrome/browser/ash/login/screens/update_screen.h"
 #include "chrome/browser/ash/login/screens/welcome_screen.h"
+#include "chrome/browser/ash/login/test/device_state_mixin.h"
 #include "chrome/browser/ash/login/test/js_checker.h"
+#include "chrome/browser/ash/login/test/login_manager_mixin.h"
 #include "chrome/browser/ash/login/test/oobe_base_test.h"
 #include "chrome/browser/ash/login/test/oobe_screen_waiter.h"
 #include "chrome/browser/ash/login/test/oobe_screens_utils.h"
@@ -64,14 +67,11 @@ constexpr test::UIPath kQuickStartButtonPath = {
     WelcomeView::kScreenId.name, kWelcomeScreen, kQuickStartEntryPoint,
     kQuickStartButton};
 constexpr test::UIPath kQuickStartBluetoothDialogPath = {
-    WelcomeView::kScreenId.name, kWelcomeScreen, kQuickStartEntryPoint,
-    kQuickStartBluetoothDialog};
+    QuickStartView::kScreenId.name, kQuickStartBluetoothDialog};
 constexpr test::UIPath kQuickStartBluetoothCancelButtonPath = {
-    WelcomeView::kScreenId.name, kWelcomeScreen, kQuickStartEntryPoint,
-    kQuickStartBluetoothCancelButton};
+    QuickStartView::kScreenId.name, kQuickStartBluetoothCancelButton};
 constexpr test::UIPath kQuickStartBluetoothEnableButtonPath = {
-    WelcomeView::kScreenId.name, kWelcomeScreen, kQuickStartEntryPoint,
-    kQuickStartBluetoothEnableButton};
+    QuickStartView::kScreenId.name, kQuickStartBluetoothEnableButton};
 constexpr test::UIPath kCancelButtonLoadingDialog = {
     QuickStartView::kScreenId.name, kLoadingDialog, kCancelButton};
 constexpr test::UIPath kCancelButtonVerificationDialog = {
@@ -180,14 +180,6 @@ class QuickStartBrowserTest : public OobeBaseTest {
       bool is_powered) {
     ON_CALL(*mock_bluetooth_adapter, IsPowered())
         .WillByDefault(testing::Return(is_powered));
-  }
-
-  void EnsureBluetoothState(bool is_powered) {
-    EXPECT_EQ(WizardController::default_controller()
-                  ->quick_start_controller()
-                  ->get_bluetooth_system_state_for_testing(),
-              is_powered ? BluetoothSystemState::kEnabled
-                         : BluetoothSystemState::kDisabled);
   }
 
   void SkipUpdateScreenOnBrandedBuilds() {
@@ -394,7 +386,7 @@ IN_PROC_BROWSER_TEST_F(QuickStartNotDeterminedBrowserTest,
 }
 
 IN_PROC_BROWSER_TEST_F(QuickStartBrowserTestWithBluetoothDisabled,
-                       ClickingOnQuickStartWhenBluetoothDisabled) {
+                       BluetoothDialogIsShownAndCancellingWorks) {
   test::WaitForWelcomeScreen();
 
   test::OobeJS()
@@ -404,37 +396,21 @@ IN_PROC_BROWSER_TEST_F(QuickStartBrowserTestWithBluetoothDisabled,
   EXPECT_CALL(*mock_bluetooth_adapter_, IsPowered())
       .WillRepeatedly(testing::Return(false));
 
-  EnsureBluetoothState(/*is_powered=*/false);
-
+  // Clicking on the entry point when bluetooth is disabled should
+  // transition to the QuickStart screen and show the dialog.
   test::OobeJS().ClickOnPath(kQuickStartButtonPath);
-  WaitForBluetoothDialogToOpen();
-}
-
-IN_PROC_BROWSER_TEST_F(QuickStartBrowserTestWithBluetoothDisabled,
-                       CancellingBluetoothEnablingClosesDialog) {
-  test::WaitForWelcomeScreen();
-
-  test::OobeJS()
-      .CreateVisibilityWaiter(/*visibility=*/true, kQuickStartButtonPath)
-      ->Wait();
-
-  EXPECT_CALL(*mock_bluetooth_adapter_, IsPowered())
-      .WillRepeatedly(testing::Return(false));
-
-  EnsureBluetoothState(/*is_powered=*/false);
-
-  test::OobeJS().ClickOnPath(kQuickStartButtonPath);
-
+  OobeScreenWaiter(QuickStartView::kScreenId).Wait();
+  WaitForVerificationStep();
   WaitForBluetoothDialogToOpen();
 
+  // Cancelling the dialog should bring the user back.
   test::OobeJS()
       .CreateVisibilityWaiter(/*visibility=*/true,
                               kQuickStartBluetoothCancelButtonPath)
       ->Wait();
-
   test::OobeJS().ClickOnPath(kQuickStartBluetoothCancelButtonPath);
 
-  WaitForBluetoothDialogToClose();
+  test::WaitForWelcomeScreen();
 }
 
 IN_PROC_BROWSER_TEST_F(QuickStartBrowserTestWithBluetoothDisabled,
@@ -448,20 +424,19 @@ IN_PROC_BROWSER_TEST_F(QuickStartBrowserTestWithBluetoothDisabled,
   EXPECT_CALL(*mock_bluetooth_adapter_, IsPowered())
       .WillRepeatedly(testing::Return(false));
 
-  EnsureBluetoothState(/*is_powered=*/false);
-
+  // Clicking on the entry point when bluetooth is disabled should
+  // transition to the QuickStart screen and show the dialog.
   test::OobeJS().ClickOnPath(kQuickStartButtonPath);
-
+  OobeScreenWaiter(QuickStartView::kScreenId).Wait();
+  WaitForVerificationStep();
   WaitForBluetoothDialogToOpen();
 
   test::OobeJS()
       .CreateVisibilityWaiter(/*visibility=*/true,
                               kQuickStartBluetoothEnableButtonPath)
       ->Wait();
-
   test::OobeJS().ClickOnPath(kQuickStartBluetoothEnableButtonPath);
-
-  OobeScreenWaiter(QuickStartView::kScreenId).Wait();
+  WaitForBluetoothDialogToClose();
 }
 
 IN_PROC_BROWSER_TEST_F(QuickStartBrowserTest, QRCode) {
@@ -817,6 +792,32 @@ IN_PROC_BROWSER_TEST_F(QuickStartBrowserTest, HandleEmptyAccounts) {
 
   // Returns to the Gaia screen
   OobeScreenWaiter(GaiaScreenHandler::kScreenId).Wait();
+}
+
+class QuickStartLoginScreenTest : public QuickStartBrowserTest {
+ public:
+  QuickStartLoginScreenTest() : QuickStartBrowserTest() {
+    login_manager_mixin_.AppendRegularUsers(1);
+  }
+
+ private:
+  DeviceStateMixin device_state_{
+      &mixin_host_, DeviceStateMixin::State::OOBE_COMPLETED_CONSUMER_OWNED};
+  LoginManagerMixin login_manager_mixin_{&mixin_host_};
+};
+
+IN_PROC_BROWSER_TEST_F(QuickStartLoginScreenTest, EntryPointNotVisible) {
+  SetupNetwork(/*connected=*/true);
+  EXPECT_TRUE(LoginScreenTestApi::ClickAddUserButton());
+  EXPECT_TRUE(LoginScreenTestApi::IsOobeDialogVisible());
+  OobeScreenWaiter(UserCreationView::kScreenId).Wait();
+
+  test::OobeJS().ClickOnPath({"user-creation", "selfButton"});
+  test::OobeJS().ClickOnPath({"user-creation", "nextButton"});
+
+  OobeScreenWaiter(GaiaView::kScreenId).Wait();
+  base::RunLoop().RunUntilIdle();
+  test::OobeJS().ExpectHiddenPath(kQuickStartButtonGaia);
 }
 
 }  // namespace ash

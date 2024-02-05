@@ -13,10 +13,6 @@
 
 namespace flag_descriptions {
 
-// Title and description for the flag to enable the App Store Rating promo.
-extern const char kAppStoreRatingName[];
-extern const char kAppStoreRatingDescription[];
-
 // Title and description for the flag to control upstreaming credit cards.
 extern const char kAutofillCreditCardUploadName[];
 extern const char kAutofillCreditCardUploadDescription[];
@@ -128,11 +124,6 @@ extern const char kAutofillUseTwoDotsForLastFourDigitsDescription[];
 extern const char kBottomOmniboxDefaultSettingName[];
 extern const char kBottomOmniboxDefaultSettingDescription[];
 
-// Title and description for the flag that retrieves device switcher result for
-// the default omnibox position.
-extern const char kBottomOmniboxDeviceSwitcherResultsName[];
-extern const char kBottomOmniboxDeviceSwitcherResultsDescription[];
-
 // Title and description for the flag that enables the app-launch promo of
 // bottom omnibox.
 extern const char kBottomOmniboxPromoAppLaunchName[];
@@ -153,11 +144,6 @@ extern const char kBottomOmniboxPromoFREDescription[];
 extern const char kBottomOmniboxPromoRegionFilterName[];
 extern const char kBottomOmniboxPromoRegionFilterDescription[];
 
-// Title and description for the flag that moves the omnibox to the bottom in
-// the steady state.
-extern const char kBottomOmniboxSteadyStateName[];
-extern const char kBottomOmniboxSteadyStateDescription[];
-
 // Title and description for the flag that enables donation of new intents.
 extern const char kSpotlightDonateNewIntentsName[];
 extern const char kSpotlightDonateNewIntentsDescription[];
@@ -166,11 +152,6 @@ extern const char kSpotlightDonateNewIntentsDescription[];
 // reports is delayed.
 extern const char kBreakpadNoDelayInitialUploadName[];
 extern const char kBreakpadNoDelayInitialUploadDescription[];
-
-// Title and description for the flag to enable deletion of undecryptable
-// passwords from Sync.
-extern const char kClearUndecryptablePasswordsOnSyncName[];
-extern const char kClearUndecryptablePasswordsOnSyncDescription[];
 
 // Title and description for the flag to enable the content notifications
 // feature.
@@ -482,11 +463,6 @@ extern const char kIOSPasswordBottomSheetDescription[];
 extern const char kIOSPasswordBottomSheetAutofocusName[];
 extern const char kIOSPasswordBottomSheetAutofocusDescription[];
 
-// Title and description for the flag to enable bulk uploading local passwords
-// for eligible users on the iOS password settings.
-extern const char kIOSPasswordSettingsBulkUploadLocalPasswordsName[];
-extern const char kIOSPasswordSettingsBulkUploadLocalPasswordsDescription[];
-
 // Title and description for the flag to enable filling the username of single
 // username forms in sign-in UFF.
 extern const char kIOSPasswordSignInUffName[];
@@ -711,11 +687,6 @@ extern const char kOptimizationGuidePushNotificationClientDescription[];
 extern const char kOneTapForMapsName[];
 extern const char kOneTapForMapsDescription[];
 
-// Title and description for the flag to enable using annotations manager to
-// fetch web page text used for language detection.
-extern const char kUseAnnotationsForLanguageDetectionName[];
-extern const char kUseAnnotationsForLanguageDetectionDescription[];
-
 // Title and description for the flag to enable PhishGuard password reuse
 // detection.
 extern const char kPasswordReuseDetectionName[];
@@ -809,11 +780,6 @@ extern const char kShareInWebContextMenuIOSDescription[];
 extern const char kShowAutofillTypePredictionsName[];
 extern const char kShowAutofillTypePredictionsDescription[];
 
-// Title and description for the flag to enable ignoring undecryptable passwords
-// in the password storage.
-extern const char kSkipUndecryptablePasswordsName[];
-extern const char kSkipUndecryptablePasswordsDescription[];
-
 // Title and description for the flag to index open tabs items in Spotlight.
 extern const char kSpotlightOpenTabsSourceName[];
 extern const char kSpotlightOpenTabsSourceDescription[];
@@ -825,6 +791,11 @@ extern const char kSpotlightReadingListSourceDescription[];
 // Title and description for the flag to enable the Start Surface.
 extern const char kStartSurfaceName[];
 extern const char kStartSurfaceDescription[];
+
+// Title and description for the flag to control if custom passphrase should be
+// remembered after sign-out.
+extern const char kSyncRememberCustomPassphraseAfterSignoutName[];
+extern const char kSyncRememberCustomPassphraseAfterSignoutDescription[];
 
 // Title and description for the flag to control if Chrome Sync should use the
 // sandbox servers.

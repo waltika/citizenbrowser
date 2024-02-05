@@ -32,7 +32,7 @@ const CGFloat kSeparatorWidth = 2;
 const CGFloat kSeparatorCornerRadius = 1;
 const CGFloat kSeparatorHeight = 18;
 const CGFloat kSeparatorHorizontalInset = 2;
-const CGFloat kSeparatorGradientWidth = 8;
+const CGFloat kSeparatorGradientWidth = 4;
 
 // Content view constants.
 const CGFloat kFaviconLeadingMargin = 10;
@@ -85,12 +85,17 @@ UIImage* DefaultFavicon() {
   // Gradient view's constraints.
   NSLayoutConstraint* _titleGradientViewLeadingConstraint;
   NSLayoutConstraint* _titleGradientViewTrailingConstraint;
+
+  // Separator height constraints.
+  NSArray<NSLayoutConstraint*>* _separatorHeightConstraints;
+  CGFloat _separatorHeight;
 }
 
 - (instancetype)initWithFrame:(CGRect)frame {
   if ((self = [super initWithFrame:frame])) {
     self.layer.masksToBounds = NO;
     _decorationLayersUpdated = NO;
+    _separatorHeight = 0;
 
     UIView* contentView = self.contentView;
     contentView.layer.masksToBounds = YES;
@@ -161,6 +166,8 @@ UIImage* DefaultFavicon() {
                                  cornerRadius:kCornerSize];
   UIDragPreviewParameters* params = [[UIDragPreviewParameters alloc] init];
   params.visiblePath = visiblePath;
+  // Remove the default shadow path.
+  params.shadowPath = [UIBezierPath bezierPath];
   return params;
 }
 
@@ -217,16 +224,7 @@ UIImage* DefaultFavicon() {
     _trailingSeparatorGradientView.hidden = YES;
   }
 
-  UIColor* backgroundColor = selected
-                                 ? [UIColor colorNamed:kPrimaryBackgroundColor]
-                                 : [UIColor colorNamed:kGrey200Color];
-
-  // Update colors.
-  self.contentView.backgroundColor = backgroundColor;
-  _faviconView.tintColor = selected ? [UIColor colorNamed:kCloseButtonColor]
-                                    : [UIColor colorNamed:kGrey500Color];
-  [_titleGradientView setStartColor:[backgroundColor colorWithAlphaComponent:0]
-                           endColor:backgroundColor];
+  [self updateColors];
 
   // Make the selected cell on top of other cells.
   self.layer.zPosition = selected ? kSelectedZIndex : 0;
@@ -238,6 +236,22 @@ UIImage* DefaultFavicon() {
   _topRightCornerView.hidden = !selected;
 
   [self updateCollapsedState];
+}
+
+- (void)setSeparatorsHeight:(CGFloat)height {
+  if (_separatorHeight == height) {
+    return;
+  }
+  _separatorHeight = height;
+
+  if (_separatorHeightConstraints) {
+    [NSLayoutConstraint deactivateConstraints:_separatorHeightConstraints];
+  }
+  _separatorHeightConstraints = @[
+    [_leadingSeparatorView.heightAnchor constraintEqualToConstant:height],
+    [_trailingSeparatorView.heightAnchor constraintEqualToConstant:height],
+  ];
+  [NSLayoutConstraint activateConstraints:_separatorHeightConstraints];
 }
 
 #pragma mark - UICollectionViewCell
@@ -254,6 +268,13 @@ UIImage* DefaultFavicon() {
   _titleLabel.text = nil;
   self.selected = NO;
   [self setFaviconImage:nil];
+}
+
+#pragma mark - UITraitEnvironment
+
+- (void)traitCollectionDidChange:(UITraitCollection*)previousTraitCollection {
+  [super traitCollectionDidChange:previousTraitCollection];
+  [self updateColors];
 }
 
 #pragma mark - Private
@@ -306,6 +327,23 @@ UIImage* DefaultFavicon() {
   }
 
   _decorationLayersUpdated = YES;
+}
+
+// Updates view colors.
+- (void)updateColors {
+  UIColor* backgroundColor = self.selected
+                                 ? [UIColor colorNamed:kPrimaryBackgroundColor]
+                                 : [UIColor colorNamed:kGrey200Color];
+  // Needed to correctly update the `_titleGradientView` colors in incognito.
+  backgroundColor =
+      [backgroundColor resolvedColorWithTraitCollection:self.traitCollection];
+
+  self.contentView.backgroundColor = backgroundColor;
+  _faviconView.tintColor = self.selected
+                               ? [UIColor colorNamed:kCloseButtonColor]
+                               : [UIColor colorNamed:kGrey500Color];
+  [_titleGradientView setStartColor:[backgroundColor colorWithAlphaComponent:0]
+                           endColor:backgroundColor];
 }
 
 // Hides the close button view if the cell is collapsed.
@@ -472,8 +510,6 @@ UIImage* DefaultFavicon() {
                        constant:-kSeparatorHorizontalInset],
     [_leadingSeparatorView.widthAnchor
         constraintEqualToConstant:kSeparatorWidth],
-    [_leadingSeparatorView.heightAnchor
-        constraintEqualToConstant:kSeparatorHeight],
     [_leadingSeparatorView.centerYAnchor
         constraintEqualToAnchor:contentView.centerYAnchor],
   ]];
@@ -485,11 +521,11 @@ UIImage* DefaultFavicon() {
                        constant:kSeparatorHorizontalInset],
     [_trailingSeparatorView.widthAnchor
         constraintEqualToConstant:kSeparatorWidth],
-    [_trailingSeparatorView.heightAnchor
-        constraintEqualToConstant:kSeparatorHeight],
     [_trailingSeparatorView.centerYAnchor
         constraintEqualToAnchor:contentView.centerYAnchor],
   ]];
+
+  [self setSeparatorsHeight:kSeparatorHeight];
 
   /// `_leadingSeparatorGradientView` constraints.
   [NSLayoutConstraint activateConstraints:@[

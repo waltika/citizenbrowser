@@ -42,9 +42,6 @@ BASE_DECLARE_FEATURE(kIOSSharedHighlightingColorChange);
 // should be used instead of directly checking this feature.
 BASE_DECLARE_FEATURE(kUseLoadSimulatedRequestForOfflinePage);
 
-// Feature flag to enable Phone Numbers detection.
-BASE_DECLARE_FEATURE(kEnablePhoneNumbers);
-
 // Feature flag to enable Measurements detection.
 BASE_DECLARE_FEATURE(kEnableMeasurements);
 
@@ -57,10 +54,6 @@ extern const char kOneTapForMapsConsentModeIPHParam[];
 extern const char kOneTapForMapsConsentModeIPHForcedParam[];
 // Feature flag to enable One tap experience for Maps.
 BASE_DECLARE_FEATURE(kOneTapForMaps);
-
-// Feature flag that enables using web::AnnotationsTextManager for fetching web
-// page text for language detection.
-BASE_DECLARE_FEATURE(kUseAnnotationsForLanguageDetection);
 
 // When enabled, CRWWebViewScrollViewProxy's `scrollEnabled` state is not
 // restored if the new instance already has the same `scrollEnabled` state as
@@ -76,9 +69,6 @@ BASE_DECLARE_FEATURE(kEnableWebInspector);
 // Feature used by finch config to enable smooth scrolling when the default
 // viewport adjustment experiment is selected via command line switches.
 BASE_DECLARE_FEATURE(kSmoothScrollingDefault);
-
-// Feature flag to enable the session serialization optimizations.
-BASE_DECLARE_FEATURE(kEnableSessionSerializationOptimizations);
 
 // Feature flag that force the use of the synthesized native WKWebView
 // session instead of the (maybe inexistent) saved native session. The
@@ -97,9 +87,6 @@ bool IsLoadSimulatedRequestAPIEnabled();
 
 // When true, an option to enable Web Inspector should be present in Settings.
 bool IsWebInspectorSupportEnabled();
-
-// When true, session serialization optimizations should be enabled.
-bool UseSessionSerializationOptimizations();
 
 }  // namespace features
 }  // namespace web

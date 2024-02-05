@@ -24,12 +24,17 @@ namespace net {
 class IsolationInfo;
 }  // namespace net
 
+namespace network {
+namespace mojom {
+class SharedDictionaryAccessObserver;
+}  // namespace mojom
+}  // namespace network
+
 namespace content {
 
 class NavigationRequest;
 class RenderFrameHostImpl;
 class RenderProcessHost;
-class SharedDictionaryAccessObserver;
 
 // URLLoaderFactoryParamsHelper encapsulates details of how to create
 // network::mojom::URLLoaderFactoryParams (taking //content-focused parameters,

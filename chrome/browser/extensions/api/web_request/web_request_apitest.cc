@@ -134,6 +134,7 @@
 #include "services/network/public/cpp/features.h"
 #include "services/network/public/cpp/resource_request.h"
 #include "services/network/public/cpp/simple_url_loader.h"
+#include "services/network/public/cpp/url_loader_factory_builder.h"
 #include "services/network/public/mojom/fetch_api.mojom.h"
 #include "services/network/test/test_url_loader_client.h"
 #include "third_party/blink/public/common/features.h"
@@ -2296,8 +2297,8 @@ IN_PROC_BROWSER_TEST_F(ExtensionWebRequestApiTest,
   api->ForceProxyForTesting();
   temp_profile->GetDefaultStoragePartition()->FlushNetworkInterfaceForTesting();
 
-  mojo::Remote<network::mojom::URLLoaderFactory> factory;
-  auto pending_receiver = factory.BindNewPipeAndPassReceiver();
+  network::URLLoaderFactoryBuilder factory_builder;
+
   auto temp_web_contents =
       WebContents::Create(WebContents::CreateParams(temp_profile.get()));
   content::RenderFrameHost* frame = temp_web_contents->GetPrimaryMainFrame();
@@ -2305,14 +2306,16 @@ IN_PROC_BROWSER_TEST_F(ExtensionWebRequestApiTest,
       frame->GetProcess()->GetBrowserContext(), frame,
       frame->GetProcess()->GetID(),
       content::ContentBrowserClient::URLLoaderFactoryType::kDocumentSubResource,
-      std::nullopt, ukm::kInvalidSourceIdObj, &pending_receiver, nullptr,
+      std::nullopt, ukm::kInvalidSourceIdObj, factory_builder, nullptr,
       nullptr));
   temp_web_contents.reset();
   auto params = network::mojom::URLLoaderFactoryParams::New();
   params->process_id = 0;
-  temp_profile->GetDefaultStoragePartition()
-      ->GetNetworkContext()
-      ->CreateURLLoaderFactory(std::move(pending_receiver), std::move(params));
+  mojo::Remote<network::mojom::URLLoaderFactory> factory(
+      std::move(factory_builder)
+          .Finish<mojo::PendingRemote<network::mojom::URLLoaderFactory>>(
+              temp_profile->GetDefaultStoragePartition()->GetNetworkContext(),
+              std::move(params)));
 
   network::TestURLLoaderClient client;
   mojo::PendingRemote<network::mojom::URLLoader> loader;
@@ -3815,8 +3818,14 @@ IN_PROC_BROWSER_TEST_P(ServiceWorkerWebRequestApiTest,
 // Ensure we don't strip off initiator incorrectly in web request events when
 // both the normal and incognito contexts are active. Regression test for
 // crbug.com/934398.
+// TODO(crbug.com/1520416): enable this flaky test
+#if BUILDFLAG(IS_LINUX) && defined(ADDRESS_SANITIZER) && defined(LEAK_SANITIZER)
+#define MAYBE_Initiator_SpanningIncognito DISABLED_Initiator_SpanningIncognito
+#else
+#define MAYBE_Initiator_SpanningIncognito Initiator_SpanningIncognito
+#endif
 IN_PROC_BROWSER_TEST_P(ExtensionWebRequestApiTestWithContextType,
-                       Initiator_SpanningIncognito) {
+                       MAYBE_Initiator_SpanningIncognito) {
   embedded_test_server()->ServeFilesFromSourceDirectory("chrome/test/data");
   ASSERT_TRUE(embedded_test_server()->Start());
 

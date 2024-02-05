@@ -7,6 +7,7 @@ package org.chromium.chrome.browser.hub;
 import android.content.Context;
 import android.view.View;
 
+import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -106,6 +107,12 @@ public class HubManagerImpl implements HubManager, HubController {
     }
 
     @Override
+    public @ColorInt int getBackgroundColor(@Nullable Pane pane) {
+        @HubColorScheme int colorScheme = HubColors.getColorSchemeSafe(pane);
+        return HubColors.getBackgroundColor(mContext, colorScheme);
+    }
+
+    @Override
     public void onHubLayoutShow() {
         mHubVisibilitySupplier.set(true);
         ensureHubCoordinatorIsInitialized();
@@ -197,6 +204,6 @@ public class HubManagerImpl implements HubManager, HubController {
             mMenuOrKeyboardActionController.registerMenuOrKeyboardActionHandler(
                     menuOrKeyboardActionHandler);
         }
-        mSnackbarManager.setParentView(pane.getRootView());
+        mSnackbarManager.setParentView(mHubContainerView);
     }
 }

@@ -188,6 +188,8 @@ void AutofillProviderAndroid::OnAskForValuesToFill(
   if (!IsLinkedForm(
           form, /*similarity_metric=*/kSimilarityCheckAskForValuesToFillUma)) {
     StartNewSession(manager, form, field, bounding_box);
+  } else {
+    last_focused_field_id_ = field.global_id();
   }
 
   if (field.datalist_options.empty()) {
@@ -205,8 +207,7 @@ bool AutofillProviderAndroid::IsFormSimilarToCachedForm(
   }
   if (form_structure &&
       base::FeatureList::IsEnabled(
-          features::
-              kAndroidAutofillSignatureForPrefillRequestSimilarityCheck)) {
+          features::kAndroidAutofillUsePwmPredictionsForOverrides)) {
     CHECK_EQ(form.global_id(), form_structure->global_id());
     std::unique_ptr<PasswordForm> pw_form =
         ParseToPasswordForm(*form_structure);
@@ -247,7 +248,7 @@ void AutofillProviderAndroid::StartNewSession(AndroidAutofillManager* manager,
     return;
   }
 
-  field_id_ = field.global_id();
+  last_focused_field_id_ = field.global_id();
   field_type_group_ = manager->ComputeFieldTypeGroupForField(form, field);
   triggered_origin_ = field.origin;
   check_submission_ = false;
@@ -280,8 +281,7 @@ void AutofillProviderAndroid::StartNewSession(AndroidAutofillManager* manager,
           kPrefillRequestStateUma,
           PrefillRequestState::kRequestSentFormChanged);
       if (!base::FeatureList::IsEnabled(
-              features::
-                  kAndroidAutofillSignatureForPrefillRequestSimilarityCheck)) {
+              features::kAndroidAutofillUsePwmPredictionsForOverrides)) {
         base::UmaHistogramExactLinear(
             kSimilarityCheckCacheRequestUma,
             ProjectSimilarityCheckResultToMetricsValue(
@@ -335,8 +335,9 @@ void AutofillProviderAndroid::OnAutofillAvailable() {
 void AutofillProviderAndroid::OnAcceptDatalistSuggestion(
     const std::u16string& value) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
-  if (auto* manager = manager_.get()) {
-    RendererShouldAcceptDataListSuggestion(manager, field_id_, value);
+  if (manager_) {
+    RendererShouldAcceptDataListSuggestion(manager_.get(),
+                                           last_focused_field_id_, value);
   }
 }
 
@@ -374,6 +375,11 @@ void AutofillProviderAndroid::OnShowBottomSheetResult(
           ? PrefillRequestState::
                 kRequestSentStructureProvidedBottomSheetNotShown
           : PrefillRequestState::kRequestSentStructureNotProvided);
+  if (!provided_autofill_structure && cached_data_.has_value()) {
+    base::UmaHistogramTimes(
+        kPrefillRequestBottomsheetNoViewStructureDelayUma,
+        base::TimeTicks::Now() - cached_data_->prefill_request_creation_time);
+  }
 }
 
 void AutofillProviderAndroid::OnTextFieldDidChange(
@@ -428,9 +434,7 @@ void AutofillProviderAndroid::OnFormSubmitted(AndroidAutofillManager* manager,
                                               bool known_success,
                                               SubmissionSource source) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
-  // TODO(b/297228856): Remove `!form_` check when
-  // `kAndroidAutofillFormSubmissionCheckById` launches.
-  if (!IsLinkedManager(manager) || !form_) {
+  if (!IsLinkedManager(manager)) {
     return;
   }
 
@@ -439,10 +443,7 @@ void AutofillProviderAndroid::OnFormSubmitted(AndroidAutofillManager* manager,
   // Even if the page modifies the form between the user interaction and the
   // form submission, we want to inform `AutofillManager` about the submission.
   // Otherwise no saving prompt can be offered.
-  if (base::FeatureList::IsEnabled(
-          features::kAndroidAutofillFormSubmissionCheckById)
-          ? !IsIdOfLinkedForm(form.global_id())
-          : !form_->SimilarFormAs(form)) {
+  if (!IsIdOfLinkedForm(form.global_id())) {
     return;
   }
 
@@ -463,7 +464,7 @@ void AutofillProviderAndroid::OnFocusNoLongerOnForm(
     return;
   }
 
-  bridge_->OnFocusChanged(absl::nullopt);
+  bridge_->OnFocusChanged(std::nullopt);
 }
 
 void AutofillProviderAndroid::OnFocusOnFormField(
@@ -660,7 +661,7 @@ gfx::RectF AutofillProviderAndroid::ToClientAreaBound(
 void AutofillProviderAndroid::Reset() {
   manager_ = nullptr;
   form_.reset();
-  field_id_ = {};
+  last_focused_field_id_ = {};
   field_type_group_ = FieldTypeGroup::kNoGroup;
   triggered_origin_ = {};
   check_submission_ = false;
@@ -711,6 +712,7 @@ void AutofillProviderAndroid::MaybeSendPrefillRequest(
   }
 
   cached_data_.emplace();
+  cached_data_->prefill_request_creation_time = base::TimeTicks::Now();
   cached_data_->cached_form = std::make_unique<FormDataAndroid>(
       form_structure->ToFormData(), CreateSessionId());
   cached_data_->cached_form->UpdateFieldTypes(*form_structure);
@@ -718,8 +720,7 @@ void AutofillProviderAndroid::MaybeSendPrefillRequest(
           PasswordParserOverrides::FromLoginForm(*pw_form, *form_structure);
       overrides &&
       base::FeatureList::IsEnabled(
-          features::
-              kAndroidAutofillSignatureForPrefillRequestSimilarityCheck)) {
+          features::kAndroidAutofillUsePwmPredictionsForOverrides)) {
     // If we manage to match the fields that the password form parser identified
     // as username and password fields, override their types.
     cached_data_->password_parser_overrides = *std::move(overrides);

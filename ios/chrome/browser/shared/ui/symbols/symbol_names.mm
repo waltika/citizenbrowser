@@ -149,11 +149,9 @@ NSString* const kPersonFillSymbol = @"person.fill";
 NSString* const kMailFillSymbol = @"envelope.fill";
 NSString* const kPhoneFillSymbol = @"phone.fill";
 NSString* const kDownloadPromptFillSymbol = @"arrow.down.to.line.circle.fill";
-NSString* const kDownloadPromptFilliOS14Symbol = @"arrow.down.circle.fill";
 NSString* const kDownloadDocFillSymbol = @"doc.fill";
 NSString* const kDocSymbol = @"doc";
 NSString* const kOpenInDownloadsSymbol = @"arrow.down.to.line.compact";
-NSString* const kOpenInDownloadsiOS14Symbol = @"arrow.down.to.line.alt";
 NSString* const kExternalLinkSymbol = @"arrow.up.forward.square";
 NSString* const kChevronDownSymbol = @"chevron.down";
 NSString* const kChevronForwardSymbol = @"chevron.forward";
@@ -199,6 +197,7 @@ NSString* const kLightBulbSymbol = @"lightbulb";
 NSString* const kNewTabGroupActionSymbol = @"plus.square.on.square";
 NSString* const kRemoveTabFromGroupActionSymbol = @"minus.square";
 NSString* const kMoveTabToGroupActionSymbol = @"arrow.up.right.square";
+NSString* const kClockSymbol = @"clock";
 
 // Names of the default symbol being non-monochrome by default. When using them,
 // you probably want to set their color to monochrome.

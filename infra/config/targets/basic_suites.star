@@ -1926,7 +1926,6 @@ targets.legacy_basic_suite(
     name = "fuchsia_chrome_small_gtests",
     tests = {
         "courgette_unittests": targets.legacy_test_config(),
-        "extensions_unittests": targets.legacy_test_config(),
         "headless_unittests": targets.legacy_test_config(),
         "message_center_unittests": targets.legacy_test_config(),
         "views_examples_unittests": targets.legacy_test_config(
@@ -2468,7 +2467,7 @@ targets.legacy_basic_suite(
                 "webgpu_telemetry_cts",
             ],
             args = [
-                "--extra-browser-args=--use-angle=gl --use-webgpu-adapter=opengles --enable-webgpu-developer-features",
+                "--extra-browser-args=--use-angle=gl --use-webgpu-adapter=opengles --enable-blink-features=WebGPUExperimentalFeatures",
             ],
             swarming = targets.swarming(
                 shards = 14,
@@ -3622,7 +3621,12 @@ targets.legacy_basic_suite(
         "angle_unittests": targets.legacy_test_config(
             use_isolated_scripts_api = True,
         ),
-        "base_unittests": targets.legacy_test_config(),
+        "base_unittests": targets.legacy_test_config(
+            args = [
+                "--test-launcher-bot-mode",
+                "--test-launcher-filter-file=testing/buildbot/filters/ios.base_unittests.filter",
+            ],
+        ),
         "blink_common_unittests": targets.legacy_test_config(),
         "blink_fuzzer_unittests": targets.legacy_test_config(),
         "blink_heap_unittests": targets.legacy_test_config(),
@@ -5243,6 +5247,7 @@ targets.legacy_basic_suite(
             swarming = targets.swarming(
                 shards = 15,
             ),
+            experiment_percentage = 100,
         ),
     },
 )
@@ -5269,6 +5274,7 @@ targets.legacy_basic_suite(
             swarming = targets.swarming(
                 shards = 3,
             ),
+            experiment_percentage = 100,
         ),
     },
 )
@@ -5280,6 +5286,7 @@ targets.legacy_basic_suite(
             swarming = targets.swarming(
                 shards = 10,
             ),
+            experiment_percentage = 100,
         ),
     },
 )

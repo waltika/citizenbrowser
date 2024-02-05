@@ -4,6 +4,8 @@
 
 #include "ash/wm/window_restore/pine_contents_view.h"
 
+#include "ash/constants/ash_switches.h"
+#include "ash/public/cpp/test/in_process_data_decoder.h"
 #include "ash/shell.h"
 #include "ash/test/ash_test_base.h"
 #include "ash/wm/overview/overview_controller.h"
@@ -22,13 +24,14 @@ namespace ash {
 
 class PineTest : public AshTestBase {
  public:
-  PineTest() = default;
+  PineTest() { switches::SetIgnoreForestSecretKeyForTest(true); }
   PineTest(const PineTest&) = delete;
   PineTest& operator=(const PineTest&) = delete;
-  ~PineTest() override = default;
+  ~PineTest() override { switches::SetIgnoreForestSecretKeyForTest(false); }
 
  private:
-  base::test::ScopedFeatureList scoped_feature_list_{features::kPine};
+  InProcessDataDecoder decoder_;
+  base::test::ScopedFeatureList scoped_feature_list_{features::kForestFeature};
 };
 
 TEST_F(PineTest, Show) {
@@ -42,7 +45,10 @@ TEST_F(PineTest, Show) {
 }
 
 TEST_F(PineTest, ShowContextMenuOnSettingsButtonClicked) {
+  base::RunLoop run_loop;
+  OverviewController::Get()->set_pine_callback_for_test(run_loop.QuitClosure());
   Shell::Get()->window_restore_controller()->MaybeStartPineOverviewSession();
+  run_loop.Run();
 
   // Get the active Pine widget.
   OverviewGrid* grid = GetOverviewGridForRoot(Shell::GetPrimaryRootWindow());

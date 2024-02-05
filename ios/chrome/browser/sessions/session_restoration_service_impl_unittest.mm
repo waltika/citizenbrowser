@@ -13,6 +13,7 @@
 #import "base/files/file_util.h"
 #import "base/files/scoped_temp_dir.h"
 #import "base/functional/bind.h"
+#import "base/memory/raw_ptr.h"
 #import "base/run_loop.h"
 #import "base/scoped_multi_source_observation.h"
 #import "base/test/metrics/histogram_tester.h"
@@ -84,7 +85,7 @@ struct Wrapper {
       return std::move(callback_).Run(std::move(args)...);
     }
 
-    Wrapper* owner_;
+    raw_ptr<Wrapper<Ret, Args...>> owner_;
     Callback callback_;
   };
 
@@ -219,7 +220,7 @@ class FileModificationTracker {
 // Structure storing a WebState and whether the native session is supposed
 // to be available. Used by ExpectedStorageFilesForWebStates.
 struct WebStateReference {
-  const web::WebState* web_state = nullptr;
+  raw_ptr<const web::WebState> web_state = nullptr;
   bool is_native_session_available = false;
 };
 
@@ -246,8 +247,10 @@ FilePathSet ExpectedStorageFilesForWebStates(
 }
 
 // Returns the path of storage file to `browser` in `session_dir`.
-FilePathSet ExpectedStorageFilesForBrowser(const base::FilePath& session_dir,
-                                           Browser* browser) {
+FilePathSet ExpectedStorageFilesForBrowser(
+    const base::FilePath& session_dir,
+    Browser* browser,
+    bool expect_session_metadata_storage) {
   std::vector<WebStateReference> references;
   WebStateList* web_state_list = browser->GetWebStateList();
   for (int index = 0; index < web_state_list->count(); ++index) {
@@ -257,7 +260,7 @@ FilePathSet ExpectedStorageFilesForBrowser(const base::FilePath& session_dir,
     });
   }
   return ExpectedStorageFilesForWebStates(
-      session_dir, /*expect_session_metadata_storage=*/true, references);
+      session_dir, expect_session_metadata_storage, references);
 }
 
 // Set union.
@@ -475,7 +478,8 @@ TEST_F(SessionRestorationServiceImplTest, LoadSession) {
     WaitForSessionSaveComplete();
     EXPECT_EQ(ModifiedFiles(),
               ExpectedStorageFilesForBrowser(
-                  SessionPathFromIdentifier(kIdentifier0), &browser));
+                  SessionPathFromIdentifier(kIdentifier0), &browser,
+                  /*expect_session_metadata_storage=*/true));
 
     // Disconnect the Browser before destroying it. The service should no
     // longer track it and any modification should not be reflected.
@@ -589,7 +593,8 @@ TEST_F(SessionRestorationServiceImplTest, SaveSessionOfModifiedBrowser) {
   WaitForSessionSaveComplete();
   EXPECT_EQ(ModifiedFiles(),
             ExpectedStorageFilesForBrowser(
-                SessionPathFromIdentifier(kIdentifier1), &browser1));
+                SessionPathFromIdentifier(kIdentifier1), &browser1,
+                /*expect_session_metadata_storage=*/true));
 
   // Disconnect the Browser before destroying it.
   service()->Disconnect(&browser1);
@@ -607,7 +612,8 @@ TEST_F(SessionRestorationServiceImplTest, SaveSessionChangesOnlyRequiredFiles) {
   WaitForSessionSaveComplete();
   EXPECT_EQ(ModifiedFiles(),
             ExpectedStorageFilesForBrowser(
-                SessionPathFromIdentifier(kIdentifier0), &browser));
+                SessionPathFromIdentifier(kIdentifier0), &browser,
+                /*expect_session_metadata_storage=*/true));
 
   // Record the list of existing files and their timestamp.
   SnapshotFiles();
@@ -660,7 +666,8 @@ TEST_F(SessionRestorationServiceImplTest, AdoptUnrealizedWebStateOnMove) {
     WaitForSessionSaveComplete();
     EXPECT_EQ(ModifiedFiles(),
               ExpectedStorageFilesForBrowser(
-                  SessionPathFromIdentifier(kIdentifier0), &browser));
+                  SessionPathFromIdentifier(kIdentifier0), &browser,
+                  /*expect_session_metadata_storage=*/true));
   }
 
   // Load the session created before, and then move the tabs from the first
@@ -729,7 +736,8 @@ TEST_F(SessionRestorationServiceImplTest, AdoptUnrealizedWebStateOnMove) {
       SessionPathFromIdentifier(kIdentifier0),
       /*expect_session_metadata_storage=*/true, {});
   FilePathSet expected_browser1 = ExpectedStorageFilesForBrowser(
-      SessionPathFromIdentifier(kIdentifier1), &browser1);
+      SessionPathFromIdentifier(kIdentifier1), &browser1,
+      /*expect_session_metadata_storage=*/true);
 
   EXPECT_EQ(ModifiedFiles(), expected_browser0 + expected_browser1);
 
@@ -750,7 +758,8 @@ TEST_F(SessionRestorationServiceImplTest, SavePendingChangesOnDisconnect) {
   WaitForSessionSaveComplete();
   EXPECT_EQ(ModifiedFiles(),
             ExpectedStorageFilesForBrowser(
-                SessionPathFromIdentifier(kIdentifier0), &browser));
+                SessionPathFromIdentifier(kIdentifier0), &browser,
+                /*expect_session_metadata_storage=*/true));
 
   // Record the list of existing files and their timestamp.
   SnapshotFiles();
@@ -801,7 +810,8 @@ TEST_F(SessionRestorationServiceImplTest, DeleteObsoleteFilesOnLoadSession) {
     WaitForSessionSaveComplete();
     EXPECT_EQ(ModifiedFiles(),
               ExpectedStorageFilesForBrowser(
-                  SessionPathFromIdentifier(kIdentifier0), &browser));
+                  SessionPathFromIdentifier(kIdentifier0), &browser,
+                  /*expect_session_metadata_storage=*/true));
 
     // Record the list of existing files and their timestamp.
     SnapshotFiles();
@@ -853,6 +863,102 @@ TEST_F(SessionRestorationServiceImplTest, DeleteObsoleteFilesOnLoadSession) {
 
   // Disconnect the Browser before destroying it.
   service()->Disconnect(&browser);
+}
+
+// Tests that data is deleted when a WebState is closed while the Browser is
+// still connected.
+TEST_F(SessionRestorationServiceImplTest, DeleteDataOnClose) {
+  // Insert a few WebState in a Browser, wait for the changes to be saved,
+  // then destroy the Browser.
+  {
+    TestBrowser browser = TestBrowser(browser_state());
+    service()->SetSessionID(&browser, kIdentifier0);
+
+    InsertTabsWithUrls(browser, base::make_span(kURLs));
+    WaitForSessionSaveComplete();
+
+    service()->Disconnect(&browser);
+  }
+
+  // Create a new Browser and load the session.
+  TestBrowser browser = TestBrowser(browser_state());
+  service()->SetSessionID(&browser, kIdentifier0);
+  service()->LoadSession(&browser);
+
+  WaitForSessionSaveComplete();
+  SnapshotFiles();
+
+  const FilePathSet expected_deleted_files = ExpectedStorageFilesForBrowser(
+      SessionPathFromIdentifier(kIdentifier0), &browser,
+      /*expect_session_metadata_storage=*/false);
+
+  const FilePathSet expected_modified_files = ExpectedStorageFilesForWebStates(
+      SessionPathFromIdentifier(kIdentifier0),
+      /*expect_session_metadata_storage=*/true, {});
+
+  // Close all WebStates, check that the data is deleted.
+  browser.GetWebStateList()->CloseAllWebStates(WebStateList::CLOSE_NO_FLAGS);
+
+  WaitForSessionSaveComplete();
+
+  EXPECT_EQ(DeletedFiles(), expected_deleted_files);
+  EXPECT_EQ(ModifiedFiles(), expected_modified_files);
+
+  service()->Disconnect(&browser);
+}
+
+// Tests that data is deleted when a WebState is closed while the Browser is
+// still connected, after being moved from between Browsers without leaving
+// time for the session to be saved.
+TEST_F(SessionRestorationServiceImplTest, DeleteDataOnClose_AfterMove) {
+  // Insert a few WebState in a Browser, wait for the changes to be saved,
+  // then destroy the Browser.
+  {
+    TestBrowser browser = TestBrowser(browser_state());
+    service()->SetSessionID(&browser, kIdentifier0);
+
+    InsertTabsWithUrls(browser, base::make_span(kURLs));
+    WaitForSessionSaveComplete();
+
+    service()->Disconnect(&browser);
+  }
+
+  // Create two Browsers, load the data in one of the Browser.
+  TestBrowser browser0 = TestBrowser(browser_state());
+  TestBrowser browser1 = TestBrowser(browser_state());
+  service()->SetSessionID(&browser0, kIdentifier0);
+  service()->SetSessionID(&browser1, kIdentifier1);
+  service()->LoadSession(&browser0);
+
+  WaitForSessionSaveComplete();
+  SnapshotFiles();
+
+  const FilePathSet expected_deleted_files = ExpectedStorageFilesForBrowser(
+      SessionPathFromIdentifier(kIdentifier0), &browser0,
+      /*expect_session_metadata_storage=*/false);
+
+  const FilePathSet expected_modified_files =
+      ExpectedStorageFilesForWebStates(SessionPathFromIdentifier(kIdentifier0),
+                                       /*expect_session_metadata_storage=*/true,
+                                       {}) +
+      ExpectedStorageFilesForWebStates(SessionPathFromIdentifier(kIdentifier1),
+                                       /*expect_session_metadata_storage=*/true,
+                                       {});
+
+  // Move all WebState between Browser, then close them. Confirm that the
+  // data have been deleted from the original Browser.
+  MoveWebStateBetweenWebStateList(browser0.GetWebStateList(),
+                                  browser1.GetWebStateList());
+
+  browser1.GetWebStateList()->CloseAllWebStates(WebStateList::CLOSE_NO_FLAGS);
+
+  WaitForSessionSaveComplete();
+
+  EXPECT_EQ(DeletedFiles(), expected_deleted_files);
+  EXPECT_EQ(ModifiedFiles(), expected_modified_files);
+
+  service()->Disconnect(&browser1);
+  service()->Disconnect(&browser0);
 }
 
 // Tests that histograms are correctly recorded.
@@ -966,7 +1072,8 @@ TEST_F(SessionRestorationServiceImplTest, SaveSessionsCallableAtAnyTime) {
 
     EXPECT_EQ(ModifiedFiles(),
               ExpectedStorageFilesForBrowser(
-                  SessionPathFromIdentifier(kIdentifier0), &browser0));
+                  SessionPathFromIdentifier(kIdentifier0), &browser0,
+                  /*expect_session_metadata_storage=*/true));
 
     SnapshotFiles();
   }
@@ -1028,7 +1135,8 @@ TEST_F(SessionRestorationServiceImplTest, ScheduleSaveSessions) {
 
     EXPECT_EQ(ModifiedFiles(),
               ExpectedStorageFilesForBrowser(
-                  SessionPathFromIdentifier(kIdentifier0), &browser0));
+                  SessionPathFromIdentifier(kIdentifier0), &browser0,
+                  /*expect_session_metadata_storage=*/true));
 
     SnapshotFiles();
   }
@@ -1079,7 +1187,8 @@ TEST_F(SessionRestorationServiceImplTest, DeleteDataForDiscardedSessions) {
 
   // Record the file that make the storage for `browser`.
   const FilePathSet browser_storage = ExpectedStorageFilesForBrowser(
-      SessionPathFromIdentifier(kIdentifier0), &browser);
+      SessionPathFromIdentifier(kIdentifier0), &browser,
+      /*expect_session_metadata_storage=*/true);
 
   EXPECT_EQ(ModifiedFiles(), browser_storage);
 

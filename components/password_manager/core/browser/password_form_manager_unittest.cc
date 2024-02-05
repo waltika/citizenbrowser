@@ -4258,7 +4258,7 @@ TEST_P(PasswordFormManagerTest,
        ClientShouldNotShowErrorMessageWhenErrorIsNotAuthError) {
   fetcher_->SetProfileStoreBackendError(PasswordStoreBackendError(
       PasswordStoreBackendErrorType::kUncategorized,
-      PasswordStoreBackendErrorRecoveryType::kUnspecified));
+      PasswordStoreBackendErrorRecoveryType::kUnrecoverable));
 
   EXPECT_CALL(client_, ShowPasswordManagerErrorMessage).Times(0);
   fetcher_->NotifyFetchCompleted();
@@ -4296,7 +4296,7 @@ TEST_P(PasswordFormManagerTest, ClientShouldNotShowKeychainErrorMessage) {
   feature_list.InitAndEnableFeature(
       password_manager::features::kRestartToGainAccessToKeychain);
 
-  fetcher_->SetProfileStoreBackendError(absl::nullopt);
+  fetcher_->SetProfileStoreBackendError(std::nullopt);
 
   EXPECT_CALL(client_, NotifyKeychainError).Times(0);
   fetcher_->NotifyFetchCompleted();

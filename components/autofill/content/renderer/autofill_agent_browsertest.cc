@@ -115,10 +115,8 @@ class AutofillAgentTestWithFeatures : public AutofillAgentTest {
   AutofillAgentTestWithFeatures() {
     scoped_features_.InitWithFeatures(
         /*enabled_features=*/
-        {blink::features::kAutofillUseDomNodeIdForRendererId,
-         features::kAutofillReplaceCachedWebElementsByRendererIds,
-         features::kAutofillDetectRemovedFormControls,
-         features::kAutofillContentEditables},
+        {features::kAutofillReplaceCachedWebElementsByRendererIds,
+         features::kAutofillDetectRemovedFormControls},
         /*disabled_features=*/{});
   }
 
@@ -293,9 +291,7 @@ TEST_F(AutofillAgentTestWithFeatures, TriggerSuggestions) {
   WaitForFormsSeen();
   EXPECT_CALL(autofill_driver(), AskForValuesToFill);
   autofill_agent().TriggerSuggestions(
-      FieldRendererId(1 +
-                      base::FeatureList::IsEnabled(
-                          blink::features::kAutofillUseDomNodeIdForRendererId)),
+      FieldRendererId(2),
       AutofillSuggestionTriggerSource::kFormControlElementClicked);
 }
 
@@ -325,7 +321,7 @@ TEST_F(AutofillAgentTest, UndoAutofillSetsLastQueriedElement) {
   ASSERT_TRUE(autofill_agent().focused_element().IsNull());
   autofill_agent().ApplyFormAction(mojom::ActionType::kUndo,
                                    mojom::ActionPersistence::kFill,
-                                   form.unique_renderer_id, form.fields);
+                                   FormData::FillData(form));
   EXPECT_FALSE(autofill_agent().focused_element().IsNull());
 }
 
@@ -361,7 +357,7 @@ TEST_F(AutofillAgentTest, PreviewThenClear) {
   ASSERT_EQ(field.GetAutofillState(), blink::WebAutofillState::kNotFilled);
   autofill_agent().ApplyFormAction(mojom::ActionType::kFill,
                                    mojom::ActionPersistence::kPreview,
-                                   form.unique_renderer_id, form.fields);
+                                   FormData::FillData(form));
   EXPECT_EQ(field.GetAutofillState(), blink::WebAutofillState::kPreviewed);
   autofill_agent().ClearPreviewedForm();
   EXPECT_EQ(field.GetAutofillState(), blink::WebAutofillState::kNotFilled);

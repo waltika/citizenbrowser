@@ -76,32 +76,29 @@ class CookieSettingsBase {
 
   virtual ~CookieSettingsBase() = default;
 
-  // An enum that represents the scope of cookies to which the user's
-  // third-party-cookie-blocking setting applies, in a given context.
-  enum class ThirdPartyBlockingScope {
-    // Access to all cookies (partitioned or unpartitioned) is blocked in this
-    // context.
-    kUnpartitionedAndPartitioned,
-    // Access to unpartitioned cookies is blocked in this context, but access to
-    // partitioned cookies is allowed.
-    kUnpartitionedOnly,
-  };
-
   // Enum for measuring the mechanism for re-enabling third-party cookies when
   // applying 3PCD experiment. These values are persisted to logs. Entries
   // should not be renumbered and numeric values should never be reused.
   enum class ThirdPartyCookieAllowMechanism {
     kNone = 0,
+    // Allow by explicit cookie content setting (e.g. UserBypass).
     kAllowByExplicitSetting = 1,
+    // Allow by global 3p cookie setting setting (e.g. Enterperise Policy:
+    // BlockThirdPartyCookies, UX).
     kAllowByGlobalSetting = 2,
+    // Allow by 3PCD metadata grants content settings.
     kAllowBy3PCDMetadata = 3,
+    // Allow by third-party deprecation trial.
     kAllowBy3PCD = 4,
     kAllowBy3PCDHeuristics = 5,
     kAllowByStorageAccess = 6,
     kAllowByTopLevelStorageAccess = 7,
     kAllowByCORSException = 8,
     kAllowByTopLevel3PCD = 9,
-    kMaxValue = kAllowByTopLevel3PCD,
+    // Allow by Enterperise Policy: CookiesAllowedForUrls.
+    kAllowByEnterprisePolicyCookieAllowedForUrls = 10,
+
+    kMaxValue = kAllowByEnterprisePolicyCookieAllowedForUrls,
   };
 
   class CookieSettingWithMetadata {
@@ -110,7 +107,7 @@ class CookieSettingsBase {
 
     CookieSettingWithMetadata(
         ContentSetting cookie_setting,
-        std::optional<ThirdPartyBlockingScope> third_party_blocking_scope,
+        bool allow_partitioned_cookies,
         bool is_explicit_setting,
         ThirdPartyCookieAllowMechanism third_party_cookie_allow_mechanism);
 
@@ -118,9 +115,11 @@ class CookieSettingsBase {
     // third-party-cookie-blocking setting.
     bool BlockedByThirdPartyCookieBlocking() const;
 
-    bool IsPartitionedStateAllowed() const;
-
     ContentSetting cookie_setting() const { return cookie_setting_; }
+
+    bool allow_partitioned_cookies() const {
+      return allow_partitioned_cookies_;
+    }
 
     bool is_explicit_setting() const { return is_explicit_setting_; }
 
@@ -130,13 +129,11 @@ class CookieSettingsBase {
 
    private:
     // The setting itself.
-    ContentSetting cookie_setting_;
+    ContentSetting cookie_setting_ = ContentSetting::CONTENT_SETTING_ALLOW;
 
-    // The scope of cookies blocked by third-party-cookie-blocking.  The scope
-    // must only be nullopt if `cookie_setting_` is not "allow", and if the
-    // reason for blocking cookies is the third-party cookie blocking setting
-    // (rather than a site-specific setting).
-    std::optional<ThirdPartyBlockingScope> third_party_blocking_scope_;
+    // When true, partitioned cookies will be allowed, even when the cookie
+    // setting is "not allowed".
+    bool allow_partitioned_cookies_ = true;
 
     // Whether the setting is for a specific pattern.
     bool is_explicit_setting_ = false;
@@ -346,6 +343,7 @@ class CookieSettingsBase {
                bool is_third_party_request,
                net::CookieSettingOverrides overrides,
                const ContentSetting& setting,
+               const SettingSource& setting_source,
                bool is_explicit_setting) const;
 
   // Returns whether requests for |url| and |first_party_url| should always

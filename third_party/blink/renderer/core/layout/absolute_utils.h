@@ -47,9 +47,38 @@ struct CORE_EXPORT LogicalOofInsets {
   absl::optional<LayoutUnit> block_end;
 };
 
+// The resolved alignment in the candidate's writing-direction.
+struct LogicalAlignment {
+  StyleSelfAlignmentData inline_alignment =
+      StyleSelfAlignmentData(ItemPosition::kNormal,
+                             OverflowAlignment::kDefault);
+  StyleSelfAlignmentData block_alignment =
+      StyleSelfAlignmentData(ItemPosition::kNormal,
+                             OverflowAlignment::kDefault);
+};
+
+LogicalAlignment ComputeAlignment(
+    const ComputedStyle& style,
+    WritingDirectionMode container_writing_direction,
+    WritingDirectionMode self_writing_direction);
+
+// Represents the position that `anchor-center` alignment keyword resolves to.
+// A nullopt means that anchor-center alignment doesn't apply to the axis.
+struct LogicalAnchorCenterPosition {
+  absl::optional<LayoutUnit> inline_offset;
+  absl::optional<LayoutUnit> block_offset;
+};
+
+LogicalAnchorCenterPosition ComputeAnchorCenterPosition(
+    const LogicalAlignment& alignment,
+    WritingDirectionMode writing_direction,
+    LogicalSize available_size,
+    AnchorEvaluatorImpl* anchor_evaluator);
+
 CORE_EXPORT LogicalOofInsets
 ComputeOutOfFlowInsets(const ComputedStyle& style,
                        const LogicalSize& available_size,
+                       const LogicalAlignment&,
                        WritingDirectionMode container_writing_direction,
                        WritingDirectionMode self_writing_direction,
                        AnchorEvaluatorImpl* anchor_evaluator);
@@ -103,8 +132,10 @@ struct CORE_EXPORT InsetModifiedContainingBlock {
 CORE_EXPORT InsetModifiedContainingBlock ComputeInsetModifiedContainingBlock(
     const BlockNode& node,
     const LogicalSize& available_size,
+    const LogicalAlignment&,
     const LogicalOofInsets&,
     const LogicalStaticPosition&,
+    const LogicalAnchorCenterPosition&,
     WritingDirectionMode container_writing_direction,
     WritingDirectionMode self_writing_direction);
 
@@ -114,6 +145,7 @@ CORE_EXPORT InsetModifiedContainingBlock ComputeInsetModifiedContainingBlock(
 // https://www.w3.org/TR/css-anchor-position-1/#fallback-apply
 CORE_EXPORT InsetModifiedContainingBlock
 ComputeIMCBForPositionFallback(const LogicalSize& available_size,
+                               const LogicalAlignment&,
                                const LogicalOofInsets&,
                                const LogicalStaticPosition&,
                                const ComputedStyle&,
@@ -138,6 +170,7 @@ CORE_EXPORT bool ComputeOofInlineDimensions(
     const ComputedStyle& style,
     const ConstraintSpace&,
     const InsetModifiedContainingBlock&,
+    const LogicalAlignment&,
     const BoxStrut& border_padding,
     const absl::optional<LogicalSize>& replaced_size,
     WritingDirectionMode container_writing_direction,
@@ -151,6 +184,7 @@ CORE_EXPORT const LayoutResult* ComputeOofBlockDimensions(
     const ComputedStyle& style,
     const ConstraintSpace&,
     const InsetModifiedContainingBlock&,
+    const LogicalAlignment&,
     const BoxStrut& border_padding,
     const absl::optional<LogicalSize>& replaced_size,
     WritingDirectionMode container_writing_direction,

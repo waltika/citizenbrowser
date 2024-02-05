@@ -8,6 +8,7 @@
 #import "base/apple/bundle_locations.h"
 #import "base/apple/foundation_util.h"
 #import "base/ios/ios_util.h"
+#import "base/memory/raw_ptr.h"
 #import "base/strings/sys_string_conversions.h"
 #import "base/task/sequenced_task_runner.h"
 #import "components/enterprise/idle/idle_features.h"
@@ -92,7 +93,7 @@
 #import "ios/web/public/ui/crw_web_view_proxy.h"
 #import "ios/web/public/ui/crw_web_view_scroll_view_proxy.h"
 #import "ios/web/public/web_state_observer_bridge.h"
-#import "net/base/mac/url_conversions.h"
+#import "net/base/apple/url_conversions.h"
 #import "services/metrics/public/cpp/ukm_builders.h"
 #import "ui/base/device_form_factor.h"
 #import "ui/base/l10n/l10n_util.h"
@@ -214,16 +215,16 @@ enum HeaderBehaviour {
   UIView* _fakeStatusBarView;
 
   // The service used to load url parameters in current or new tab.
-  UrlLoadingBrowserAgent* _urlLoadingBrowserAgent;
+  raw_ptr<UrlLoadingBrowserAgent> _urlLoadingBrowserAgent;
 
   // Used to report usage of a single Browser's tab.
-  TabUsageRecorderBrowserAgent* _tabUsageRecorderBrowserAgent;
+  raw_ptr<TabUsageRecorderBrowserAgent> _tabUsageRecorderBrowserAgent;
 
   // Used to get the layout guide center.
   LayoutGuideCenter* _layoutGuideCenter;
 
   // Used to add or cancel a page placeholder for next navigation.
-  PagePlaceholderBrowserAgent* _pagePlaceholderBrowserAgent;
+  raw_ptr<PagePlaceholderBrowserAgent> _pagePlaceholderBrowserAgent;
 }
 
 // Activates/deactivates the object. This will enable/disable the ability for

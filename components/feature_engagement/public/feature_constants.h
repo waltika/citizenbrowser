@@ -160,7 +160,6 @@ BASE_DECLARE_FEATURE(kIPHReadLaterAppMenuBookmarksFeature);
 BASE_DECLARE_FEATURE(kIPHReadLaterBottomSheetFeature);
 BASE_DECLARE_FEATURE(kIPHRequestDesktopSiteAppMenuFeature);
 BASE_DECLARE_FEATURE(kIPHRequestDesktopSiteDefaultOnFeature);
-BASE_DECLARE_FEATURE(kIPHRequestDesktopSiteOptInFeature);
 BASE_DECLARE_FEATURE(kIPHRequestDesktopSiteExceptionsGenericFeature);
 BASE_DECLARE_FEATURE(kIPHRequestDesktopSiteWindowSettingFeature);
 BASE_DECLARE_FEATURE(kIPHShoppingListMenuItemFeature);
@@ -236,6 +235,10 @@ BASE_DECLARE_FEATURE(kIPHiOSInlinePromoEnhancedSafeBrowsingFeature);
 BASE_DECLARE_FEATURE(kIPHiOSTabGridSwipeLeftForIncognito);
 BASE_DECLARE_FEATURE(kIPHiOSDockingPromoFeature);
 BASE_DECLARE_FEATURE(kIPHiOSDockingPromoRemindMeLaterFeature);
+BASE_DECLARE_FEATURE(kIPHiOSPromoAllTabsFeature);
+BASE_DECLARE_FEATURE(kIPHiOSPromoMadeForIOSFeature);
+BASE_DECLARE_FEATURE(kIPHiOSPromoStaySafeFeature);
+BASE_DECLARE_FEATURE(kIPHiOSSwipeBackForwardFeature);
 
 // A feature flag to enable and parametrize the sliding window of time for a
 // user's eligibility to be shown a default browser promo. This is not an FET

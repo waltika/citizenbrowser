@@ -6,14 +6,18 @@
 #define ASH_WM_WINDOW_UTIL_H_
 
 #include <stdint.h>
+
 #include <vector>
 
 #include "ash/ash_export.h"
 #include "ash/wm/window_transient_descendant_iterator.h"
 #include "ash/wm/wm_metrics.h"
 #include "base/memory/raw_ptr.h"
+#include "chromeos/ui/base/window_state_type.h"
 #include "ui/aura/window.h"
 #include "ui/wm/core/window_util.h"
+
+class PrefRegistrySimple;
 
 namespace gfx {
 class Point;
@@ -203,10 +207,24 @@ ASH_EXPORT bool ShouldRoundThumbnailWindow(
 // `chromeos::kDefaultSnapRatio` if the target snap ratio doesn't exist.
 float GetSnapRatioForWindow(aura::Window* window);
 
+// Registers the per-profile preferences for whether faster splitscreen setup is
+// enabled.
+void RegisterProfilePrefs(PrefRegistrySimple* registry);
+
 // Returns true if either `kFasterSplitScreenSetup` or `kSnapGroup` is enabled.
 // When this is true, snapping one window will automatically start
 // SplitViewOverviewSession.
 bool IsFasterSplitScreenOrSnapGroupEnabledInClamshell();
+
+// Returns true if `SplitViewOverviewSession` is created through faster split
+// screen setup, i.e. partial overview is started on the other side of the
+// screen when `window` is snapped.
+bool IsInFasterSplitScreenSetupSession(aura::Window* window);
+
+// Returns the opposite snap type of a snapped `window`. This will be
+// `kPrimarySnapped` if `window` is `kSecondarySnapped`, or `kSecondarySnapped`
+// if `window` is `kPrimarySnapped`.
+chromeos::WindowStateType GetOppositeSnapType(aura::Window* window);
 
 // Starts `SplitViewOverviewSession` for `window`, if it wasn't already active.
 void MaybeStartSplitViewOverview(aura::Window* window,

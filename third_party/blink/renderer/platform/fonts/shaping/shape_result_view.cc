@@ -181,7 +181,7 @@ struct ShapeResultView::InitData {
 
   // Uses for fast path of constructing |ShapeResultView| from |ShapeResult|.
   void Populate(const ShapeResult& result) {
-    PopulateFromShpaeResult(result);
+    PopulateFromShapeResult(result);
     has_vertical_offsets = result.has_vertical_offsets_;
     num_parts = result.RunsOrParts().size();
   }
@@ -192,10 +192,10 @@ struct ShapeResultView::InitData {
 
     if (first_segment.result) {
       DCHECK(!first_segment.view);
-      PopulateFromShpaeResult(*first_segment.result);
+      PopulateFromShapeResult(*first_segment.result);
     } else if (first_segment.view) {
       DCHECK(!first_segment.result);
-      PopulateFromShpaeResult(*first_segment.view);
+      PopulateFromShapeResult(*first_segment.view);
     } else {
       NOTREACHED();
     }
@@ -236,7 +236,7 @@ struct ShapeResultView::InitData {
   bool IsRtl() const { return blink::IsRtl(Direction()); }
 
   template <typename ShapeResultType>
-  void PopulateFromShpaeResult(const ShapeResultType& result) {
+  void PopulateFromShapeResult(const ShapeResultType& result) {
     primary_font = result.primary_font_;
     direction = result.Direction();
     if (IsLtr()) {
@@ -282,10 +282,10 @@ ShapeResultView::~ShapeResultView() {
     part.~RunInfoPart();
 }
 
-scoped_refptr<ShapeResult> ShapeResultView::CreateShapeResult() const {
-  ShapeResult* new_result =
-      new ShapeResult(primary_font_, start_index_ + char_index_offset_,
-                      num_characters_, Direction());
+ShapeResult* ShapeResultView::CreateShapeResult() const {
+  ShapeResult* new_result = MakeGarbageCollected<ShapeResult>(
+      primary_font_, start_index_ + char_index_offset_, num_characters_,
+      Direction());
   new_result->runs_.reserve(num_parts_);
   for (const auto& part : RunsOrParts()) {
     auto new_run = ShapeResult::RunInfo::Create(
@@ -310,7 +310,7 @@ scoped_refptr<ShapeResult> ShapeResultView::CreateShapeResult() const {
   new_result->has_vertical_offsets_ = has_vertical_offsets_;
   new_result->width_ = width_;
 
-  return base::AdoptRef(new_result);
+  return new_result;
 }
 
 template <class ShapeResultType>

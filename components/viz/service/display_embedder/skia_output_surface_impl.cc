@@ -596,7 +596,7 @@ sk_sp<SkImage> SkiaOutputSurfaceImpl::MakePromiseSkImageFromYUV(
       formats[i] =
           GetGrBackendFormatForTexture(context->format(), /*plane_index=*/0,
                                        context->mailbox_holder().texture_target,
-                                       /*ycbcr_info=*/absl::nullopt,
+                                       /*ycbcr_info=*/std::nullopt,
                                        /*yuv_color_space=*/gfx::ColorSpace());
       // NOTE: We don't have promises for individual planes, but still need
       // format for fallback.
@@ -756,7 +756,7 @@ SkiaOutputSurfaceImpl::CreateImageContext(
     const gfx::Size& size,
     SharedImageFormat format,
     bool maybe_concurrent_reads,
-    const absl::optional<gpu::VulkanYCbCrInfo>& ycbcr_info,
+    const std::optional<gpu::VulkanYCbCrInfo>& ycbcr_info,
     sk_sp<SkColorSpace> color_space,
     bool raw_draw_if_possible) {
   return std::make_unique<ImageContextImpl>(
@@ -765,10 +765,8 @@ SkiaOutputSurfaceImpl::CreateImageContext(
       /*is_for_render_pass=*/false, raw_draw_if_possible);
 }
 
-#if !BUILDFLAG(IS_CHROMEOS_LACROS)
 DBG_FLAG_FBOOL("skia_gpu.swap_buffers.force_disable_makecurrent",
                force_disable_makecurrent)
-#endif
 
 void SkiaOutputSurfaceImpl::SwapBuffers(OutputSurfaceFrame frame) {
   DCHECK_CALLED_ON_VALID_THREAD(thread_checker_);
@@ -796,18 +794,14 @@ void SkiaOutputSurfaceImpl::SwapBuffers(OutputSurfaceFrame frame) {
   auto callback =
       base::BindOnce(&SkiaOutputSurfaceImplOnGpu::SwapBuffers,
                      base::Unretained(impl_on_gpu_.get()), std::move(frame));
+
+  // Normally MakeCurrent isn't needed for SwapBuffers, but it used to be called
+  // unconditionally, both for historical reasons and edge cases too.
+  // Now, we call MakeCurrent here only appropriated, and delay it in some other
+  // circumstances.
   bool make_current =
-#if BUILDFLAG(IS_CHROMEOS_LACROS)
-      // Normally we don't need MakeCurrent for SwapBuffers, but it is done
-      // historically and there are edge cases too.
-      // For lacros, we do not call MakeCurrent here, and delay it where
-      // appropriated.
-      //
-      // TODO(crbug.com/1494032): Extend that approach for other platforms.
-      false;
-#else
+      capabilities_.present_requires_make_current &&
       !force_disable_makecurrent();  // Defaults to false.
-#endif
 
   EnqueueGpuTask(std::move(callback), std::move(resource_sync_tokens_),
                  make_current,
@@ -1020,7 +1014,7 @@ sk_sp<SkImage> SkiaOutputSurfaceImpl::MakePromiseSkImageFromRenderPass(
     gpu::MailboxHolder mailbox_holder(mailbox, gpu::SyncToken(), GL_TEXTURE_2D);
     image_context = std::make_unique<ImageContextImpl>(
         mailbox_holder, size, format, /*maybe_concurrent_reads=*/false,
-        /*ycbcr_info=*/absl::nullopt, std::move(color_space),
+        /*ycbcr_info=*/std::nullopt, std::move(color_space),
         /*is_for_render_pass=*/true);
   }
   if (!image_context->has_image()) {
@@ -1525,7 +1519,7 @@ GrBackendFormat SkiaOutputSurfaceImpl::GetGrBackendFormatForTexture(
     SharedImageFormat si_format,
     int plane_index,
     uint32_t gl_texture_target,
-    const absl::optional<gpu::VulkanYCbCrInfo>& ycbcr_info,
+    const std::optional<gpu::VulkanYCbCrInfo>& ycbcr_info,
     const gfx::ColorSpace& yuv_color_space) {
 #if BUILDFLAG(ENABLE_VULKAN)
   if (gr_context_type_ == gpu::GrContextType::kVulkan) {

@@ -10,6 +10,7 @@
 
 #include "ash/accessibility/accessibility_controller.h"
 #include "ash/constants/ash_features.h"
+#include "ash/constants/ash_pref_names.h"
 #include "ash/constants/notifier_catalogs.h"
 #include "ash/metrics/histogram_macros.h"
 #include "ash/public/cpp/metrics_util.h"
@@ -56,11 +57,13 @@
 #include "ash/wm/overview/overview_window_drag_controller.h"
 #include "ash/wm/overview/scoped_overview_animation_settings.h"
 #include "ash/wm/splitview/split_view_constants.h"
+#include "ash/wm/splitview/split_view_controller.h"
 #include "ash/wm/splitview/split_view_divider.h"
 #include "ash/wm/splitview/split_view_overview_session.h"
 #include "ash/wm/splitview/split_view_utils.h"
 #include "ash/wm/window_properties.h"
 #include "ash/wm/window_restore/pine_contents_view.h"
+#include "ash/wm/window_restore/window_restore_util.h"
 #include "ash/wm/window_state_delegate.h"
 #include "ash/wm/window_util.h"
 #include "ash/wm/wm_constants.h"
@@ -71,6 +74,7 @@
 #include "base/containers/unique_ptr_adapters.h"
 #include "base/functional/bind.h"
 #include "base/memory/raw_ptr.h"
+#include "base/metrics/histogram_functions.h"
 #include "base/numerics/safe_conversions.h"
 #include "base/ranges/algorithm.h"
 #include "base/trace_event/trace_event.h"
@@ -475,6 +479,26 @@ bool ShouldImmediatelyInitDeskBar(OverviewGrid* grid) {
   return false;
 }
 
+// Records the UMA metrics for the pine screenshot taken on the last shutdown.
+// Resets the prefs used to store the metrics across shutdowns.
+void RecordPineScreenshotMetrics(PrefService* local_state) {
+  auto record_uma = [](PrefService* local_state, const std::string& name,
+                       const std::string& pref_name) -> void {
+    const base::TimeDelta duration = local_state->GetTimeDelta(pref_name);
+    // Don't record the metric if we don't have a value.
+    if (!duration.is_zero()) {
+      base::UmaHistogramTimes(name, duration);
+      // Reset the pref in case the next shutdown doesn't take the screenshot.
+      local_state->SetTimeDelta(pref_name, base::TimeDelta());
+    }
+  };
+
+  record_uma(local_state, "Ash.Pine.ScreenshotTakenDuration",
+             prefs::kPineScreenshotTakenDuration);
+  record_uma(local_state, "Ash.Pine.ScreenshotEncodeAndSaveDuration",
+             prefs::kPineScreenshotEncodeAndSaveDuration);
+}
+
 }  // namespace
 
 OverviewGrid::OverviewGrid(
@@ -598,8 +622,13 @@ void OverviewGrid::PrepareForOverview() {
   if (root_window_ == Shell::GetPrimaryRootWindow() &&
       overview_session_->enter_exit_overview_type() ==
           OverviewEnterExitType::kPine) {
-    pine_widget_ = PineContentsView::Create(root_window_);
-    pine_widget_->ShowInactive();
+    // TODO(minch|sammiequon): Record the metrics on start up when determining
+    // whether to show the pine dialog.
+    RecordPineScreenshotMetrics(Shell::Get()->local_state());
+    image_util::DecodeImageFile(base::BindOnce(&OverviewGrid::CreateAndShowPine,
+                                               weak_ptr_factory_.GetWeakPtr()),
+                                GetShutdownPineImagePath(),
+                                data_decoder::mojom::ImageCodec::kPng);
   }
 
   for (const auto& item : item_list_) {
@@ -1975,15 +2004,18 @@ bool OverviewGrid::IsSavedDeskNameBeingModified() const {
 void OverviewGrid::UpdateNoWindowsWidget(bool no_items,
                                          bool animate,
                                          bool is_continuous_enter) {
-  // If `kFasterSplitScreenSetup` or `kSnapGroup` is enabled, hide the widget if
-  // we aren't in split view, otherwise hide the widget if there is an item in
-  // overview or the saved desk grid is visible.
-  // TODO(b/307812315): Rename to `faster_splitscreen_widget_` if we'll always
-  // show this.
-  if (window_util::IsFasterSplitScreenOrSnapGroupEnabledInClamshell()
-          ? !RootWindowController::ForWindow(root_window())
-                 ->split_view_overview_session()
-          : !no_items || IsShowingSavedDeskLibrary()) {
+  // `no_windows_widget_` will show under two conditions:
+  // 1. In normal full overview, when there are no items and the saved desk
+  // library is not showing;
+  // 2. In faster split screen setup, the `no_windows_widget_` show to indicate
+  // either no windows available to pair or select a window to complete the
+  // window layout.
+  // TODO(b/307812315): Consider separating the widgets i.e. one
+  // `no_windows_widget_` and one `faster_splitscreen_widget_`.
+  const bool in_faster_split_screen_setup_session =
+      window_util::IsInFasterSplitScreenSetupSession(root_window_);
+  if (!in_faster_split_screen_setup_session &&
+      (!no_items || IsShowingSavedDeskLibrary())) {
     no_windows_widget_.reset();
     return;
   }
@@ -2002,10 +2034,11 @@ void OverviewGrid::UpdateNoWindowsWidget(bool no_items,
     params.vertical_padding = kNoItemsIndicatorVerticalPaddingDp;
     params.rounding_dp = kNoItemsIndicatorRoundingDp;
     params.preferred_height = kNoItemsIndicatorHeightDp;
-    params.message = IDS_ASH_OVERVIEW_NO_RECENT_ITEMS;
-    if (window_util::IsFasterSplitScreenOrSnapGroupEnabledInClamshell()) {
+    if (in_faster_split_screen_setup_session) {
       params.message =
           no_items ? kFasterSplitScreenToastNoWindows : kFasterSplitScreenToast;
+    } else {
+      params.message = IDS_ASH_OVERVIEW_NO_RECENT_ITEMS;
     }
 
     params.parent =
@@ -2037,7 +2070,7 @@ void OverviewGrid::RefreshNoWindowsWidgetBounds(bool animate) {
   const gfx::Rect grid_bounds(GetGridEffectiveBounds());
   no_windows_widget_->SetBoundsCenteredIn(grid_bounds, animate);
 
-  if (window_util::IsFasterSplitScreenOrSnapGroupEnabledInClamshell()) {
+  if (window_util::IsInFasterSplitScreenSetupSession(root_window_)) {
     // If there are no windows, set it in the center of the grid.
     if (item_list_.empty()) {
       return;
@@ -2307,7 +2340,10 @@ void OverviewGrid::OnSplitViewStateChanged(
       (split_view_controller->InClamshellSplitViewMode() &&
        overview_session_->IsEmpty())) {
     overview_session_->RestoreWindowActivation(false);
-    overview_controller->EndOverview(OverviewEndAction::kSplitView);
+    overview_controller->EndOverview(
+        state == SplitViewController::State::kBothSnapped
+            ? OverviewEndAction::kWindowActivating
+            : OverviewEndAction::kSplitView);
     return;
   }
 
@@ -2323,10 +2359,9 @@ void OverviewGrid::OnSplitViewStateChanged(
 
 void OverviewGrid::OnSplitViewDividerPositionChanged() {
   if (overview_session_->is_shutting_down() ||
-      window_util::IsFasterSplitScreenOrSnapGroupEnabledInClamshell()) {
-    // If `IsFasterSplitScreenOrSnapGroupEnabledInClamshell()` is true,
+      window_util::IsInFasterSplitScreenSetupSession(root_window_)) {
     // `SplitViewOverviewSession` will manually update the bounds so we don't
-    // need to update here.
+    // need to update here in faster split screen setup session.
     return;
   }
 
@@ -2864,6 +2899,12 @@ void OverviewGrid::AddDropTargetImpl(OverviewItemBase* dragged_item,
     ignored_items.insert(dragged_item);
   }
   PositionWindows(animate, ignored_items);
+}
+
+void OverviewGrid::CreateAndShowPine(const gfx::ImageSkia& pine_image) {
+  pine_widget_ = PineContentsView::Create(root_window_, pine_image);
+  pine_widget_->ShowInactive();
+  OverviewController::Get()->OnPineWidgetShown();
 }
 
 }  // namespace ash

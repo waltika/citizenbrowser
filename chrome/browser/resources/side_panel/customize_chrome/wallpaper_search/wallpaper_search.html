@@ -268,10 +268,13 @@
     margin-inline-start: 16px;
   }
 
+  .inspirations-content h3 {
+    margin: 0;
+  }
+
   .inspiration-title {
-    /* TODO(b/317382384): Replace color variable with something
-    specific to Inspirations. */
-    color: var(--color-side-panel-filter-chip-icon);
+    color: var(--color-side-panel-wallpaper-search-inspiration-descriptors);
+    cursor: pointer;
     font-size: 12px;
     font-weight: 500;
     line-height: 16px;
@@ -449,24 +452,29 @@
   </div>
 </div>
 <template is="dom-if" if="[[inspirationCardEnabled_]]">
-  <hr class="sp-cards-separator"
-      hidden$="[[!shouldShowInspiration_(inspirationGroups_)]]">
+  <hr class="sp-cards-separator" hidden$="[[!shouldShowInspiration_]]">
   <div class="sp-card" id="inspirationCard"
-      hidden$="[[!shouldShowInspiration_(inspirationGroups_)]]">
+      hidden$="[[!shouldShowInspiration_]]">
     <sp-heading hide-back-button>
       <h2 slot="heading">$i18n{wallpaperSearchInspirationHeader}</h2>
       <cr-icon-button id="inspirationToggle" class$="[[inspirationToggleIcon_]]"
           aria-label="$i18n{showInspirationCardToggle}"
           title="$i18n{showInspirationCardToggle}" slot="buttons"
-          on-click="onInspirationToggleClick_">
+          on-click="onInspirationToggleClick_"
+          aria-expanded="[[openInspirations_]]">
       </cr-icon-button>
     </sp-heading>
     <iron-collapse opened="[[openInspirations_]]">
       <div class="inspirations-content">
         <template is="dom-repeat" items="[[inspirationGroups_]]">
-          <div class="inspiration-title">
-            [[getInspirationGroupTitle_(item.descriptors)]]
-          </div>
+          <h3>
+            <div class="inspiration-title" role="button" tabindex="0"
+                on-click="onInspirationGroupTitleClick_"
+                on-keydown="onInspirationGroupTitleKeydown_"
+                aria-current$="[[getInspirationDescriptorsCheckedStatus_(item.descriptors, selectedDescriptorA_, selectedDescriptorB_, selectedDescriptorC_, selectedDefaultColor_)]]">
+              [[getInspirationGroupTitle_(item.descriptors)]]
+            </div>
+          </h3>
           <cr-grid columns="3" disable-arrow-navigation>
             <template is="dom-repeat" items="[[item.inspirations]]">
               <div class="tile result" on-click="onInspirationImageClick_"
@@ -488,9 +496,8 @@
     </iron-collapse>
   </div>
 </template>
-<hr class="sp-cards-separator" hidden$="[[!shouldShowHistory_(history_)]]">
-<div class="sp-card" id="historyCard"
-    hidden$="[[!shouldShowHistory_(history_)]]">
+<hr class="sp-cards-separator" hidden$="[[!shouldShowHistory_]]">
+<div class="sp-card" id="historyCard" hidden$="[[!shouldShowHistory_]]">
   <sp-heading hide-back-button>
     <h2 slot="heading">$i18n{wallpaperSearchHistoryHeader}</h2>
   </sp-heading>

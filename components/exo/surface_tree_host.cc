@@ -353,9 +353,12 @@ void SurfaceTreeHost::SubmitCompositorFrame() {
       layer_tree_frame_sink_holder_->NeedsFullDamageForNextFrame(),
       layer_tree_frame_sink_holder_->resource_manager(),
       client_submits_surfaces_in_pixel_coordinates()
-          ? absl::nullopt
-          : absl::make_optional(GetScaleFactor()),
+          ? std::nullopt
+          : std::make_optional(GetScaleFactor()),
       &frame);
+
+  // Update after resource is updated.
+  UpdateHostLayerOpacity();
 
   std::vector<GLbyte*> sync_tokens;
   // We track previously verified tokens and set them to be verified to avoid
@@ -401,7 +404,7 @@ void SurfaceTreeHost::SubmitEmptyCompositorFrame() {
   quad_state->SetAll(gfx::Transform(), /*layer_rect=*/quad_rect,
                      /*visible_layer_rect=*/quad_rect,
                      /*filter_info=*/gfx::MaskFilterInfo(),
-                     /*clip=*/absl::nullopt,
+                     /*clip=*/std::nullopt,
                      /*contents_opaque=*/true, /*opacity_f=*/1.f,
                      /*blend=*/SkBlendMode::kSrcOver, /*sorting_context=*/0,
                      /*layer_id=*/0u, /*fast_rounded_corner=*/false);
@@ -447,14 +450,6 @@ void SurfaceTreeHost::UpdateSurfaceLayerSizeAndRootSurfaceOrigin() {
   if (client_submits_surfaces_in_pixel_coordinates_) {
     SetScaleFactorTransform(GetScaleFactor());
   }
-  const bool fills_bounds_opaquely =
-      gfx::SizeF(bounds.size()) == root_surface_->content_size() &&
-      root_surface_->FillsBoundsOpaquely();
-  if (commit_target_layer == host_window_->layer()) {
-    host_window_->SetTransparent(!fills_bounds_opaquely);
-  } else if (commit_target_layer) {
-    commit_target_layer->SetFillsBoundsOpaquely(fills_bounds_opaquely);
-  }
 
   root_surface_origin_pixel_ = gfx::Point() - bounds.OffsetFromOrigin();
   gfx::Point root_surface_origin_dp =
@@ -470,6 +465,22 @@ void SurfaceTreeHost::UpdateSurfaceLayerSizeAndRootSurfaceOrigin() {
     // Set DP origin to root surface.
     gfx::Rect updated_bounds(root_surface_origin_dp, window_bounds.size());
     root_surface_->window()->SetBounds(updated_bounds);
+  }
+}
+
+void SurfaceTreeHost::UpdateHostLayerOpacity() {
+  ui::Layer* commit_target_layer = GetCommitTargetLayer();
+
+  const gfx::Rect& bounds = root_surface_->surface_hierarchy_content_bounds();
+
+  const bool fills_bounds_opaquely =
+      gfx::SizeF(bounds.size()) == root_surface_->content_size() &&
+      root_surface_->FillsBoundsOpaquely();
+
+  if (commit_target_layer == host_window_->layer()) {
+    host_window_->SetTransparent(!fills_bounds_opaquely);
+  } else if (commit_target_layer) {
+    commit_target_layer->SetFillsBoundsOpaquely(fills_bounds_opaquely);
   }
 }
 
@@ -710,7 +721,7 @@ SurfaceTreeHost::CreateLayerTreeFrameSinkHolder() {
 }
 
 float SurfaceTreeHost::CalculateScaleFactor(
-    const absl::optional<float>& scale_factor) const {
+    const std::optional<float>& scale_factor) const {
   if (scale_factor) {
     // TODO(crbug.com/1412420): Remove this once the scale factor precision
     // issue is fixed for ARC.

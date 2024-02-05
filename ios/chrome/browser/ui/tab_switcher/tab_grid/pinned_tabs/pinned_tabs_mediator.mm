@@ -29,7 +29,7 @@
 #import "ios/web/public/navigation/navigation_manager.h"
 #import "ios/web/public/web_state.h"
 #import "ios/web/public/web_state_observer_bridge.h"
-#import "net/base/mac/url_conversions.h"
+#import "net/base/apple/url_conversions.h"
 
 using PinnedState = WebStateSearchCriteria::PinnedState;
 
@@ -162,8 +162,7 @@ web::WebStateID GetActivePinnedTabID(WebStateList* web_state_list) {
       const WebStateListChangeStatusOnly& selectionOnlyChange =
           change.As<WebStateListChangeStatusOnly>();
       if (status.pinned_state_change) {
-        [self changePinnedStateForWebState:selectionOnlyChange
-                                               .selected_web_state()
+        [self changePinnedStateForWebState:selectionOnlyChange.web_state()
                                    atIndex:status.index];
         break;
       }

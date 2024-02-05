@@ -51,7 +51,10 @@ public class BookmarkTestRule implements TestRule {
         };
     }
 
-    /** Shows the bookmark manager on screen. */
+    /**
+     * Shows the bookmark manager on screen. On tablets, it should only be called if there's an
+     * active tab to load the bookmarks manager in.
+     */
     public BookmarkManagerCoordinator showBookmarkManager(ChromeActivity chromeActivity) {
         BookmarkManagerCoordinator coordinator;
         // BookmarkActivity is only opened on phone, it is a native page on tablet.
@@ -70,18 +73,19 @@ public class BookmarkTestRule implements TestRule {
                             }
                         }
                     };
-            runOnUiThreadBlocking(() -> chromeActivity.getActivityTab().addObserver(obs));
+            Tab tab = chromeActivity.getActivityTab();
+            assert tab != null;
+
+            runOnUiThreadBlocking(() -> tab.addObserver(obs));
             showBookmarkManagerInternal(chromeActivity);
             try {
-                callbackHelper.waitForCallback(0);
+                callbackHelper.waitForFirst();
             } catch (TimeoutException e) {
                 throw new RuntimeException(e);
             }
-            runOnUiThreadBlocking(() -> chromeActivity.getActivityTab().removeObserver(obs));
+            runOnUiThreadBlocking(() -> tab.removeObserver(obs));
 
-            coordinator =
-                    ((BookmarkPage) chromeActivity.getActivityTab().getNativePage())
-                            .getManagerForTesting();
+            coordinator = ((BookmarkPage) tab.getNativePage()).getManagerForTesting();
 
         } else {
             mBookmarkActivity =

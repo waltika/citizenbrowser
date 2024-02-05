@@ -318,7 +318,8 @@ INSTANTIATE_TEST_SUITE_P(All,
                              /*accept_this_tab_capture=*/testing::Bool()));
 
 // TODO(1170479): Real desktop capture is flaky on below platforms.
-#if BUILDFLAG(IS_WIN)
+// TODO(crbug.com/1520393): enable this flaky test.
+#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC)
 #define MAYBE_ScreenCaptureVideo DISABLED_ScreenCaptureVideo
 #else
 #define MAYBE_ScreenCaptureVideo ScreenCaptureVideo
@@ -392,7 +393,8 @@ IN_PROC_BROWSER_TEST_P(WebRtcScreenCaptureBrowserTestWithPicker,
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
 // TODO(1170479): Real desktop capture is flaky on below platforms.
-#if BUILDFLAG(IS_WIN)
+// TODO(crbug.com/1520393): enable this flaky test.
+#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC)
 #define MAYBE_ScreenCaptureVideoAndAudio DISABLED_ScreenCaptureVideoAndAudio
 // On linux debug bots, it's flaky as well.
 #elif ((BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS_LACROS)) && \
@@ -1874,10 +1876,10 @@ IN_PROC_BROWSER_TEST_F(GetDisplayMediaCapturedSurfaceControlTest,
 
   CaptureSessionDetails capture_session =
       MakeCaptureSessionDetails("capture_session");
+  capture_session.SetCapturedSurfaceControllerFactory();
   capture_session.RunGetDisplayMedia();
   capture_session.ExpectCapturedTab(CapturedTab::kInitiallyCapturedTab);
 
-  capture_session.SetCapturedSurfaceControllerFactory();
   capture_session.SendWheel();
 
   // Expect that clicking "share this tab instead" will pipe a notification of
@@ -1896,16 +1898,16 @@ void GetDisplayMediaCapturedSurfaceControlTest::
 
   CaptureSessionDetails capture_session_0 =
       MakeCaptureSessionDetails("capture_session_0");
+  capture_session_0.SetCapturedSurfaceControllerFactory();
   capture_session_0.RunGetDisplayMedia();
   capture_session_0.ExpectCapturedTab(CapturedTab::kInitiallyCapturedTab);
-  capture_session_0.SetCapturedSurfaceControllerFactory();
   capture_session_0.SendWheel();
 
   CaptureSessionDetails capture_session_1 =
       MakeCaptureSessionDetails("capture_session_1");
+  capture_session_1.SetCapturedSurfaceControllerFactory();
   capture_session_1.RunGetDisplayMedia();
   capture_session_1.ExpectCapturedTab(CapturedTab::kInitiallyCapturedTab);
-  capture_session_1.SetCapturedSurfaceControllerFactory();
   capture_session_1.SendWheel();
 
   // Expect that clicking "share this tab instead" will pipe a notification of

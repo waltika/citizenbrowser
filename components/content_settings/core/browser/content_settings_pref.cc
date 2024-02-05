@@ -5,6 +5,7 @@
 #include "components/content_settings/core/browser/content_settings_pref.h"
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -33,7 +34,6 @@
 #include "components/prefs/scoped_user_pref_update.h"
 #include "services/preferences/public/cpp/dictionary_value_update.h"
 #include "services/preferences/public/cpp/scoped_pref_update.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 #include "url/gurl.h"
 
 namespace {
@@ -251,7 +251,8 @@ void ContentSettingsPref::SetWebsiteSetting(
                partition_key);
   }
 
-  notify_callback_.Run(primary_pattern, secondary_pattern, content_type_);
+  notify_callback_.Run(primary_pattern, secondary_pattern, content_type_,
+                       &partition_key);
 }
 
 void ContentSettingsPref::ClearAllContentSettingsRules(
@@ -281,7 +282,8 @@ void ContentSettingsPref::ClearAllContentSettingsRules(
   }
 
   notify_callback_.Run(ContentSettingsPattern::Wildcard(),
-                       ContentSettingsPattern::Wildcard(), content_type_);
+                       ContentSettingsPattern::Wildcard(), content_type_,
+                       &partition_key);
 }
 
 void ContentSettingsPref::OnShutdown() {
@@ -513,7 +515,8 @@ void ContentSettingsPref::OnPrefChanged() {
   ReadContentSettingsFromPref();
 
   notify_callback_.Run(ContentSettingsPattern::Wildcard(),
-                       ContentSettingsPattern::Wildcard(), content_type_);
+                       ContentSettingsPattern::Wildcard(), content_type_,
+                       nullptr);
 }
 
 void ContentSettingsPref::UpdatePref(

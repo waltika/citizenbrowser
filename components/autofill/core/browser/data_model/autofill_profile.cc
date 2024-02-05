@@ -407,7 +407,7 @@ base::android::ScopedJavaLocalRef<jobject> AutofillProfile::CreateJavaObject(
   for (FieldType type : GetDatabaseStoredTypesOfAutofillProfile()) {
     auto status = static_cast<jint>(GetVerificationStatus(type));
     // TODO(crbug.com/1471502): Reconcile usage of GetInfo and GetRawInfo below.
-    if (type == NAME_FULL || type == NAME_HONORIFIC_PREFIX) {
+    if (type == NAME_FULL) {
       Java_AutofillProfile_setInfo(
           env, jprofile, static_cast<jint>(type),
           base::android::ConvertUTF16ToJavaString(
@@ -568,8 +568,7 @@ bool AutofillProfile::IsPresentButInvalid(FieldType type) const {
       return country == "US" && !IsValidZip(data);
 
     case PHONE_HOME_WHOLE_NUMBER:
-      return !i18n::PhoneObject(data, country, /*infer_country_code=*/false)
-                  .IsValidNumber();
+      return !i18n::PhoneObject(data, country).IsValidNumber();
 
     case EMAIL_ADDRESS:
       return !IsValidEmailAddress(data);
@@ -582,8 +581,6 @@ bool AutofillProfile::IsPresentButInvalid(FieldType type) const {
 
 int AutofillProfile::Compare(const AutofillProfile& profile) const {
   const FieldType types[] = {
-      // TODO(crbug.com/1113617): Honorifics are temporally disabled.
-      // NAME_HONORIFIC_PREFIX,
       NAME_FULL,
       NAME_FIRST,
       NAME_MIDDLE,
@@ -930,13 +927,11 @@ void AutofillProfile::MergeFormGroupTokenQuality(
   }
 }
 
-bool AutofillProfile::SaveAdditionalInfo(const AutofillProfile& profile,
+void AutofillProfile::SaveAdditionalInfo(const AutofillProfile& profile,
                                          const std::string& app_locale) {
-  AutofillProfileComparator comparator(app_locale);
-
   // SaveAdditionalInfo should not have been called if the profiles were not
   // already deemed to be mergeable.
-  DCHECK(comparator.AreMergeable(*this, profile));
+  DCHECK(AutofillProfileComparator(app_locale).AreMergeable(*this, profile));
 
   if (MergeDataFrom(profile, app_locale)) {
     AutofillMetrics::LogProfileActionOnFormSubmitted(
@@ -945,7 +940,6 @@ bool AutofillProfile::SaveAdditionalInfo(const AutofillProfile& profile,
     AutofillMetrics::LogProfileActionOnFormSubmitted(
         AutofillMetrics::EXISTING_PROFILE_USED);
   }
-  return true;
 }
 
 // static

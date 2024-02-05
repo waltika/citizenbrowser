@@ -249,7 +249,6 @@
 <translation id="5623402015214259806">{0,plural, =0{Chromium અપડેટ ઉપલબ્ધ છે}=1{Chromium અપડેટ ઉપલબ્ધ છે}one{Chromium અપડેટ # દિવસ માટે ઉપલબ્ધ છે}other{Chromium અપડેટ # દિવસ માટે ઉપલબ્ધ છે}}</translation>
 <translation id="5643865575100044307">જ્યારે તમે Chromium બંધ કરો, ત્યારે હંમેશાં તમારા ડિવાઇસમાંથી સાઇટનો ડેટા ડિલીટ કરો</translation>
 <translation id="5653831366781983928">કૃપા કરીને હવે Chromium ફરી શરૂ કરો</translation>
-<translation id="5675598751761067447">આ ફાઇલ જોખમી હોઈ શકે છે<ph name="LINE_BREAK" />જો તમે પાસવર્ડ પ્રદાન કરો તો ડાઉનલોડ કરેલી આ ફાઇલ જોખમી છે કે નહીં તે Chromium તમારા વતી ચેક કરી શકે છે — તમારો પાસવર્ડ તમારા ડિવાઇસમાં જ રહે છે</translation>
 <translation id="5690427481109656848">Google LLC</translation>
 <translation id="5698481217667032250">આ ભાષામાં Chromium બતાવો</translation>
 <translation id="569897634095159764">ઇન્ટરનેટ સાથે કનેક્ટ કરી શકતા નથી. પ્રૉક્સી સર્વરને પ્રમાણીકરણની જરૂર છે.</translation>
@@ -283,6 +282,7 @@
 <translation id="6144416395842701622">Chromiumનો સૌથી વધુ લાભ મેળવવા માટે સાઇન ઇન કરો</translation>
 <translation id="6145820983052037069">તમે અહીં એક Chromium પ્રોફાઇલથી બીજી Chromium પ્રોફાઇલ પર સ્વિચ કરી શકો છો</translation>
 <translation id="615103374448673771">જો તમે કુકીને મંજૂરી આપો, તો Chromium પહેલેથી લોડ કરતી વખતે તેનો ઉપયોગ કરી શકે છે</translation>
+<translation id="6174920971222007286">આ ફાઇલ જોખમી હોઈ શકે છે<ph name="LINE_BREAK" />જો તમે પાસવર્ડ પ્રદાન કરો છો, તો Chromium તમારા માટે આ ડાઉનલોડને તપાસી શકે છે. ફાઇલ વિશેની માહિતી Google Safe Browsingને મોકલવામાં આવે છે, પરંતુ ફાઇલનું કન્ટેન્ટ અને પાસવર્ડ તમારા ડિવાઇસમાં જ રહે છે.</translation>
 <translation id="6175304430031192654">તમારા સેટિંગને આધારે, Chromium તમને કુકી અને તમારા વર્તમાન URL પણ મોકલી શકે છે</translation>
 <translation id="6182736845697986886">કોઈ અપડેટ સર્વરની આંતરિક ભૂલને કારણે ઇન્સ્ટૉલેશન નિષ્ફળ રહ્યું.</translation>
 <translation id="6183079672144801177">ખાતરી કરો કે તમે તમારા <ph name="TARGET_DEVICE_NAME" /> પર Chromiumમાં સાઇન ઇન કર્યું છે અને પછી ફરીથી મોકલવાનો પ્રયાસ કરો.</translation>

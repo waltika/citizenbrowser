@@ -6,6 +6,7 @@
 
 #include <memory>
 #include <optional>
+#include <string_view>
 #include <utility>
 
 #include "base/containers/contains.h"
@@ -89,7 +90,7 @@ std::string GetSecurityClass(const base::Value::Dict& service_properties) {
 // have the key |key| and both have the same value for it.
 bool HaveSameValueForKey(const base::Value::Dict& template_service_properties,
                          const base::Value::Dict& service_properties,
-                         base::StringPiece key) {
+                         std::string_view key) {
   const base::Value* template_service_value =
       template_service_properties.Find(key);
   const base::Value* service_value = service_properties.Find(key);
@@ -500,8 +501,7 @@ base::Value::Dict* FakeShillServiceClient::SetServiceProperties(
   }
   if (type == shill::kTypeWifi) {
     properties->Set(shill::kSSIDProperty, name);
-    properties->Set(shill::kWifiHexSsid,
-                    base::HexEncode(name.c_str(), name.size()));
+    properties->Set(shill::kWifiHexSsid, base::HexEncode(name));
   }
   properties->Set(shill::kNameProperty, name);
   std::string device_path =

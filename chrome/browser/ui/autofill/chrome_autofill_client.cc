@@ -45,10 +45,12 @@
 #include "chrome/browser/ui/autofill/payments/card_unmask_authentication_selection_dialog_controller_impl.h"
 #include "chrome/browser/ui/autofill/payments/card_unmask_otp_input_dialog_controller_impl.h"
 #include "chrome/browser/ui/autofill/payments/chrome_payments_autofill_client.h"
+#include "chrome/browser/ui/autofill/payments/chrome_payments_window_manager.h"
 #include "chrome/browser/ui/autofill/payments/create_card_unmask_prompt_view.h"
 #include "chrome/browser/ui/autofill/payments/credit_card_scanner_controller.h"
 #include "chrome/browser/ui/autofill/payments/iban_bubble_controller_impl.h"
 #include "chrome/browser/ui/autofill/payments/mandatory_reauth_bubble_controller_impl.h"
+#include "chrome/browser/ui/autofill/payments/view_factory.h"
 #include "chrome/browser/ui/autofill/payments/virtual_card_enroll_bubble_controller_impl.h"
 #include "chrome/browser/ui/autofill/save_update_address_profile_bubble_controller_impl.h"
 #include "chrome/browser/ui/chrome_pages.h"
@@ -165,7 +167,6 @@
 #include "chrome/browser/ui/browser_commands.h"
 #include "chrome/browser/ui/browser_finder.h"
 #include "chrome/browser/ui/webui/signin/login_ui_service_factory.h"
-#include "components/zoom/zoom_controller.h"
 #endif  // BUILDFLAG(IS_ANDROID)
 
 #if BUILDFLAG(ENABLE_COMPOSE)
@@ -181,11 +182,26 @@
 namespace autofill {
 
 namespace {
+
 AutoselectFirstSuggestion ShouldAutofillPopupAutoselectFirstSuggestion(
     AutofillSuggestionTriggerSource source) {
   return AutoselectFirstSuggestion(
       source == AutofillSuggestionTriggerSource::kTextFieldDidReceiveKeyDown);
 }
+
+bool ShouldEnableHeavyFormDataScraping(const version_info::Channel channel) {
+  switch (channel) {
+    case version_info::Channel::CANARY:
+    case version_info::Channel::DEV:
+      return true;
+    case version_info::Channel::STABLE:
+    case version_info::Channel::BETA:
+    case version_info::Channel::UNKNOWN:
+      return false;
+  }
+  NOTREACHED_NORETURN();
+}
+
 }  // namespace
 
 // static
@@ -387,6 +403,16 @@ ChromeAutofillClient::GetPaymentsNetworkInterface() {
                 ->IsOffTheRecord());
   }
   return payments_network_interface_.get();
+}
+
+payments::PaymentsWindowManager*
+ChromeAutofillClient::GetPaymentsWindowManager() {
+  if (!payments_window_manager_) {
+    payments_window_manager_ =
+        std::make_unique<payments::ChromePaymentsWindowManager>();
+  }
+
+  return payments_window_manager_.get();
 }
 
 StrikeDatabase* ChromeAutofillClient::GetStrikeDatabase() {
@@ -878,12 +904,9 @@ void ChromeAutofillClient::ConfirmUploadIbanToCloud(
 
 void ChromeAutofillClient::CreditCardUploadCompleted(bool card_saved) {
 #if !BUILDFLAG(IS_ANDROID)
-  if (base::FeatureList::IsEnabled(
-          features::kAutofillEnableSaveCardLoadingAndConfirmation)) {
-    if (SaveCardBubbleControllerImpl* controller =
-            SaveCardBubbleControllerImpl::FromWebContents(web_contents())) {
-      controller->HideIconAndBubbleAfterUpload();
-    }
+  if (SaveCardBubbleControllerImpl* controller =
+          SaveCardBubbleControllerImpl::FromWebContents(web_contents())) {
+    controller->HideIconAndBubbleAfterUpload();
   }
 #endif
 }
@@ -1015,11 +1038,6 @@ void ChromeAutofillClient::HideTouchToFillCreditCard() {
 void ChromeAutofillClient::ShowAutofillPopup(
     const autofill::AutofillClient::PopupOpenArgs& open_args,
     base::WeakPtr<AutofillPopupDelegate> delegate) {
-  // Autofill popups should only be shown in focused windows because on Windows
-  // the popup may overlap the focused window (see crbug.com/1239760).
-  if (!has_focus_)
-    return;
-
   // Convert element_bounds to be in screen space.
   gfx::Rect client_area = web_contents()->GetContainerBounds();
   gfx::RectF element_bounds_in_screen_space =
@@ -1195,9 +1213,13 @@ void ChromeAutofillClient::ShowAutofillErrorDialog(
 void ChromeAutofillClient::ShowAutofillProgressDialog(
     AutofillProgressDialogType autofill_progress_dialog_type,
     base::OnceClosure cancel_callback) {
-  DCHECK(autofill_progress_dialog_controller_);
   autofill_progress_dialog_controller_->ShowDialog(
-      autofill_progress_dialog_type, std::move(cancel_callback));
+      autofill_progress_dialog_type,
+      base::BindOnce(
+          &CreateAndShowProgressDialog,
+          base::Unretained(autofill_progress_dialog_controller_.get()),
+          base::Unretained(web_contents())),
+      std::move(cancel_callback));
 }
 
 void ChromeAutofillClient::TriggerUserPerceptionOfAutofillSurvey(
@@ -1319,56 +1341,8 @@ ChromeAutofillClient::GetDeviceAuthenticator() {
 #endif
 }
 
-void ChromeAutofillClient::PrimaryMainFrameWasResized(bool width_changed) {
-#if BUILDFLAG(IS_ANDROID)
-  // Ignore virtual keyboard showing and hiding a strip of suggestions.
-  if (!width_changed)
-    return;
-#endif
-
-  HideAutofillPopup(PopupHidingReason::kWidgetChanged);
-  // Do not need to hide the Touch To Fill surface, since it is an overlay UI
-  // which doesn't depend on frame size.
-}
-
-void ChromeAutofillClient::WebContentsDestroyed() {
-  HideAutofillPopup(PopupHidingReason::kTabGone);
-  if (IsTouchToFillCreditCardSupported())
-    HideTouchToFillCreditCard();
-}
-
-void ChromeAutofillClient::OnWebContentsLostFocus(
-    content::RenderWidgetHost* render_widget_host) {
-  has_focus_ = false;
-  HideAutofillPopup(PopupHidingReason::kFocusChanged);
-  // Should not hide the Touch To Fill surface, since it is an overlay UI
-  // which takes the focus.
-}
-
-void ChromeAutofillClient::OnWebContentsFocused(
-    content::RenderWidgetHost* render_widget_host) {
-  has_focus_ = true;
-}
-
-#if !BUILDFLAG(IS_ANDROID)
-void ChromeAutofillClient::OnZoomControllerDestroyed(
-    zoom::ZoomController* source) {
-  zoom_observation_.Reset();
-}
-
-void ChromeAutofillClient::OnZoomChanged(
-    const zoom::ZoomController::ZoomChangedEventData& data) {
-  HideAutofillPopup(PopupHidingReason::kContentAreaMoved);
-  // Touch To Fill is not supported on Desktop.
-}
-#endif  // !BUILDFLAG(IS_ANDROID)
-
 ChromeAutofillClient::ChromeAutofillClient(content::WebContents* web_contents)
-    : ContentAutofillClient(
-          web_contents,
-          base::BindRepeating(&BrowserDriverInitHook,
-                              this,
-                              g_browser_process->GetApplicationLocale())),
+    : ContentAutofillClient(web_contents),
       content::WebContentsObserver(web_contents),
       log_manager_(
           // TODO(crbug.com/928595): Replace the closure with a callback to the
@@ -1380,19 +1354,12 @@ ChromeAutofillClient::ChromeAutofillClient(content::WebContents* web_contents)
       unmask_controller_(std::make_unique<CardUnmaskPromptControllerImpl>(
           user_prefs::UserPrefs::Get(web_contents->GetBrowserContext()))),
       autofill_progress_dialog_controller_(
-          std::make_unique<AutofillProgressDialogControllerImpl>(
-              web_contents)) {
+          std::make_unique<AutofillProgressDialogControllerImpl>()) {
   // Initialize StrikeDatabase so its cache will be loaded and ready to use
   // when requested by other Autofill classes.
   GetStrikeDatabase();
 
-#if !BUILDFLAG(IS_ANDROID)
-  // There may not always be a ZoomController, e.g. in tests.
-  if (auto* zoom_controller =
-          zoom::ZoomController::FromWebContents(web_contents)) {
-    zoom_observation_.Observe(zoom_controller);
-  }
-#else
+#if BUILDFLAG(IS_ANDROID)
   fast_checkout_client_ = std::make_unique<FastCheckoutClientImpl>(this);
 #endif
 }
@@ -1462,5 +1429,20 @@ ChromeAutofillClient::GetOrCreateAutofillSaveCardBottomSheetBridge() {
   return autofill_save_card_bottom_sheet_bridge_.get();
 }
 #endif
+
+std::unique_ptr<AutofillManager> ChromeAutofillClient::CreateManager(
+    base::PassKey<ContentAutofillDriver> pass_key,
+    ContentAutofillDriver& driver) {
+  return std::make_unique<BrowserAutofillManager>(
+      &driver, this, g_browser_process->GetApplicationLocale());
+}
+
+void ChromeAutofillClient::InitAgent(
+    base::PassKey<ContentAutofillDriverFactory> pass_key,
+    const mojo::AssociatedRemote<mojom::AutofillAgent>& agent) {
+  if (ShouldEnableHeavyFormDataScraping(GetChannel())) {
+    agent->EnableHeavyFormDataScraping();
+  }
+}
 
 }  // namespace autofill

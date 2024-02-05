@@ -10,6 +10,7 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.PagerSnapHelper;
 import androidx.recyclerview.widget.RecyclerView;
@@ -26,7 +27,9 @@ import org.chromium.ui.modelutil.PropertyModel;
 import org.chromium.ui.modelutil.SimpleRecyclerViewAdapter;
 import org.chromium.url.GURL;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /** Root coordinator which is responsible for showing modules on home surfaces. */
 public class HomeModulesCoordinator implements ModuleDelegate, OnViewCreatedCallback {
@@ -41,8 +44,13 @@ public class HomeModulesCoordinator implements ModuleDelegate, OnViewCreatedCall
     private SnapHelper mSnapHelper;
     private boolean mIsSnapHelperAttached;
     private int mCurrentOrientation;
+    private int mItemPerScreen;
     @Nullable private UiConfig mUiConfig;
     @Nullable private DisplayStyleObserver mDisplayStyleObserver;
+
+    private Set<Integer> mEnabledModuleList;
+    private HomeModulesConfigManager mHomeModulesConfigManager;
+    private HomeModulesConfigManager.HomeModulesStateListener mHomeModulesStateListener;
 
     /**
      * @param activity The instance of {@link Activity}.
@@ -52,7 +60,8 @@ public class HomeModulesCoordinator implements ModuleDelegate, OnViewCreatedCall
     public HomeModulesCoordinator(
             @NonNull Activity activity,
             @NonNull ModuleDelegateHost moduleDelegateHost,
-            @NonNull ViewGroup parentView) {
+            @NonNull ViewGroup parentView,
+            @NonNull HomeModulesConfigManager homeModulesConfigManager) {
         mModuleDelegateHost = moduleDelegateHost;
         mHomeModulesContextMenuManager =
                 new HomeModulesContextMenuManager(
@@ -70,6 +79,11 @@ public class HomeModulesCoordinator implements ModuleDelegate, OnViewCreatedCall
 
         // Add pager indicator.
         setupRecyclerView(activity);
+
+        mHomeModulesConfigManager = homeModulesConfigManager;
+        mHomeModulesStateListener = this::onModuleConfigChanged;
+        mHomeModulesConfigManager.addListener(mHomeModulesStateListener);
+        mEnabledModuleList = mHomeModulesConfigManager.getEnabledModuleList();
 
         mMediator = new HomeModulesMediator(mModel, ModuleRegistry.getInstance());
     }
@@ -100,13 +114,16 @@ public class HomeModulesCoordinator implements ModuleDelegate, OnViewCreatedCall
 
         // Snap scroll is supported by the recyclerview if it shows a single item per screen. This
         // happens on phones or small windows on tablets.
-        if (!isTablet
-                || CirclePagerIndicatorDecoration.showSingleItem(
-                        mUiConfig.getCurrentDisplayStyle())) {
+        if (!isTablet) {
             mSnapHelper.attachToRecyclerView(mRecyclerView);
+            return;
         }
 
-        if (!isTablet) return;
+        mItemPerScreen =
+                CirclePagerIndicatorDecoration.getItemPerScreen(mUiConfig.getCurrentDisplayStyle());
+        if (mItemPerScreen == 1) {
+            mSnapHelper.attachToRecyclerView(mRecyclerView);
+        }
 
         // When the screen is rotated, an event of display style change is also triggered.
         mCurrentOrientation = activity.getResources().getConfiguration().orientation;
@@ -115,7 +132,9 @@ public class HomeModulesCoordinator implements ModuleDelegate, OnViewCreatedCall
         mDisplayStyleObserver =
                 newDisplayStyle -> {
                     boolean wasSnapHelperAttached = mIsSnapHelperAttached;
-                    if (!CirclePagerIndicatorDecoration.showSingleItem(newDisplayStyle)) {
+                    mItemPerScreen =
+                            CirclePagerIndicatorDecoration.getItemPerScreen(newDisplayStyle);
+                    if (mItemPerScreen > 1) {
                         // If showing multiple items per screen, we need to detach the snap
                         // scroll helper from the recyclerview.
                         if (mIsSnapHelperAttached) {
@@ -129,7 +148,7 @@ public class HomeModulesCoordinator implements ModuleDelegate, OnViewCreatedCall
 
                     // Notifies the CirclePageIndicatorDecoration.
                     mPageIndicatorDecoration.onDisplayStyleChanged(
-                            mModuleDelegateHost.getStartMargin());
+                            mModuleDelegateHost.getStartMargin(), mItemPerScreen);
 
                     int newOrientation = activity.getResources().getConfiguration().orientation;
                     // Redraws the recyclerview when either the screen is rotated or the width
@@ -142,6 +161,8 @@ public class HomeModulesCoordinator implements ModuleDelegate, OnViewCreatedCall
                     }
                 };
         mUiConfig.addObserver(mDisplayStyleObserver);
+        mPageIndicatorDecoration.onDisplayStyleChanged(
+                mModuleDelegateHost.getStartMargin(), mItemPerScreen);
     }
 
     /**
@@ -162,6 +183,16 @@ public class HomeModulesCoordinator implements ModuleDelegate, OnViewCreatedCall
                 (isVisible) -> {
                     onHomeModulesShownCallback.onResult(isVisible);
                 });
+    }
+
+    /** Reacts when the home modules' specific module type is disabled or enabled. */
+    void onModuleConfigChanged(@ModuleType int moduleType, boolean isEnabled) {
+        if (isEnabled) {
+            mEnabledModuleList.add(moduleType);
+        } else {
+            mEnabledModuleList.remove(moduleType);
+            removeModule(moduleType);
+        }
     }
 
     /** Hides the modules and cleans up. */
@@ -205,8 +236,12 @@ public class HomeModulesCoordinator implements ModuleDelegate, OnViewCreatedCall
     }
 
     @Override
-    public void onHideModuleFromContextMenu(@ModuleType int moduleType) {
-        mMediator.remove(moduleType);
+    public void removeModule(@ModuleType int moduleType) {
+        boolean isModuleRemoved = mMediator.remove(moduleType);
+
+        if (isModuleRemoved && mModel.size() < mItemPerScreen) {
+            mRecyclerView.invalidateItemDecorations();
+        }
     }
 
     @Override
@@ -252,15 +287,28 @@ public class HomeModulesCoordinator implements ModuleDelegate, OnViewCreatedCall
             mUiConfig.removeObserver(mDisplayStyleObserver);
             mUiConfig = null;
         }
+        if (mHomeModulesConfigManager != null) {
+            mHomeModulesConfigManager.removeListener(mHomeModulesStateListener);
+            mHomeModulesConfigManager = null;
+        }
     }
 
     public boolean getIsSnapHelperAttachedForTesting() {
         return mIsSnapHelperAttached;
     }
 
-    private List<Integer> getModuleList() {
+    @VisibleForTesting
+    List<Integer> getModuleList() {
         // TODO(https://crbug.com/1512962): Gets the modules ranking list using segmentation service
         // API.
-        return List.of(ModuleType.PRICE_CHANGE, ModuleType.SINGLE_TAB);
+        List<Integer> generalModuleList = List.of(ModuleType.PRICE_CHANGE, ModuleType.SINGLE_TAB);
+        List<Integer> moduleList = new ArrayList<>();
+        for (int i = 0; i < generalModuleList.size(); i++) {
+            @ModuleType int currentModuleType = generalModuleList.get(i);
+            if (mEnabledModuleList.contains(currentModuleType)) {
+                moduleList.add(currentModuleType);
+            }
+        }
+        return moduleList;
     }
 }

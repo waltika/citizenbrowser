@@ -813,7 +813,7 @@ void AXObjectCacheImpl::Dispose() {
   }
 
   // Destroy any pending task to serialize the tree.
-  weak_factory_for_serialization_pipeline_.InvalidateWeakPtrs();
+  weak_factory_for_serialization_pipeline_.Invalidate();
 }
 
 void AXObjectCacheImpl::AddInspectorAgent(InspectorAccessibilityAgent* agent) {
@@ -2552,16 +2552,20 @@ void AXObjectCacheImpl::NodeIsAttached(Node* node) {
 
   // It normally is not necessary to process text nodes here, because we'll
   // also get a call for the attachment of the parent element. However in the
-  // YieldingParser scenario, the `previousOnLineId` can be unexpectedly null.
+  // YieldingParser scenario, the `previousOnLineId` can be unexpectedly null
+  // for whitespace-only nodes whose inclusion had not yet been determined.
   // Sample flake: AccessibilityContenteditableDocsLi. Therefore, find the
   // highest `LayoutInline` ancestor and mark it dirty.
-  if (IsA<Text>(node)) {
-    if (auto* layout_object = node->GetLayoutObject()) {
-      auto* layout_parent = layout_object->Parent();
-      while (layout_parent && layout_parent->IsLayoutInline()) {
-        layout_parent = layout_parent->Parent();
+  if (Text* text = DynamicTo<Text>(node)) {
+    if (text->ContainsOnlyWhitespaceOrEmpty()) {
+      if (auto* layout_object = node->GetLayoutObject()) {
+        auto* layout_parent = layout_object->Parent();
+        while (layout_parent && layout_parent->Parent() &&
+               layout_parent->Parent()->IsLayoutInline()) {
+          layout_parent = layout_parent->Parent();
+        }
+        MarkAXSubtreeDirty(Get(layout_parent));
       }
-      MarkAXSubtreeDirty(Get(layout_parent));
     }
     return;
   }
@@ -3178,20 +3182,21 @@ void AXObjectCacheImpl::ProcessDeferredAccessibilityEvents(Document& document,
     const auto& delay_until_next_serialization =
         delay_between_serializations - elapsed_since_last_serialization;
     if (delay_until_next_serialization.is_positive()) {
-      if (!weak_factory_for_serialization_pipeline_.HasWeakPtrs()) {
+      if (!weak_factory_for_serialization_pipeline_.HasWeakCells()) {
         document.GetTaskRunner(blink::TaskType::kInternalDefault)
             ->PostDelayedTask(
                 FROM_HERE,
                 WTF::BindOnce(
                     &AXObjectCacheImpl::ScheduleAXUpdate,
-                    weak_factory_for_serialization_pipeline_.GetWeakPtr()),
+                    WrapPersistent(weak_factory_for_serialization_pipeline_
+                                       .GetWeakCell())),
                 delay_until_next_serialization);
       }
       return;  // No serialization needed yet.
     }
   }
 
-  weak_factory_for_serialization_pipeline_.InvalidateWeakPtrs();
+  weak_factory_for_serialization_pipeline_.Invalidate();
 
   // ------------------------ Freeze and serialize ---------------------------
   {
@@ -4060,6 +4065,17 @@ void AXObjectCacheImpl::HandleAttributeChanged(const QualifiedName& attr_name,
       DeferTreeUpdate(TreeUpdateReason::kAriaSelectedChanged, element);
     } else if (attr_name == html_names::kAriaExpandedAttr) {
       DeferTreeUpdate(TreeUpdateReason::kAriaExpandedChanged, element);
+    } else if (attr_name == html_names::kAriaHiddenAttr) {
+      // Removing the subtree will also notify its parent that children changed,
+      // causing the subtree to recursively be rebuilt with correct cached
+      // values. In addition, changes to aria-hidden can affect with aria-owns
+      // within the subtree are considered valid. Removing the subtree forces
+      // any stale assumptions regarding aria-owns to be tossed, and the
+      // resulting tree structure changes to occur as the subtree is rebuilt,
+      // including restoring the natural parent of previously owned children
+      // if the owner becomes aria-hidden.
+      RemoveSubtreeWhenSafe(element);
+      MarkElementDirty(element->parentNode());
     } else if (attr_name == html_names::kAriaOwnsAttr) {
       if (relation_cache_) {
         relation_cache_->UpdateReverseOwnsRelations(*element);
@@ -4073,6 +4089,8 @@ void AXObjectCacheImpl::HandleAttributeChanged(const QualifiedName& attr_name,
           // kPopupButton.
           DeferTreeUpdate(TreeUpdateReason::kRoleChangeFromAriaHasPopup,
                           element);
+        } else {
+          MarkElementDirty(element);
         }
       }
     } else if (attr_name == html_names::kAriaControlsAttr ||
@@ -5656,6 +5674,7 @@ void AXObjectCacheImpl::Trace(Visitor* visitor) const {
   visitor->Trace(dirty_objects_);
   visitor->Trace(aria_notifications_);
   visitor->Trace(node_to_parse_before_more_tree_updates_);
+  visitor->Trace(weak_factory_for_serialization_pipeline_);
 
   AXObjectCache::Trace(visitor);
 }

@@ -100,8 +100,9 @@ WeakPtr<AutofillPopupControllerImpl> AutofillPopupControllerImpl::GetOrCreate(
     return previous;
   }
 
-  if (previous)
+  if (previous) {
     previous->Hide(PopupHidingReason::kViewDestroyed);
+  }
 #if BUILDFLAG(IS_ANDROID)
   AutofillPopupControllerImpl* controller = new AutofillPopupControllerImpl(
       delegate, web_contents, container_view, element_bounds, text_direction,
@@ -142,9 +143,48 @@ AutofillPopupControllerImpl::AutofillPopupControllerImpl(
   CHECK(picture_in_picture_window_manager);
   picture_in_picture_window_observation_.Observe(
       picture_in_picture_window_manager);
+#if !BUILDFLAG(IS_ANDROID)
+  // There may not always be a ZoomController, e.g., in tests.
+  if (auto* zoom_controller =
+          zoom::ZoomController::FromWebContents(web_contents)) {
+    zoom_observation_.Observe(zoom_controller);
+  }
+#endif
 }
 
 AutofillPopupControllerImpl::~AutofillPopupControllerImpl() = default;
+
+void AutofillPopupControllerImpl::WebContentsDestroyed() {
+  Hide(PopupHidingReason::kTabGone);
+}
+
+void AutofillPopupControllerImpl::OnWebContentsLostFocus(
+    content::RenderWidgetHost* render_widget_host) {
+  Hide(PopupHidingReason::kFocusChanged);
+}
+
+void AutofillPopupControllerImpl::PrimaryMainFrameWasResized(
+    bool width_changed) {
+#if BUILDFLAG(IS_ANDROID)
+  // Ignore virtual keyboard showing and hiding a strip of suggestions.
+  if (!width_changed) {
+    return;
+  }
+#endif
+  Hide(PopupHidingReason::kWidgetChanged);
+}
+
+#if !BUILDFLAG(IS_ANDROID)
+void AutofillPopupControllerImpl::OnZoomControllerDestroyed(
+    zoom::ZoomController* source) {
+  zoom_observation_.Reset();
+}
+
+void AutofillPopupControllerImpl::OnZoomChanged(
+    const zoom::ZoomController::ZoomChangedEventData& data) {
+  Hide(PopupHidingReason::kContentAreaMoved);
+}
+#endif  // !BUILDFLAG(IS_ANDROID)
 
 void AutofillPopupControllerImpl::RenderFrameDeleted(
     content::RenderFrameHost* rfh) {
@@ -187,7 +227,14 @@ void AutofillPopupControllerImpl::Show(
     std::vector<Suggestion> suggestions,
     AutofillSuggestionTriggerSource trigger_source,
     AutoselectFirstSuggestion autoselect_first_suggestion) {
-  if (IsMouseLocked()) {
+  // Autofill popups should only be shown in focused windows because on Windows
+  // the popup may overlap the focused window (see crbug.com/1239760).
+  if (auto* rwhv = web_contents()->GetRenderWidgetHostView();
+      !rwhv || !rwhv->HasFocus()) {
+    return;
+  }
+
+  if (IsPointerLocked()) {
     Hide(PopupHidingReason::kMouseLocked);
     return;
   }
@@ -394,7 +441,7 @@ void AutofillPopupControllerImpl::AcceptSuggestion(int index,
     return;
   }
 
-  if (IsMouseLocked()) {
+  if (IsPointerLocked()) {
     Hide(PopupHidingReason::kMouseLocked);
     return;
   }
@@ -612,7 +659,7 @@ bool AutofillPopupControllerImpl::GetRemovalConfirmationText(
 bool AutofillPopupControllerImpl::RemoveSuggestion(
     int list_index,
     AutofillMetrics::SingleEntryRemovalMethod removal_method) {
-  if (IsMouseLocked()) {
+  if (IsPointerLocked()) {
     Hide(PopupHidingReason::kMouseLocked);
     return false;
   }
@@ -684,7 +731,7 @@ bool AutofillPopupControllerImpl::RemoveSuggestion(
 void AutofillPopupControllerImpl::SelectSuggestion(int index) {
   CHECK_LT(index, static_cast<int>(suggestions_.size()));
 
-  if (IsMouseLocked()) {
+  if (IsPointerLocked()) {
     Hide(PopupHidingReason::kMouseLocked);
     return;
   }
@@ -777,11 +824,11 @@ void AutofillPopupControllerImpl::HideViewAndDie() {
                      self_deletion_weak_ptr_factory_.GetWeakPtr()));
 }
 
-bool AutofillPopupControllerImpl::IsMouseLocked() const {
+bool AutofillPopupControllerImpl::IsPointerLocked() const {
   content::RenderFrameHost* rfh;
   content::RenderWidgetHostView* rwhv;
   return web_contents() && (rfh = web_contents()->GetFocusedFrame()) &&
-         (rwhv = rfh->GetView()) && rwhv->IsMouseLocked();
+         (rwhv = rfh->GetView()) && rwhv->IsPointerLocked();
 }
 
 base::WeakPtr<AutofillPopupView>

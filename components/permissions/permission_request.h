@@ -5,6 +5,7 @@
 #ifndef COMPONENTS_PERMISSIONS_PERMISSION_REQUEST_H_
 #define COMPONENTS_PERMISSIONS_PERMISSION_REQUEST_H_
 
+#include <optional>
 #include <string>
 
 #include "base/functional/callback.h"
@@ -16,7 +17,6 @@
 #include "components/permissions/permission_request_enums.h"
 #include "components/permissions/request_type.h"
 #include "content/public/browser/global_routing_id.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 #include "url/gurl.h"
 
 namespace permissions {
@@ -60,7 +60,8 @@ class PermissionRequest {
 
   PermissionRequest(PermissionRequestData request_data,
                     PermissionDecidedCallback permission_decided_callback,
-                    base::OnceClosure delete_callback);
+                    base::OnceClosure delete_callback,
+                    bool uses_automatic_embargo);
 
   PermissionRequest(const PermissionRequest&) = delete;
   PermissionRequest& operator=(const PermissionRequest&) = delete;
@@ -133,7 +134,7 @@ class PermissionRequest {
 
   // Returns prompt text appropriate for displaying on the chip button in the
   // location bar.
-  absl::optional<std::u16string> GetRequestChipText(ChipTextType type) const;
+  std::optional<std::u16string> GetRequestChipText(ChipTextType type) const;
 
   // Returns prompt text appropriate for displaying under the dialog title
   // "[domain] wants to:".
@@ -201,6 +202,8 @@ class PermissionRequest {
   // identify the permission being requested.
   virtual std::u16string GetPermissionNameTextFragment() const;
 
+  bool uses_automatic_embargo() const { return uses_automatic_embargo_; }
+
  protected:
   // Sets whether this request is permission element initiated, for testing
   // subclasses only.
@@ -216,6 +219,8 @@ class PermissionRequest {
   // Called when the request is no longer in use so it can be deleted by the
   // caller.
   base::OnceClosure delete_callback_;
+
+  const bool uses_automatic_embargo_ = true;
 
   base::WeakPtrFactory<PermissionRequest> weak_factory_{this};
 };

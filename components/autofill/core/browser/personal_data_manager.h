@@ -22,6 +22,7 @@
 #include "base/observer_list.h"
 #include "base/scoped_observation.h"
 #include "build/build_config.h"
+#include "components/autofill/core/browser/address_data_cleaner.h"
 #include "components/autofill/core/browser/data_model/autofill_offer_data.h"
 #include "components/autofill/core/browser/data_model/autofill_profile.h"
 #include "components/autofill/core/browser/data_model/autofill_wallet_usage_data.h"
@@ -33,7 +34,7 @@
 #include "components/autofill/core/browser/metrics/autofill_metrics.h"
 #include "components/autofill/core/browser/payments/account_info_getter.h"
 #include "components/autofill/core/browser/payments/payments_customer_data.h"
-#include "components/autofill/core/browser/personal_data_manager_cleaner.h"
+#include "components/autofill/core/browser/payments/payments_data_cleaner.h"
 #include "components/autofill/core/browser/proto/server.pb.h"
 #include "components/autofill/core/browser/strike_databases/autofill_profile_migration_strike_database.h"
 #include "components/autofill/core/browser/strike_databases/autofill_profile_save_strike_database.h"
@@ -49,6 +50,7 @@
 #include "components/prefs/pref_change_registrar.h"
 #include "components/prefs/pref_member.h"
 #include "components/signin/public/identity_manager/account_info.h"
+#include "components/signin/public/identity_manager/account_managed_status_finder.h"
 #include "components/signin/public/identity_manager/identity_manager.h"
 #include "components/sync/base/model_type.h"
 #include "components/sync/base/user_selectable_type.h"
@@ -268,6 +270,7 @@ class PersonalDataManager : public KeyedService,
 
   // Removes the profile, credit card or IBAN identified by `guid`.
   virtual void RemoveByGUID(const std::string& guid);
+  void RemoveProfile(const std::string& guid);
 
   // Returns the profile with the specified |guid|, or nullptr if there is no
   // profile with the specified |guid|.
@@ -324,9 +327,8 @@ class PersonalDataManager : public KeyedService,
   virtual void UpdateLocalCvc(const std::string& guid,
                               const std::u16string& cvc);
 
-  // Update a server card. Only the full number and masked/unmasked
-  // status can be changed. Looks up the card by server ID.
-  virtual void UpdateServerCreditCard(const CreditCard& credit_card);
+  // Masks a full server card in the database.
+  virtual void MaskFullServerCreditCard(const std::string& server_id);
 
   // Updates the use stats and billing address id for the server |credit_cards|.
   // Looks up the cards by server_id.
@@ -664,6 +666,12 @@ class PersonalDataManager : public KeyedService,
   // Returns true if the user's selectable `type` is enabled.
   bool IsUserSelectableTypeEnabled(syncer::UserSelectableType type) const;
 
+  // Sets the Sync UserSelectableType::kAutofill toggle value.
+  // TODO(crbug.com/1502843): Used for the toggle on the Autofill Settings page
+  // only. It controls syncing of autofill data stored in user accounts for
+  // non-syncing users. Remove when toggle becomes available on the Sync page.
+  void SetAutofillSelectableTypeEnabled(bool enabled);
+
   // The functions below are related to the payments mandatory re-auth feature.
   // All of this functionality is done through per-profile per-device prefs.
   // `SetPaymentMethodsMandatoryReauthEnabled()` is used to update the opt-in
@@ -688,6 +696,11 @@ class PersonalDataManager : public KeyedService,
 
   // Get pointer to the image fetcher.
   AutofillImageFetcherBase* GetImageFetcher() const;
+
+  // Defines whether the Sync toggle on the Autofill Settings page is visible.
+  // TODO(crbug.com/1502843): Remove when toggle becomes available on the Sync
+  // page for non-syncing users.
+  bool IsAutofillSyncToggleAvailable() const;
 
   // Used to automatically import addresses without a prompt. Should only be
   // set to true in tests.
@@ -718,13 +731,16 @@ class PersonalDataManager : public KeyedService,
     return alternative_state_name_map_updater_.get();
   }
 
+  std::optional<signin::AccountManagedStatusFinder::Outcome>
+  GetAccountStatusForTesting() const;
+
  protected:
   FRIEND_TEST_ALL_PREFIXES(PersonalDataManagerTest,
                            AddAndGetCreditCardArtImage);
   FRIEND_TEST_ALL_PREFIXES(PersonalDataManagerTest, LogStoredCreditCardMetrics);
 
   friend class ::PaymentsSuggestionBottomSheetMediatorTest;
-  friend class PersonalDataManagerCleaner;
+  friend class PaymentsDataCleaner;
   friend class VirtualCardEnrollmentManagerTest;
 
   // Used to get a pointer to the strike database for migrating existing
@@ -898,10 +914,9 @@ class PersonalDataManager : public KeyedService,
   // prefs::kAutofillProfileEnabled changes.
   void EnableAutofillPrefChanged();
 
-  // Add/Update/Removes a profile in AutofillTable asynchronously. The changes
-  // only surface in the PDM after the task on the DB sequence has finished.
+  // Update a profile in AutofillTable asynchronously. The change only surfaces
+  // in the PDM after the task on the DB sequence has finished.
   void UpdateProfileInDB(const AutofillProfile& profile);
-  void RemoveProfileFromDB(const std::string& guid);
 
   // Triggered when a profile is added/updated/removed on db.
   void OnAutofillProfileChanged(const AutofillProfileChange& change);
@@ -970,10 +985,11 @@ class PersonalDataManager : public KeyedService,
   // Pref registrar for managing the change observers.
   PrefChangeRegistrar pref_registrar_;
 
-  // PersonalDataManagerCleaner is used to apply various address and credit
-  // card fixes/cleanups one time at browser startup or when the sync starts.
-  // PersonalDataManagerCleaner is declared as a friend class.
-  std::unique_ptr<PersonalDataManagerCleaner> personal_data_manager_cleaner_;
+  // The *DataCleaner classes are used to apply various address and payment
+  // cleanups (e.g. deduplication, disused data removal) at browser startup or
+  // when the sync starts.
+  std::unique_ptr<AddressDataCleaner> address_data_cleaner_;
+  std::unique_ptr<PaymentsDataCleaner> payments_data_cleaner_;
 
   // A timely ordered list of ongoing changes for each profile.
   std::unordered_map<std::string, std::deque<QueuedAutofillProfileChange>>
@@ -981,6 +997,12 @@ class PersonalDataManager : public KeyedService,
 
   // The identity manager that this instance uses. Must outlive this instance.
   raw_ptr<signin::IdentityManager> identity_manager_ = nullptr;
+
+  // Used for the Autofill sync toggle visibility calculation only.
+  // TODO(crbug.com/1502843): Remove when toggle becomes available on the Sync
+  // page for non-syncing users.
+  std::unique_ptr<const signin::AccountManagedStatusFinder>
+      account_status_finder_;
 
   // The sync service this instances uses. Must outlive this instance.
   raw_ptr<syncer::SyncService> sync_service_ = nullptr;

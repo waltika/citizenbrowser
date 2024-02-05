@@ -137,7 +137,7 @@
 #include "ui/latency/latency_info.h"
 
 #if !BUILDFLAG(IS_ANDROID)
-#include "content/browser/renderer_host/media/captured_surface_controller.h"
+#include "content/browser/media/captured_surface_controller.h"
 #include "content/public/test/mock_captured_surface_controller.h"
 #endif  // !BUILDFLAG(IS_ANDROID)
 
@@ -4326,14 +4326,16 @@ void SetCapturedSurfaceControllerFactoryForTesting(
         WebContentsMediaCaptureId)> factory) {
   using FactoryType =
       ::base::RepeatingCallback<std::unique_ptr<CapturedSurfaceController>(
-          GlobalRenderFrameHostId, WebContentsMediaCaptureId)>;
+          GlobalRenderFrameHostId, WebContentsMediaCaptureId,
+          base::RepeatingCallback<void(int)>)>;
   using MockFactoryType =
       ::base::RepeatingCallback<std::unique_ptr<MockCapturedSurfaceController>(
           GlobalRenderFrameHostId, WebContentsMediaCaptureId)>;
 
   FactoryType wrapped_factory = base::BindRepeating(
       [](MockFactoryType mock_factory, GlobalRenderFrameHostId rfh_id,
-         WebContentsMediaCaptureId captured_wc_id) {
+         WebContentsMediaCaptureId captured_wc_id,
+         base::RepeatingCallback<void(int)> on_zoom_level_change_callback) {
         std::unique_ptr<MockCapturedSurfaceController> mock_controller =
             mock_factory.Run(rfh_id, captured_wc_id);
         std::unique_ptr<CapturedSurfaceController> wrapped_object =

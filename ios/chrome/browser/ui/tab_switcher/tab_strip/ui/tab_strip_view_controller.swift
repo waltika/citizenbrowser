@@ -25,11 +25,6 @@ class TabStripViewController: UIViewController, TabStripCellDelegate,
   // The New tab button.
   private let newTabButton: TabStripNewTabButton = TabStripNewTabButton(frame: .zero)
 
-  // Decoration views that encapsulate the collection view. They are visible
-  // when the collection view can be scrolled.
-  private let leadingSeparatorView: TabStripDecorationView = TabStripDecorationView(frame: .zero)
-  private let trailingSeparatorView: TabStripDecorationView = TabStripDecorationView(frame: .zero)
-
   // Lastest dragged item. This property is set when the item
   // is long pressed which does not always result in a drag action.
   private var draggedItem: TabSwitcherItem?
@@ -62,8 +57,6 @@ class TabStripViewController: UIViewController, TabStripCellDelegate,
     }
 
     layout.dataSource = diffableDataSource
-    layout.leadingSeparatorView = leadingSeparatorView
-    layout.trailingSeparatorView = trailingSeparatorView
   }
 
   required init?(coder: NSCoder) {
@@ -80,11 +73,6 @@ class TabStripViewController: UIViewController, TabStripCellDelegate,
 
     collectionView.backgroundColor = .clear
     view.addSubview(collectionView)
-
-    // Mirror the layer.
-    trailingSeparatorView.transform = CGAffineTransformMakeScale(-1, 1)
-    view.addSubview(leadingSeparatorView)
-    view.addSubview(trailingSeparatorView)
 
     newTabButton.delegate = self
     view.addSubview(newTabButton)
@@ -104,16 +92,6 @@ class TabStripViewController: UIViewController, TabStripCellDelegate,
       newTabButton.bottomAnchor.constraint(equalTo: view.bottomAnchor),
       newTabButton.topAnchor.constraint(equalTo: view.topAnchor),
       newTabButton.widthAnchor.constraint(equalToConstant: TabStripConstants.NewTabButton.width),
-
-      /// `leadingSeparatorView` constraints.
-      leadingSeparatorView.leadingAnchor.constraint(equalTo: collectionView.leadingAnchor),
-      leadingSeparatorView.bottomAnchor.constraint(
-        equalTo: collectionView.bottomAnchor),
-
-      /// `trailingSeparatorView` constraints.
-      trailingSeparatorView.trailingAnchor.constraint(equalTo: collectionView.trailingAnchor),
-      trailingSeparatorView.bottomAnchor.constraint(
-        equalTo: collectionView.bottomAnchor),
     ])
   }
 
@@ -340,6 +318,17 @@ extension TabStripViewController: UICollectionViewDelegateFlowLayout {
 
   func collectionView(
     _ collectionView: UICollectionView,
+    contextMenuConfiguration configuration: UIContextMenuConfiguration,
+    highlightPreviewForItemAt indexPath: IndexPath
+  ) -> UITargetedPreview? {
+    guard let cell = collectionView.cellForItem(at: indexPath) as? TabStripCell else {
+      return nil
+    }
+    return UITargetedPreview(view: cell, parameters: cell.dragPreviewParameters)
+  }
+
+  func collectionView(
+    _ collectionView: UICollectionView,
     contextMenuConfigurationForItemAt indexPath: IndexPath,
     point: CGPoint
   ) -> UIContextMenuConfiguration? {
@@ -392,10 +381,10 @@ extension TabStripViewController: UICollectionViewDragDelegate, UICollectionView
     _ collectionView: UICollectionView,
     dragPreviewParametersForItemAt indexPath: IndexPath
   ) -> UIDragPreviewParameters? {
-    guard let draggedCell = (collectionView.cellForItem(at: indexPath) as? TabStripCell) else {
+    guard let cell = collectionView.cellForItem(at: indexPath) as? TabStripCell else {
       return nil
     }
-    return draggedCell.dragPreviewParameters
+    return cell.dragPreviewParameters
   }
 
   func collectionView(

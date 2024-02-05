@@ -1454,12 +1454,12 @@ IN_PROC_BROWSER_TEST_F(SitePerProcessInteractiveBrowserTest,
                      content::EXECUTE_SCRIPT_NO_RESOLVE_PROMISES));
   EXPECT_EQ(true,
             EvalJs(child, "document.body == document.pointerLockElement"));
-  EXPECT_TRUE(main_frame->GetView()->IsMouseLocked());
+  EXPECT_TRUE(main_frame->GetView()->IsPointerLocked());
 
   EXPECT_TRUE(ExecJs(main_frame,
                      "document.querySelector('iframe').parentNode."
                      "removeChild(document.querySelector('iframe'))"));
-  EXPECT_FALSE(main_frame->GetView()->IsMouseLocked());
+  EXPECT_FALSE(main_frame->GetView()->IsPointerLocked());
 }
 
 #if BUILDFLAG(ENABLE_PDF)
@@ -1508,7 +1508,7 @@ class SitePerProcessInteractivePDFTest
 
   void WaitUntilPdfLoaded() {
     if (UseOopif()) {
-      GetTestPdfViewerStreamManager()->WaitUntilPdfLoaded();
+      GetTestPdfViewerStreamManager()->DeprecatedWaitUntilPdfLoaded();
     } else {
       auto* guest_view =
           GetTestGuestViewManager()->WaitForSingleGuestViewCreated();

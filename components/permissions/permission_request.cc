@@ -36,10 +36,12 @@ PermissionRequest::PermissionRequest(
 PermissionRequest::PermissionRequest(
     PermissionRequestData request_data,
     PermissionDecidedCallback permission_decided_callback,
-    base::OnceClosure delete_callback)
+    base::OnceClosure delete_callback,
+    bool uses_automatic_embargo)
     : data_(std::move(request_data)),
       permission_decided_callback_(std::move(permission_decided_callback)),
-      delete_callback_(std::move(delete_callback)) {}
+      delete_callback_(std::move(delete_callback)),
+      uses_automatic_embargo_(uses_automatic_embargo) {}
 
 PermissionRequest::~PermissionRequest() {
   DCHECK(delete_callback_.is_null());
@@ -202,7 +204,7 @@ IconId PermissionRequest::GetBlockedIconForChip() {
   return permissions::GetBlockedIconId(request_type());
 }
 
-absl::optional<std::u16string> PermissionRequest::GetRequestChipText(
+std::optional<std::u16string> PermissionRequest::GetRequestChipText(
     ChipTextType type) const {
   static base::NoDestructor<std::map<RequestType, std::vector<int>>> kMessageIds(
       {{RequestType::kArSession,
@@ -261,7 +263,7 @@ absl::optional<std::u16string> PermissionRequest::GetRequestChipText(
   if (messages != kMessageIds->end() && messages->second[type] != -1)
     return l10n_util::GetStringUTF16(messages->second[type]);
 
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 std::u16string PermissionRequest::GetMessageTextFragment() const {

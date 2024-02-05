@@ -1487,8 +1487,6 @@ source_set("ash") {
     "input_method/candidate_window_controller_impl.h",
     "input_method/component_extension_ime_manager_delegate_impl.cc",
     "input_method/component_extension_ime_manager_delegate_impl.h",
-    "input_method/diacritics_checker.cc",
-    "input_method/diacritics_checker.h",
     "input_method/diacritics_insensitive_string_comparator.cc",
     "input_method/diacritics_insensitive_string_comparator.h",
     "input_method/editor_client_connector.cc",
@@ -2667,6 +2665,8 @@ source_set("ash") {
     "policy/remote_commands/user_commands_factory_ash.h",
     "policy/reporting/app_install_event_log_manager_wrapper.cc",
     "policy/reporting/app_install_event_log_manager_wrapper.h",
+    "policy/reporting/arc_app_install_event_encrypted_reporter.cc",
+    "policy/reporting/arc_app_install_event_encrypted_reporter.h",
     "policy/reporting/arc_app_install_event_log.cc",
     "policy/reporting/arc_app_install_event_log.h",
     "policy/reporting/arc_app_install_event_log_collector.cc",
@@ -2929,6 +2929,8 @@ source_set("ash") {
     "printing/cups_print_job_notification.h",
     "printing/cups_print_job_notification_manager.cc",
     "printing/cups_print_job_notification_manager.h",
+    "printing/cups_print_job_notification_utils.cc",
+    "printing/cups_print_job_notification_utils.h",
     "printing/cups_printer_status_creator.cc",
     "printing/cups_printer_status_creator.h",
     "printing/cups_printers_manager.cc",
@@ -3981,6 +3983,7 @@ source_set("ash") {
 
   deps = [
     ":add_remove_user_event_proto",
+    ":app_install_events_proto",
     ":attestation_proto",
     ":device_policy_remover_generated",
     "//apps",
@@ -4817,6 +4820,8 @@ static_library("test_support") {
     "policy/remote_commands/crd/fake_start_crd_session_job_delegate.h",
     "policy/remote_commands/device_command_fetch_support_packet_job_test_util.cc",
     "policy/remote_commands/device_command_fetch_support_packet_job_test_util.h",
+    "policy/remote_commands/user_session_type_test_util.cc",
+    "policy/remote_commands/user_session_type_test_util.h",
     "policy/reporting/metrics_reporting/cros_healthd_info_metric_sampler_test_utils.cc",
     "policy/reporting/metrics_reporting/cros_healthd_info_metric_sampler_test_utils.h",
     "policy/reporting/metrics_reporting/network/fake_network_diagnostics_util.cc",
@@ -5120,6 +5125,7 @@ source_set("unit_tests") {
     "app_list/search/desks_admin_template_provider_unittest.cc",
     "app_list/search/essential_search/socs_cookie_fetcher_unittest.cc",
     "app_list/search/federated_metrics_manager_unittest.cc",
+    "app_list/search/files/diacritics_checker_unittest.cc",
     "app_list/search/files/file_result_unittest.cc",
     "app_list/search/files/file_search_provider_unittest.cc",
     "app_list/search/files/justifications_unittest.cc",
@@ -5580,7 +5586,6 @@ source_set("unit_tests") {
     "input_method/assistive_window_controller_unittest.cc",
     "input_method/autocorrect_manager_unittest.cc",
     "input_method/autocorrect_prefs_unittest.cc",
-    "input_method/diacritics_checker_unittest.cc",
     "input_method/diacritics_insensitive_string_comparator_unittest.cc",
     "input_method/editor_consent_store_unittest.cc",
     "input_method/editor_feedback_unittest.cc",
@@ -5846,9 +5851,8 @@ source_set("unit_tests") {
     "policy/remote_commands/fake_cros_network_config_base.cc",
     "policy/remote_commands/fake_cros_network_config_base.h",
     "policy/remote_commands/user_command_arc_job_unittest.cc",
-    "policy/remote_commands/user_session_type_test_util.cc",
-    "policy/remote_commands/user_session_type_test_util.h",
     "policy/reporting/app_install_event_log_manager_wrapper_unittest.cc",
+    "policy/reporting/arc_app_install_event_encrypted_reporter_unittest.cc",
     "policy/reporting/arc_app_install_event_log_collector_unittest.cc",
     "policy/reporting/arc_app_install_event_log_manager_unittest.cc",
     "policy/reporting/arc_app_install_event_log_unittest.cc",
@@ -5938,6 +5942,7 @@ source_set("unit_tests") {
     "printing/bulk_printers_calculator_unittest.cc",
     "printing/calculators_policies_binder_unittest.cc",
     "printing/cups_print_job_notification_manager_unittest.cc",
+    "printing/cups_print_job_notification_unittest.cc",
     "printing/cups_printer_status_creator_unittest.cc",
     "printing/cups_printers_manager_unittest.cc",
     "printing/enterprise_printers_provider_unittest.cc",
@@ -6086,6 +6091,7 @@ source_set("unit_tests") {
 
   deps = [
     ":add_remove_user_event_proto",
+    ":app_install_events_proto",
     ":arc_test_support",
     ":ash",
     ":attestation_proto",
@@ -6673,7 +6679,12 @@ source_set("unit_tests") {
     ]
   }
 
-  data = [ "//chromeos/test/data/" ]
+  data = [
+    "//chromeos/test/data/",
+
+    # Needed by os_settings_manager_unittest.cc.
+    "//tools/metrics/histograms/metadata/chromeos_settings/enums.xml",
+  ]
 }
 
 config("allow_shadow_variables") {
@@ -6699,6 +6710,12 @@ source_set("test_with_shadow_variables") {
     "//third_party/securemessage",
     "//third_party/securemessage:securemessage_cpp_protobuf",
   ]
+}
+
+proto_library("app_install_events_proto") {
+  proto_in_dir = "//"
+  sources =
+      [ "../policy/messaging_layer/proto/synced/app_install_events.proto" ]
 }
 
 proto_library("add_remove_user_event_proto") {

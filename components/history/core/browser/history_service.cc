@@ -121,7 +121,7 @@ class HistoryService::BackendDelegate : public HistoryBackend::Delegate {
 
   void NotifyURLVisited(const URLRow& url_row,
                         const VisitRow& visit_row,
-                        absl::optional<int64_t> local_navigation_id) override {
+                        std::optional<int64_t> local_navigation_id) override {
     service_task_runner_->PostTask(
         FROM_HERE,
         base::BindOnce(&HistoryService::NotifyURLVisited, history_service_,
@@ -294,6 +294,7 @@ void HistoryService::SetOnCloseContextAnnotationsForVisit(
 base::CancelableTaskTracker::TaskId HistoryService::GetAnnotatedVisits(
     const QueryOptions& options,
     bool compute_redirect_chain_start_properties,
+    bool get_unclustered_visits_only,
     GetAnnotatedVisitsCallback callback,
     base::CancelableTaskTracker* tracker) const {
   DCHECK(backend_task_runner_) << "History service being called after cleanup";
@@ -301,7 +302,8 @@ base::CancelableTaskTracker::TaskId HistoryService::GetAnnotatedVisits(
   return tracker->PostTaskAndReplyWithResult(
       backend_task_runner_.get(), FROM_HERE,
       base::BindOnce(&HistoryBackend::GetAnnotatedVisits, history_backend_,
-                     options, compute_redirect_chain_start_properties, nullptr),
+                     options, compute_redirect_chain_start_properties,
+                     get_unclustered_visits_only, nullptr),
       std::move(callback));
 }
 
@@ -574,7 +576,7 @@ void HistoryService::AddPage(const GURL& url,
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   AddPage(HistoryAddPageArgs(
       url, time, context_id, nav_entry_id,
-      /*local_navigation_id=*/absl::nullopt, referrer, redirects, transition,
+      /*local_navigation_id=*/std::nullopt, referrer, redirects, transition,
       !ui::PageTransitionIsMainFrame(transition), visit_source,
       did_replace_entry, /*consider_for_ntp_most_visited=*/true));
 }
@@ -585,7 +587,7 @@ void HistoryService::AddPage(const GURL& url,
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   AddPage(HistoryAddPageArgs(
       url, time, /*context_id=*/0, /*nav_entry_id=*/0,
-      /*local_navigation_id=*/absl::nullopt,
+      /*local_navigation_id=*/std::nullopt,
       /*referrer=*/GURL(), RedirectList(), ui::PAGE_TRANSITION_LINK,
       /*hidden=*/false, visit_source,
       /*did_replace_entry=*/false, /*consider_for_ntp_most_visited=*/true));
@@ -1660,7 +1662,7 @@ void HistoryService::OnDBLoaded() {
 void HistoryService::NotifyURLVisited(
     const URLRow& url_row,
     const VisitRow& new_visit,
-    absl::optional<int64_t> local_navigation_id) {
+    std::optional<int64_t> local_navigation_id) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   for (HistoryServiceObserver& observer : observers_) {
     observer.OnURLVisited(this, url_row, new_visit);

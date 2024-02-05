@@ -69,6 +69,7 @@
 #include "third_party/blink/renderer/core/dom/element.h"
 #include "third_party/blink/renderer/core/dom/events/event_path.h"
 #include "third_party/blink/renderer/core/dom/live_node_list_registry.h"
+#include "third_party/blink/renderer/core/dom/node_list_invalidation_type.h"
 #include "third_party/blink/renderer/core/dom/qualified_name.h"
 #include "third_party/blink/renderer/core/dom/synchronous_mutation_observer.h"
 #include "third_party/blink/renderer/core/dom/text_link_colors.h"
@@ -138,6 +139,7 @@ class AnimationClock;
 class AriaNotificationOptions;
 class Attr;
 class BeforeUnloadEventListener;
+class CaretPosition;
 class CDATASection;
 class CSSStyleSheet;
 class CanvasFontCache;
@@ -268,19 +270,6 @@ struct WebPrintPageDescription;
 
 using MouseEventWithHitTestResults = EventWithHitTestResults<WebMouseEvent>;
 
-enum NodeListInvalidationType : int {
-  kDoNotInvalidateOnAttributeChanges = 0,
-  kInvalidateOnClassAttrChange,
-  kInvalidateOnIdNameAttrChange,
-  kInvalidateOnNameAttrChange,
-  kInvalidateOnForAttrChange,
-  kInvalidateForFormControls,
-  kInvalidateOnHRefAttrChange,
-  kInvalidateOnAnyAttrChange,
-  kInvalidateOnPopoverInvokerAttrChange,
-};
-const int kNumNodeListInvalidationTypes = kInvalidateOnAnyAttrChange + 1;
-
 // Specifies a class of document. Values are not mutually exclusive, and can be
 // combined using `DocumentClassFlags`.
 //
@@ -379,6 +368,12 @@ class CORE_EXPORT Document : public ContainerNode,
 
   static Range* CreateRangeAdjustedToTreeScope(const TreeScope&,
                                                const Position&);
+  static CaretPosition* CreateCaretPositionAdjustedToTreeScope(
+      const TreeScope& tree_scope,
+      const Position& position);
+
+  static const Position PositionAdjustedToTreeScope(const TreeScope&,
+                                                    const Position&);
 
   // Support JS introspection of frame policy (e.g. permissions policy).
   DOMFeaturePolicy* featurePolicy();
@@ -478,6 +473,7 @@ class CORE_EXPORT Document : public ContainerNode,
                             const CreateElementFlags = CreateElementFlags());
 
   Range* caretRangeFromPoint(int x, int y);
+  CaretPosition* caretPositionFromPoint(float x, float y);
   Element* scrollingElement();
 
   // When calling from C++ code, use this method. scrollingElement() is
@@ -1477,6 +1473,7 @@ class CORE_EXPORT Document : public ContainerNode,
   void EnqueueMediaQueryChangeListeners(
       HeapVector<Member<MediaQueryListListener>>&);
   void EnqueueVisualViewportScrollEvent();
+  void EnqueueVisualViewportScrollEndEvent();
   void EnqueueVisualViewportResizeEvent();
   void EnqueueSnapChangedEvent(Node* target, HeapVector<Member<Node>>& targets);
   void EnqueueSnapChangingEvent(Node* target,
@@ -1631,7 +1628,7 @@ class CORE_EXPORT Document : public ContainerNode,
   bool IsStopped() const {
     return lifecycle_.GetState() == DocumentLifecycle::kStopped;
   }
-  bool InPostLifecycleSteps() const;
+  bool InvalidationDisallowed() const;
 
   enum HttpRefreshType { kHttpRefreshFromHeader, kHttpRefreshFromMetaTag };
   void MaybeHandleHttpRefresh(const String&, HttpRefreshType);
@@ -2072,6 +2069,7 @@ class CORE_EXPORT Document : public ContainerNode,
   friend class MobileFriendlinessCheckerTest;
   friend class OffscreenCanvasRenderingAPIUkmMetricsTest;
   friend class TapFriendlinessCheckerTest;
+  friend class DocumentStorageAccess;
   FRIEND_TEST_ALL_PREFIXES(LazyLoadAutomaticImagesTest,
                            LoadAllImagesIfPrinting);
   FRIEND_TEST_ALL_PREFIXES(FrameFetchContextSubresourceFilterTest,
@@ -2245,10 +2243,19 @@ class CORE_EXPORT Document : public ContainerNode,
 
   void RunPostPrerenderingActivationSteps();
 
+  // Attempt permission checks for unpartitioned storage access and enable
+  // unpartitioned cookie access based on success if
+  // `request_unpartitioned_cookie_access` is true.
+  ScriptPromise RequestStorageAccessImpl(
+      ScriptState* script_state,
+      bool request_unpartitioned_cookie_access);
+
   // Resolves the promise if the `status` can approve; rejects the promise
-  // otherwise, and consumes user activation.
+  // otherwise, and consumes user activation. Enables unpartitioned cookie
+  // access if `request_unpartitioned_cookie_access` is true.
   void ProcessStorageAccessPermissionState(
       ScriptPromiseResolver* resolver,
+      bool request_unpartitioned_cookie_access,
       mojom::blink::PermissionStatus status);
 
   // Similar to `ProcessStorageAccessPermissionState`, but for the top-level

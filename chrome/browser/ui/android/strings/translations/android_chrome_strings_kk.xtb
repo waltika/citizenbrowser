@@ -146,6 +146,7 @@
 <translation id="1792959175193046959">Әдепкі жүктеп алу орнын кез келген уақытта өзгертіңіз</translation>
 <translation id="1796666869097395659">Қойындыны жиып қойып, кейін қайта оралуға болады.</translation>
 <translation id="1807246157184219062">Ашық</translation>
+<translation id="1807709131360304325">Жаңа терезе ашу</translation>
 <translation id="1810845389119482123">Синхронизация параметрлері орнатылмады</translation>
 <translation id="1812027881030482584"><ph name="SITE_ETLD_PLUS_ONE" /> сайты <ph name="IDENTITY_PROVIDER_ETLD_PLUS_ONE" /> провайдерін пайдалануды жалғастыра алмайды.</translation>
 <translation id="1829244130665387512">Беттен табу</translation>
@@ -189,6 +190,7 @@
 <translation id="2056878612599315956">Сайттың жұмысы уақытша тоқтады.</translation>
 <translation id="2065944887543506430">{FILE_COUNT,plural, =1{1 файл жүктеп алынбады}other{# файл жүктеп алынбады}}</translation>
 <translation id="2067805253194386918">мәтін</translation>
+<translation id="2079545284768500474">Қайтару</translation>
 <translation id="2082238445998314030"><ph name="TOTAL_RESULTS" /> ішінен <ph name="RESULT_NUMBER" /> нәтиже</translation>
 <translation id="2091863218454846791">Шағын көрініс таңдалды</translation>
 <translation id="2093731487903423814">соңғы 15 минут</translation>
@@ -314,6 +316,7 @@
 <translation id="2777555524387840389"><ph name="SECONDS" /> сек қалды</translation>
 <translation id="2779651927720337254">қате шықты</translation>
 <translation id="2781151931089541271">1 сек қалды</translation>
+<translation id="2789486458103222910">Жарайды</translation>
 <translation id="2800066122460699237">"<ph name="TAB_TITLE" />" қойындысы жабылады.</translation>
 <translation id="281504910091592009"><ph name="BEGIN_LINK" />Google аккаунтыңызда<ph name="END_LINK" /> сақталған құпия сөздерді көру және басқару</translation>
 <translation id="2827278682606527653">Фид картасының мәзірі жартылай ашылды.</translation>
@@ -921,6 +924,7 @@ Google аккаунтының шолу тарихы басқа Google қызме
 <translation id="5962718611393537961">Жию үшін түртіңіз</translation>
 <translation id="5964869237734432770">Сурет сипаттамаларын алмау</translation>
 <translation id="5966233851250124270">Chrome таңдауыңызды есте сақтайды</translation>
+<translation id="5977976211062815271">Осы құрылғыда</translation>
 <translation id="5979084224081478209">Құпия сөздерді тексеру</translation>
 <translation id="5995726099713306770">Бет қайта жүктеп алынсын ба?</translation>
 <translation id="6000066717592683814">Google қызметін әдепкісінше пайдалану</translation>
@@ -958,7 +962,6 @@ Google аккаунтының шолу тарихы басқа Google қызме
 <translation id="6192907950379606605">Сурет сипаттамаларын алу</translation>
 <translation id="6193448654517602979">Қойындыларды таңдау</translation>
 <translation id="6196315980958524839">Құпия сөздер осы құрылғыдағы Google Құпия сөз менеджеріне сақталады.</translation>
-<translation id="6202514376968366382">Chrome браузері жүктеп алынған PDF файлын аша алады.</translation>
 <translation id="6202812185118613467">Синхрондауды бастау үшін қайтадан кіріңіз.</translation>
 <translation id="6205314730813004066">Жарнамадағы құпиялық</translation>
 <translation id="6210748933810148297"><ph name="EMAIL" /> емес пе?</translation>
@@ -1327,6 +1330,7 @@ Google аккаунтының шолу тарихы басқа Google қызме
 <translation id="7942131818088350342"><ph name="PRODUCT_NAME" /> ескірген.</translation>
 <translation id="7944772052836377867">Sync жеке басыңызды растау керек</translation>
 <translation id="7947953824732555851">Қабылдау және кіру</translation>
+<translation id="7951102827450076904">Жүктеп алынған PDF файлдарын үнемі ашу</translation>
 <translation id="7957413488482743710">Виртуалдық карта сізді ықтимал алаяқтықтан қорғау үшін қолданыстағы картаңызды жасырады. <ph name="BEGIN_LINK1" />Виртуалдық карталар туралы толығырақ ақпарат алыңыз.<ph name="END_LINK1" /></translation>
 <translation id="7960972236129063347">Бет статистикасының артқа қайту түймесі</translation>
 <translation id="7961926449547174351">Жадты пайдалану рұқсатын өшірдіңіз, оны қосу үшін параметрлерге өтіңіз.</translation>

@@ -6,6 +6,7 @@
 #define COMPONENTS_SYSTEM_CPU_CPU_PROBE_H_
 
 #include <memory>
+#include <optional>
 
 #include "base/functional/callback_forward.h"
 #include "base/functional/callback_helpers.h"
@@ -13,7 +14,6 @@
 #include "base/sequence_checker.h"
 #include "base/thread_annotations.h"
 #include "components/system_cpu/pressure_sample.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 
 namespace system_cpu {
 
@@ -37,7 +37,7 @@ namespace system_cpu {
 class CpuProbe {
  public:
   using SampleCallback =
-      base::OnceCallback<void(absl::optional<PressureSample>)>;
+      base::OnceCallback<void(std::optional<PressureSample>)>;
 
   // Instantiates the CpuProbe subclass most suitable for the current platform.
   //
@@ -49,7 +49,8 @@ class CpuProbe {
 
   virtual ~CpuProbe();
 
-  // Samples the CPU load to get a baseline for calls to RequestSample().
+  // Samples the CPU load to get a baseline for calls to RequestSample(). May be
+  // called again to refresh the baseline.
   // `started_callback` will be invoked once the baseline is available, so tests
   // can verify the timing.
   void StartSampling(base::OnceClosure started_callback = base::DoNothing());
@@ -79,12 +80,12 @@ class CpuProbe {
   // some bookkeeping and then call `started_callback`, ignoring the
   // PressureSample.
   void OnSamplingStarted(base::OnceClosure started_callback,
-                         absl::optional<PressureSample>);
+                         std::optional<PressureSample>);
 
   // Called with the result of an Update() triggered by RequestSample(). Will do
   // some bookkeeping and then pass `sample` to `callback`.
   void OnPressureSampleAvailable(SampleCallback callback,
-                                 absl::optional<PressureSample> sample);
+                                 std::optional<PressureSample> sample);
 
   // True if the CpuProbe state will be reported after the next update.
   //

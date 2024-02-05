@@ -11,6 +11,7 @@ import org.chromium.base.supplier.ObservableSupplier;
 import org.chromium.base.supplier.ObservableSupplierImpl;
 import org.chromium.chrome.browser.browser_controls.BrowserControlsSizer;
 import org.chromium.chrome.browser.layouts.LayoutManager;
+import org.chromium.chrome.browser.lifecycle.ActivityLifecycleDispatcher;
 import org.chromium.chrome.modules.readaloud.PlaybackArgs.PlaybackVoice;
 import org.chromium.chrome.modules.readaloud.contentjs.Highlighter;
 import org.chromium.components.browser_ui.bottomsheet.BottomSheetController;
@@ -72,6 +73,12 @@ public interface Player {
          * hiding.
          */
         LayoutManager getLayoutManager();
+
+        /**
+         * Return {@link ActivityLifecycleDispatcher} that can be used to register for configuration
+         * change updates.
+         */
+        ActivityLifecycleDispatcher getActivityLifecycleDispatcher();
     }
 
     /** Observer interface to provide updates about player UI. */
@@ -142,4 +149,11 @@ public interface Player {
 
     /** Show back whatever player was shown last. Assumes the playback is running. */
     default void restorePlayers() {}
+
+    /**
+     * Called when the Application state changes.
+     *
+     * @param boolean isScreenLocked
+     */
+    default void onScreenStatusChanged(boolean isScreenLocked) {}
 }

@@ -142,6 +142,9 @@ def validateJavaScriptAllowed(source_dir, out_dir, is_ios):
       # TODO(crbug.com/1511758): Migrate to TypeScript.
       'chrome/browser/resources/device_log',
       'chrome/test/data/webui',
+      # TODO(crbug.com/1337318): Migrate bluetooth-internals to TypeScript and
+      # remove exception.
+      'chrome/test/data/webui/bluetooth_internals',
       'chrome/test/data/webui/chromeos',
       'chrome/test/data/webui/chromeos/ash_common',
       'chrome/test/data/webui/cr_components/chromeos',
@@ -193,7 +196,35 @@ def isInAshFolder(path):
   return any(path.startswith(folder) for folder in ash_folders)
 
 
+# Check if the path is in an Ash WebUI folder that has been migrated to use the
+# Ash fork of cr_elements at ash/webui/common/resources/cr_elements/. Any such
+# path shouldn't add a dependency on Browser cr_elements, or the UI will end up
+# with 2 versions of cr_elements at once, which can cause runtime errors. See
+# https://crbug.com/1512231
+def isMigratedAshFolder(path):
+  migrated_ash_folders = [
+      "ash/webui/os_feedback_ui",
+      "ash/webui/scanning",
+      "chrome/browser/resources/chromeos/cloud_upload",
+      "chrome/browser/resources/chromeos/enterprise_reporting",
+      "chrome/browser/resources/chromeos/healthd_internals",
+      "chrome/test/data/webui/chromeos/os_feedback_ui",
+  ]
+  return any(path.startswith(folder) for folder in migrated_ash_folders)
+
+
+def isBrowserOnlyDep(dep):
+  browser_only_deps = [
+      '//ui/webui/resources/cr_elements',
+      '//ui/webui/resources/cr_components/localized_link',
+  ]
+  return any(dep.startswith(dep_folder) for dep_folder in browser_only_deps)
+
+
 def isDependencyAllowed(is_ash_target, raw_dep, target_path):
+  if isMigratedAshFolder(target_path) and isBrowserOnlyDep(raw_dep):
+    return False
+
   is_ash_dep = isInAshFolder(raw_dep[2:])
   if not is_ash_dep or is_ash_target:
     return True

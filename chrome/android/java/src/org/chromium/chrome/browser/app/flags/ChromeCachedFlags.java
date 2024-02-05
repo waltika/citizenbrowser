@@ -18,6 +18,7 @@ import org.chromium.base.cached_flags.CachedFlagUtils;
 import org.chromium.base.cached_flags.CachedFlagsSafeMode;
 import org.chromium.base.library_loader.LibraryLoader;
 import org.chromium.build.BuildConfig;
+import org.chromium.chrome.browser.JankTrackerExperiment;
 import org.chromium.chrome.browser.back_press.BackPressManager;
 import org.chromium.chrome.browser.back_press.MinimizeAppAndCloseTabBackPressHandler;
 import org.chromium.chrome.browser.customtabs.CustomTabActivity;
@@ -34,7 +35,7 @@ import org.chromium.chrome.browser.omnibox.OmniboxFeatures;
 import org.chromium.chrome.browser.optimization_guide.OptimizationGuidePushNotificationManager;
 import org.chromium.chrome.browser.preferences.ChromePreferenceKeys;
 import org.chromium.chrome.browser.preferences.ChromeSharedPreferences;
-import org.chromium.chrome.browser.recent_tabs.RestoreTabsFeatureHelper;
+import org.chromium.chrome.browser.tab.state.ShoppingPersistedTabDataService;
 import org.chromium.chrome.browser.tasks.tab_management.TabManagementFieldTrial;
 import org.chromium.chrome.browser.tasks.tab_management.TabUiFeatureUtilities;
 import org.chromium.chrome.browser.toolbar.ToolbarFeatures;
@@ -81,6 +82,7 @@ public class ChromeCachedFlags {
         List<CachedFieldTrialParameter> fieldTrialsToCache =
                 List.of(
                         ChimeFeatures.ALWAYS_REGISTER,
+                        JankTrackerExperiment.JANK_TRACKER_DELAYED_START_MS,
                         FeedPlaceholderLayout.ENABLE_INSTANT_START_ANIMATION,
                         HubFieldTrial.FLOATING_ACTION_BUTTON,
                         HubFieldTrial.PANE_SWITCHER_USES_TEXT,
@@ -99,7 +101,8 @@ public class ChromeCachedFlags {
                         CustomTabIntentDataProvider.ALLOWLIST_ENTRIES,
                         DseNewTabUrlManager.EEA_COUNTRY_ONLY,
                         DseNewTabUrlManager.SWAP_OUT_NTP,
-                        RestoreTabsFeatureHelper.RESTORE_TABS_PROMO_SKIP_FEATURE_ENGAGEMENT,
+                        ShoppingPersistedTabDataService
+                                .SKIP_SHOPPING_PERSISTED_TAB_DATA_DELAYED_INITIALIZATION,
                         StartSurfaceConfiguration.IS_DOODLE_SUPPORTED,
                         StartSurfaceConfiguration.START_SURFACE_RETURN_TIME_SECONDS,
                         StartSurfaceConfiguration.START_SURFACE_RETURN_TIME_ON_TABLET_SECONDS,
@@ -124,9 +127,11 @@ public class ChromeCachedFlags {
                         TabUiFeatureUtilities.DISABLE_DRAG_TO_NEW_INSTANCE_DD,
                         TabManagementFieldTrial.DELAY_TEMP_STRIP_TIMEOUT_MS,
                         ToolbarFeatures.DTC_TRANSITION_THRESHOLD_DP,
+                        ToolbarFeatures.USE_TOOLBAR_BG_COLOR_FOR_STRIP_TRANSITION_SCRIM,
                         VersionNumberGetter.MIN_SDK_VERSION,
                         MinimizeAppAndCloseTabBackPressHandler.SYSTEM_BACK,
                         MinimizedFeatureUtils.ICON_VARIANT,
+                        MinimizedFeatureUtils.MANUFACTURER_EXCLUDE_LIST,
                         BackPressManager.TAB_HISTORY_RECOVER);
 
         tryToCatchMissingParameters(fieldTrialsToCache);

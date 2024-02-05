@@ -36,6 +36,7 @@
 #include "net/test/embedded_test_server/request_handler_util.h"
 #include "services/network/public/cpp/features.h"
 #include "services/network/public/cpp/parsed_headers.h"
+#include "services/network/public/cpp/url_loader_factory_builder.h"
 #include "services/network/public/mojom/early_hints.mojom.h"
 #include "services/network/public/mojom/url_loader.mojom.h"
 
@@ -86,7 +87,6 @@ class URLLoaderInterceptor::IOState
     DCHECK(BrowserThread::CurrentlyOn(BrowserThread::IO));
     url_loader_factory_getter_wrappers_.clear();
     subresource_wrappers_.clear();
-    navigation_wrappers_.clear();
 
     URLLoaderFactoryGetter::SetGetNetworkFactoryCallbackForTesting(
         URLLoaderFactoryGetter::GetNetworkFactoryCallback());
@@ -116,22 +116,6 @@ class URLLoaderInterceptor::IOState
     return parent_->Intercept(params);
   }
 
-  // Callback on IO thread whenever NavigationURLLoaderImpl needs a
-  // URLLoaderFactory with a network::mojom::TrustedURLLoaderHeaderClient or
-  // for a non-network-service scheme.
-  void InterceptNavigationRequestCallback(
-      mojo::PendingReceiver<network::mojom::URLLoaderFactory>* receiver) {
-    DCHECK(BrowserThread::CurrentlyOn(BrowserThread::IO));
-
-    auto proxied_receiver = std::move(*receiver);
-    mojo::PendingRemote<network::mojom::URLLoaderFactory> target_factory;
-    *receiver = target_factory.InitWithNewPipeAndPassReceiver();
-
-    navigation_wrappers_.emplace(
-        std::make_unique<URLLoaderFactoryNavigationWrapper>(
-            std::move(proxied_receiver), std::move(target_factory), this));
-  }
-
   URLLoaderCompletionStatusCallback GetCompletionStatusCallback() {
     return completion_status_callback_;
   }
@@ -158,8 +142,6 @@ class URLLoaderInterceptor::IOState
   // thread.
   std::set<std::unique_ptr<RenderProcessHostWrapper>, base::UniquePtrComparator>
       subresource_wrappers_;
-  std::set<std::unique_ptr<URLLoaderFactoryNavigationWrapper>>
-      navigation_wrappers_;
 };
 
 class URLLoaderClientInterceptor : public network::mojom::URLLoaderClient {
@@ -685,13 +667,10 @@ URLLoaderInterceptor::GetURLLoaderFactoryForBrowserProcess(
 }
 
 void URLLoaderInterceptor::InterceptNavigationRequestCallback(
-    mojo::PendingReceiver<network::mojom::URLLoaderFactory>* receiver) {
+    network::URLLoaderFactoryBuilder& factory_builder) {
   DCHECK(BrowserThread::CurrentlyOn(BrowserThread::UI));
 
-  auto proxied_receiver = std::move(*receiver);
-  mojo::PendingRemote<network::mojom::URLLoaderFactory> target_factory;
-  *receiver = target_factory.InitWithNewPipeAndPassReceiver();
-
+  auto [proxied_receiver, target_factory] = factory_builder.Append();
   navigation_wrappers_.emplace(
       std::make_unique<URLLoaderFactoryNavigationWrapper>(
           std::move(proxied_receiver), std::move(target_factory),

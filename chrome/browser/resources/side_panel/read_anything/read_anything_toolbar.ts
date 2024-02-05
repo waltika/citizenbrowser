@@ -10,13 +10,15 @@ import '//resources/cr_elements/cr_action_menu/cr_action_menu.js';
 import '//resources/cr_elements/md_select.css.js';
 import './icons.html.js';
 
-import {AnchorAlignment, CrActionMenuElement, ShowAtPositionConfig} from '//resources/cr_elements/cr_action_menu/cr_action_menu.js';
-import {CrIconButtonElement} from '//resources/cr_elements/cr_icon_button/cr_icon_button.js';
+import type {CrActionMenuElement, ShowAtPositionConfig} from '//resources/cr_elements/cr_action_menu/cr_action_menu.js';
+import {AnchorAlignment} from '//resources/cr_elements/cr_action_menu/cr_action_menu.js';
+import type {CrIconButtonElement} from '//resources/cr_elements/cr_icon_button/cr_icon_button.js';
 import {WebUiListenerMixin} from '//resources/cr_elements/web_ui_listener_mixin.js';
 import {assert} from '//resources/js/assert.js';
 import {loadTimeData} from '//resources/js/load_time_data.js';
-import {IronIconElement} from '//resources/polymer/v3_0/iron-icon/iron-icon.js';
-import {DomRepeat, DomRepeatEvent, PolymerElement} from '//resources/polymer/v3_0/polymer/polymer_bundled.min.js';
+import type {IronIconElement} from '//resources/polymer/v3_0/iron-icon/iron-icon.js';
+import type {DomRepeat, DomRepeatEvent} from '//resources/polymer/v3_0/polymer/polymer_bundled.min.js';
+import {PolymerElement} from '//resources/polymer/v3_0/polymer/polymer_bundled.min.js';
 
 import {ReadAnythingElement} from './app.js';
 import {getTemplate} from './read_anything_toolbar.html.js';
@@ -109,6 +111,7 @@ export class ReadAnythingToolbarElement extends ReadAnythingToolbarElementBase {
       rateOptions_: Array,
       textStyleOptions_: Array,
       textStyleToggles_: Array,
+      paused: Boolean,
     };
   }
 
@@ -116,7 +119,7 @@ export class ReadAnythingToolbarElement extends ReadAnythingToolbarElementBase {
   // callback which doesn't have access to "this"
   static maybeUpdateMoreOptions(toolbar: HTMLElement) {
     // Hide the more options button first to calculate if we need it
-    const moreOptionsButton = toolbar.querySelector('#more') as HTMLElement;
+    const moreOptionsButton = toolbar.querySelector<HTMLElement>('#more');
     assert(moreOptionsButton);
     ReadAnythingToolbarElement.hideElement(moreOptionsButton, false);
 
@@ -132,9 +135,12 @@ export class ReadAnythingToolbarElement extends ReadAnythingToolbarElementBase {
       ReadAnythingToolbarElement.showElement(btn as HTMLElement);
     });
 
-    // When scroll width and client width are the different, then the content
-    // has overflowed.
-    if (toolbar.scrollWidth !== toolbar.clientWidth) {
+    const parentWidth = toolbar.offsetParent?.clientWidth;
+    assert(parentWidth);
+
+    // When the toolbar's width exceeds the parent width, then the content has
+    // overflowed.
+    if (toolbar.clientWidth > parentWidth) {
       ReadAnythingToolbarElement.showElement(moreOptionsButton);
       // Hide all the buttons on the toolbar that are in the more options menu
       buttonsOnToolbarToMaybeHide.forEach(btn => {
@@ -291,8 +297,12 @@ export class ReadAnythingToolbarElement extends ReadAnythingToolbarElementBase {
   private isHighlightOn_: boolean = true;
   private activeButton_: HTMLElement|null;
 
-  // If Read Aloud is in the paused state.
-  private isPaused_: boolean = true;
+  private toolbarContainerObserver_: ResizeObserver|null;
+  private dragResizeCallback_: () => void;
+
+  // If Read Aloud is in the paused state. This is set from the parent element
+  // via one way data binding.
+  private readonly paused: boolean;
 
   override connectedCallback() {
     super.connectedCallback();
@@ -317,12 +327,33 @@ export class ReadAnythingToolbarElement extends ReadAnythingToolbarElementBase {
       assert(shadowRoot);
       const toolbar = shadowRoot.getElementById('toolbar-container');
       assert(toolbar);
-      new ResizeObserver(this.onToolbarResize_).observe(toolbar);
+
+      this.toolbarContainerObserver_ =
+          new ResizeObserver(this.onToolbarResize_);
+      this.toolbarContainerObserver_.observe(toolbar);
+
+      this.dragResizeCallback_ = this.onDragResize_.bind(this);
+      window.addEventListener('resize', this.dragResizeCallback_);
     }
     this.textStyleOptions_ =
         this.textStyleOptions_.concat(this.moreOptionsButtons_);
 
     this.updateFonts();
+  }
+
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this.dragResizeCallback_) {
+      window.removeEventListener('resize', this.dragResizeCallback_);
+    }
+    this.toolbarContainerObserver_?.disconnect();
+  }
+
+  private onDragResize_() {
+    const toolbar =
+        this.shadowRoot?.getElementById('toolbar-container') as HTMLElement;
+    assert(toolbar);
+    ReadAnythingToolbarElement.maybeUpdateMoreOptions(toolbar);
   }
 
   private onToolbarResize_(entries: ResizeObserverEntry[]) {
@@ -409,26 +440,6 @@ export class ReadAnythingToolbarElement extends ReadAnythingToolbarElementBase {
     this.$.fontTemplate.render();
   }
 
-  updateUiForPlaying() {
-    const shadowRoot = this.shadowRoot;
-    assert(shadowRoot);
-    const button = shadowRoot.getElementById('play-pause');
-    assert(button);
-    button.setAttribute('iron-icon', 'read-anything-20:pause');
-    button.setAttribute('aria-label', loadTimeData.getString('pauseLabel'));
-    this.isPaused_ = false;
-
-    this.updateStyles({
-      '--audio-controls-background': 'var(--color-sys-tonal-container)',
-      '--audio-controls-right-padding': '4px',
-      '--audio-controls-right-margin': '6px',
-    });
-
-    const toolbar = shadowRoot.getElementById('toolbar-container');
-    assert(toolbar);
-    ReadAnythingToolbarElement.maybeUpdateMoreOptions(toolbar);
-  }
-
   showVoicePreviewPlaying(voice: SpeechSynthesisVoice|null) {
     if (!voice) {
       return;
@@ -456,24 +467,13 @@ export class ReadAnythingToolbarElement extends ReadAnythingToolbarElementBase {
                                         }));
   }
 
-  updateUiForPausing() {
-    const shadowRoot = this.shadowRoot;
-    assert(shadowRoot);
-    const button = shadowRoot.getElementById('play-pause');
-    assert(button);
-    button.setAttribute('iron-icon', 'read-anything-20:play');
-    button.setAttribute('aria-label', loadTimeData.getString('playLabel'));
-    this.isPaused_ = true;
+  private playPauseButtonAriaLabel_(paused: boolean) {
+    return paused ? loadTimeData.getString('playLabel') :
+                    loadTimeData.getString('pauseLabel');
+  }
 
-    this.updateStyles({
-      '--audio-controls-background': 'transparent',
-      '--audio-controls-right-padding': '0px',
-      '--audio-controls-right-margin': '2px',
-    });
-
-    const toolbar = shadowRoot.getElementById('toolbar-container');
-    assert(toolbar);
-    ReadAnythingToolbarElement.maybeUpdateMoreOptions(toolbar);
+  private playPauseButtonIronIcon_(paused: boolean) {
+    return paused ? 'read-anything-20:play' : 'read-anything-20:pause';
   }
 
   private closeMenus_() {
@@ -795,16 +795,14 @@ export class ReadAnythingToolbarElement extends ReadAnythingToolbarElementBase {
   }
 
   onPlayPauseClick() {
-    if (this.isPaused_) {
-      this.updateUiForPlaying();
-      if (this.contentPage) {
-        this.contentPage.playSpeech();
-      }
+    if (!this.contentPage) {
+      return;
+    }
+
+    if (this.paused) {
+      this.contentPage.playSpeech();
     } else {
-      this.updateUiForPausing();
-      if (this.contentPage) {
-        this.contentPage.stopSpeech();
-      }
+      this.contentPage.stopSpeech();
     }
   }
 
@@ -832,7 +830,7 @@ export class ReadAnythingToolbarElement extends ReadAnythingToolbarElementBase {
     }
 
     // Allow focusing the more options menu if it's visible.
-    const moreOptionsButton = toolbar.querySelector('#more') as HTMLElement;
+    const moreOptionsButton = toolbar.querySelector<HTMLElement>('#more');
     assert(moreOptionsButton);
     if (moreOptionsButton.style.display &&
         (moreOptionsButton.style.display !== 'none')) {

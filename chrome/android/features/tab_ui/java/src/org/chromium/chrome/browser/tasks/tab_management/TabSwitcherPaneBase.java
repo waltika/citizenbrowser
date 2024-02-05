@@ -68,6 +68,8 @@ public abstract class TabSwitcherPaneBase implements Pane, TabSwitcherResetHandl
     private final Runnable mSoftCleanupRunnable = this::softCleanupInternal;
     private final Runnable mHardCleanupRunnable = this::hardCleanupInternal;
     private final Runnable mDestroyCoordinatorRunnable = this::destroyTabSwitcherPaneCoordinator;
+    private final TabSwitcherCustomViewManager mTabSwitcherCustomViewManager =
+            new TabSwitcherCustomViewManager();
 
     private final MenuOrKeyboardActionHandler mMenuOrKeyboardActionHandler =
             new MenuOrKeyboardActionHandler() {
@@ -324,10 +326,7 @@ public abstract class TabSwitcherPaneBase implements Pane, TabSwitcherResetHandl
 
     /** Returns a {@link TabSwitcherCustomViewManager} for supplying custom views. */
     public @Nullable TabSwitcherCustomViewManager getTabSwitcherCustomViewManager() {
-        @Nullable
-        TabSwitcherPaneCoordinator coordinator = mTabSwitcherPaneCoordinatorSupplier.get();
-        if (coordinator == null) return null;
-        return coordinator.getTabSwitcherCustomViewManager();
+        return mTabSwitcherCustomViewManager;
     }
 
     /** Returns the number of elements in the tab switcher's tab list model. */
@@ -344,6 +343,17 @@ public abstract class TabSwitcherPaneBase implements Pane, TabSwitcherResetHandl
         TabSwitcherPaneCoordinator coordinator = mTabSwitcherPaneCoordinatorSupplier.get();
         if (coordinator == null) return;
         coordinator.setTabSwitcherRecyclerViewPosition(position);
+    }
+
+    /** Show the Quick Delete animation on the tab list . */
+    public void showQuickDeleteAnimation(Runnable onAnimationEnd) {
+        @Nullable
+        TabSwitcherPaneCoordinator coordinator = mTabSwitcherPaneCoordinatorSupplier.get();
+        if (coordinator == null) {
+            onAnimationEnd.run();
+            return;
+        }
+        coordinator.showQuickDeleteAnimation(onAnimationEnd);
     }
 
     /**
@@ -367,9 +377,12 @@ public abstract class TabSwitcherPaneBase implements Pane, TabSwitcherResetHandl
         return mFactory.getTabListMode();
     }
 
-    /** Returns whether the pane is visible onscreen. Note this is not the same as being focused. */
-    protected boolean isVisible() {
-        return mIsVisibleSupplier.get();
+    /**
+     * Returns a supplier for whether the pane is visible onscreen. Note this is not the same as
+     * being focused.
+     */
+    protected ObservableSupplier<Boolean> getIsVisibleSupplier() {
+        return mIsVisibleSupplier;
     }
 
     /** Returns whether the pane is focused. */
@@ -404,6 +417,8 @@ public abstract class TabSwitcherPaneBase implements Pane, TabSwitcherResetHandl
                         this::onTabClick,
                         mIsIncognito);
         mTabSwitcherPaneCoordinatorSupplier.set(coordinator);
+        mTabSwitcherCustomViewManager.setDelegate(
+                coordinator.getTabSwitcherCustomViewManagerDelegate());
         if (mNativeInitialized) {
             coordinator.initWithNative();
         }
@@ -420,6 +435,7 @@ public abstract class TabSwitcherPaneBase implements Pane, TabSwitcherResetHandl
         @NonNull TabSwitcherPaneCoordinator coordinator = mTabSwitcherPaneCoordinatorSupplier.get();
         mTabSwitcherPaneCoordinatorSupplier.set(null);
         mRootView.removeAllViews();
+        mTabSwitcherCustomViewManager.setDelegate(null);
         coordinator.destroy();
     }
 

@@ -24,6 +24,8 @@
 #include "third_party/blink/public/common/privacy_budget/identifiability_metrics.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_union_object_objectarray_string.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_begin_layer_options.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_canvas_webgpu_access_option.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_gpu_texture_format.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_union_canvasfilter_string.h"
 #include "third_party/blink/renderer/core/css/cssom/css_color_value.h"
 #include "third_party/blink/renderer/core/css/parser/css_parser.h"
@@ -34,6 +36,8 @@
 #include "third_party/blink/renderer/core/frame/web_feature.h"
 #include "third_party/blink/renderer/core/html/canvas/canvas_context_creation_attributes_core.h"
 #include "third_party/blink/renderer/core/html/canvas/canvas_font_cache.h"
+#include "third_party/blink/renderer/core/html/canvas/canvas_image_source.h"
+#include "third_party/blink/renderer/core/html/canvas/canvas_rendering_context.h"
 #include "third_party/blink/renderer/core/html/canvas/html_canvas_element.h"
 #include "third_party/blink/renderer/core/html/canvas/text_metrics.h"
 #include "third_party/blink/renderer/core/html/media/html_video_element.h"
@@ -51,6 +55,7 @@
 #include "third_party/blink/renderer/modules/canvas/canvas2d/path_2d.h"
 #include "third_party/blink/renderer/modules/canvas/canvas2d/v8_canvas_style.h"
 #include "third_party/blink/renderer/modules/webcodecs/video_frame.h"
+#include "third_party/blink/renderer/modules/webgpu/gpu_device.h"
 #include "third_party/blink/renderer/platform/bindings/string_resource.h"
 #include "third_party/blink/renderer/platform/fonts/text_run_paint_info.h"
 #include "third_party/blink/renderer/platform/graphics/bitmap_image.h"
@@ -1818,6 +1823,13 @@ void BaseRenderingContext2D::drawImage(CanvasImageSource* image_source,
           DOMExceptionCode::kInvalidStateError,
           "The HTMLImageElement provided is in the 'broken' state.");
     }
+    if (source_image_status == kLayersOpenInCanvasSource) {
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kInvalidStateError,
+          "`drawImage()` with a canvas as a source cannot be called while "
+          "layers are open in the the source canvas.");
+      return;
+    }
     if (!image || !image->width() || !image->height())
       return;
   } else {
@@ -2038,6 +2050,12 @@ CanvasPattern* BaseRenderingContext2D::createPattern(
       break;
     case kIncompleteSourceImageStatus:
       return nullptr;
+    case kLayersOpenInCanvasSource:
+      exception_state.ThrowDOMException(
+          DOMExceptionCode::kInvalidStateError,
+          "`createPattern()` with a canvas as a source cannot be called while "
+          "layers are open in the source canvas.");
+      return nullptr;
     default:
       NOTREACHED();
       return nullptr;
@@ -2208,6 +2226,13 @@ ImageData* BaseRenderingContext2D::getImageDataInternal(
     ExceptionState& exception_state) {
   if (!base::CheckMul(sw, sh).IsValid<int>()) {
     exception_state.ThrowRangeError("Out of memory at ImageData creation");
+    return nullptr;
+  }
+
+  if (layer_count_ != 0) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kInvalidStateError,
+        "`getImageData()` cannot be called with open layers.");
     return nullptr;
   }
 
@@ -2391,7 +2416,7 @@ void BaseRenderingContext2D::putImageData(ImageData* data,
   if (layer_count_ != 0) {
     exception_state.ThrowDOMException(
         DOMExceptionCode::kInvalidStateError,
-        "`putImageData()` cannot be called while layers are opened.");
+        "`putImageData()` cannot be called with open layers.");
     return;
   }
 
@@ -3003,11 +3028,13 @@ void BaseRenderingContext2D::DrawTextInternal(
       CanvasPerformanceMonitor::DrawType::kText);
 
   if (use_max_width) {
-    // Cannot use `paint_canvas` in case recording canvas was substituted or
-    // destroyed during draw call.
-    cc::PaintCanvas* c = GetPaintCanvas();
-    if (c) {
-      c->restore();
+    // Make sure that `paint_canvas` is still valid and active. Calling `Draw`
+    // might reset `paint_canvas`. If that happens, `GetOrCreatePaintCanvas`
+    // will create a new `paint_canvas` and return a new address. This new
+    // canvas won't have the `save()` added above, so it would be invalid to
+    // call `restore()` here.
+    if (paint_canvas == GetOrCreatePaintCanvas()) {
+      paint_canvas->restore();
     }
   }
   ValidateStateStack();
@@ -3192,6 +3219,35 @@ bool BaseRenderingContext2D::IsAccelerated() const {
     return host->GetRasterMode() == RasterMode::kGPU;
   }
   return false;
+}
+
+V8GPUTextureFormat BaseRenderingContext2D::getTextureFormat() const {
+  // TODO(crbug.com/1517367): implement (this is a placeholder)
+  return V8GPUTextureFormat(V8GPUTextureFormat::Enum::kRgba8Unorm);
+}
+
+GPUTexture* BaseRenderingContext2D::beginWebGPUAccess(
+    const CanvasWebGPUAccessOption* accessOptions,
+    ExceptionState& exception_state) {
+  if (!OriginClean()) {
+    exception_state.ThrowSecurityError(
+        "The canvas has been tainted by cross-origin data.");
+    return nullptr;
+  }
+  GPUDevice* device = accessOptions->getDeviceOr(nullptr);
+  if (!device) {
+    exception_state.ThrowDOMException(
+        DOMExceptionCode::kDataError,
+        "Called `beginWebGPUAccess` without a device");
+    return nullptr;
+  }
+
+  // TODO(crbug.com/1517367): implement
+  return nullptr;
+}
+
+void BaseRenderingContext2D::endWebGPUAccess(ExceptionState&) {
+  // TODO(crbug.com/1517367): implement
 }
 
 }  // namespace blink

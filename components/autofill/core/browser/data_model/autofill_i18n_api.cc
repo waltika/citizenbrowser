@@ -105,6 +105,9 @@ std::unique_ptr<AddressComponent> BuildTreeNode(
     case ADDRESS_HOME_APT_TYPE:
     case ADDRESS_HOME_OTHER_SUBUNIT:
     case ADDRESS_HOME_ADDRESS_WITH_NAME:
+    case ADDRESS_HOME_STREET_LOCATION_AND_LOCALITY:
+    case ADDRESS_HOME_STREET_LOCATION_AND_LANDMARK:
+    case ADDRESS_HOME_DEPENDENT_LOCALITY_AND_LANDMARK:
     case COMPANY_NAME:
     case DELIVERY_INSTRUCTIONS:
     case NAME_FIRST:
@@ -116,8 +119,6 @@ std::unique_ptr<AddressComponent> BuildTreeNode(
     case NAME_LAST_FIRST:
     case NAME_LAST_CONJUNCTION:
     case NAME_LAST_SECOND:
-    case NAME_HONORIFIC_PREFIX:
-    case NAME_FULL_WITH_HONORIFIC_PREFIX:
       return std::make_unique<AddressComponent>(type, std::move(children),
                                                 MergeMode::kDefault);
     case NO_SERVER_DATA:
@@ -172,6 +173,7 @@ std::unique_ptr<AddressComponent> BuildTreeNode(
     case ONE_TIME_CODE:
     case SINGLE_USERNAME_FORGOT_PASSWORD:
     case SINGLE_USERNAME_WITH_INTERMEDIATE_VALUES:
+    case NAME_HONORIFIC_PREFIX:
     case MAX_VALID_FIELD_TYPE:
       return nullptr;
   }
@@ -198,9 +200,9 @@ AddressComponent* BuildSubTree(
 }
 
 TreeEdgesList GetTreeEdges(AddressCountryCode country_code) {
-  // Always use legacy rules while `kAutofillUseI18nAddressModel` is not rolled
-  // out.
-  if (!base::FeatureList::IsEnabled(features::kAutofillUseI18nAddressModel)) {
+  // Always use legacy rules if the country has no available custom address
+  // model.
+  if (!IsCustomHierarchyAvailableForCountry(country_code)) {
     return kAutofillModelRules.find(kLegacyHierarchyCountryCode.value())
         ->second;
   }
@@ -301,15 +303,15 @@ std::optional<std::u16string_view> GetStopwordsExpression(
 
 bool IsTypeEnabledForCountry(FieldType field_type,
                              AddressCountryCode country_code) {
-  auto* it = kAutofillModelRules.find(country_code.value());
-  if (it == kAutofillModelRules.end()) {
-    return false;
+  if (!IsCustomHierarchyAvailableForCountry(country_code)) {
+    country_code = kLegacyHierarchyCountryCode;
   }
 
   if (kAddressComputedTypes.contains(field_type)) {
     return true;
   }
 
+  auto* it = kAutofillModelRules.find(country_code.value());
   return base::ranges::any_of(
       it->second, [field_type](const FieldTypeDescription& description) {
         return description.field_type == field_type ||
@@ -322,6 +324,17 @@ bool IsCustomHierarchyAvailableForCountry(AddressCountryCode country_code) {
       !base::FeatureList::IsEnabled(features::kAutofillUseI18nAddressModel)) {
     return false;
   }
+
+  if (country_code == AddressCountryCode("DE") &&
+      !base::FeatureList::IsEnabled(features::kAutofillUseDEAddressModel)) {
+    return false;
+  }
+
+  if (country_code == AddressCountryCode("IN") &&
+      !base::FeatureList::IsEnabled(features::kAutofillUseINAddressModel)) {
+    return false;
+  }
+
   return kAutofillModelRules.find(country_code.value()) !=
          kAutofillModelRules.end();
 }

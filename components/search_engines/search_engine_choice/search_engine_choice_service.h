@@ -6,6 +6,8 @@
 #define COMPONENTS_SEARCH_ENGINES_SEARCH_ENGINE_CHOICE_SEARCH_ENGINE_CHOICE_SERVICE_H_
 
 #include "base/memory/raw_ref.h"
+#include "base/memory/weak_ptr.h"
+#include "components/country_codes/country_codes.h"
 #include "components/keyed_service/core/keyed_service.h"
 #include "components/search_engines/search_engine_choice_utils.h"
 
@@ -22,7 +24,12 @@ namespace search_engines {
 // for the country information).
 class SearchEngineChoiceService : public KeyedService {
  public:
-  explicit SearchEngineChoiceService(PrefService& profile_prefs);
+  // `variations_country_id` is used on Linux and ChromeOS to determine the
+  // search engine country.
+  // TODO(b/312172783): Remove the default value for `variations_country_id`.
+  explicit SearchEngineChoiceService(
+      PrefService& profile_prefs,
+      int variations_country_id = country_codes::kCountryIDUnknown);
   ~SearchEngineChoiceService() override;
 
   // Returns whether the version of the search engines settings screen showing
@@ -77,7 +84,20 @@ class SearchEngineChoiceService : public KeyedService {
   void PreprocessPrefsForReprompt();
 
  private:
+  int GetCountryIdInternal();
+
+#if BUILDFLAG(IS_ANDROID)
+  void ProcessGetCountryResponseFromPlayApi(int country_id);
+#endif
+
   const raw_ref<PrefService> profile_prefs_;
+  const int variations_country_id_;
+
+  // Used to ensure that the value returned from `GetCountryId` never changes
+  // in runtime (different runs can still return different values, though).
+  std::optional<int> country_id_cache_;
+
+  base::WeakPtrFactory<SearchEngineChoiceService> weak_ptr_factory_{this};
 };
 
 }  // namespace search_engines

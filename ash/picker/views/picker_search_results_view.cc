@@ -17,6 +17,7 @@
 #include "base/functional/bind.h"
 #include "base/functional/callback.h"
 #include "base/functional/overloaded.h"
+#include "base/strings/utf_string_conversions.h"
 #include "components/vector_icons/vector_icons.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/gfx/geometry/insets.h"
@@ -53,7 +54,7 @@ void PickerSearchResultsView::SetSearchResults(
     auto* section_view =
         AddChildView(std::make_unique<PickerSectionView>(section.heading()));
     for (const auto& result : section.results()) {
-      section_view->AddItemView(CreateItemView(result));
+      section_view->AddItem(CreateItemView(result));
     }
     section_views_.push_back(section_view);
   }
@@ -73,23 +74,34 @@ std::unique_ptr<PickerItemView> PickerSearchResultsView::CreateItemView(
           [&, this](const PickerSearchResult::TextData& data) {
             auto item_view = std::make_unique<PickerItemView>(
                 base::BindOnce(&PickerSearchResultsView::SelectSearchResult,
-                               base::Unretained(this), result));
-            item_view->SetText(data.text);
-            item_view->SetIcon(kPlaceholderIcon);
+                               base::Unretained(this), result),
+                PickerItemView::ItemType::kListItem);
+            item_view->SetPrimaryText(data.text);
+            item_view->SetLeadingIcon(kPlaceholderIcon);
             return item_view;
           },
           [&, this](const PickerSearchResult::GifData& data) {
             auto item_view = std::make_unique<PickerItemView>(
                 base::BindOnce(&PickerSearchResultsView::SelectSearchResult,
-                               base::Unretained(this), result));
+                               base::Unretained(this), result),
+                PickerItemView::ItemType::kLargeGridItem);
             // TODO: b/316936418 - Get gif dimensions to determine size.
-            constexpr gfx::Size kPlaceholderGifSize(200, 200);
+            constexpr gfx::Size kPlaceholderGifSize(140, 140);
             // `base::Unretained` is safe here because `this` owns the item
             // views and `asset_fetcher_` outlives `this`.
-            item_view->SetImageContents(std::make_unique<PickerGifView>(
+            item_view->SetPrimaryImage(std::make_unique<PickerGifView>(
                 base::BindRepeating(&PickerAssetFetcher::FetchGifFromUrl,
                                     base::Unretained(asset_fetcher_), data.url),
                 kPlaceholderGifSize));
+            return item_view;
+          },
+          [&, this](const PickerSearchResult::BrowsingHistoryData& data) {
+            // TODO: b/320787548 - Add the icon from `data`.
+            auto item_view = std::make_unique<PickerItemView>(
+                base::BindOnce(&PickerSearchResultsView::SelectSearchResult,
+                               base::Unretained(this), result),
+                PickerItemView::ItemType::kListItem);
+            item_view->SetPrimaryText(base::UTF8ToUTF16(data.url.spec()));
             return item_view;
           },
       },

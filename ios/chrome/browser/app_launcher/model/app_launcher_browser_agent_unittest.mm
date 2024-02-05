@@ -8,6 +8,7 @@
 
 #import <map>
 
+#import "base/memory/raw_ptr.h"
 #import "base/test/metrics/histogram_tester.h"
 #import "ios/chrome/app/application_delegate/app_state.h"
 #import "ios/chrome/browser/app_launcher/model/app_launcher_tab_helper.h"
@@ -27,7 +28,7 @@
 #import "ios/web/public/test/fakes/fake_web_state.h"
 #import "ios/web/public/test/web_task_environment.h"
 #import "ios/web/public/web_state.h"
-#import "net/base/mac/url_conversions.h"
+#import "net/base/apple/url_conversions.h"
 #import "testing/gtest/include/gtest/gtest.h"
 #import "testing/platform_test.h"
 #import "third_party/ocmock/OCMock/OCMock.h"
@@ -61,7 +62,7 @@ class FakeAppLauncherTabHelper : public AppLauncherTabHelper {
   AppLauncherTabHelperDelegate* delegate() { return delegate_; }
 
  private:
-  AppLauncherTabHelperDelegate* delegate_;
+  raw_ptr<AppLauncherTabHelperDelegate> delegate_;
 };
 
 // Test fixture for AppLauncherBrowserAgent.

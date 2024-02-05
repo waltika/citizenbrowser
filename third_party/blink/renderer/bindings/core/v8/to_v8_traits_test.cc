@@ -5,6 +5,7 @@
 #include "third_party/blink/renderer/bindings/core/v8/to_v8_traits.h"
 
 #include "base/time/time.h"
+#include "third_party/blink/renderer/bindings/core/v8/frozen_array.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_align_setting.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_binding_for_testing.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_create_html_callback.h"
@@ -526,13 +527,21 @@ TEST(ToV8TraitsTest, Nullable) {
   TEST_TOV8_TRAITS(scope, IDLNullable<IDLUnsignedLong>, "0",
                    absl::optional<uint32_t>(0));
   // Nullable Float
-  TEST_TOV8_TRAITS(scope, IDLNullable<IDLFloat>, "null", absl::nullopt);
+  TEST_TOV8_TRAITS(scope, IDLNullable<IDLFloat>, "null",
+                   absl::optional<float>());
   TEST_TOV8_TRAITS(scope, IDLNullable<IDLFloat>, "0.5",
                    absl::optional<float>(0.5));
   // Nullable Double
-  TEST_TOV8_TRAITS(scope, IDLNullable<IDLDouble>, "null", absl::nullopt);
+  TEST_TOV8_TRAITS(scope, IDLNullable<IDLDouble>, "null",
+                   absl::optional<double>());
   TEST_TOV8_TRAITS(scope, IDLNullable<IDLDouble>, "3.14",
                    absl::optional<double>(3.14));
+  // Nullable DOMHighResTimeStamp
+  TEST_TOV8_TRAITS(scope, IDLNullable<IDLDOMHighResTimeStamp>, "null",
+                   absl::optional<base::Time>());
+  TEST_TOV8_TRAITS(scope, IDLNullable<IDLDOMHighResTimeStamp>, "123.456",
+                   absl::optional<base::Time>(
+                       base::Time::FromMillisecondsSinceUnixEpoch(123.456)));
 }
 
 TEST(ToV8TraitsTest, NullableString) {

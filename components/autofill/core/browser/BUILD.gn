@@ -42,16 +42,15 @@ action("regex_patterns_inl_h") {
 
   # The order of sources must be so that it matches the PatternSource enum
   # values in regex_patterns.h.
-  if (!use_internal_autofill_patterns) {
-    sources = [ "form_parsing/resources/legacy_regex_patterns.json" ]
-  } else {
-    sources = [
+  sources = [ "form_parsing/resources/legacy_regex_patterns.json" ]
+  if (use_internal_autofill_patterns) {
+    sources += [
       "form_parsing/internal_resources/0_default_regex_patterns.json",
       "form_parsing/internal_resources/1_experimental_regex_patterns.json",
       "form_parsing/internal_resources/2_nextgen_regex_patterns.json",
-      "form_parsing/resources/legacy_regex_patterns.json",
     ]
   }
+
   script = "form_parsing/transpile_regex_patterns.py"
   outputs = [ "$target_gen_dir/form_parsing/regex_patterns_inl.h" ]
   args = [ "--input" ] + rebase_path(sources, root_build_dir) + [ "--output" ] +
@@ -60,6 +59,8 @@ action("regex_patterns_inl_h") {
 
 static_library("browser") {
   sources = [
+    "address_data_cleaner.cc",
+    "address_data_cleaner.h",
     "address_normalization_manager.cc",
     "address_normalization_manager.h",
     "address_normalizer.h",
@@ -117,8 +118,6 @@ static_library("browser") {
     "crowdsourcing/autofill_crowdsourcing_manager.h",
     "data_model/address.cc",
     "data_model/address.h",
-    "data_model/autofill_address_component_store.cc",
-    "data_model/autofill_address_component_store.h",
     "data_model/autofill_data_model.cc",
     "data_model/autofill_data_model.h",
     "data_model/autofill_feature_guarded_address_component.cc",
@@ -143,6 +142,8 @@ static_library("browser") {
     "data_model/autofill_structured_address.h",
     "data_model/autofill_structured_address_component.cc",
     "data_model/autofill_structured_address_component.h",
+    "data_model/autofill_structured_address_component_store.cc",
+    "data_model/autofill_structured_address_component_store.h",
     "data_model/autofill_structured_address_constants.cc",
     "data_model/autofill_structured_address_constants.h",
     "data_model/autofill_structured_address_format_provider.cc",
@@ -298,8 +299,6 @@ static_library("browser") {
     "metrics/autofill_metrics.h",
     "metrics/autofill_metrics_utils.cc",
     "metrics/autofill_metrics_utils.h",
-    "metrics/converge_to_extreme_length_address_metrics.cc",
-    "metrics/converge_to_extreme_length_address_metrics.h",
     "metrics/fallback_autocomplete_unrecognized_metrics.cc",
     "metrics/fallback_autocomplete_unrecognized_metrics.h",
     "metrics/field_filling_stats_and_score_metrics.cc",
@@ -404,6 +403,8 @@ static_library("browser") {
     "payments/payments_autofill_client.cc",
     "payments/payments_autofill_client.h",
     "payments/payments_customer_data.h",
+    "payments/payments_data_cleaner.cc",
+    "payments/payments_data_cleaner.h",
     "payments/payments_network_interface.cc",
     "payments/payments_network_interface.h",
     "payments/payments_requests/get_details_for_enrollment_request.cc",
@@ -434,6 +435,7 @@ static_library("browser") {
     "payments/payments_service_url.h",
     "payments/payments_util.cc",
     "payments/payments_util.h",
+    "payments/payments_window_manager.h",
     "payments/risk_data_loader.h",
     "payments/virtual_card_enroll_metrics_logger.cc",
     "payments/virtual_card_enroll_metrics_logger.h",
@@ -445,8 +447,6 @@ static_library("browser") {
     "payments/webauthn_callback_types.h",
     "personal_data_manager.cc",
     "personal_data_manager.h",
-    "personal_data_manager_cleaner.cc",
-    "personal_data_manager_cleaner.h",
     "personal_data_manager_observer.h",
     "profile_requirement_utils.cc",
     "profile_requirement_utils.h",
@@ -501,6 +501,10 @@ static_library("browser") {
     "ui/payments/autofill_error_dialog_controller_impl.cc",
     "ui/payments/autofill_error_dialog_controller_impl.h",
     "ui/payments/autofill_error_dialog_view.h",
+    "ui/payments/autofill_progress_dialog_controller.h",
+    "ui/payments/autofill_progress_dialog_controller_impl.cc",
+    "ui/payments/autofill_progress_dialog_controller_impl.h",
+    "ui/payments/autofill_progress_dialog_view.h",
     "ui/payments/bubble_show_options.cc",
     "ui/payments/bubble_show_options.h",
     "ui/payments/card_unmask_otp_input_dialog_controller.h",
@@ -787,6 +791,7 @@ static_library("legal_message_line") {
 static_library("test_support") {
   testonly = true
   sources = [
+    "address_data_cleaner_test_api.h",
     "autofill_form_test_utils.cc",
     "autofill_form_test_utils.h",
     "autofill_manager_test_api.h",
@@ -1004,6 +1009,7 @@ bundle_data("unit_tests_bundle_data") {
 source_set("unit_tests") {
   testonly = true
   sources = [
+    "address_data_cleaner_unittest.cc",
     "address_normalization_manager_unittest.cc",
     "address_normalizer_impl_unittest.cc",
     "address_profile_save_manager_unittest.cc",
@@ -1098,7 +1104,6 @@ source_set("unit_tests") {
     "merchant_promo_code_manager_unittest.cc",
     "metrics/address_rewriter_in_profile_subset_metrics_unittest.cc",
     "metrics/autofill_metrics_unittest.cc",
-    "metrics/converge_to_extreme_length_address_metrics_unittest.cc",
     "metrics/fallback_autocomplete_unrecognized_metrics_unittest.cc",
     "metrics/field_filling_stats_and_score_metrics_unittest.cc",
     "metrics/form_events/address_form_event_logger_unittest.cc",
@@ -1109,6 +1114,7 @@ source_set("unit_tests") {
     "metrics/payments/offers_metrics_unittest.cc",
     "metrics/payments/virtual_card_standalone_cvc_suggestion_metrics_unittest.cc",
     "metrics/payments/wallet_usage_data_metrics_unittest.cc",
+    "metrics/placeholder_metrics_unittest.cc",
     "metrics/profile_import_metrics_unittest.cc",
     "metrics/profile_token_quality_metrics_unittest.cc",
     "metrics/quality_metrics_unittest.cc",
@@ -1125,6 +1131,7 @@ source_set("unit_tests") {
     "payments/iban_access_manager_unittest.cc",
     "payments/iban_save_manager_unittest.cc",
     "payments/legal_message_line_unittest.cc",
+    "payments/payments_data_cleaner_unittest.cc",
     "payments/payments_network_interface_unittest.cc",
     "payments/payments_requests/get_details_for_enrollment_request_unittest.cc",
     "payments/payments_requests/get_iban_upload_details_request_unittest.cc",
@@ -1137,7 +1144,6 @@ source_set("unit_tests") {
     "payments/virtual_card_enroll_metrics_logger_unittest.cc",
     "payments/virtual_card_enrollment_manager_unittest.cc",
     "payments/wait_for_signal_or_timeout_unittest.cc",
-    "personal_data_manager_cleaner_unittest.cc",
     "personal_data_manager_test_base.cc",
     "personal_data_manager_test_base.h",
     "personal_data_manager_unittest.cc",
@@ -1155,6 +1161,7 @@ source_set("unit_tests") {
     "ui/address_combobox_model_unittest.cc",
     "ui/country_combobox_model_unittest.cc",
     "ui/payments/autofill_error_dialog_controller_impl_unittest.cc",
+    "ui/payments/autofill_progress_dialog_controller_impl_unittest.cc",
     "ui/payments/bubble_show_options_unittest.cc",
     "ui/payments/card_unmask_prompt_controller_impl_unittest.cc",
     "ui/payments/virtual_card_enroll_ui_model_unittest.cc",

@@ -92,8 +92,6 @@ bool HasAllowedScheme(const GURL& url) {
              features::test::kAutofillAllowNonHttpActivation);
 }
 
-
-
 std::string ServerTypesToString(const AutofillField* field) {
   const std::vector<
       AutofillQueryResponse::FormSuggestion::FieldSuggestion::FieldPrediction>&
@@ -201,21 +199,13 @@ void FormStructure::DetermineHeuristicTypes(
                          log_manager);
 
   // The active heuristic source might not be a pattern source.
+  std::optional<FieldCandidatesMap> active_predictions;
   if (std::optional<PatternSource> pattern_source = GetActivePatternSource()) {
     context.pattern_source = *pattern_source;
-    ParseFieldTypesWithPatterns(context);
+    active_predictions = ParseFieldTypesWithPatterns(context);
+    AssignBestFieldTypes(*active_predictions, *pattern_source);
   }
-
-  if (!base::FeatureList::IsEnabled(
-          features::kAutofillDisableShadowHeuristics)) {
-    for (HeuristicSource heuristic_source : GetNonActiveHeuristicSources()) {
-      if (auto shadow_source =
-              HeuristicSourceToPatternSource(heuristic_source)) {
-        context.pattern_source = *shadow_source;
-        ParseFieldTypesWithPatterns(context);
-      }
-    }
-  }
+  DetermineNonActiveHeuristicTypes(std::move(active_predictions), context);
 
   UpdateAutofillCount();
   IdentifySections(/*ignore_autocomplete=*/false);
@@ -247,6 +237,34 @@ void FormStructure::DetermineHeuristicTypes(
   }
 
   LogDetermineHeuristicTypesMetrics();
+}
+
+void FormStructure::DetermineNonActiveHeuristicTypes(
+    std::optional<FieldCandidatesMap> active_predictions,
+    ParsingContext& context) {
+  if (base::FeatureList::IsEnabled(
+          features::kAutofillDisableShadowHeuristics)) {
+    return;
+  }
+  std::optional<PatternSource> active_pattern_source =
+      HeuristicSourceToPatternSource(GetActiveHeuristicSource());
+  for (HeuristicSource heuristic_source : GetNonActiveHeuristicSources()) {
+    std::optional<PatternSource> pattern_source =
+        HeuristicSourceToPatternSource(heuristic_source);
+    if (!pattern_source) {
+      continue;
+    }
+    if (active_pattern_source &&
+        AreMatchingPatternsEqual(*active_pattern_source, *pattern_source,
+                                 context.page_language)) {
+      // No need to recompute the predictions - just copy the results.
+      AssignBestFieldTypes(*active_predictions, *pattern_source);
+    } else {
+      // Run heuristics.
+      context.pattern_source = *pattern_source;
+      ParseFieldTypesWithPatterns(context);
+    }
+  }
 }
 
 // static
@@ -525,6 +543,8 @@ void FormStructure::RetrieveFromCache(const FormStructure& cached_form,
     field->set_autofill_source_profile_guid(
         cached_field->autofill_source_profile_guid());
     field->set_autofilled_type(cached_field->autofilled_type());
+    field->set_may_use_prefilled_placeholder(
+        cached_field->may_use_prefilled_placeholder());
     field->set_previously_autofilled(cached_field->previously_autofilled());
     field->set_was_context_menu_shown(cached_field->was_context_menu_shown());
 
@@ -640,7 +660,8 @@ bool FormStructure::SetSectionsFromAutocompleteOrReset() {
   return has_autocomplete;
 }
 
-void FormStructure::ParseFieldTypesWithPatterns(ParsingContext& context) {
+FieldCandidatesMap FormStructure::ParseFieldTypesWithPatterns(
+    ParsingContext& context) const {
   FieldCandidatesMap field_type_map;
 
   if (ShouldRunHeuristics()) {
@@ -661,6 +682,12 @@ void FormStructure::ParseFieldTypesWithPatterns(ParsingContext& context) {
                                                   field_type_map);
     }
   }
+  return field_type_map;
+}
+
+void FormStructure::AssignBestFieldTypes(
+    const FieldCandidatesMap& field_type_map,
+    PatternSource pattern_source) {
   if (field_type_map.empty()) {
     return;
   }
@@ -674,18 +701,16 @@ void FormStructure::ParseFieldTypesWithPatterns(ParsingContext& context) {
       continue;
 
     const FieldCandidates& candidates = iter->second;
-    field->set_heuristic_type(
-        PatternSourceToHeuristicSource(context.pattern_source),
-        candidates.BestHeuristicType());
+    field->set_heuristic_type(PatternSourceToHeuristicSource(pattern_source),
+                              candidates.BestHeuristicType());
 
     ++field_rank_map[field->GetFieldSignature()];
     // Log the field type predicted from local heuristics.
     field->AppendLogEventIfNotRepeated(HeuristicPredictionFieldLogEvent{
         .field_type = field->heuristic_type(
-            PatternSourceToHeuristicSource(context.pattern_source)),
-        .pattern_source = context.pattern_source,
-        .is_active_pattern_source =
-            GetActivePatternSource() == context.pattern_source,
+            PatternSourceToHeuristicSource(pattern_source)),
+        .pattern_source = pattern_source,
+        .is_active_pattern_source = GetActivePatternSource() == pattern_source,
         .rank_in_field_signature_group =
             field_rank_map[field->GetFieldSignature()],
     });

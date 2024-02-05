@@ -191,7 +191,7 @@ class MockAutofillProviderAndroidBridge : public AutofillProviderAndroidBridge {
   MOCK_METHOD(void, HideDatalistPopup, (), (override));
   MOCK_METHOD(void,
               OnFocusChanged,
-              (const absl::optional<FieldInfo>&),
+              (const std::optional<FieldInfo>&),
               (override));
   MOCK_METHOD(void, OnFormFieldDidChange, (const FieldInfo&), (override));
   MOCK_METHOD(void,
@@ -344,7 +344,7 @@ TEST_F(AutofillProviderAndroidTest, OnFocusChangeInsideCurrentAutofillForm) {
     EXPECT_CALL(provider_bridge(),
                 OnFocusChanged(Optional(EqualsFieldInfo(/*index=*/1))));
     EXPECT_CALL(check, Call(1));
-    EXPECT_CALL(provider_bridge(), OnFocusChanged(Eq(absl::nullopt)));
+    EXPECT_CALL(provider_bridge(), OnFocusChanged(Eq(std::nullopt)));
     EXPECT_CALL(check, Call(2));
   }
 
@@ -357,6 +357,28 @@ TEST_F(AutofillProviderAndroidTest, OnFocusChangeInsideCurrentAutofillForm) {
   histogram_tester.ExpectUniqueSample(
       AutofillProviderAndroid::kSimilarityCheckFocusOnFormFieldUma,
       FormDataAndroid::kFormsAreSimilar.value(), 1);
+}
+
+// Tests that triggering `OnAskForValuesToFill` with a field results in an
+// update to last_focused_field_id. The update is important so that
+// `AutofillProvider::RendererShouldAcceptDatalistSuggestion` is passed the
+// correct field ID.
+TEST_F(AutofillProviderAndroidTest, OnAskForValuesToFillFindsCorrectFieldId) {
+  base::HistogramTester histogram_tester;
+
+  FormData form =
+      CreateFormDataForFrame(CreateTestLoginForm(), main_frame_token());
+  android_autofill_manager().OnFormsSeen({form}, /*removed_forms=*/{});
+
+  android_autofill_manager().SimulateOnAskForValuesToFill(form, form.fields[0]);
+
+  EXPECT_EQ(test_api(autofill_provider()).last_focused_field_id(),
+            form.fields[0].global_id());
+
+  android_autofill_manager().SimulateOnAskForValuesToFill(form, form.fields[1]);
+
+  EXPECT_EQ(test_api(autofill_provider()).last_focused_field_id(),
+            form.fields[1].global_id());
 }
 
 // Tests that Java is informed about visibility changes of form fields connected
@@ -685,7 +707,7 @@ TEST_F(AutofillProviderAndroidTest,
   scoped_feature_list.InitWithFeatures(
       /*enabled_features=*/
       {features::kAndroidAutofillPrefillRequestsForLoginForms,
-       features::kAndroidAutofillSignatureForPrefillRequestSimilarityCheck},
+       features::kAndroidAutofillUsePwmPredictionsForOverrides},
       /*disabled_features=*/{});
 
   FormData form =
@@ -719,7 +741,7 @@ TEST_F(AutofillProviderAndroidTest,
   scoped_feature_list.InitWithFeatures(
       /*enabled_features=*/
       {features::kAndroidAutofillPrefillRequestsForLoginForms,
-       features::kAndroidAutofillSignatureForPrefillRequestSimilarityCheck},
+       features::kAndroidAutofillUsePwmPredictionsForOverrides},
       /*disabled_features=*/{});
 
   FormData form =
@@ -768,10 +790,10 @@ class AutofillProviderAndroidPrefillRequestTest
   AutofillProviderAndroidPrefillRequestTest() {
     if (GetParam()) {
       param_feature_list_.InitAndEnableFeature(
-          features::kAndroidAutofillSignatureForPrefillRequestSimilarityCheck);
+          features::kAndroidAutofillUsePwmPredictionsForOverrides);
     } else {
       param_feature_list_.InitAndDisableFeature(
-          features::kAndroidAutofillSignatureForPrefillRequestSimilarityCheck);
+          features::kAndroidAutofillUsePwmPredictionsForOverrides);
     }
   }
 
@@ -1116,6 +1138,10 @@ TEST_P(AutofillProviderAndroidPrefillRequestTest,
   histogram_tester.ExpectUniqueSample(
       AutofillProviderAndroid::kPrefillRequestStateUma,
       PrefillRequestState::kRequestSentStructureNotProvided, 1);
+  histogram_tester.ExpectTotalCount(
+      AutofillProviderAndroid::
+          kPrefillRequestBottomsheetNoViewStructureDelayUma,
+      1);
 }
 
 // Tests that the correct metrics are emitted when the bottom sheet is not shown

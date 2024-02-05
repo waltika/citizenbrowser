@@ -50,6 +50,7 @@
 #include "services/network/public/mojom/host_resolver.mojom.h"
 #include "services/network/public/mojom/key_pinning.mojom.h"
 #include "services/network/public/mojom/net_log.mojom.h"
+#include "services/network/public/mojom/network_annotation_monitor.mojom.h"
 #include "services/network/public/mojom/network_change_manager.mojom.h"
 #include "services/network/public/mojom/network_quality_estimator_manager.mojom.h"
 #include "services/network/public/mojom/network_service.mojom.h"
@@ -142,6 +143,13 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) NetworkService
   void CreateNetLogEntriesForActiveObjects(
       net::NetLog::ThreadSafeObserver* observer);
 
+  void SetNetworkAnnotationMonitor(
+      mojo::PendingRemote<network::mojom::NetworkAnnotationMonitor> remote)
+      override;
+
+  void NotifyNetworkRequestWithAnnotation(
+      net::NetworkTrafficAnnotationTag traffic_annotation);
+
   // mojom::NetworkService implementation:
   void SetParams(mojom::NetworkServiceParamsPtr params) override;
   void StartNetLog(base::File file,
@@ -167,8 +175,7 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) NetworkService
       mojom::HttpAuthDynamicParamsPtr http_auth_dynamic_params) override;
   void SetRawHeadersAccess(int32_t process_id,
                            const std::vector<url::Origin>& origins) override;
-  // TODO(https://crbug.com/1491092): Rename to SetMaxConnectionsPerProxyChain.
-  void SetMaxConnectionsPerProxy(int32_t max_connections) override;
+  void SetMaxConnectionsPerProxyChain(int32_t max_connections) override;
   void GetNetworkChangeManager(
       mojo::PendingReceiver<mojom::NetworkChangeManager> receiver) override;
   void GetNetworkQualityEstimatorManager(
@@ -366,6 +373,9 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) NetworkService
     ConfigureStubHostResolver,
     SetTestDohConfigForTesting,
   };
+
+  mojo::Remote<network::mojom::NetworkAnnotationMonitor>
+      network_annotation_monitor_;
 
   std::unique_ptr<RestrictedCookieManager::UmaMetricsUpdater> metrics_updater_;
 

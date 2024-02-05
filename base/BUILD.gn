@@ -270,7 +270,6 @@ component("base") {
     "containers/contains.h",
     "containers/cxx20_erase.h",
     "containers/cxx20_erase_internal.h",
-    "containers/cxx20_erase_map.h",
     "containers/cxx20_erase_vector.h",
     "containers/enum_set.h",
     "containers/extend.h",
@@ -408,6 +407,7 @@ component("base") {
     "memory/platform_shared_memory_mapper.h",
     "memory/platform_shared_memory_region.cc",
     "memory/platform_shared_memory_region.h",
+    "memory/protected_memory.h",
     "memory/ptr_util.h",
     "memory/raw_ptr.h",
     "memory/raw_ptr_asan_bound_arg_tracker.cc",
@@ -491,8 +491,6 @@ component("base") {
     "metrics/histogram_macros_local.h",
     "metrics/histogram_samples.cc",
     "metrics/histogram_samples.h",
-    "metrics/histogram_shared_memory.cc",
-    "metrics/histogram_shared_memory.h",
     "metrics/histogram_snapshot_manager.cc",
     "metrics/histogram_snapshot_manager.h",
     "metrics/metrics_hashes.cc",
@@ -521,6 +519,7 @@ component("base") {
     "metrics/user_metrics_action.h",
     "no_destructor.h",
     "not_fatal_until.h",
+    "notimplemented.h",
     "notreached.h",
     "observer_list.h",
     "observer_list_internal.cc",
@@ -1025,6 +1024,10 @@ component("base") {
     sources += [ "threading/platform_thread_cros.cc" ]
   }
 
+  if (is_chromeos_ash) {
+    sources += [ "feature_visitor.h" ]
+  }
+
   if (is_linux || is_chromeos || is_android) {
     sources += [
       "files/file_path_watcher_inotify.cc",
@@ -1085,6 +1088,7 @@ component("base") {
     ":orderfile_buildflags",
     ":power_monitor_buildflags",
     ":profiler_buildflags",
+    ":protected_memory_buildflags",
     ":rust_buildflags",
     ":sanitizer_buildflags",
     ":synchronization_buildflags",
@@ -1316,6 +1320,8 @@ component("base") {
       "android/jni_android.h",
       "android/jni_array.cc",
       "android/jni_array.h",
+      "android/jni_bytebuffer.cc",
+      "android/jni_bytebuffer.h",
       "android/jni_registrar.cc",
       "android/jni_registrar.h",
       "android/jni_string.cc",
@@ -1664,6 +1670,8 @@ component("base") {
       sources += [
         "memory/discardable_shared_memory.cc",
         "memory/discardable_shared_memory.h",
+        "metrics/histogram_shared_memory.cc",
+        "metrics/histogram_shared_memory.h",
         "process/kill.cc",
         "process/kill.h",
         "process/launch.cc",
@@ -1737,6 +1745,7 @@ component("base") {
       "memory/page_size_win.cc",
       "memory/platform_shared_memory_mapper_win.cc",
       "memory/platform_shared_memory_region_win.cc",
+      "memory/protected_memory_win.cc",
       "message_loop/message_pump_win.cc",
       "message_loop/message_pump_win.h",
       "moving_window.h",
@@ -2345,7 +2354,6 @@ component("base") {
       "trace_event/trace_config.h",
       "trace_event/trace_config_category_filter.cc",
       "trace_event/trace_config_category_filter.h",
-      "trace_event/trace_conversion_helper.h",
       "trace_event/trace_event.h",
       "trace_event/trace_event_impl.cc",
       "trace_event/trace_event_impl.h",
@@ -2513,6 +2521,17 @@ buildflag_header("orderfile_buildflags") {
     "DEVTOOLS_INSTRUMENTATION_DUMPING=$using_devtools_dumping",
     "ORDERFILE_INSTRUMENTATION=$using_order_profiling",
   ]
+}
+
+# Build flags for ProtectedMemory
+buildflag_header("protected_memory_buildflags") {
+  header = "protected_memory_buildflags.h"
+  header_dir = "base/memory"
+
+  # Currently Protected Memory is only supported on Windows.
+  protected_memory_enabled = is_win
+
+  flags = [ "PROTECTED_MEMORY_ENABLED=$protected_memory_enabled" ]
 }
 
 buildflag_header("synchronization_buildflags") {
@@ -3216,6 +3235,7 @@ test("base_unittests") {
     "memory/discardable_shared_memory_unittest.cc",
     "memory/memory_pressure_listener_unittest.cc",
     "memory/platform_shared_memory_region_unittest.cc",
+    "memory/protected_memory_unittest.cc",
     "memory/ptr_util_unittest.cc",
     "memory/raw_ptr_asan_unittest.cc",
     "memory/raw_ptr_chromium_unittest.cc",
@@ -3244,7 +3264,6 @@ test("base_unittests") {
     "metrics/histogram_functions_unittest.cc",
     "metrics/histogram_macros_unittest.cc",
     "metrics/histogram_samples_unittest.cc",
-    "metrics/histogram_shared_memory_unittest.cc",
     "metrics/histogram_snapshot_manager_unittest.cc",
     "metrics/histogram_threadsafe_unittest.cc",
     "metrics/histogram_unittest.cc",
@@ -3473,6 +3492,10 @@ test("base_unittests") {
     "vlog_unittest.cc",
   ]
 
+  if (use_blink) {
+    sources += [ "metrics/histogram_shared_memory_unittest.cc" ]
+  }
+
   if (!is_cronet_build) {
     # location_unittest.cc fails gn check for tracing-shimmed Cronet builds.
     # Cronet buildbot do not run base_unittests, so exclusing this test
@@ -3639,6 +3662,10 @@ test("base_unittests") {
     }
   }
 
+  if (enable_base_tracing) {
+    sources += [ "test/test_trace_processor_unittest.cc" ]
+  }
+
   if (is_posix) {
     sources += [
       "files/dir_reader_posix_unittest.cc",
@@ -3713,6 +3740,7 @@ test("base_unittests") {
       "android/java_handler_thread_unittest.cc",
       "android/jni_android_unittest.cc",
       "android/jni_array_unittest.cc",
+      "android/jni_bytebuffer_unittest.cc",
       "android/jni_string_unittest.cc",
       "android/library_loader/library_prefetcher_unittest.cc",
       "android/linker/linker_jni.cc",
@@ -3797,7 +3825,10 @@ test("base_unittests") {
     ]
 
     bundle_deps = [ ":base_test_proto_bundle_data" ]
-
+    if (use_blink) {
+      bundle_deps +=
+          [ "//testing/buildbot/filters:base_unittests_filters_bundle_data" ]
+    }
     if (is_cronet_build) {
       sources += [ "message_loop/message_pump_io_ios_unittest.cc" ]
     } else {
@@ -4081,7 +4112,6 @@ test("base_unittests") {
       "trace_event/trace_arguments_unittest.cc",
       "trace_event/trace_category_unittest.cc",
       "trace_event/trace_config_unittest.cc",
-      "trace_event/trace_conversion_helper_unittest.cc",
       "trace_event/trace_event_unittest.cc",
       "trace_event/traced_value_support_unittest.cc",
       "trace_event/traced_value_unittest.cc",
@@ -4552,7 +4582,6 @@ if (is_android) {
       "android/javatests/src/org/chromium/base/AdvancedMockContextTest.java",
       "android/javatests/src/org/chromium/base/AssertsTest.java",
       "android/javatests/src/org/chromium/base/CommandLineFlagsTest.java",
-      "android/javatests/src/org/chromium/base/CommandLineInitUtilTest.java",
       "android/javatests/src/org/chromium/base/CommandLineTest.java",
       "android/javatests/src/org/chromium/base/EarlyTraceEventTest.java",
       "android/javatests/src/org/chromium/base/IntentUtilsTest.java",
@@ -4615,6 +4644,7 @@ if (is_android) {
       ":base_java",
       "//build/android:build_java",
       "//third_party/accessibility_test_framework:accessibility_test_framework_java",
+      "//third_party/android_deps:com_google_code_findbugs_jsr305_java",
       "//third_party/android_deps:espresso_java",
       "//third_party/android_deps:guava_android_java",
       "//third_party/android_sdk:android_test_base_java",
@@ -4685,7 +4715,6 @@ if (is_android) {
       "test/android/javatests/src/org/chromium/base/test/util/EspressoIdleTimeoutRule.java",
       "test/android/javatests/src/org/chromium/base/test/util/Feature.java",
       "test/android/javatests/src/org/chromium/base/test/util/Features.java",
-      "test/android/javatests/src/org/chromium/base/test/util/FeaturesBase.java",
       "test/android/javatests/src/org/chromium/base/test/util/FieldTrials.java",
       "test/android/javatests/src/org/chromium/base/test/util/HistogramWatcher.java",
       "test/android/javatests/src/org/chromium/base/test/util/InMemorySharedPreferences.java",
@@ -4708,6 +4737,7 @@ if (is_android) {
       "test/android/javatests/src/org/chromium/base/test/util/TimeoutScale.java",
       "test/android/javatests/src/org/chromium/base/test/util/TimeoutTimer.java",
       "test/android/javatests/src/org/chromium/base/test/util/UserActionTester.java",
+      "test/android/javatests/src/org/chromium/base/test/util/ViewActionOnDescendant.java",
       "test/android/javatests/src/org/chromium/base/test/util/ViewPrinter.java",
     ]
   }

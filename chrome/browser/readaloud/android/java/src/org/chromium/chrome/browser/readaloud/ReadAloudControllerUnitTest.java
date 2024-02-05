@@ -55,6 +55,7 @@ import org.chromium.chrome.browser.browser_controls.BrowserControlsSizer;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.language.AppLocaleUtils;
 import org.chromium.chrome.browser.layouts.LayoutManager;
+import org.chromium.chrome.browser.lifecycle.ActivityLifecycleDispatcher;
 import org.chromium.chrome.browser.preferences.Pref;
 import org.chromium.chrome.browser.price_tracking.PriceTrackingFeatures;
 import org.chromium.chrome.browser.profiles.Profile;
@@ -127,6 +128,7 @@ public class ReadAloudControllerUnitTest {
     @Mock private PrefService mPrefService;
     @Mock private TemplateUrlService mTemplateUrlService;
     @Mock private ActivityWindowAndroid mActivityWindowAndroid;
+    @Mock private ActivityLifecycleDispatcher mActivityLifecycleDispatcher;
 
     MockTabModelSelector mTabModelSelector;
 
@@ -148,6 +150,7 @@ public class ReadAloudControllerUnitTest {
         MockitoAnnotations.initMocks(this);
         mProfileSupplier = new ObservableSupplierImpl<>();
         mProfileSupplier.set(mMockProfile);
+        doReturn(true).when(mMockProfile).isNativeInitialized();
 
         mLayoutManagerSupplier = new ObservableSupplierImpl<>();
         mLayoutManagerSupplier.set(mLayoutManager);
@@ -208,13 +211,15 @@ public class ReadAloudControllerUnitTest {
                         mBottomSheetController,
                         mBrowserControlsSizer,
                         mLayoutManagerSupplier,
-                        mActivityWindowAndroid);
+                        mActivityWindowAndroid,
+                        mActivityLifecycleDispatcher);
         ShadowLooper.runUiThreadTasksIncludingDelayedTasks();
 
         mTab = mTabModelSelector.getCurrentTab();
         mTab.setGurlOverrideForTesting(sTestGURL);
         mTab.setWebContentsOverrideForTesting(mWebContents);
 
+        when(mMetadata.languageCode()).thenReturn("en");
         when(mPlayback.getMetadata()).thenReturn(mMetadata);
         when(mWebContents.getMainFrame()).thenReturn(mRenderFrameHost);
         when(mRenderFrameHost.getGlobalRenderFrameHostId()).thenReturn(mGlobalRenderFrameHostId);
@@ -533,9 +538,10 @@ public class ReadAloudControllerUnitTest {
     }
 
     @Test
-    public void testPlayTab_tabLanguageEmpty() {
+    public void testPlayTranslatedTab_tabLanguageEmpty() {
         AppLocaleUtils.setAppLanguagePref("fr-FR");
 
+        mFakeTranslateBridge.setIsPageTranslated(true);
         mFakeTranslateBridge.setCurrentLanguage("");
         mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
 
@@ -546,7 +552,7 @@ public class ReadAloudControllerUnitTest {
     }
 
     @Test
-    public void testPlayTab_unsupportedLanguage() {
+    public void testPlayTranslatedTab_unsupportedLanguage() {
         doReturn(List.of()).when(mPlaybackHooks).getVoicesFor(anyString());
         mFakeTranslateBridge.setCurrentLanguage("pl-PL");
         mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
@@ -558,9 +564,10 @@ public class ReadAloudControllerUnitTest {
     }
 
     @Test
-    public void testPlayTab_tabLanguageUnd() {
+    public void testPlayTranslatedTab_tabLanguageUnd() {
         AppLocaleUtils.setAppLanguagePref("fr-FR");
 
+        mFakeTranslateBridge.setIsPageTranslated(true);
         mFakeTranslateBridge.setCurrentLanguage("und");
         mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
 
@@ -568,6 +575,92 @@ public class ReadAloudControllerUnitTest {
 
         verify(mPlaybackHooks).createPlayback(mPlaybackArgsCaptor.capture(), any());
         assertEquals("fr", mPlaybackArgsCaptor.getValue().getLanguage());
+    }
+
+    @Test
+    public void testPlayUntranslatedTab() {
+        AppLocaleUtils.setAppLanguagePref("fr-FR");
+
+        mFakeTranslateBridge.setIsPageTranslated(false);
+        mFakeTranslateBridge.setCurrentLanguage("fr");
+        mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
+
+        mController.playTab(mTab);
+
+        verify(mPlaybackHooks).createPlayback(mPlaybackArgsCaptor.capture(), any());
+        assertEquals(null, mPlaybackArgsCaptor.getValue().getLanguage());
+    }
+
+    @Test
+    public void testVoicesMatchLanguage_pageTranslated() {
+        // translated page should use chrome language
+        var voiceEn = new PlaybackVoice("en", "asdf", "");
+        var voiceFr = new PlaybackVoice("fr", "asdf", "");
+        when(mMetadata.languageCode()).thenReturn("en");
+        doReturn(List.of(voiceEn)).when(mPlaybackHooks).getVoicesFor(eq("en"));
+        doReturn(List.of(voiceFr)).when(mPlaybackHooks).getVoicesFor(eq("fr"));
+        doReturn(List.of(voiceEn, voiceFr)).when(mPlaybackHooks).getPlaybackVoiceList(any());
+        mFakeTranslateBridge.setIsPageTranslated(true);
+        mFakeTranslateBridge.setCurrentLanguage("fr");
+        mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
+
+        mController.playTab(mTab);
+
+        verify(mPlaybackHooks)
+                .createPlayback(mPlaybackArgsCaptor.capture(), mPlaybackCallbackCaptor.capture());
+        assertEquals("fr", mPlaybackArgsCaptor.getValue().getLanguage());
+        onPlaybackSuccess(mPlayback);
+        // Page is in French, voice options should have voices for "fr"
+        assertEquals(
+                "fr", mController.getCurrentLanguageVoicesSupplier().get().get(0).getLanguage());
+    }
+
+    @Test
+    public void testVoicesMatchLanguage_pageNotTranslated() {
+        // non translated page should use server detected content language
+        var voiceEn = new PlaybackVoice("en", "asdf", "");
+        var voiceFr = new PlaybackVoice("fr", "asdf", "");
+        doReturn(List.of(voiceEn)).when(mPlaybackHooks).getVoicesFor(eq("en"));
+        doReturn(List.of(voiceFr)).when(mPlaybackHooks).getVoicesFor(eq("fr"));
+        doReturn(List.of(voiceEn, voiceFr)).when(mPlaybackHooks).getPlaybackVoiceList(any());
+        when(mMetadata.languageCode()).thenReturn("en");
+        mFakeTranslateBridge.setIsPageTranslated(false);
+        mFakeTranslateBridge.setCurrentLanguage("fr");
+        mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
+
+        mController.playTab(mTab);
+
+        verify(mPlaybackHooks)
+                .createPlayback(mPlaybackArgsCaptor.capture(), mPlaybackCallbackCaptor.capture());
+        assertEquals(null, mPlaybackArgsCaptor.getValue().getLanguage());
+        onPlaybackSuccess(mPlayback);
+
+        assertEquals(
+                "en", mController.getCurrentLanguageVoicesSupplier().get().get(0).getLanguage());
+    }
+
+    @Test
+    public void testFailureIfServerLanguageUnsupported() {
+        // non translated page should use server detected content language
+        var voiceEn = new PlaybackVoice("en", "asdf", "");
+        var voiceFr = new PlaybackVoice("fr", "asdf", "");
+        doReturn(List.of(voiceEn)).when(mPlaybackHooks).getVoicesFor(eq("en"));
+        doReturn(List.of(voiceFr)).when(mPlaybackHooks).getVoicesFor(eq("fr"));
+        doReturn(List.of(voiceEn, voiceFr)).when(mPlaybackHooks).getPlaybackVoiceList(any());
+        // unsupported
+        when(mMetadata.languageCode()).thenReturn("pl");
+        mFakeTranslateBridge.setIsPageTranslated(false);
+        mFakeTranslateBridge.setCurrentLanguage("fr");
+        mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
+
+        mController.playTab(mTab);
+
+        verify(mPlaybackHooks)
+                .createPlayback(mPlaybackArgsCaptor.capture(), mPlaybackCallbackCaptor.capture());
+        assertEquals(null, mPlaybackArgsCaptor.getValue().getLanguage());
+        onPlaybackSuccess(mPlayback);
+
+        verify(mPlayerCoordinator).playbackFailed();
     }
 
     @Test
@@ -813,7 +906,7 @@ public class ReadAloudControllerUnitTest {
         assertEquals(1, voices.size());
         assertEquals("NEW VOICE ID", voices.get(0).getVoiceId());
 
-        doReturn(Mockito.mock(Playback.Metadata.class)).when(mPlayback).getMetadata();
+        doReturn(mMetadata).when(mPlayback).getMetadata();
         onPlaybackSuccess(mPlayback);
         verify(mPlayback, never()).play();
         verify(mPlayback).seekToParagraph(eq(99), eq(0L));
@@ -1212,6 +1305,7 @@ public class ReadAloudControllerUnitTest {
         mController.onApplicationStateChange(ApplicationState.HAS_STOPPED_ACTIVITIES);
         verify(mPlayback).release();
         reset(mPlayback);
+        when(mPlayback.getMetadata()).thenReturn(mMetadata);
 
         // App goes back in foreground. Restore progress.
         mController.onApplicationStateChange(ApplicationState.HAS_RUNNING_ACTIVITIES);
@@ -1224,6 +1318,8 @@ public class ReadAloudControllerUnitTest {
         // should happen.
         reset(mPlayback);
         reset(mPlaybackHooks);
+        when(mPlayback.getMetadata()).thenReturn(mMetadata);
+
         mController.onApplicationStateChange(ApplicationState.HAS_PAUSED_ACTIVITIES);
         mController.onApplicationStateChange(ApplicationState.HAS_RUNNING_ACTIVITIES);
         verify(mPlaybackHooks, never()).createPlayback(any(), mPlaybackCallbackCaptor.capture());
@@ -1505,6 +1601,36 @@ public class ReadAloudControllerUnitTest {
                 /* skipLoadingTab= */ true);
         verify(mPlayback, never()).play();
         verify(mPlayerCoordinator).restorePlayers();
+    }
+
+    // TODO(b/322052505): This test won't be necessary if we keep track of profile changes.
+    @Test
+    public void testNoRequestsIfProfileDestroyed() {
+        doReturn(false).when(mMockProfile).isNativeInitialized();
+        mController =
+                new ReadAloudController(
+                        mActivity,
+                        mProfileSupplier,
+                        mTabModelSelector.getModel(false),
+                        mTabModelSelector.getModel(true),
+                        mBottomSheetController,
+                        mBrowserControlsSizer,
+                        mLayoutManagerSupplier,
+                        mActivityWindowAndroid,
+                        mActivityLifecycleDispatcher);
+        ShadowLooper.runUiThreadTasksIncludingDelayedTasks();
+
+        // Check readability.
+        mController.maybeCheckReadability(sTestGURL);
+        // No readability request should be made.
+        verify(mHooksImpl, never()).isPageReadable(any(), any());
+
+        // Try playing the tab.
+        mFakeTranslateBridge.setCurrentLanguage("en");
+        mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
+        mController.playTab(mTab);
+        // No playback request should be made.
+        verify(mPlaybackHooks, never()).createPlayback(any(), any());
     }
 
     private void requestAndStartPlayback() {

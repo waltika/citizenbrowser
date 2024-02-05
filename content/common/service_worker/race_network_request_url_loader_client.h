@@ -9,6 +9,7 @@
 #include "base/containers/span.h"
 #include "base/time/time.h"
 #include "content/common/content_export.h"
+#include "content/common/service_worker/race_network_request_write_buffer_manager.h"
 #include "content/common/service_worker/service_worker_resource_loader.h"
 #include "mojo/public/cpp/bindings/receiver.h"
 #include "mojo/public/cpp/bindings/remote.h"
@@ -32,8 +33,6 @@ class CONTENT_EXPORT ServiceWorkerRaceNetworkRequestURLLoaderClient
     : public network::mojom::URLLoaderClient,
       public mojo::DataPipeDrainer::Client {
  public:
-  // The static function to override the data pipe buffer size from tests.
-  static void SetDataPipeCapacityBytesForTest(uint32_t size);
 
   using FetchResponseFrom = ServiceWorkerResourceLoader::FetchResponseFrom;
   enum class State {
@@ -158,18 +157,7 @@ class CONTENT_EXPORT ServiceWorkerRaceNetworkRequestURLLoaderClient
       bool is_fallback);
 
  private:
-  static uint32_t data_pipe_size_for_test_;
   uint32_t GetDataPipeCapacityBytes();
-
-  struct DataPipeInfo {
-    mojo::ScopedDataPipeProducerHandle producer;
-    mojo::ScopedDataPipeConsumerHandle consumer;
-    mojo::SimpleWatcher watcher;
-    base::span<char> buffer;
-    size_t buffer_size() const { return buffer.size(); }
-    DataPipeInfo();
-    ~DataPipeInfo();
-  };
   MojoResultForUMA ConvertMojoResultForUMA(MojoResult mojo_result);
 
   // mojo::DataPipeDrainer::Client overrides:
@@ -206,15 +194,28 @@ class CONTENT_EXPORT ServiceWorkerRaceNetworkRequestURLLoaderClient
   // process, and there could be the case if the response is not returned due to
   // the long fetch handler execution. and test case the mechanism to wait for
   // the fetch handler
-  void ReadAndWrite(MojoResult mojo_result);
-  void WatchDataUpdate();
+  void ReadAndTwoPhaseWrite(MojoResult result);
+  // Reads data from |body_|, and writes it into the data pipe producer handles
+  // for both the race network request and the fetch handler respectively.
+  //
+  // Unlike |ReadAndTwoPhaseWrite()|, this doesn't use two-phase operations to
+  // write data into data pipes. However, the result should be the same as
+  // |ReadAndTwoPhaseWrite()| because mojo's |WriteData()| is expected to write
+  // the same amount of data from the given data pipe consumer handle to read.
+  // also |ReadAndWrite()| has CHECK to guarantee that the actual written sizes
+  // to data pips are exactly same.
+  void ReadAndWrite(MojoResult result);
+  // Begins a two-phase read from |body_|, the data pipe consumer. If succeed,
+  // the read buffer is returned. If there are no data to read from the data
+  // pipe, this internally calls |OnDataTransferComplete()| and return nothing.
+  //
+  // Since this starts a two-phase read process, `EndReadData()` in |body_|
+  // has to be called after calling this function.
+  std::optional<base::span<const char>> StartReadData(
+      MojoResult initial_mojo_result);
   std::pair<MojoResult, base::span<const char>> BeginReadData();
-  MojoResult BeginWriteData(DataPipeInfo& data_pipe_info,
-                            const std::string& histogram_prefix);
-  size_t CompleteWriteData(DataPipeInfo& data_pipe_info,
-                           base::span<const char> read_buffer,
-                           std::optional<uint32_t> max_num_bytes_to_consume);
   void CompleteReadData(uint32_t num_bytes_to_consume);
+  void WatchDataUpdate();
 
   void Abort();
 
@@ -222,6 +223,9 @@ class CONTENT_EXPORT ServiceWorkerRaceNetworkRequestURLLoaderClient
   // Record the time between the response received time and the fetch handler
   // end time iff both events are already reached.
   void MaybeRecordResponseReceivedToFetchHandlerEndTiming();
+  void RecordMojoResultForDataTransfer(MojoResult result,
+                                       const std::string& suffix);
+  void RecordMojoResultForWrite(MojoResult result);
 
   void SetFetchHandlerEndTiming(base::TimeTicks fetch_handler_end_time,
                                 bool is_fallback);
@@ -237,9 +241,9 @@ class CONTENT_EXPORT ServiceWorkerRaceNetworkRequestURLLoaderClient
   network::mojom::URLResponseHeadPtr head_;
   std::optional<mojo_base::BigBuffer> cached_metadata_;
 
-  DataPipeInfo data_pipe_for_race_network_request_;
-  DataPipeInfo data_pipe_for_fetch_handler_;
-  uint32_t data_pipe_buffer_size_;
+  RaceNetworkRequestWriteBufferManager
+      write_buffer_manager_for_race_network_request_;
+  RaceNetworkRequestWriteBufferManager write_buffer_manager_for_fetch_handler_;
   std::optional<network::URLLoaderCompletionStatus> completion_status_;
   bool redirected_ = false;
   std::unique_ptr<mojo::DataPipeDrainer> data_drainer_;
@@ -247,6 +251,7 @@ class CONTENT_EXPORT ServiceWorkerRaceNetworkRequestURLLoaderClient
   std::optional<base::TimeTicks> response_received_time_;
   std::optional<base::TimeTicks> fetch_handler_end_time_;
   std::optional<bool> is_fetch_handler_fallback_;
+  bool is_main_resource_;
 
   base::TimeTicks request_start_;
   base::Time request_start_time_;

@@ -50,10 +50,6 @@
 #include "ui/accessibility/platform/ax_platform_node.h"
 #include "ui/base/l10n/l10n_util.h"
 
-#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
-#include "ui/native_theme/native_theme.h"  // nogncheck
-#endif
-
 namespace autofill {
 
 namespace {
@@ -98,6 +94,7 @@ AutofillTriggerSource TriggerSourceFromSuggestionTriggerSource(
 #endif  // BUILDFLAG(IS_ANDROID)
     case AutofillSuggestionTriggerSource::kManualFallbackAddress:
     case AutofillSuggestionTriggerSource::kManualFallbackPayments:
+    case AutofillSuggestionTriggerSource::kManualFallbackPasswords:
       // Manual fallbacks are both a suggestion trigger source (e.g. through the
       // context menu) and a trigger source (by selecting a suggestion generated
       // through the context menu).
@@ -238,21 +235,18 @@ const AutofillField* AutofillExternalDelegate::GetQueriedAutofillField() const {
 
 void AutofillExternalDelegate::OnSuggestionsReturned(
     FieldGlobalId field_id,
-    const std::vector<Suggestion>& input_suggestions,
-    bool is_all_server_suggestions) {
-  // Only include "Autofill Options" special menu item if we have Autofill
-  // suggestions.
-  bool has_autofill_suggestions = base::ranges::any_of(
-      input_suggestions, IsAutofillAndFirstLayerSuggestionId,
-      &Suggestion::popup_item_id);
-
+    const std::vector<Suggestion>& input_suggestions) {
   if (field_id != query_field_.global_id()) {
     return;
   }
+
+  bool has_autofill_suggestions = base::ranges::any_of(
+      input_suggestions, IsAutofillAndFirstLayerSuggestionId,
+      &Suggestion::popup_item_id);
   if (trigger_source_ ==
           AutofillSuggestionTriggerSource::kShowPromptAfterDialogClosed &&
       !has_autofill_suggestions) {
-    // User changed or delete the only Autofill profile shown in the popup,
+    // User changed or deleted the only Autofill profile shown in the popup,
     // avoid showing any other suggestions in this case.
     return;
   }
@@ -280,10 +274,6 @@ void AutofillExternalDelegate::OnSuggestionsReturned(
           autofill_metrics::ShowCardsFromGoogleAccountButtonEvent::
               kButtonAppearedOnce);
     }
-  }
-
-  if (has_autofill_suggestions) {
-    ApplyAutofillOptions(&suggestions, is_all_server_suggestions);
   }
 
   // If anything else is added to modify the values after inserting the data
@@ -1194,56 +1184,6 @@ void AutofillExternalDelegate::PossiblyRemoveAutofillWarnings(
     // If we received warnings instead of suggestions from Autofill but regular
     // suggestions from autocomplete, don't show the Autofill warnings.
     suggestions->erase(suggestions->begin());
-  }
-}
-
-void AutofillExternalDelegate::ApplyAutofillOptions(
-    std::vector<Suggestion>* suggestions,
-    bool is_all_server_suggestions) {
-  // Add a separator before the Autofill options unless there are no suggestions
-  // yet.
-  if (!suggestions->empty()) {
-    suggestions->push_back(Suggestion(PopupItemId::kSeparator));
-  }
-
-  // The form has been auto-filled, so give the user the chance to clear the
-  // form.  Append the 'Clear form' menu item.
-  if (query_field_.is_autofilled) {
-    std::u16string value =
-        base::FeatureList::IsEnabled(features::kAutofillUndo)
-            ? l10n_util::GetStringUTF16(IDS_AUTOFILL_UNDO_MENU_ITEM)
-            : l10n_util::GetStringUTF16(IDS_AUTOFILL_CLEAR_FORM_MENU_ITEM);
-    if constexpr (BUILDFLAG(IS_ANDROID)) {
-      value = base::i18n::ToUpper(value);
-    }
-
-    suggestions->emplace_back(value);
-    suggestions->back().popup_item_id = PopupItemId::kClearForm;
-    suggestions->back().icon =
-        base::FeatureList::IsEnabled(features::kAutofillUndo)
-            ? Suggestion::Icon::kUndo
-            : Suggestion::Icon::kClear;
-    suggestions->back().acceptance_a11y_announcement =
-        l10n_util::GetStringUTF16(IDS_AUTOFILL_A11Y_ANNOUNCE_CLEARED_FORM);
-  }
-
-  // Append the 'Autofill settings' menu item, or the menu item specified in the
-  // popup layout experiment.
-  suggestions->emplace_back(GetSettingsSuggestionValue());
-  suggestions->back().popup_item_id = PopupItemId::kAutofillOptions;
-  suggestions->back().icon = Suggestion::Icon::kSettings;
-
-  // On Android and Desktop, Google Pay branding is shown along with Settings.
-  // So Google Pay Icon is just attached to an existing menu item.
-  if (is_all_server_suggestions) {
-#if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_IOS)
-    suggestions->back().icon = Suggestion::Icon::kGooglePay;
-#else
-    suggestions->back().trailing_icon =
-        ui::NativeTheme::GetInstanceForNativeUi()->ShouldUseDarkColors()
-            ? Suggestion::Icon::kGooglePayDark
-            : Suggestion::Icon::kGooglePay;
-#endif
   }
 }
 

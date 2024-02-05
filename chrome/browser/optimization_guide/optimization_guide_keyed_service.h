@@ -242,7 +242,9 @@ class OptimizationGuideKeyedService
           optimization_types,
       optimization_guide::proto::RequestContext request_context,
       optimization_guide::OnDemandOptimizationGuideDecisionRepeatingCallback
-          callback) override;
+          callback,
+      optimization_guide::proto::RequestContextMetadata*
+          request_context_metadata = nullptr) override;
 
   // Returns true if the opt-in setting should be shown for this profile for
   // given `feature`. This should only be called by settings UX.
@@ -281,12 +283,6 @@ class OptimizationGuideKeyedService
 
   // Manages the storing, loading, and fetching of hints.
   std::unique_ptr<optimization_guide::ChromeHintsManager> hints_manager_;
-
-  // TODO(crbug/1358568): Remove this old model store once the new model store
-  // is launched.
-  // The store of optimization target prediction models and features.
-  std::unique_ptr<optimization_guide::OptimizationGuideStore>
-      prediction_model_and_features_store_;
 
   // Manages the storing, loading, and evaluating of optimization target
   // prediction models.

@@ -141,11 +141,12 @@ void MenuHost::InitMenuHost(const InitParams& init_params) {
                                        : gfx::NativeWindow();
   params.bounds = init_params.bounds;
 
+#if BUILDFLAG(IS_OZONE)
+  params.frame_insets =
+      submenu_->GetScrollViewContainer()->outside_border_insets();
+#endif
+
 #if defined(USE_AURA)
-  // TODO(msisov): remove kMenutype once positioning of anchored windows
-  // finally migrates to a new path.
-  params.init_properties_container.SetProperty(aura::client::kMenuType,
-                                               init_params.menu_type);
   params.init_properties_container.SetProperty(aura::client::kOwnedWindowAnchor,
                                                init_params.owned_window_anchor);
 #endif

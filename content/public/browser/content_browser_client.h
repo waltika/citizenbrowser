@@ -151,6 +151,7 @@ class BinderMapWithContext;
 
 namespace network {
 class SharedURLLoaderFactory;
+class URLLoaderFactoryBuilder;
 namespace mojom {
 class TrustedHeaderClient;
 class URLLoader;
@@ -1000,18 +1001,27 @@ class CONTENT_EXPORT ContentBrowserClient {
   // Allows the embedder to control if Shared Storage API operations can happen
   // in a given context.
   //
+  // If non-null, the embedder can use `out_debug_message` to relay further
+  // details about how the returned boolean result was obtained.
+  //
   // Note that `rfh` can be nullptr.
   virtual bool IsSharedStorageAllowed(content::BrowserContext* browser_context,
                                       content::RenderFrameHost* rfh,
                                       const url::Origin& top_frame_origin,
-                                      const url::Origin& accessing_origin);
+                                      const url::Origin& accessing_origin,
+                                      std::string* out_debug_message = nullptr);
 
   // Allows the embedder to control if Shared Storage API `selectURL()` can
   // happen in a given context.
+  //
+  // If non-null, the embedder can use `out_debug_message` to relay further
+  // details about how the returned boolean result was obtained.
   virtual bool IsSharedStorageSelectURLAllowed(
       content::BrowserContext* browser_context,
+
       const url::Origin& top_frame_origin,
-      const url::Origin& accessing_origin);
+      const url::Origin& accessing_origin,
+      std::string* out_debug_message = nullptr);
 
   // Allows the embedder to control if Private Aggregation API operations can
   // happen in a given context.
@@ -1334,6 +1344,15 @@ class CONTENT_EXPORT ContentBrowserClient {
   // recording the background service's events is still allowed.
   virtual base::flat_map<int, base::Time>
   GetCitizenNotesBackgroundServiceExpirations(BrowserContext* browser_context);
+
+  // Returns the delay to create a new spare renderer after the previous spare
+  // renderer is taken by `site_url`. This is used to avoid potential resource
+  // contention.
+  // If `delay` is nullopt, the spare renderer will be created immediately.
+  // Otherwise if `delay` is base::TimeDelta::Max(), the creation is delayed
+  // until the page finishes loading.
+  virtual std::optional<base::TimeDelta> GetSpareRendererDelayForSiteURL(
+      const GURL& site_url);
 
   // Creates a new TracingDelegate. The caller owns the returned value.
   // It's valid to return nullptr.
@@ -1766,9 +1785,7 @@ class CONTENT_EXPORT ContentBrowserClient {
   //
   // The parameters for URLLoaderFactory creation, namely |header_client| and
   // |factory_override|, are used in the network service where the resulting
-  // factory is bound to |factory_receiver|. Note that |factory_receiver| that's
-  // passed to the network service might be different from the original factory
-  // receiver that was given to the embedder if the embedder had replaced it.
+  // factory is bound.
   //
   // |type| indicates the type of requests the factory will be used for.
   //
@@ -1804,11 +1821,8 @@ class CONTENT_EXPORT ContentBrowserClient {
   // page or worker this URLLoaderFactory is intended for (it may be
   // kInvalidUkmSourceId if there is no such ID available).
   //
-  // |*factory_receiver| is always valid upon entry and MUST be valid upon
-  // return. The embedder may swap out the value of |*factory_receiver| for its
-  // own, in which case it must return |true| to indicate that it's proxying
-  // requests for the URLLoaderFactory. Otherwise |*factory_receiver| is left
-  // unmodified and this must return |false|.
+  // |factory_builder| is used to add interceptors for requests for the
+  // URLLoaderFactory.
   //
   // |header_client| may be bound within this call. This can be used in
   // URLLoaderFactoryParams when creating the factory.
@@ -1825,10 +1839,10 @@ class CONTENT_EXPORT ContentBrowserClient {
   // documentation for URLLoaderFactoryOverride in network_context.mojom.
   // The point is to allow the embedder to override network behavior without
   // losing the security features of the network service. The embedder should
-  // use |factory_override| instead of swapping out |*factory_receiver| if such
-  // security features are desired.
+  // use |factory_override| instead of |factory_builder| if such security
+  // features are desired.
   //
-  // Prefer |factory_receiver| to this parameter if both work, as it is less
+  // Prefer |factory_builder| to this parameter if both work, as it is less
   // error-prone.
   //
   // |factory_override| may be nullptr when this WillCreateURLLoaderFactory()
@@ -1842,7 +1856,7 @@ class CONTENT_EXPORT ContentBrowserClient {
   // being created for a navigation request.
   //
   // Always called on the UI thread.
-  virtual bool WillCreateURLLoaderFactory(
+  virtual void WillCreateURLLoaderFactory(
       BrowserContext* browser_context,
       RenderFrameHost* frame,
       int render_process_id,
@@ -1850,7 +1864,7 @@ class CONTENT_EXPORT ContentBrowserClient {
       const url::Origin& request_initiator,
       std::optional<int64_t> navigation_id,
       ukm::SourceIdObj ukm_source_id,
-      mojo::PendingReceiver<network::mojom::URLLoaderFactory>* factory_receiver,
+      network::URLLoaderFactoryBuilder& factory_builder,
       mojo::PendingRemote<network::mojom::TrustedURLLoaderHeaderClient>*
           header_client,
       bool* bypass_redirect_checks,
@@ -2099,8 +2113,7 @@ class CONTENT_EXPORT ContentBrowserClient {
 
 #if BUILDFLAG(IS_CHROMEOS)
   // Allows the embedder to provide an implementation of the Web Smart Card API.
-  virtual SmartCardDelegate* GetSmartCardDelegate(
-      BrowserContext* browser_context);
+  virtual SmartCardDelegate* GetSmartCardDelegate();
 #endif
 
   // Attempt to open the Payment Handler window inside its corresponding

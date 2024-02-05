@@ -214,14 +214,11 @@ class CORE_EXPORT HTMLElement : public Element {
   virtual FormAssociated* ToFormAssociatedOrNull() { return nullptr; }
   bool IsFormAssociatedCustomElement() const;
 
-  static void AdjustCandidateDirectionalityForSlot(
-      HeapHashSet<Member<Node>> candidate_set);
   void UpdateDescendantDirectionality(TextDirection direction);
   void UpdateDirectionalityAfterInputTypeChange(const AtomicString& old_value,
                                                 const AtomicString& new_value);
-  void AdjustDirectionalityIfNeededAfterShadowRootChanged();
   void AdjustDirectionAutoAfterRecalcAssignedNodes();
-  bool CalculateAndAdjustAutoDirectionality(Node* stay_within);
+  bool CalculateAndAdjustAutoDirectionality();
 
   V8UnionBooleanOrStringOrUnrestrictedDouble* hidden() const;
   void setHidden(const V8UnionBooleanOrStringOrUnrestrictedDouble*);
@@ -265,10 +262,6 @@ class CORE_EXPORT HTMLElement : public Element {
       HeapVector<Member<HTMLElement>>& stack_to_check,
       Element* new_popovers_invoker);
 
-  // Retrieves the element pointed to by this element's 'anchor' content
-  // attribute, if that element exists.
-  Element* anchorElement();
-  void setAnchorElement(Element*);
   static void HandlePopoverLightDismiss(const Event& event, const Node& node);
   void InvokePopover(Element& invoker);
   void SetPopoverFocusOnShow();
@@ -353,8 +346,6 @@ class CORE_EXPORT HTMLElement : public Element {
       MutableCSSPropertyValueSet*) override;
   unsigned ParseBorderWidthAttribute(const AtomicString&) const;
 
-  void ChildrenChanged(const ChildrenChange&) override;
-
   InsertionNotificationRequest InsertedInto(ContainerNode&) override;
   void RemovedFrom(ContainerNode& insertion_point) override;
   void DidMoveToNewDocument(Document& old_document) override;
@@ -373,10 +364,6 @@ class CORE_EXPORT HTMLElement : public Element {
                                MutableCSSPropertyValueSet* style);
 
   DocumentFragment* TextToFragment(const String&, ExceptionState&);
-
-  void AdjustDirectionalityIfNeededAfterChildAttributeChanged(Element* child);
-
-  void AdjustDirectionalityIfNeededAfterInsert(Node& node);
 
   TranslateAttributeMode GetTranslateAttributeMode() const;
 

@@ -126,12 +126,16 @@
     events = [];
     auctionEvents = [];
     auctionNetworkEvents = [];
+    initWaitForReportingComplete();
   }
 
-  let resolveWaitForWinPromise;
-  const waitForWinPromise = new Promise((resolve, reject) => {
-    resolveWaitForWinPromise = resolve;
-  });
+  let waitForReportingPromise, resolveWaitForReportingCompletePromise;
+  function initWaitForReportingComplete() {
+    waitForReportingPromise = new Promise((resolve, reject) => {
+      resolveWaitForReportingCompletePromise = resolve;
+    });
+  }
+  initWaitForReportingComplete();
 
   dp.Storage.onInterestGroupAuctionEventOccurred(messageObject => {
     auctionEvents.push(messageObject.params);
@@ -143,14 +147,15 @@
 
   dp.Storage.onInterestGroupAccessed(messageObject => {
     events.push(messageObject.params);
-    if (messageObject.params.type == 'win') {
-      resolveWaitForWinPromise();
-    }
   });
 
   dp.Network.onRequestWillBeSent(messageObject => {
     networkRequestUrls.set(
         messageObject.params.requestId, messageObject.params.request.url);
+    if (messageObject.params.request.url ===
+        'https://a.test:8443/echoall?report_bidder') {
+      resolveWaitForReportingCompletePromise();
+    }
   });
 
   await page.navigate(base + 'empty.html');
@@ -167,12 +172,12 @@
   // Need to navigate a fenced frame to the winning ad for the bids to be
   // recorded.
   await runAdAuctionAndNavigateFencedFrame();
-  // Have to wait for the win to be received, which happens after commit
-  // (which also can't be waited for). Only do this if FLEDGE is enabled
-  // and has sent events already, to avoid waiting for events that will
-  // never occur.
-  if (events.length > 0)
-    await waitForWinPromise;
+  // Wait for reporting to finish. This will:
+  // 1) Guarantee that all the events we expect to have happened, since they
+  //    happen-before reporting.
+  // 2) Make sure that the bidding worklet is released before the second run
+  //    and does not get shared.
+  await waitForReportingPromise;
   await logAndClearEvents();
 
   // Disable interest group logging, and run the same set of events. No new
@@ -187,6 +192,7 @@
   await joinInterestGroups(0);
   await joinInterestGroups(1);
   await runAdAuctionAndNavigateFencedFrame();
+  await waitForReportingPromise;
   logAndClearEvents();
 
   testRunner.log('Stop Tracking Auction Events');

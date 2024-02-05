@@ -1000,11 +1000,11 @@ void HistoryBackend::AddPage(const HistoryAddPageArgs& request) {
 
   // Every url in the redirect chain gets the same top_level_url and frame_url
   // values.
-  absl::optional<GURL> top_level_url = absl::nullopt;
+  std::optional<GURL> top_level_url = std::nullopt;
   if (request.top_level_url.has_value() && request.top_level_url->is_valid()) {
     top_level_url = request.top_level_url;
   }
-  absl::optional<GURL> frame_url = absl::nullopt;
+  std::optional<GURL> frame_url = std::nullopt;
   if (request.referrer.is_valid()) {
     frame_url = request.referrer;
   }
@@ -1022,7 +1022,7 @@ void HistoryBackend::AddPage(const HistoryAddPageArgs& request) {
                      request.visit_source, IsTypedIncrement(t), opener_visit,
                      request.consider_for_ntp_most_visited,
                      request.local_navigation_id, request.title, top_level_url,
-                     frame_url)
+                     frame_url, request.app_id)
             .second;
 
     // Update the segment for this visit. KEYWORD_GENERATED visits should not
@@ -1154,7 +1154,7 @@ void HistoryBackend::AddPage(const HistoryAddPageArgs& request) {
                        redirect_index == 0 ? opener_visit : 0,
                        request.consider_for_ntp_most_visited,
                        request.local_navigation_id, request.title,
-                       top_level_url, frame_url)
+                       top_level_url, frame_url, request.app_id)
               .second;
 
       if (t & ui::PAGE_TRANSITION_CHAIN_START) {
@@ -1357,15 +1357,16 @@ std::pair<URLID, VisitID> HistoryBackend::AddPageVisit(
     bool should_increment_typed_count,
     VisitID opener_visit,
     bool consider_for_ntp_most_visited,
-    absl::optional<int64_t> local_navigation_id,
-    absl::optional<std::u16string> title,
-    absl::optional<GURL> top_level_url,
-    absl::optional<GURL> frame_url,
-    absl::optional<base::TimeDelta> visit_duration,
-    absl::optional<std::string> originator_cache_guid,
-    absl::optional<VisitID> originator_visit_id,
-    absl::optional<VisitID> originator_referring_visit,
-    absl::optional<VisitID> originator_opener_visit,
+    std::optional<int64_t> local_navigation_id,
+    std::optional<std::u16string> title,
+    std::optional<GURL> top_level_url,
+    std::optional<GURL> frame_url,
+    std::optional<std::string> app_id,
+    std::optional<base::TimeDelta> visit_duration,
+    std::optional<std::string> originator_cache_guid,
+    std::optional<VisitID> originator_visit_id,
+    std::optional<VisitID> originator_referring_visit,
+    std::optional<VisitID> originator_opener_visit,
     bool is_known_to_sync) {
   DCHECK(url.is_valid());
   // See if this URL is already in the DB.
@@ -1465,6 +1466,7 @@ std::pair<URLID, VisitID> HistoryBackend::AddPageVisit(
 
   visit_info.is_known_to_sync = is_known_to_sync;
   visit_info.consider_for_ntp_most_visited = consider_for_ntp_most_visited;
+  visit_info.app_id = app_id;
   visit_info.visit_id = db_->AddVisit(&visit_info, visit_source);
 
   if (visit_info.visit_time < first_recorded_time_)
@@ -1683,8 +1685,8 @@ VisitID HistoryBackend::AddSyncedVisit(
     const std::u16string& title,
     bool hidden,
     const VisitRow& visit,
-    const absl::optional<VisitContextAnnotations>& context_annotations,
-    const absl::optional<VisitContentAnnotations>& content_annotations) {
+    const std::optional<VisitContextAnnotations>& context_annotations,
+    const std::optional<VisitContentAnnotations>& content_annotations) {
   DCHECK_EQ(visit.visit_id, kInvalidVisitID);
   DCHECK_EQ(visit.url_id, 0);
   DCHECK(!visit.visit_time.is_null());
@@ -1706,8 +1708,8 @@ VisitID HistoryBackend::AddSyncedVisit(
       visit.transition, hidden, VisitSource::SOURCE_SYNCED,
       IsTypedIncrement(visit.transition), visit.opener_visit,
       visit.consider_for_ntp_most_visited,
-      /*local_navigation_id=*/absl::nullopt, title,
-      /*top_level_url=*/absl::nullopt, /*frame_url=*/absl::nullopt,
+      /*local_navigation_id=*/std::nullopt, title,
+      /*top_level_url=*/std::nullopt, /*frame_url=*/std::nullopt, visit.app_id,
       visit.visit_duration, visit.originator_cache_guid,
       visit.originator_visit_id, visit.originator_referring_visit,
       visit.originator_opener_visit, visit.is_known_to_sync);
@@ -1745,8 +1747,8 @@ VisitID HistoryBackend::UpdateSyncedVisit(
     const std::u16string& title,
     bool hidden,
     const VisitRow& visit,
-    const absl::optional<VisitContextAnnotations>& context_annotations,
-    const absl::optional<VisitContentAnnotations>& content_annotations) {
+    const std::optional<VisitContextAnnotations>& context_annotations,
+    const std::optional<VisitContentAnnotations>& content_annotations) {
   DCHECK_EQ(visit.visit_id, kInvalidVisitID);
   DCHECK_EQ(visit.url_id, 0);
   DCHECK(!visit.visit_time.is_null());
@@ -2218,6 +2220,7 @@ void HistoryBackend::SetOnCloseContextAnnotationsForVisit(
 std::vector<AnnotatedVisit> HistoryBackend::GetAnnotatedVisits(
     const QueryOptions& options,
     bool compute_redirect_chain_start_properties,
+    bool get_unclustered_visits_only,
     bool* limited_by_max_count) {
   // Gets `VisitVector` matching `options`, then for each visit, gets the
   // associated `URLRow`, `VisitContextAnnotations`, and
@@ -2237,6 +2240,15 @@ std::vector<AnnotatedVisit> HistoryBackend::GetAnnotatedVisits(
   bool limited = db_->GetVisibleVisitsInRange(options, &visit_rows);
   if (limited_by_max_count) {
     *limited_by_max_count = limited;
+  }
+
+  if (get_unclustered_visits_only) {
+    auto remove_it = base::ranges::remove_if(
+        visit_rows.begin(), visit_rows.end(), [&](auto& visit) {
+          // This may seem slow, but it's an indexed lookup.
+          return db_->GetClusterIdContainingVisit(visit.visit_id) > 0;
+        });
+    visit_rows.erase(remove_it, visit_rows.end());
   }
 
   DCHECK_LE(static_cast<int>(visit_rows.size()), options.EffectiveMaxCount());
@@ -2266,7 +2278,7 @@ std::vector<AnnotatedVisit> HistoryBackend::ToAnnotatedVisits(
     // The return values for these annotation fetches are not checked for
     // failures, because visits can lack annotations for legitimate reasons.
     // In these cases, the annotations members are left unchanged.
-    // TODO(tommycli): Migrate these fields to use absl::optional to make the
+    // TODO(tommycli): Migrate these fields to use std::optional to make the
     //  optional nature more explicit.
     VisitContextAnnotations context_annotations;
     db_->GetContextAnnotationsForVisit(visit_row.visit_id,
@@ -3554,7 +3566,7 @@ void HistoryBackend::NotifyFaviconsChanged(const std::set<GURL>& page_urls,
 void HistoryBackend::NotifyURLVisited(
     const URLRow& url_row,
     const VisitRow& visit_row,
-    absl::optional<int64_t> local_navigation_id) {
+    std::optional<int64_t> local_navigation_id) {
   for (HistoryBackendObserver& observer : observers_)
     observer.OnURLVisited(this, url_row, visit_row);
 

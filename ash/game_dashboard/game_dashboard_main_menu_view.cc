@@ -19,6 +19,7 @@
 #include "ash/public/cpp/arc_game_controls_flag.h"
 #include "ash/public/cpp/arc_resize_lock_type.h"
 #include "ash/public/cpp/ash_view_ids.h"
+#include "ash/public/cpp/new_window_delegate.h"
 #include "ash/public/cpp/resources/grit/ash_public_unscaled_resources.h"
 #include "ash/public/cpp/system/anchored_nudge_data.h"
 #include "ash/public/cpp/window_properties.h"
@@ -52,7 +53,6 @@
 #include "ui/views/bubble/bubble_border.h"
 #include "ui/views/controls/highlight_path_generator.h"
 #include "ui/views/layout/fill_layout.h"
-#include "ui/views/layout/table_layout.h"
 #include "ui/views/view.h"
 #include "ui/views/view_class_properties.h"
 #include "ui/views/widget/widget.h"
@@ -86,6 +86,8 @@ constexpr int kSetupPulseTimes = 3;
 constexpr base::TimeDelta kSetupPulseDuration = base::Seconds(2);
 
 constexpr char kSetupNudgeId[] = "SetupNudgeId";
+constexpr char kHelpUrl[] =
+    "https://support.google.com/chromebook/?p=game-dashboard-help";
 
 // Creates an individual Game Dashboard Tile.
 std::unique_ptr<FeatureTile> CreateFeatureTile(
@@ -171,49 +173,30 @@ class GameDashboardMainMenuView::GameControlsDetailsRow : public views::Button {
         IDS_ASH_GAME_DASHBOARD_CONTROLS_TILE_BUTTON_TITLE);
     SetAccessibleName(title);
     SetTooltipText(title);
-    SetUseDefaultFillLayout(true);
-
-    // Create 1x3 table. TableLayout is used because the first two columns are
-    // aligned to left and the last column is aligned to right.
-    auto* container = AddChildView(std::make_unique<views::View>());
-    container->SetBackground(views::CreateThemedRoundedRectBackground(
+    SetBackground(views::CreateThemedRoundedRectBackground(
         is_available ? cros_tokens::kCrosSysSystemOnBase
                      : cros_tokens::kCrosSysDisabledContainer,
         kGCDetailRowCorners, /*for_border_thickness=*/0));
-    container->SetLayoutManager(std::make_unique<views::TableLayout>())
-        ->AddColumn(/*h_align=*/views::LayoutAlignment::kStart,
-                    /*v_align=*/views::LayoutAlignment::kCenter,
-                    /*horizontal_resize=*/views::TableLayout::kFixedSize,
-                    /*size_type=*/views::TableLayout::ColumnSize::kUsePreferred,
-                    /*fixed_width=*/0, /*min_width=*/0)
-        .AddPaddingColumn(/*horizontal_resize=*/views::TableLayout::kFixedSize,
-                          /*width=*/16)
-        .AddColumn(/*h_align=*/views::LayoutAlignment::kStretch,
-                   /*v_align=*/views::LayoutAlignment::kCenter,
-                   /*horizontal_resize=*/1.0f,
-                   /*size_type=*/views::TableLayout::ColumnSize::kUsePreferred,
-                   /*fixed_width=*/0, /*min_width=*/0)
-        .AddColumn(/*h_align=*/views::LayoutAlignment::kEnd,
-                   /*v_align=*/views::LayoutAlignment::kCenter,
-                   /*horizontal_resize=*/views::TableLayout::kFixedSize,
-                   /*size_type=*/views::TableLayout::ColumnSize::kUsePreferred,
-                   /*fixed_width=*/0, /*min_width=*/0)
-        .AddRows(1, /*vertical_resize=*/views::TableLayout::kFixedSize);
-    container->SetBorder(views::CreateEmptyBorder(gfx::Insets::VH(16, 16)));
+    SetBorder(views::CreateEmptyBorder(gfx::Insets::VH(16, 16)));
 
     views::HighlightPathGenerator::Install(
         this, std::make_unique<views::RoundRectHighlightPathGenerator>(
                   gfx::Insets(), kGCDetailRowCorners));
 
+    auto* layout = SetLayoutManager(std::make_unique<views::BoxLayout>());
+    layout->set_cross_axis_alignment(
+        views::BoxLayout::CrossAxisAlignment::kCenter);
+
     // Add icon.
-    auto* icon_container =
-        container->AddChildView(std::make_unique<views::View>());
+    auto* icon_container = AddChildView(std::make_unique<views::View>());
     icon_container->SetLayoutManager(std::make_unique<views::FillLayout>());
     icon_container->SetBackground(views::CreateThemedRoundedRectBackground(
         is_available ? cros_tokens::kCrosSysSystemOnBase
                      : cros_tokens::kCrosSysDisabledContainer,
         /*radius=*/12.0f));
     icon_container->SetBorder(views::CreateEmptyBorder(gfx::Insets::VH(6, 6)));
+    icon_container->SetProperty(views::kMarginsKey,
+                                gfx::Insets::TLBR(0, 0, 0, 16));
     icon_container->AddChildView(
         std::make_unique<views::ImageView>(ui::ImageModel::FromVectorIcon(
             kGdGameControlsIcon,
@@ -223,10 +206,13 @@ class GameDashboardMainMenuView::GameControlsDetailsRow : public views::Button {
 
     // Add title and sub-title.
     auto* tag_container =
-        container->AddChildView(std::make_unique<views::BoxLayoutView>());
+        AddChildView(std::make_unique<views::BoxLayoutView>());
     tag_container->SetOrientation(views::BoxLayout::Orientation::kVertical);
     tag_container->SetCrossAxisAlignment(
         views::BoxLayout::CrossAxisAlignment::kStart);
+    // Flex `tag_container` to fill empty space.
+    layout->SetFlexForView(tag_container, /*flex=*/1);
+
     // Add title.
     auto* feature_title =
         tag_container->AddChildView(std::make_unique<views::Label>(title));
@@ -237,23 +223,28 @@ class GameDashboardMainMenuView::GameControlsDetailsRow : public views::Button {
     feature_title->SetFontList(
         TypographyProvider::Get()->ResolveTypographyToken(
             TypographyToken::kCrosTitle2));
+    feature_title->SetHorizontalAlignment(gfx::ALIGN_LEFT);
+    feature_title->SetMultiLine(true);
     // Add sub-title.
     sub_title_ = tag_container->AddChildView(bubble_utils::CreateLabel(
         TypographyToken::kCrosAnnotation2, u"",
         is_available ? cros_tokens::kCrosSysOnSurfaceVariant
                      : cros_tokens::kCrosSysDisabled));
+    sub_title_->SetHorizontalAlignment(gfx::ALIGN_LEFT);
+    sub_title_->SetMultiLine(true);
 
     // Add setup button, or feature switch and drill-in arrow.
     if (!is_available ||
         game_dashboard_utils::IsFlagSet(*flags, ArcGameControlsFlag::kEmpty)) {
       // Add setup button.
-      // TODO(b/274690042): Replace it with localized strings.
       sub_title_->SetText(l10n_util::GetStringUTF16(
           IDS_ASH_GAME_DASHBOARD_GC_SET_UP_SUB_TITLE));
-      setup_button_ = container->AddChildView(std::make_unique<PillButton>(
+      setup_button_ = AddChildView(std::make_unique<PillButton>(
           base::BindRepeating(&GameControlsDetailsRow::OnSetUpButtonPressed,
                               base::Unretained(this)),
-          u"Set up", PillButton::Type::kPrimaryWithoutIcon,
+          l10n_util::GetStringUTF16(
+              IDS_ASH_GAME_DASHBOARD_GC_SET_UP_BUTTON_LABEL),
+          PillButton::Type::kPrimaryWithoutIcon,
           /*icon=*/nullptr));
       setup_button_->SetProperty(views::kMarginsKey,
                                  gfx::Insets::TLBR(0, 20, 0, 0));
@@ -264,29 +255,21 @@ class GameDashboardMainMenuView::GameControlsDetailsRow : public views::Button {
             u"This game does not support Game controls");
       }
     } else {
-      // Add tail container for feature switch and drill-in arrow.
-      auto* tail_container =
-          container->AddChildView(std::make_unique<views::View>());
-      tail_container->SetLayoutManager(std::make_unique<views::BoxLayout>(
-          views::BoxLayout::Orientation::kHorizontal,
-          /*inside_border_insets=*/gfx::Insets(),
-          /*between_child_spacing=*/18));
-
       const bool is_feature_enabled = IsGameControlsFeatureEnabled(*flags);
       UpdateSubtitle(/*is_game_controls_enabled=*/is_feature_enabled);
       // Add switch_button to enable or disable game controls.
-      feature_switch_ = tail_container->AddChildView(
-          std::make_unique<Switch>(base::BindRepeating(
+      feature_switch_ =
+          AddChildView(std::make_unique<Switch>(base::BindRepeating(
               &GameControlsDetailsRow::OnFeatureSwitchButtonPressed,
               base::Unretained(this))));
       // TODO(b/279117180): Update the accessibility name.
       feature_switch_->SetAccessibleName(
           l10n_util::GetStringUTF16(IDS_APP_LIST_FOLDER_NAME_PLACEHOLDER));
       feature_switch_->SetProperty(views::kMarginsKey,
-                                   gfx::Insets::TLBR(0, 8, 0, 0));
+                                   gfx::Insets::TLBR(0, 8, 0, 18));
       feature_switch_->SetIsOn(is_feature_enabled);
       // Add arrow icon.
-      tail_container->AddChildView(
+      AddChildView(
           std::make_unique<views::ImageView>(ui::ImageModel::FromVectorIcon(
               kQuickSettingsRightArrowIcon, cros_tokens::kCrosSysOnSurface)));
     }
@@ -334,9 +317,12 @@ class GameDashboardMainMenuView::GameControlsDetailsRow : public views::Button {
   }
 
   void UpdateSubtitle(bool is_feature_enabled) {
-    // TODO(b/274690042): Replace the strings with localized strings.
-    sub_title_->SetText((is_feature_enabled ? u"On for " : u"Off for ") +
-                        base::UTF8ToUTF16(app_name_));
+    const auto string_id =
+        is_feature_enabled
+            ? IDS_ASH_GAME_DASHBOARD_GC_DETAILS_SUB_TITLE_ON_TEMPLATE
+            : IDS_ASH_GAME_DASHBOARD_GC_DETAILS_SUB_TITLE_OFF_TEMPLATE;
+    sub_title_->SetText(
+        l10n_util::GetStringFUTF16(string_id, base::UTF8ToUTF16(app_name_)));
   }
 
   void CacheAppName() {
@@ -499,7 +485,9 @@ void GameDashboardMainMenuView::OnFeedbackButtonPressed() {
 }
 
 void GameDashboardMainMenuView::OnHelpButtonPressed() {
-  // TODO(b/273640773): Add support when help button is pressed.
+  NewWindowDelegate::GetPrimary()->OpenUrl(
+      GURL(kHelpUrl), NewWindowDelegate::OpenUrlFrom::kUserInteraction,
+      NewWindowDelegate::Disposition::kNewForegroundTab);
 }
 
 void GameDashboardMainMenuView::OnSettingsButtonPressed() {
@@ -794,15 +782,16 @@ void GameDashboardMainMenuView::PerformPulseAnimationForSetupButton(
 void GameDashboardMainMenuView::ShowNudgeForSetupButton() {
   DCHECK(GetGameControlsSetupButton());
 
-  // TODO(b/274690042): Replace it with localized strings.
   auto nudge_data = AnchoredNudgeData(
       kSetupNudgeId, NudgeCatalogName::kGameDashboardControlsNudge,
-      u"Set up to play with your keyboard", game_controls_details_);
+      l10n_util::GetStringUTF16(
+          IDS_ASH_GAME_DASHBOARD_GC_KEYBOARD_SETUP_NUDGE_SUB_TITLE),
+      game_controls_details_);
   nudge_data.image_model =
       ui::ResourceBundle::GetSharedInstance().GetThemedLottieImageNamed(
           IDR_GAME_DASHBOARD_CONTROLS_SETUP_NUDGE);
-  // TODO(b/274690042): Replace it with localized strings.
-  nudge_data.title_text = u"This game uses your touchscreen";
+  nudge_data.title_text = l10n_util::GetStringUTF16(
+      IDS_ASH_GAME_DASHBOARD_GC_KEYBOARD_SETUP_NUDGE_TITLE);
   nudge_data.arrow = views::BubbleBorder::LEFT_CENTER;
   nudge_data.background_color_id = cros_tokens::kCrosSysBaseHighlight;
   nudge_data.image_background_color_id = cros_tokens::kCrosSysOnBaseHighlight;

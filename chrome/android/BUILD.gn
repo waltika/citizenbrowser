@@ -304,6 +304,7 @@ if (current_toolchain == default_toolchain) {
       "//base/version_info/android:version_constants_java",
       "//cc:cc_java",
       "//cc/mojom:mojom_java",
+      "//chrome/android/features/jank_tracker:jank_tracker_java",
       "//chrome/android/features/keyboard_accessory:public_java",
       "//chrome/android/features/start_surface:java_resources",
       "//chrome/android/features/start_surface:public_java",
@@ -364,6 +365,7 @@ if (current_toolchain == default_toolchain) {
       "//chrome/browser/fullscreen/android:java",
       "//chrome/browser/gesturenav/android:java",
       "//chrome/browser/gsa:java",
+      "//chrome/browser/history:java",
       "//chrome/browser/history_clusters:java",
       "//chrome/browser/history_clusters:java_resources",
       "//chrome/browser/hub:factory_java",
@@ -586,6 +588,7 @@ if (current_toolchain == default_toolchain) {
       "//components/sync/android:sync_java",
       "//components/sync/protocol:protocol_java",
       "//components/sync_device_info:sync_device_info_java",
+      "//components/tab_groups:tab_groups_java",
       "//components/thin_webview:factory_java",
       "//components/thin_webview:java",
       "//components/translate/content/android:java",
@@ -1202,6 +1205,7 @@ if (current_toolchain == default_toolchain) {
       "//components/sync/android:sync_java",
       "//components/sync/protocol:protocol_java",
       "//components/sync_device_info:sync_device_info_java",
+      "//components/tab_groups:tab_groups_java",
       "//components/translate/content/android:junit",
       "//components/ukm/android:java",
       "//components/url_formatter/android:url_formatter_java",
@@ -3061,14 +3065,17 @@ if (current_toolchain == default_toolchain) {
     extra_args = _bundle_smoke_test_extra_args
   }
 
-  if (defined(expected_static_initializer_32bit_count)) {
+  _verify_32bit_static_initializers =
+      defined(expected_static_initializer_32bit_count) &&
+      !skip_secondary_abi_for_cq
+  _verify_64bit_static_initializers =
+      defined(expected_static_initializer_64bit_count) &&
+      android_64bit_target_cpu
+  if (_verify_32bit_static_initializers || _verify_64bit_static_initializers) {
     # Old name alias to be removed after migration is done.
     group("monochrome_static_initializers") {
       deps = [ ":check_chrome_static_initializers" ]
     }
-    _verify_32bit_static_initializers =
-        !android_64bit_target_cpu || !skip_secondary_abi_for_cq
-    _verify_64bit_static_initializers = android_64bit_target_cpu
     group("check_chrome_static_initializers") {
       deps = []
       if (_verify_32bit_static_initializers) {
@@ -3656,6 +3663,7 @@ generate_jni("chrome_jni_headers") {
     "java/src/org/chromium/chrome/browser/net/nqe/NetworkQualityProvider.java",
     "java/src/org/chromium/chrome/browser/notifications/ActionInfo.java",
     "java/src/org/chromium/chrome/browser/notifications/NotificationPlatformBridge.java",
+    "java/src/org/chromium/chrome/browser/notifications/NotificationSuspender.java",
     "java/src/org/chromium/chrome/browser/notifications/NotificationTriggerScheduler.java",
     "java/src/org/chromium/chrome/browser/notifications/PushMessagingServiceBridge.java",
     "java/src/org/chromium/chrome/browser/notifications/scheduler/DisplayAgent.java",
@@ -3722,7 +3730,6 @@ generate_jni("chrome_jni_headers") {
     "java/src/org/chromium/chrome/browser/tab/tab_restore/HistoricalTabSaverImpl.java",
     "java/src/org/chromium/chrome/browser/tabmodel/TabModelJniBridge.java",
     "java/src/org/chromium/chrome/browser/tabmodel/TabModelObserverJniBridge.java",
-    "java/src/org/chromium/chrome/browser/usage_stats/NotificationSuspender.java",
     "java/src/org/chromium/chrome/browser/usage_stats/UsageStatsBridge.java",
     "java/src/org/chromium/chrome/browser/webapps/WebApkDataProvider.java",
     "java/src/org/chromium/chrome/browser/webapps/WebApkHandlerDelegate.java",
@@ -3778,6 +3785,7 @@ group("jni_headers") {
     "//chrome/browser/enterprise/util:jni_headers",
     "//chrome/browser/feature_engagement:jni_headers",
     "//chrome/browser/flags:jni_headers",
+    "//chrome/browser/history:jni_headers",
     "//chrome/browser/history_clusters:jni_headers",
     "//chrome/browser/image_descriptions:jni_headers",
     "//chrome/browser/incognito:jni_headers",

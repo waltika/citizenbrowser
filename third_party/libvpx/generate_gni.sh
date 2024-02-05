@@ -483,7 +483,10 @@ gen_rtcd_header linux/mips64el mips64el
 gen_rtcd_header linux/loongarch loongarch
 gen_rtcd_header linux/ppc64 ppc
 gen_rtcd_header linux/generic generic
-gen_rtcd_header win/arm64-highbd armv8 "${require_neon}"
+# SVE is disabled due to a limitation with clang-cl-18:
+# third_party\llvm-build\Release+Asserts\lib\clang\18\include\arm_sve.h(271,1):
+# error: cannot mangle this built-in __SVInt8_t type yet
+gen_rtcd_header win/arm64-highbd armv8 "${require_neon} --disable-sve"
 gen_rtcd_header win/ia32 x86 "${require_sse2}"
 gen_rtcd_header win/x64 x86_64
 gen_rtcd_header mac/ia32 x86 "${require_sse2}"

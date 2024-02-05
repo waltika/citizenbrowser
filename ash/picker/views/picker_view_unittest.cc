@@ -22,6 +22,7 @@
 #include "ash/test/test_ash_web_view_factory.h"
 #include "ash/test/view_drawn_waiter.h"
 #include "base/test/bind.h"
+#include "base/test/metrics/histogram_tester.h"
 #include "base/test/test_future.h"
 #include "testing/gmock/include/gmock/gmock-matchers.h"
 #include "testing/gmock/include/gmock/gmock.h"
@@ -43,7 +44,11 @@ using ::testing::Optional;
 using ::testing::Property;
 using ::testing::Truly;
 
-using PickerViewTest = AshTestBase;
+class PickerViewTest : public AshTestBase {
+ public:
+  PickerViewTest()
+      : AshTestBase(base::test::TaskEnvironment::TimeSource::MOCK_TIME) {}
+};
 
 class FakePickerViewDelegate : public PickerViewDelegate {
  public:
@@ -139,9 +144,9 @@ TEST_F(PickerViewTest, BackgroundIsCorrect) {
 
   ASSERT_TRUE(view);
   ASSERT_TRUE(view->background());
-  EXPECT_EQ(
-      view->background()->get_color(),
-      view->GetColorProvider()->GetColor(cros_tokens::kCrosSysBaseElevated));
+  EXPECT_EQ(view->background()->get_color(),
+            view->GetColorProvider()->GetColor(
+                cros_tokens::kCrosSysSystemBaseElevated));
 }
 
 TEST_F(PickerViewTest, SizeIsCorrect) {
@@ -150,7 +155,7 @@ TEST_F(PickerViewTest, SizeIsCorrect) {
   widget->Show();
   PickerView* view = GetPickerViewFromWidget(*widget);
 
-  EXPECT_EQ(view->size(), gfx::Size(420, 480));
+  EXPECT_EQ(view->size(), gfx::Size(320, 340));
 }
 
 TEST_F(PickerViewTest, ShowsZeroStateView) {
@@ -302,6 +307,23 @@ TEST_F(PickerViewTest, ClickingOutsideClosesPickerWidget) {
   GetEventGenerator()->ClickLeftButton();
 
   EXPECT_TRUE(widget->IsClosed());
+}
+
+TEST_F(PickerViewTest, RecordsSearchLatencyAfterSearchFinished) {
+  base::HistogramTester histogram;
+  FakePickerViewDelegate delegate(base::BindLambdaForTesting(
+      [&, this](std::u16string_view query,
+                std::optional<PickerCategory> category) {
+        task_environment()->FastForwardBy(base::Seconds(1));
+        return PickerSearchResults();
+      }));
+  auto widget = PickerView::CreateWidget(&delegate);
+  widget->Show();
+
+  PressAndReleaseKey(ui::KeyboardCode::VKEY_A, ui::EF_NONE);
+
+  histogram.ExpectUniqueTimeSample("Ash.Picker.Session.SearchLatency",
+                                   base::Seconds(1), 1);
 }
 
 }  // namespace

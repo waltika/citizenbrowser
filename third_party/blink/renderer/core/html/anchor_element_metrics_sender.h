@@ -21,7 +21,6 @@ class Document;
 class HTMLAnchorElement;
 class IntersectionObserver;
 class IntersectionObserverEntry;
-class AnchorElementMetrics;
 class PointerEvent;
 
 // AnchorElementMetricsSender is responsible to send anchor element metrics to
@@ -154,6 +153,8 @@ class CORE_EXPORT AnchorElementMetricsSender final
   bool should_skip_update_delays_for_testing_ = false;
 
   WTF::Vector<mojom::blink::AnchorElementMetricsPtr> metrics_;
+
+  const int random_anchor_sampling_period_;
 
   Member<IntersectionObserver> intersection_observer_;
 

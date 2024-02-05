@@ -1173,6 +1173,12 @@ chromium-metrics-reviews@google.com.
   <int value="39" label="CvcSave"/>
   <int value="40" label="TrackingProtectionNotice"/>
   <int value="41" label="DesktopSiteWindowSetting"/>
+  <int value="42" label="PromptHatsLocationCustomInvitation"/>
+  <int value="43" label="PromptHatsLocationGenericInvitation"/>
+  <int value="44" label="PromptHatsCameraCustomInvitation"/>
+  <int value="45" label="PromptHatsCameraGenericInvitation"/>
+  <int value="46" label="PromptHatsMicrophoneCustomInvitation"/>
+  <int value="47" label="PromptHatsMicrophoneGenericInvitation"/>
 </enum>
 
 <enum name="MinimizeAppAndCloseTabType">
@@ -1298,6 +1304,16 @@ chromium-metrics-reviews@google.com.
   <int value="1" label="Photo picked"/>
   <int value="2" label="New photo"/>
   <int value="3" label="Use Android picker"/>
+</enum>
+
+<enum name="PreAssignedActivityState">
+  <int value="0" label="Unknown"/>
+  <int value="1" label="Not in app task, is Finishing"/>
+  <int value="2" label="Not in app task, not Finishing"/>
+  <int value="3" label="In app task, same task, is Finishing"/>
+  <int value="4" label="In app task, same task, not Finishing"/>
+  <int value="5" label="In app task, different task, is Finishing"/>
+  <int value="6" label="In app task, different task, not Finishing"/>
 </enum>
 
 <enum name="PrimaryCpuAbiBitness">

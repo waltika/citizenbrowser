@@ -21,6 +21,22 @@ BASE_FEATURE(kClosedTabCache,
              "ClosedTabCache",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
+// When enabled, a new spare renderer is created at a later time if the previous
+// spare renderer was taken by top chrome WebUI.
+BASE_FEATURE(kDeferredSpareRendererForTopChromeWebUI,
+             "DeferredSpareRendererForTopChromeWebUI",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+// The delay time to create a new spare renderer since the previous spare
+// renderer is taken. This is not effective when
+// `delay_until_page_stopped_loading` is true.
+const base::FeatureParam<base::TimeDelta> kSpareRendererWarmupDelay{
+    &kDeferredSpareRendererForTopChromeWebUI, "delay", base::Seconds(1)};
+// If true, a new spare renderer is not created until the last page stops
+// loading.
+const base::FeatureParam<bool> kSpareRendererWarmupDelayUntilPageStopsLoading{
+    &kDeferredSpareRendererForTopChromeWebUI, "delay_until_page_stops_loading",
+    false};
+
 // Destroy profiles when their last browser window is closed, instead of when
 // the browser exits.
 // On Lacros the feature is enabled only for secondary profiles, check the
@@ -74,8 +90,8 @@ const base::FeatureParam<std::string> kDevToolsConsoleInsightsAidaScope{
     &kDevToolsConsoleInsights, "aida_scope", /*default*/ ""};
 const base::FeatureParam<std::string> kDevToolsConsoleInsightsAidaEndpoint{
     &kDevToolsConsoleInsights, "aida_endpoint", /*default*/ ""};
-const base::FeatureParam<std::string> kDevToolsConsoleInsightsApiKey{
-    &kDevToolsConsoleInsights, "aida_api_key", /*default*/ ""};
+const base::FeatureParam<std::string> kDevToolsConsoleInsightsModelId{
+    &kDevToolsConsoleInsights, "aida_model_id", /*default*/ ""};
 const base::FeatureParam<double> kDevToolsConsoleInsightsTemperature{
     &kDevToolsConsoleInsights, "aida_temperature", /*default*/ 0.2};
 
@@ -138,6 +154,12 @@ BASE_FEATURE(kDoubleTapToZoomInTabletMode,
 // Adds a "Snooze" action to mute notifications during screen sharing sessions.
 BASE_FEATURE(kMuteNotificationSnoozeAction,
              "MuteNotificationSnoozeAction",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+#else
+// Adds an "Unsubscribe" action to web push notifications that allows stopping
+// notifications from a given origin with a single tap (with an option to undo).
+BASE_FEATURE(kNotificationOneTapUnsubscribe,
+             "NotificationOneTapUnsubscribe",
              base::FEATURE_DISABLED_BY_DEFAULT);
 #endif
 
@@ -358,6 +380,13 @@ BASE_FEATURE(kAutocompleteActionPredictorConfidenceCutoff,
 // TODO(crbug.com/1267731): Remove this flag once the experiments are completed.
 BASE_FEATURE(kOmniboxTriggerForNoStatePrefetch,
              "OmniboxTriggerForNoStatePrefetch",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+// This feature enables monitoring of first-party network requests in order to
+// find possible violations. Example: A Chrome policy is set to disabled but the
+// network request controlled by that policy is observed.
+BASE_FEATURE(kNetworkAnnotationMonitoring,
+             "NetworkAnnotationMonitoring",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 }  // namespace features

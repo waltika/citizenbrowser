@@ -109,7 +109,8 @@ public class TabSwitcherCoordinator
 
     private final MenuOrKeyboardActionController.MenuOrKeyboardActionHandler
             mTabSwitcherMenuActionHandler;
-    private TabSwitcherCustomViewManager mTabSwitcherCustomViewManager;
+    private final TabSwitcherCustomViewManager mTabSwitcherCustomViewManager =
+            new TabSwitcherCustomViewManager();
 
     /** {@see TabManagementDelegate#createCarouselTabSwitcher} */
     // Suppress to observe SharedPreferences, which is discouraged; use another messaging channel
@@ -183,7 +184,7 @@ public class TabSwitcherCoordinator
                             this::onTabSwitcherShown,
                             layoutStateProviderSupplier);
 
-            mTabSwitcherCustomViewManager = new TabSwitcherCustomViewManager(mMediator);
+            mTabSwitcherCustomViewManager.setDelegate(mMediator);
 
             var currentTabModelFilterSupplier =
                     tabModelSelector.getTabModelFilterProvider().getCurrentTabModelFilterSupplier();
@@ -601,6 +602,11 @@ public class TabSwitcherCoordinator
     @Override
     public void runAnimationOnNextLayout(Runnable runnable) {
         mTabListCoordinator.runAnimationOnNextLayout(runnable);
+    }
+
+    @Override
+    public void showQuickDeleteAnimation(Runnable onAnimationEnd) {
+        mTabListCoordinator.showQuickDeleteAnimation(onAnimationEnd);
     }
 
     private TabSwitcherMessageManager getMessageManager() {

@@ -47,6 +47,7 @@
 #include "components/favicon_base/favicon_callback.h"
 #include "components/favicon_base/favicon_types.h"
 #include "components/query_parser/query_parser.h"
+#include "components/sync/base/features.h"
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "third_party/skia/include/core/SkBitmap.h"
@@ -342,8 +343,6 @@ class BookmarkModelTest : public testing::Test, public BookmarkModelObserver {
   BookmarkModelTest()
       : model_(TestBookmarkClient::CreateModelWithClient(
             std::make_unique<TestBookmarkClientWithUndo>())) {
-    static_cast<TestBookmarkClientWithUndo*>(model_->client())
-        ->AllowFoldersForAccountStorage();
     model_->AddObserver(this);
     ClearCounts();
   }
@@ -507,7 +506,6 @@ class BookmarkModelTest : public testing::Test, public BookmarkModelObserver {
 
     auto client = std::make_unique<TestBookmarkClient>();
     BookmarkPermanentNode* managed_node = client->EnableManagedNode();
-    client->AllowFoldersForAccountStorage();
 
     model_ = TestBookmarkClient::CreateModelWithClient(std::move(client));
     model_->AddObserver(this);
@@ -533,6 +531,8 @@ class BookmarkModelTest : public testing::Test, public BookmarkModelObserver {
     model_->AddObserver(this);
   }
 
+  base::test::ScopedFeatureList features_{
+      syncer::kEnableBookmarkFoldersForAccountStorage};
   std::unique_ptr<BookmarkModel> model_;
   ObserverDetails observer_details_;
   std::vector<AllNodesRemovedDetail> all_bookmarks_removed_details_;
@@ -1915,10 +1915,10 @@ TEST_F(BookmarkModelTest, GetNodeByUuid) {
   // Create two more with an explicit UUID provided.
   const BookmarkNode* url_node_with_explicit_uuid = model_->AddURL(
       bookmark_bar_node, 0, u"title", GURL("http://foo.com"),
-      /*meta_info=*/nullptr, /*creation_time=*/absl::nullopt, explicit_uuid1);
+      /*meta_info=*/nullptr, /*creation_time=*/std::nullopt, explicit_uuid1);
   const BookmarkNode* folder_node_with_explicit_uuid = model_->AddFolder(
       bookmark_bar_node, 0, u"title",
-      /*meta_info=*/nullptr, /*creation_time=*/absl::nullopt, explicit_uuid2);
+      /*meta_info=*/nullptr, /*creation_time=*/std::nullopt, explicit_uuid2);
 
   ASSERT_TRUE(url_node_with_implicit_uuid);
   ASSERT_TRUE(folder_node_with_implicit_uuid);

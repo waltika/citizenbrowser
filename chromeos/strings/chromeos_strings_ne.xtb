@@ -21,6 +21,7 @@
 <translation id="1119447706177454957">आन्तरिक त्रुटि</translation>
 <translation id="1124772482545689468">प्रयोगकर्ता</translation>
 <translation id="1128128132059598906">EAP-TTLS</translation>
+<translation id="1134416403025830762">गुणन गर्नुहोस्</translation>
 <translation id="1145018782460575098">बाह्य डिभाइसको फर्मवेयर अपडेट गर्ने विन्डो खुला छ। <ph name="NUM_UPDATES" /> वटा अपडेट उपलब्ध छन्।</translation>
 <translation id="1145516343487477149">Chromebook सँग सम्बन्धित मद्दतसम्बन्धी लेख र त्यसका बारेमा सामान्यतया सोधिने प्रश्नहरूको जवाफ भेट्टाउनुहोस्</translation>
 <translation id="1154390310959620237">तपाईं ५ वटा सर्टकट मात्र कस्टमाइज गर्न सक्नुहुन्छ। नयाँ सर्टकट राख्न पुरानो सर्टकट मेटाउनुहोस्।</translation>
@@ -56,6 +57,7 @@
 <translation id="1330426557709298164">JPG</translation>
 <translation id="1337912285145772892">स्क्यान गर्ने क्षेत्रमा मिलाउनुहोस्</translation>
 <translation id="1367951781824006909">एउटा फाइल रोज्नुहोस्</translation>
+<translation id="1371650399987522809">Google AI का सहायताले वालपेपर बनाउने सुविधासम्बन्धी प्रतिक्रिया</translation>
 <translation id="1387854245479784695">यसमा सबै कोरहरूको डेटा समावेश हुन्छ</translation>
 <translation id="1394661041439318933">यो डिभाइसको केसमा <ph name="BATTERY_PERCENTAGE" />% ब्याट्री बाँकी छ।</translation>
 <translation id="1397738625398125236">गेटवे पिङ गर्न सकिन्छ</translation>
@@ -87,13 +89,16 @@
 <translation id="155865706765934889">टचप्याड</translation>
 <translation id="1561927818299383735">ब्याकलिटको रङ</translation>
 <translation id="1565038567006703504"><ph name="DEVICE_NAME" /> अपडेट गर्न सकिएन</translation>
+<translation id="1566493343215789965">भाग गर्नुहोस्</translation>
 <translation id="1567064801249837505">एल्बमहरू</translation>
 <translation id="1572585716423026576">वालपेपरका रूपमा सेट गर्नुहोस्</translation>
 <translation id="1578784163189013834">स्क्रिन सेभरको ब्याकग्राउन्ड चयन गर्नुहोस्</translation>
 <translation id="160633243685262989">फोटो प्रिभ्यू गर्नुहोस्</translation>
 <translation id="1611649489706141841">फर्वाड गर्नुहोस्</translation>
 <translation id="1615335640928990664"><ph name="FRIENDLY_DATE" /> देखि प्रयोग गरिएको डेटा</translation>
+<translation id="1615576200479539465">फोटो बनाइँदै छ...</translation>
 <translation id="1621067168122174824">ब्याट्रीको चार्जसम्बन्धी परीक्षण गर्नुहोस्</translation>
+<translation id="1626590945318984973">यो सर्टकट उपलब्ध छैन। फङ्सन की र <ph name="META_KEY" /> की प्रयोग नगरिकनै नयाँ सर्टकटमा थिच्नुहोस्।</translation>
 <translation id="1639239467298939599">लोड गर्दै</translation>
 <translation id="1641857168437328880">डकुमेन्ट फिडर (एकतर्फी)</translation>
 <translation id="1643449475550628585">वालपेपर दैनिक रूपमा बदल्नुहोस्</translation>
@@ -264,6 +269,7 @@
 <translation id="2878387241690264070"><ph name="NUM_SECONDS" /> सेकेन्डमा <ph name="RATE" /> घट्यो।</translation>
 <translation id="2880569433548999039">क्लाउड फ्लो स्क्रिन सेभर</translation>
 <translation id="2926057806159140518">आफ्नो युजरनेम र पासवर्ड हाल्नुहोस् वा आफ्नो QR कोड स्क्यान गर्नुहोस्</translation>
+<translation id="2938573842839598578">अनुमानित परिणाम प्राप्त गर्न <ph name="CATEGORY_TEXT" /> लाई <ph name="CONVERSION_RATE" /> ले <ph name="OPERATOR_TEXT" /></translation>
 <translation id="2940811910881150316">डिभाइसको परीक्षण गर्न सकिँदैन। परीक्षण गर्न लिड फेरि खोल्नुहोस्।</translation>
 <translation id="2941112035454246133">निम्न</translation>
 <translation id="3008341117444806826">पुनः ताजा गर्नुहोस्</translation>
@@ -336,6 +342,7 @@
 <translation id="3517001332549868749">ChromeOS को अपडेट</translation>
 <translation id="3527036260304016759">प्रिन्ट गर्न सकिएन - अज्ञात त्रुटि भयो</translation>
 <translation id="3532980081107202182"><ph name="MIN_REMAINING" /> मिनेट जति बाँकी छ</translation>
+<translation id="3547264467365135390">सूत्र</translation>
 <translation id="3557205324756024651">लोकल आइडेन्टिटी (ऐच्छिक)</translation>
 <translation id="3565064564551103223">अनुमति दिइएका IP</translation>
 <translation id="3569407787324516067">स्क्रिन सेभर</translation>
@@ -413,6 +420,7 @@
 <translation id="4113067922640381334">तपाईं अब नयाँ <ph name="BEGIN_LINK_WALLPAPER_SUBPAGE" />वालपेपरहरू<ph name="END_LINK_WALLPAPER_SUBPAGE" /> प्रयोग गर्न सक्नुहुन्छ</translation>
 <translation id="4117637339509843559">अँध्यारो मोड</translation>
 <translation id="4130035430755296270">लेआउटसम्बन्धी थप विकल्पहरू प्राप्त गर्न होभर गरिराख्नुहोस्</translation>
+<translation id="4130750466177569591">म सहमत गर्छु</translation>
 <translation id="4131410914670010031">कालो र सेतो</translation>
 <translation id="4145784616224233563">HTTP फायरवाल</translation>
 <translation id="4147897805161313378">Google Photos</translation>
@@ -452,7 +460,9 @@
 <translation id="4394049700291259645">असक्षम गर्नुहोस्</translation>
 <translation id="439429847087949098"><ph name="DEVICE_NAME" /> रिस्टार्ट गरिँदै छ</translation>
 <translation id="4395835743215824109">किबोर्डको ब्याकलाइट कस्टमाइज गर्नुहोस्</translation>
+<translation id="4403262788869804671"><ph name="META_KEY" /> की समावेश नगरिएको सर्टकट केही एपको सर्टकटसँग जुध्न सक्छ। यो सर्टकट प्रयोग गरिराख्न उक्त सर्टकट फेरि थिच्नुहोस् वा <ph name="KEY" /> की प्रयोग गरेर नयाँ सर्टकट थिच्नुहोस्।</translation>
 <translation id="4415951057168511744">हालको अवतार</translation>
+<translation id="4417830657741848074">तपाईंको एड्मिनले केही एपहरू स्वतः खुल्ने गरी सेट अप गर्नुभएको छ। यीमध्ये केही एपहरू बन्द नगरिन सक्छन्।</translation>
 <translation id="4422041425070339732">"डाउन एरो" जनाउने आइकन</translation>
 <translation id="4425149324548788773">मेरो ड्राइभ</translation>
 <translation id="4428374560396076622"><ph name="NETWORK_NAME" /> अफ छ</translation>
@@ -465,6 +475,7 @@
 <translation id="4469288414739283461">अर्थ फ्लो स्क्रिन सेभर</translation>
 <translation id="4479639480957787382">इथरनेट</translation>
 <translation id="4483049906298469269">नेटवर्कको डिफल्ट गेटवेका रूपमा सेट नगरिएको यस गेटवेलाई पिङ गर्न सकिएन</translation>
+<translation id="4500722292849917410">यो सर्टकट उपलब्ध छैन। मोडिफायर की (ctrl, alt, सिफ्ट, सर्च वा <ph name="META_KEY" />) प्रयोग गरी नयाँ सर्टकट थिच्नुहोस्।</translation>
 <translation id="4500966230243561393">इन्टरफेसको रङ</translation>
 <translation id="4503223151711056411">लेफ्ट एरो</translation>
 <translation id="4507392511610824664">"चमक बढाउनुहोस्" जनाउने आइकन</translation>
@@ -512,6 +523,7 @@
 <translation id="4832079907277790330">Files एप खोलेर कुनै फोल्डर चयन गर्नु...</translation>
 <translation id="4835901797422965222">कुनै पनि सक्रिय नेटवर्क छैन</translation>
 <translation id="4839698083503556542">आफ्नै चलचित्र बनाउनुहोस्</translation>
+<translation id="48409034532829769">तपाईंका एड्मिनले "<ph name="APP_NAME" />" स्वतः खुल्ने गरी सेट अप गर्नुभएको छ। यो एप बन्द नगरिन सक्छ।</translation>
 <translation id="484462545196658690">स्वतः</translation>
 <translation id="4847902821209177679"><ph name="TOPIC_SOURCE" /> <ph name="TOPIC_SOURCE_DESC" /> चयन गरिएको छ, <ph name="TOPIC_SOURCE" /> का एल्बमहरू चयन गर्न Enter थिच्नुहोस्</translation>
 <translation id="484790837831576105">(Android) DNS रिजोल्युसन</translation>
@@ -538,6 +550,7 @@
 <translation id="4969079779290789265">स्प्लिट स्क्रिन</translation>
 <translation id="4972592110715526173">"मोड बदल्नुहोस्" जनाउने आइकन</translation>
 <translation id="498186245079027698">स्क्यानर जाँच्नुहोस् र फेरि प्रयास गर्नुहोस्। स्क्यान गरिएका फाइलहरू सुरक्षित गर्न चाहिने पर्याप्त खाली ठाउँ छ भन्ने कुरा सुनिश्चित गर्नुहोस्।</translation>
+<translation id="4982627662315910959">यो सर्टकट उपलब्ध छैन। सिफ्ट र थप एउटा मोडिफायर की (ctrl, alt वा <ph name="META_KEY" />) प्रयोग गरी नयाँ सर्टकट थिच्नुहोस्।</translation>
 <translation id="4985509611418653372">चलाउनुहोस्</translation>
 <translation id="4987769320337599931">फायरवाल</translation>
 <translation id="4988526792673242964">पृष्ठहरू</translation>
@@ -839,11 +852,13 @@
 <translation id="7180611975245234373">ताजा गर्नुहोस्</translation>
 <translation id="7180865173735832675">कस्टमाइज गर्नुहोस्</translation>
 <translation id="7184043045742675738">आफ्नो बटन कस्टमाइज गर्न जुनसुकै कीमा क्लिक गर्नुहोस्। माउस वा एरो कीहरू प्रयोग गरेर की यताउता सार्नुहोस्।</translation>
+<translation id="7206979415662233817">सेवाका सर्तहरू</translation>
 <translation id="7212547870105584639">नेटवर्क APN सम्बन्धी सेटिङ मिलाउनुहोस्। APN ले मोबाइल नेटवर्क र इन्टरनेटबिचको कनेक्सन बनाउँछ। <ph name="BEGIN_LINK_LEARN_MORE" />थप जान्नुहोस्<ph name="END_LINK_LEARN_MORE" /></translation>
 <translation id="7212734716605298123">बाह्य डिभाइसहरूका लागि फर्मवेयरसम्बन्धी अपडेटहरू</translation>
 <translation id="7216409898977639127">सेलुलर प्रदायक</translation>
 <translation id="725133483556299729">इमेल चयन गर्नुहोस्</translation>
 <translation id="7271040990581020067">स्क्यानर हाल प्रयोग भइरहेको छ। पछि फेरि प्रयास गर्नुहोस्।</translation>
+<translation id="7271932918253517778">सिरानमा भएको रोका कीहरू भएको सर्टकटमा <ph name="META_KEY" /> की समावेश हुनु पर्छ।</translation>
 <translation id="7274587244503383581"><ph name="PRINTED_PAGES_NUMBER" />/<ph name="TOTAL_PAGES_NUMBER" /></translation>
 <translation id="7281657306185710294">Feel the breeze</translation>
 <translation id="7287310195820267359">वालपेपरका सङ्ग्रहहरू</translation>
@@ -856,6 +871,10 @@
 <translation id="7311368985037279727">किबोर्डको रङ</translation>
 <translation id="7317831949569936035">स्कुलको इमेल ठेगाना हालेर डिभाइस दर्ता गर्ने प्रक्रिया</translation>
 <translation id="7319430975418800333">A3</translation>
+<translation id="7331297744262591636">तपाईंको उमेर कम्तीमा १८ वर्ष पुगेको हुनु पर्छ र तपाईंले AI वालपेपरहरूको प्रयोगमा <ph name="GOOGLE_TERMS_OF_SERVICE_LINK" />Google का सेवाका सर्त<ph name="END_LINK_GOOGLE_TERMS_OF_SERVICE" /> र <ph name="BEGIN_LINK_GEN_AI_TERMS_OF_SERVICE" />जेनेरेटिभ AI का सेवाका अतिरिक्त सर्तहरू<ph name="END_LINK_GEN_AI_TERMS_OF_SERVICE" /> लागू हुन्छन् भन्ने कुरामा सहमति जनाउनु पर्ने हुन्छ।
+          <ph name="LINE_BREAK" />
+          <ph name="LINE_BREAK" />
+          तपाईं AI प्रयोग गरेर व्यक्तिगत र गैर व्यापारिक प्रयोजनका लागि मात्र वालपेपर बनाउन सक्नुहुन्छ। तपाईंले वालपेपर बनाउन AI को मद्दत लिँदा वालपेपरका सुझावहरू देखाउने प्रयोजनका लागि तपाईंले हालेको टेक्स्ट <ph name="BEGIN_LINK_GOOGLE_PRIVACY_POLICY" />Google को गोपनीयता नीति<ph name="END_LINK_GOOGLE_PRIVACY_POLICY" />बमोजिम Google AI मा पठाइन्छ। <ph name="BEGIN_LINK_LEARN_MORE" />थप जान्नुहोस्<ph name="END_LINK_LEARN_MORE" /></translation>
 <translation id="7343581795491695942"><ph name="QUERY_TEXT" />; <ph name="RESULT_TEXT" />; Google Search मा परिणाम हेर्न Search र Space बटन एकै चोटि थिच्नुहोस्।</translation>
 <translation id="7343649194310845056">नेटवर्कसम्बन्धी यन्त्रहरू</translation>
 <translation id="7353413232959255829"><ph name="LIST_SIZE" /> मध्ये <ph name="LIST_POSITION" /> औँ खोज परिणाम: <ph name="SEARCH_RESULT_TEXT" />। सर्टकटमा जान इन्टर की थिच्नुहोस्।</translation>

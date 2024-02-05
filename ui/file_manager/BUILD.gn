@@ -38,18 +38,6 @@ component("file_manager") {
   defines = [ "FILE_MANAGER_IMPLEMENTATION" ]
 }
 
-group("closure_compile") {
-  # Subfolders' closure_compile groups bundle the non-test "module" type-check
-  # groups as well as unittests and test_support.
-  testonly = true
-
-  deps = [
-    "integration_tests:closure_compile",
-    "integration_tests/file_manager:closure_compile",
-    "integration_tests/file_manager/page_objects:closure_compile",
-  ]
-}
-
 preprocess_folder = "$target_gen_dir/preprocessed"
 
 # Move files to the preprocessed folder to combine all resources in the same
@@ -96,7 +84,7 @@ preprocess_if_expr("preprocess_static_image_loader") {
     out_folder = preprocess_folder
   }
 
-  in_files = image_loader_static_js_files
+  in_files = image_loader_static_js_files + image_loader_ts
 }
 
 if (enable_webui_inline_sourcemaps) {
@@ -144,6 +132,8 @@ common_path_mappings = [
   "chrome://resources/cr_components/color_change_listener/*|" + rebase_path(
           "$root_gen_dir/ui/webui/resources/tsc/cr_components/color_change_listener/*",
           target_gen_dir),
+  "chrome://file-manager/*|" +
+      rebase_path("$preprocess_folder/file_manager/*", target_gen_dir),
 ]
 
 ts_library("build_ts") {
@@ -192,9 +182,10 @@ ts_library("build_ts") {
     "//ui/webui/resources/js:build_ts",
   ]
 
-  in_files = static_js_files + generated_js_files + ts_files + ts_polymer +
-             ts_generated_templates + image_loader_static_js_files +
-             [ "file_manager/externs/file_manager_private.js" ]
+  in_files =
+      static_js_files + generated_js_files + ts_files + ts_polymer +
+      ts_generated_templates + image_loader_static_js_files + image_loader_ts +
+      [ "file_manager/externs/file_manager_private.js" ]
 
   manifest_excludes = [ "file_manager/externs/file_manager_private.js" ]
 

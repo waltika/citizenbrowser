@@ -508,6 +508,12 @@ AXObject* AXNodeObject::ActiveDescendant() {
   return ax_descendant && ax_descendant->IsVisible() ? ax_descendant : nullptr;
 }
 
+bool IsExemptFromInlineBlockCheck(ax::mojom::blink::Role role) {
+  return role == ax::mojom::blink::Role::kSvgRoot ||
+         role == ax::mojom::blink::Role::kCanvas ||
+         role == ax::mojom::blink::Role::kEmbeddedObject;
+}
+
 AXObjectInclusion AXNodeObject::ShouldIncludeBasedOnSemantics(
     IgnoredReasons* ignored_reasons) const {
   DCHECK(GetDocument());
@@ -664,6 +670,7 @@ AXObjectInclusion AXNodeObject::ShouldIncludeBasedOnSemantics(
           ax::mojom::blink::Role::kAudio,
           ax::mojom::blink::Role::kBanner,
           ax::mojom::blink::Role::kBlockquote,
+          ax::mojom::blink::Role::kCode,
           ax::mojom::blink::Role::kComplementary,
           ax::mojom::blink::Role::kContentDeletion,
           ax::mojom::blink::Role::kContentInfo,
@@ -690,6 +697,7 @@ AXObjectInclusion AXNodeObject::ShouldIncludeBasedOnSemantics(
           ax::mojom::blink::Role::kDocPreface,
           ax::mojom::blink::Role::kDocPrologue,
           ax::mojom::blink::Role::kDocToc,
+          ax::mojom::blink::Role::kEmphasis,
           ax::mojom::blink::Role::kFigcaption,
           ax::mojom::blink::Role::kFigure,
           ax::mojom::blink::Role::kFooter,
@@ -736,6 +744,7 @@ AXObjectInclusion AXNodeObject::ShouldIncludeBasedOnSemantics(
           ax::mojom::blink::Role::kSplitter,
           ax::mojom::blink::Role::kSubscript,
           ax::mojom::blink::Role::kSuperscript,
+          ax::mojom::blink::Role::kStrong,
           ax::mojom::blink::Role::kTerm,
           ax::mojom::blink::Role::kTime,
           ax::mojom::blink::Role::kVideo,
@@ -767,6 +776,17 @@ AXObjectInclusion AXNodeObject::ShouldIncludeBasedOnSemantics(
   // Process potential in-page link targets
   if (IsPotentialInPageLinkTarget(*element))
     return kIncludeObject;
+
+  if (AXObjectCache().GetAXMode().has_mode(ui::AXMode::kInlineTextBoxes)) {
+    // If we have an element with inline block specified, we should include.
+    // There are some roles where we shouldn't include even if inline block,
+    // or we'll get test failures.
+    if (!IsExemptFromInlineBlockCheck(native_role_) && GetLayoutObject() &&
+        GetLayoutObject()->IsInline() &&
+        GetLayoutObject()->IsAtomicInlineLevel()) {
+      return kIncludeObject;
+    }
+  }
 
   // <span> tags are inline tags and not meant to convey information if they
   // have no other ARIA information on them. If we don't ignore them, they may
@@ -4564,7 +4584,8 @@ void AXNodeObject::AddOwnedChildren() {
 
   // Always include owned children.
   for (const auto& owned_child : owned_children) {
-    DCHECK(AXRelationCache::IsValidOwnedChild(owned_child))
+    DCHECK(owned_child->GetNode());
+    DCHECK(AXRelationCache::IsValidOwnedChild(*owned_child->GetNode()))
         << "This object is not allowed to be owned, but it is.\n"
         << owned_child->ToString(true, true);
     AddChildAndCheckIncluded(owned_child, true);
@@ -4579,15 +4600,7 @@ void AXNodeObject::AddChildrenImpl() {
   }
 
   CHECK(NeedsToUpdateChildren());
-
-  if (!CanHaveChildren()) {
-    // TODO(crbug.com/1407397): Make sure this is no longer firing then
-    // transform this block to CHECK(CanHaveChildren());
-    DUMP_WILL_BE_NOTREACHED_NORETURN()
-        << "Should not reach AddChildren() if CanHaveChildren() is false.\n"
-        << ToString(true, true);
-    return;
-  }
+  CHECK(CanHaveChildren());
 
   if (ShouldLoadInlineTextBoxes() && HasLayoutText(this)) {
     AddInlineTextBoxChildren();

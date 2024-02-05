@@ -43,7 +43,10 @@
   // Set the country to one that is eligible for the choice screen (in this
   // case, France).
   config.additional_args.push_back("--search-engine-choice-country=FR");
-  config.features_enabled.push_back(switches::kSearchEngineChoiceTrigger);
+  // Force the dialog to trigger also for existing users.
+  config.additional_args.push_back(
+      "--enable-features=SearchEngineChoiceTrigger:for_tagged_profiles_only/"
+      "false");
   config.additional_args.push_back("-SearchEngineForceEnabled");
   config.additional_args.push_back("true");
   // Relaunches the app at each test to re-display the choice screen.
@@ -81,6 +84,9 @@
 - (void)testSearchEngineChoiceScreenSelectThenScroll {
   // Checks that the choice screen is shown
   [SearchEngineChoiceEarlGreyUI verifySearchEngineChoiceScreenIsDisplayed];
+  // Checks that the fake omnibox illustration is displayed and is initially
+  // empty
+  [SearchEngineChoiceEarlGreyUI verifyFakeOmniboxIllustrationState:kEmpty];
   // Verifies that the primary button is initially the "More" button.
   id<GREYMatcher> moreButtonMatcher =
       grey_accessibilityID(kSearchEngineMoreButtonIdentifier);
@@ -93,6 +99,9 @@
       selectSearchEngineCellWithName:searchEngineToSelect
                      scrollDirection:kGREYDirectionDown
                               amount:50];
+  // Checks that the fake omnibox illustration is still displayed but is no
+  // longer empty
+  [SearchEngineChoiceEarlGreyUI verifyFakeOmniboxIllustrationState:kFull];
   // Taps the primary button. This scrolls the table down to the bottom.
   [[[EarlGrey selectElementWithMatcher:moreButtonMatcher]
       assertWithMatcher:grey_notNil()] performAction:grey_tap()];
@@ -111,6 +120,9 @@
 - (void)testSearchEngineChoiceScreenScrollThenSelect {
   // Checks that the choice screen is shown
   [SearchEngineChoiceEarlGreyUI verifySearchEngineChoiceScreenIsDisplayed];
+  // Checks that the fake omnibox illustration is displayed and is initially
+  // empty
+  [SearchEngineChoiceEarlGreyUI verifyFakeOmniboxIllustrationState:kEmpty];
   // Verifies that the primary button is initially the "More" button.
   id<GREYMatcher> moreButtonMatcher =
       grey_accessibilityID(kSearchEngineMoreButtonIdentifier);
@@ -135,6 +147,9 @@
       selectSearchEngineCellWithName:searchEngineToSelect
                      scrollDirection:kGREYDirectionUp
                               amount:300];
+  // Checks that the fake omnibox illustration is still displayed but is no
+  // longer empty
+  [SearchEngineChoiceEarlGreyUI verifyFakeOmniboxIllustrationState:kFull];
   [SearchEngineChoiceEarlGreyUI confirmSearchEngineChoiceScreen];
   [SearchEngineChoiceEarlGreyUI
       verifyDefaultSearchEngineSetting:searchEngineToSelect];

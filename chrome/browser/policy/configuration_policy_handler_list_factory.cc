@@ -109,7 +109,6 @@
 #include "components/safe_browsing/core/common/safe_browsing_prefs.h"
 #include "components/search_engines/default_search_policy_handler.h"
 #include "components/search_engines/search_engines_pref_names.h"
-#include "components/search_engines/site_search_policy_handler.h"
 #include "components/security_interstitials/core/https_only_mode_policy_handler.h"
 #include "components/security_interstitials/core/pref_names.h"
 #include "components/services/storage/public/cpp/storage_prefs.h"
@@ -251,6 +250,12 @@
 #include "chrome/browser/policy/battery_saver_policy_handler.h"
 #endif  // BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX) ||
         // BUILDFLAG(IS_CHROMEOS_ASH)
+
+#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX) || \
+    BUILDFLAG(IS_CHROMEOS)
+#include "components/search_engines/site_search_policy_handler.h"
+#endif  // BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX) ||
+        // BUILDFLAG(IS_CHROMEOS)
 
 namespace policy {
 namespace {
@@ -1197,6 +1202,9 @@ const PolicyToPreferenceMapEntry kSimplePolicyMap[] = {
   { key::kTouchVirtualKeyboardEnabled,
     prefs::kTouchVirtualKeyboardEnabled,
     base::Value::Type::BOOLEAN },
+  { key::kVirtualKeyboardSmartVisibilityEnabled,
+    prefs::kVirtualKeyboardSmartVisibilityEnabled,
+    base::Value::Type::BOOLEAN },
   { key::kEasyUnlockAllowed,
     ash::multidevice_setup::kSmartLockAllowedPrefName,
     base::Value::Type::BOOLEAN },
@@ -1572,9 +1580,6 @@ const PolicyToPreferenceMapEntry kSimplePolicyMap[] = {
   { key::kDeviceSwitchFunctionKeysBehaviorEnabled,
     ash::prefs::kDeviceSwitchFunctionKeysBehaviorEnabled,
     base::Value::Type::BOOLEAN },
-  { key::kDeviceExtendedFkeysModifier,
-    ash::prefs::kExtendedFkeysModifier,
-    base::Value::Type::INTEGER },
   { key::kShowHumanPresenceSensorScreenEnabled,
     ash::prefs::kShowHumanPresenceSensorScreenEnabled,
     base::Value::Type::BOOLEAN },
@@ -1584,6 +1589,24 @@ const PolicyToPreferenceMapEntry kSimplePolicyMap[] = {
   { key::kHeartbeatEnabled,
     ash::kHeartbeatEnabled,
     base::Value::Type::BOOLEAN },
+  { key::kF11KeyModifier,
+    ash::prefs::kF11KeyModifier,
+    base::Value::Type::INTEGER },
+  { key::kF12KeyModifier,
+    ash::prefs::kF12KeyModifier,
+    base::Value::Type::INTEGER },
+  { key::kHomeAndEndKeysModifier,
+    ash::prefs::kHomeAndEndKeysModifier,
+    base::Value::Type::INTEGER },
+  { key::kDeleteKeyModifier,
+    ash::prefs::kDeleteKeyModifier,
+    base::Value::Type::INTEGER },
+  { key::kPageUpAndPageDownKeysModifier,
+    ash::prefs::kPageUpAndPageDownKeysModifier,
+    base::Value::Type::INTEGER },
+{ key::kInsertKeyModifier,
+    ash::prefs::kInsertKeyModifier,
+    base::Value::Type::INTEGER },
 #endif // BUILDFLAG(IS_CHROMEOS_ASH)
 
 #if BUILDFLAG(IS_LINUX)
@@ -2175,10 +2198,15 @@ std::unique_ptr<ConfigurationPolicyHandlerList> BuildHandlerList(
   handlers->AddHandler(
       std::make_unique<performance_manager::MemorySaverPolicyHandler>());
   // Note: This needs to be created after `DefaultSearchPolicyHandler`.
+#endif  // BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX) ||
+        // BUILDFLAG(IS_CHROMEOS_ASH)
+
+#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX) || \
+    BUILDFLAG(IS_CHROMEOS)
   handlers->AddHandler(
       std::make_unique<SiteSearchPolicyHandler>(chrome_schema));
 #endif  // BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX) ||
-        // BUILDFLAG(IS_CHROMEOS_ASH)
+        // BUILDFLAG(IS_CHROMEOS)
 
 #if BUILDFLAG(IS_ANDROID)
   handlers->AddHandler(

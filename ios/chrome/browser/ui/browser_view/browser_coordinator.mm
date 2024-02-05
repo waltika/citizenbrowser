@@ -9,6 +9,7 @@
 #import <memory>
 #import <optional>
 
+#import "base/memory/raw_ptr.h"
 #import "base/metrics/histogram_functions.h"
 #import "base/scoped_observation.h"
 #import "base/strings/sys_string_conversions.h"
@@ -25,7 +26,6 @@
 #import "components/profile_metrics/browser_profile_type.h"
 #import "components/safe_browsing/core/common/features.h"
 #import "components/segmentation_platform/embedder/default_model/device_switcher_result_dispatcher.h"
-#import "components/signin/ios/browser/active_state_manager.h"
 #import "components/translate/core/browser/translate_manager.h"
 #import "ios/chrome/browser/app_launcher/model/app_launcher_tab_helper_browser_presentation_provider.h"
 #import "ios/chrome/browser/commerce/model/push_notification/push_notification_feature.h"
@@ -33,6 +33,7 @@
 #import "ios/chrome/browser/content_settings/model/host_content_settings_map_factory.h"
 #import "ios/chrome/browser/credential_provider_promo/model/features.h"
 #import "ios/chrome/browser/default_browser/model/utils.h"
+#import "ios/chrome/browser/docking_promo/coordinator/docking_promo_coordinator.h"
 #import "ios/chrome/browser/download/model/download_directory_util.h"
 #import "ios/chrome/browser/download/model/external_app_util.h"
 #import "ios/chrome/browser/download/model/pass_kit_tab_helper.h"
@@ -111,9 +112,10 @@
 #import "ios/chrome/browser/shared/ui/util/util_swift.h"
 #import "ios/chrome/browser/signin/model/account_consistency_browser_agent.h"
 #import "ios/chrome/browser/signin/model/account_consistency_service_factory.h"
+#import "ios/chrome/browser/snapshots/model/model_swift.h"
 #import "ios/chrome/browser/snapshots/model/snapshot_browser_agent.h"
-#import "ios/chrome/browser/snapshots/model/snapshot_generator_delegate.h"
 #import "ios/chrome/browser/snapshots/model/snapshot_tab_helper.h"
+#import "ios/chrome/browser/snapshots/model/web_state_snapshot_info.h"
 #import "ios/chrome/browser/store_kit/model/store_kit_coordinator.h"
 #import "ios/chrome/browser/store_kit/model/store_kit_coordinator_delegate.h"
 #import "ios/chrome/browser/sync/model/sync_error_browser_agent.h"
@@ -229,6 +231,7 @@
 #import "ios/chrome/browser/web/model/web_navigation_ntp_delegate.h"
 #import "ios/chrome/browser/web/model/web_state_delegate_browser_agent.h"
 #import "ios/chrome/browser/web_state_list/model/web_usage_enabler/web_usage_enabler_browser_agent.h"
+#import "ios/chrome/browser/web_state_list/model/web_usage_enabler/web_usage_enabler_browser_agent_observer_bridge.h"
 #import "ios/chrome/browser/webui/model/net_export_tab_helper_delegate.h"
 #import "ios/chrome/grit/ios_branded_strings.h"
 #import "ios/chrome/grit/ios_strings.h"
@@ -273,6 +276,7 @@ enum class ToolbarKind {
     OverscrollActionsControllerDelegate,
     PageInfoCommands,
     PageInfoPresentation,
+    ParcelTrackingOptInCommands,
     PasswordBreachCommands,
     PasswordControllerDelegate,
     PasswordProtectionCommands,
@@ -301,10 +305,16 @@ enum class ToolbarKind {
     URLLoadingDelegate,
     WebContentCommands,
     WebNavigationNTPDelegate,
-    ParcelTrackingOptInCommands>
+    WebUsageEnablerBrowserAgentObserving>
 
 // Whether the coordinator is started.
 @property(nonatomic, assign, getter=isStarted) BOOL started;
+
+// Activates/deactivates the object. This will enable/disable the ability for
+// this object to browse, and to have live UIWebViews associated with it. While
+// not active, the UI will not react to changes in the tab model, so generally
+// an inactive BVC should not be visible.
+@property(nonatomic, assign, getter=isActive) BOOL active;
 
 // Whether web usage is enabled for the WebStates in `self.browser`.
 @property(nonatomic, assign, getter=isWebUsageEnabled) BOOL webUsageEnabled;
@@ -527,22 +537,25 @@ enum class ToolbarKind {
   TabStripCoordinator* _tabStripCoordinator;
   TabStripLegacyCoordinator* _legacyTabStripCoordinator;
   SideSwipeMediator* _sideSwipeMediator;
-  FullscreenController* _fullscreenController;
+  raw_ptr<FullscreenController> _fullscreenController;
   // The coordinator that shows the Send Tab To Self UI.
   SendTabToSelfCoordinator* _sendTabToSelfCoordinator;
   BookmarksCoordinator* _bookmarksCoordinator;
   std::optional<ToolbarKind> _nextToolbarToPresent;
   CredentialProviderPromoCoordinator* _credentialProviderPromoCoordinator;
+  DockingPromoCoordinator* _dockingPromoCoordinator;
   // Used to display the Voice Search UI.  Nil if not visible.
   id<VoiceSearchController> _voiceSearchController;
-  UrlLoadingNotifierBrowserAgent* _urlLoadingNotifierBrowserAgent;
+  raw_ptr<UrlLoadingNotifierBrowserAgent> _urlLoadingNotifierBrowserAgent;
   id<LoadQueryCommands> _loadQueryCommandsHandler;
   id<OmniboxCommands> _omniboxCommandsHandler;
   LayoutGuideCenter* _layoutGuideCenter;
-  WebNavigationBrowserAgent* _webNavigationBrowserAgent;
-  UrlLoadingBrowserAgent* _urlLoadingBrowserAgent;
+  raw_ptr<WebNavigationBrowserAgent> _webNavigationBrowserAgent;
+  raw_ptr<UrlLoadingBrowserAgent> _urlLoadingBrowserAgent;
   AddContactsCoordinator* _addContactsCoordinator;
   OmniboxPositionChoiceCoordinator* _omniboxPositionChoiceCoordinator;
+  std::unique_ptr<WebUsageEnablerBrowserAgentObserverBridge>
+      _webUsageEnablerObserver;
 }
 
 #pragma mark - ChromeCoordinator
@@ -552,6 +565,10 @@ enum class ToolbarKind {
     return;
 
   DCHECK(!self.viewController);
+
+  _webUsageEnablerObserver =
+      std::make_unique<WebUsageEnablerBrowserAgentObserverBridge>(
+          WebUsageEnablerBrowserAgent::FromBrowser(self.browser), self);
 
   // TabLifeCycleMediator should start before createViewController because it
   // needs to register itself as a WebStateListObserver before the rest of the
@@ -602,6 +619,7 @@ enum class ToolbarKind {
   [self stopChildCoordinators];
   [self destroyViewController];
   [self destroyViewControllerDependencies];
+  _webUsageEnablerObserver.reset();
 }
 
 - (void)dealloc {
@@ -631,11 +649,6 @@ enum class ToolbarKind {
 
   ChromeBrowserState* browserState = self.browser->GetBrowserState();
   if (browserState) {
-    // TODO(crbug.com/1272520): Refactor ActiveStateManager for multiwindow.
-    ActiveStateManager* active_state_manager =
-        ActiveStateManager::FromBrowserState(browserState);
-    active_state_manager->SetActive(active);
-
     TextToSpeechPlaybackControllerFactory::GetInstance()
         ->GetForBrowserState(browserState)
         ->SetEnabled(active);
@@ -772,8 +785,6 @@ enum class ToolbarKind {
   if (!self.browser->GetBrowserState() || !self.started) {
     return;
   }
-  WebUsageEnablerBrowserAgent::FromBrowser(self.browser)
-      ->SetWebUsageEnabled(webUsageEnabled);
   _webUsageEnabled = webUsageEnabled;
   self.viewController.webUsageEnabled = webUsageEnabled;
 }
@@ -964,6 +975,7 @@ enum class ToolbarKind {
                       webStateList:self.browser->GetWebStateList()];
   _sideSwipeMediator.toolbarInteractionHandler = _toolbarCoordinator;
   _sideSwipeMediator.toolbarSnapshotProvider = _toolbarCoordinator;
+  _sideSwipeMediator.engagementTracker = engagementTracker;
   if (ui::GetDeviceFormFactor() == ui::DEVICE_FORM_FACTOR_TABLET &&
       !base::FeatureList::IsEnabled(kModernTabStrip)) {
     [_sideSwipeMediator setTabStripDelegate:_legacyTabStripCoordinator];
@@ -1290,6 +1302,12 @@ enum class ToolbarKind {
   _credentialProviderPromoCoordinator.promosUIHandler =
       _promosManagerCoordinator;
   [_credentialProviderPromoCoordinator start];
+
+  _dockingPromoCoordinator = [[DockingPromoCoordinator alloc]
+      initWithBaseViewController:self.viewController
+                         browser:self.browser];
+  _dockingPromoCoordinator.promosUIHandler = _promosManagerCoordinator;
+  [_dockingPromoCoordinator start];
 }
 
 // Stops child coordinators.
@@ -1411,6 +1429,9 @@ enum class ToolbarKind {
 
   [_credentialProviderPromoCoordinator stop];
   _credentialProviderPromoCoordinator = nil;
+
+  [_dockingPromoCoordinator stop];
+  _dockingPromoCoordinator = nil;
 
   [self.defaultBrowserPromoManager stop];
   self.defaultBrowserPromoManager = nil;
@@ -2061,15 +2082,23 @@ enum class ToolbarKind {
     id<CredentialProviderPromoCommands> credentialProviderPromoHandler =
         HandlerForProtocol(self.browser->GetCommandDispatcher(),
                            CredentialProviderPromoCommands);
+    id<DockingPromoCommands> dockingPromoHandler = HandlerForProtocol(
+        self.browser->GetCommandDispatcher(), DockingPromoCommands);
+
     self.promosManagerCoordinator = [[PromosManagerCoordinator alloc]
             initWithBaseViewController:self.viewController
                                browser:self.browser
-        credentialProviderPromoHandler:credentialProviderPromoHandler];
+        credentialProviderPromoHandler:credentialProviderPromoHandler
+                   dockingPromoHandler:dockingPromoHandler];
 
     // CredentialProviderPromoCoordinator is initialized earlier than this, so
     // make sure to set its UI handler.
     _credentialProviderPromoCoordinator.promosUIHandler =
         self.promosManagerCoordinator;
+
+    // _dockingPromoCoordinator is initialized earlier than this, so
+    // make sure to set its UI handler.
+    _dockingPromoCoordinator.promosUIHandler = self.promosManagerCoordinator;
 
     [self.promosManagerCoordinator start];
   } else {
@@ -2473,9 +2502,13 @@ enum class ToolbarKind {
               prefs::kIosParcelTrackingOptInStatus));
   switch (optInStatus) {
     case IOSParcelTrackingOptInStatus::kAlwaysTrack: {
+      web::WebState* activeWebState = self.activeWebState;
+      if (!activeWebState) {
+        return;
+      }
       commerce::ShoppingService* shoppingService =
           commerce::ShoppingServiceFactory::GetForBrowserState(
-              self.activeWebState->GetBrowserState());
+              activeWebState->GetBrowserState());
       // Track parcels and display infobar if successful.
       TrackParcels(
           shoppingService, parcels, std::string(),
@@ -2843,18 +2876,38 @@ enum class ToolbarKind {
 // mediator with a narrowly-defined API to get UI-layer information from the
 // BVC.
 
-- (BOOL)snapshotGenerator:(SnapshotGenerator*)snapshotGenerator
-    canTakeSnapshotForWebState:(web::WebState*)webState {
-  DCHECK(webState);
+- (BOOL)canTakeSnapshotWithWebStateInfo:(WebStateSnapshotInfo*)webStateInfo {
+  DCHECK(webStateInfo);
+  web::WebState* webState = webStateInfo.webState;
+  if (!webState) {
+    return NO;
+  }
   PagePlaceholderTabHelper* pagePlaceholderTabHelper =
       PagePlaceholderTabHelper::FromWebState(webState);
   return !pagePlaceholderTabHelper->displaying_placeholder() &&
          !pagePlaceholderTabHelper->will_add_placeholder_for_next_navigation();
 }
 
-- (UIEdgeInsets)snapshotGenerator:(SnapshotGenerator*)snapshotGenerator
-    snapshotEdgeInsetsForWebState:(web::WebState*)webState {
-  DCHECK(webState);
+- (void)willUpdateSnapshotWithWebStateInfo:(WebStateSnapshotInfo*)webStateInfo {
+  DCHECK(webStateInfo);
+  web::WebState* webState = webStateInfo.webState;
+  if (!webState) {
+    return;
+  }
+
+  if ([self isNTPActiveForCurrentWebState]) {
+    [_NTPCoordinator willUpdateSnapshot];
+  }
+  OverscrollActionsTabHelper::FromWebState(webState)->Clear();
+}
+
+- (UIEdgeInsets)snapshotEdgeInsetsWithWebStateInfo:
+    (WebStateSnapshotInfo*)webStateInfo {
+  DCHECK(webStateInfo);
+  web::WebState* webState = webStateInfo.webState;
+  if (!webState) {
+    return UIEdgeInsetsZero;
+  }
 
   UIEdgeInsets maxViewportInsets =
       _fullscreenController->GetMaxViewportInsets();
@@ -2886,9 +2939,14 @@ enum class ToolbarKind {
   }
 }
 
-- (NSArray<UIView*>*)snapshotGenerator:(SnapshotGenerator*)snapshotGenerator
-           snapshotOverlaysForWebState:(web::WebState*)webState {
-  DCHECK(webState);
+- (NSArray<UIView*>*)snapshotOverlaysWithWebStateInfo:
+    (WebStateSnapshotInfo*)webStateInfo {
+  DCHECK(webStateInfo);
+  web::WebState* webState = webStateInfo.webState;
+  if (!webState) {
+    return @[];
+  }
+
   WebStateList* webStateList = self.browser->GetWebStateList();
   DCHECK_NE(webStateList->GetIndexOfWebState(webState),
             WebStateList::kInvalidIndex);
@@ -2946,18 +3004,12 @@ enum class ToolbarKind {
   return overlays;
 }
 
-- (void)snapshotGenerator:(SnapshotGenerator*)snapshotGenerator
-    willUpdateSnapshotForWebState:(web::WebState*)webState {
-  DCHECK(webState);
-
-  if ([self isNTPActiveForCurrentWebState]) {
-    [_NTPCoordinator willUpdateSnapshot];
+- (UIView*)baseViewWithWebStateInfo:(WebStateSnapshotInfo*)webStateInfo {
+  DCHECK(webStateInfo);
+  web::WebState* webState = webStateInfo.webState;
+  if (!webState) {
+    return nil;
   }
-  OverscrollActionsTabHelper::FromWebState(webState)->Clear();
-}
-
-- (UIView*)snapshotGenerator:(SnapshotGenerator*)snapshotGenerator
-         baseViewForWebState:(web::WebState*)webState {
   NewTabPageTabHelper* NTPHelper = NewTabPageTabHelper::FromWebState(webState);
   if (NTPHelper && NTPHelper->IsActive()) {
     // If NTPCoordinator is not started yet, fall back to using the
@@ -3288,6 +3340,14 @@ enum class ToolbarKind {
 
 - (BOOL)isBrowserPresentingUI {
   return self.viewController.presentedViewController != nil;
+}
+
+#pragma mark - WebUsageEnablerBrowserAgentObserving
+
+- (void)webUsageEnablerValueChanged:
+    (WebUsageEnablerBrowserAgent*)webUsageEnabler {
+  self.active = WebUsageEnablerBrowserAgent::FromBrowser(self.browser)
+                    ->IsWebUsageEnabled();
 }
 
 @end

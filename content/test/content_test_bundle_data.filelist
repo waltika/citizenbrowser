@@ -5435,6 +5435,8 @@ data/accessibility/regression/aria-pressed-changes-button-role-expected-blink.tx
 data/accessibility/regression/aria-pressed-changes-button-role.html
 data/accessibility/regression/clear-children-while-computing-name-expected-blink.txt
 data/accessibility/regression/clear-children-while-computing-name.html
+data/accessibility/regression/combobox-aria-haspopup-changed-expected-blink.txt
+data/accessibility/regression/combobox-aria-haspopup-changed.html
 data/accessibility/regression/compute-name-while-freezing.html
 data/accessibility/regression/content-visibility-label-expected-blink.txt
 data/accessibility/regression/content-visibility-label.html
@@ -7192,6 +7194,7 @@ data/service_worker/skip_waiting_and_clients_claim_worker.js
 data/service_worker/skip_waiting_and_clients_claim_worker.js.mock-http-headers
 data/service_worker/static_import_worker.js
 data/service_worker/static_router.js
+data/service_worker/static_router_no_handler.js
 data/service_worker/sync.js.mock-http-headers
 data/service_worker/throttling_blocking_cache_addall_sw.js
 data/service_worker/throttling_blocking_sw.js

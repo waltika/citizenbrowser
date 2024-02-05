@@ -12,6 +12,7 @@
 #include "third_party/blink/public/mojom/model_execution/model_session.mojom-blink.h"
 #include "third_party/blink/renderer/bindings/core/v8/idl_types.h"
 #include "third_party/blink/renderer/bindings/core/v8/script_promise_resolver.h"
+#include "third_party/blink/renderer/core/dom/dom_exception.h"
 #include "third_party/blink/renderer/core/streams/readable_stream_default_controller_with_script_scope.h"
 #include "third_party/blink/renderer/core/streams/underlying_source_base.h"
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
@@ -93,6 +94,7 @@ class ModelGenericSession::StreamingResponder final
                   const WTF::String& text) override {
     switch (status) {
       case mojom::blink::ModelStreamingResponseStatus::kOngoing: {
+        v8::HandleScope handle_scope(script_state_->GetIsolate());
         Controller()->Enqueue(V8String(script_state_->GetIsolate(), text));
         break;
       }
@@ -101,9 +103,10 @@ class ModelGenericSession::StreamingResponder final
         break;
       }
       case mojom::blink::ModelStreamingResponseStatus::kError: {
-        // TODO(leimy): better error information design after the prototype.
-        Controller()->Error(V8ThrowException::CreateError(
-            script_state_->GetIsolate(), "Model execution error"));
+        // TODO(crbug.com/1520700): raise the proper exception based on the spec
+        // after the prototype phase.
+        Controller()->Error(MakeGarbageCollected<DOMException>(
+            DOMExceptionCode::kNotReadableError, "Model execution error"));
       }
     }
   }

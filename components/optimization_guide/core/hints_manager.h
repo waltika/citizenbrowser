@@ -6,6 +6,7 @@
 #define COMPONENTS_OPTIMIZATION_GUIDE_CORE_HINTS_MANAGER_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -27,7 +28,6 @@
 #include "components/optimization_guide/core/optimization_hints_component_observer.h"
 #include "components/optimization_guide/core/push_notification_manager.h"
 #include "components/optimization_guide/proto/hints.pb.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 
 class OptimizationGuideLogger;
 class OptimizationGuideNavigationData;
@@ -153,7 +153,8 @@ class HintsManager : public OptimizationHintsComponentObserver,
       const std::vector<GURL>& urls,
       const base::flat_set<proto::OptimizationType>& optimization_types,
       proto::RequestContext request_context,
-      OnDemandOptimizationGuideDecisionRepeatingCallback callback);
+      OnDemandOptimizationGuideDecisionRepeatingCallback callback,
+      proto::RequestContextMetadata* request_context_metadata);
 
   // Clears all fetched hints from |hint_cache_|.
   void ClearFetchedHints();
@@ -212,13 +213,25 @@ class HintsManager : public OptimizationHintsComponentObserver,
   // Add hints to the cache with the provided metadata. For testing only.
   void AddHintForTesting(const GURL& url,
                          proto::OptimizationType optimization_type,
-                         const absl::optional<OptimizationMetadata>& metadata);
+                         const std::optional<OptimizationMetadata>& metadata);
 
  private:
   friend class ::OptimizationGuideTestAppInterfaceWrapper;
   friend class HintsManagerTest;
 
   FRIEND_TEST_ALL_PREFIXES(HintsManagerFetchingTest, BatchUpdateFetcherCleanup);
+  FRIEND_TEST_ALL_PREFIXES(
+      HintsManagerFetchingTest,
+      PageInsightsHubContextRequestContextMetadataPihSentGetHintsRequest);
+  FRIEND_TEST_ALL_PREFIXES(
+      HintsManagerFetchingTest,
+      PageInsightsHubContextNotSentRequestContextMetadataPihSentGetHintsRequest);
+  FRIEND_TEST_ALL_PREFIXES(
+      HintsManagerFetchingTest,
+      PageInsightsHubContextRequestContextMetadataNotPihSentGetHintsRequest);
+  FRIEND_TEST_ALL_PREFIXES(
+      HintsManagerFetchingTest,
+      PageInsightsHubContextRequestContextMetadataPihNotSentGetHintsRequest);
 
   // Processes the optimization filters contained in the hints component.
   void ProcessOptimizationFilters(
@@ -271,7 +284,7 @@ class HintsManager : public OptimizationHintsComponentObserver,
   void OnHintsForActiveTabsFetched(
       const base::flat_set<std::string>& hosts_fetched,
       const base::flat_set<GURL>& urls_fetched,
-      absl::optional<std::unique_ptr<proto::GetHintsResponse>>
+      std::optional<std::unique_ptr<proto::GetHintsResponse>>
           get_hints_response);
 
   // Called when the batch update hints have been fetched from the remote
@@ -285,7 +298,7 @@ class HintsManager : public OptimizationHintsComponentObserver,
       const base::flat_set<GURL>& urls_for_callback,
       const base::flat_set<proto::OptimizationType>& optimization_types,
       OnDemandOptimizationGuideDecisionRepeatingCallback callback,
-      absl::optional<std::unique_ptr<proto::GetHintsResponse>>
+      std::optional<std::unique_ptr<proto::GetHintsResponse>>
           get_hints_response);
 
   // Called when information is ready such that we can invoke any callbacks that
@@ -318,6 +331,7 @@ class HintsManager : public OptimizationHintsComponentObserver,
           optimization_types,
       optimization_guide::proto::RequestContext request_context,
       OnDemandOptimizationGuideDecisionRepeatingCallback callback,
+      proto::RequestContextMetadata* request_context_metadata,
       const std::string& access_token);
 
   // Returns decisions for |url| and |optimization_types| based on what's cached
@@ -351,10 +365,10 @@ class HintsManager : public OptimizationHintsComponentObserver,
   // that were requested by |this| to be fetched.
   void OnPageNavigationHintsFetched(
       base::WeakPtr<OptimizationGuideNavigationData> navigation_data_weak_ptr,
-      const absl::optional<GURL>& navigation_url,
+      const std::optional<GURL>& navigation_url,
       const base::flat_set<GURL>& page_navigation_urls_requested,
       const base::flat_set<std::string>& page_navigation_hosts_requested,
-      absl::optional<std::unique_ptr<proto::GetHintsResponse>>
+      std::optional<std::unique_ptr<proto::GetHintsResponse>>
           get_hints_response);
 
   // Called when the fetched hints have been stored in |hint_cache| and are
@@ -368,7 +382,7 @@ class HintsManager : public OptimizationHintsComponentObserver,
   // whose hints should be loaded into memory when invoked.
   void OnFetchedPageNavigationHintsStored(
       base::WeakPtr<OptimizationGuideNavigationData> navigation_data_weak_ptr,
-      const absl::optional<GURL>& navigation_url,
+      const std::optional<GURL>& navigation_url,
       const base::flat_set<std::string>& page_navigation_hosts_requested);
 
   // Returns true if there is a fetch currently in-flight for |navigation_url|.
@@ -449,14 +463,14 @@ class HintsManager : public OptimizationHintsComponentObserver,
 
   // The information of the latest component delivered by
   // |optimization_guide_service_|.
-  absl::optional<HintsComponentInfo> hints_component_info_;
+  std::optional<HintsComponentInfo> hints_component_info_;
 
   // The component version that failed to process in the last session, if
   // applicable.
-  const absl::optional<base::Version> failed_component_version_;
+  const std::optional<base::Version> failed_component_version_;
 
   // The version of the component that is currently being processed.
-  absl::optional<base::Version> currently_processing_component_version_;
+  std::optional<base::Version> currently_processing_component_version_;
 
   // The set of optimization types that have been registered with the hints
   // manager.

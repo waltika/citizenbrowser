@@ -4,6 +4,7 @@
 
 #import "ios/chrome/browser/ui/content_suggestions/content_suggestions_mediator.h"
 
+#import "base/memory/raw_ptr.h"
 #import "base/memory/scoped_refptr.h"
 #import "base/test/ios/wait_util.h"
 #import "base/test/metrics/histogram_tester.h"
@@ -26,8 +27,8 @@
 #import "components/sync_preferences/testing_pref_service_syncable.h"
 #import "ios/chrome/browser/commerce/model/shopping_service_factory.h"
 #import "ios/chrome/browser/default_browser/model/utils_test_support.h"
-#import "ios/chrome/browser/favicon/ios_chrome_large_icon_cache_factory.h"
-#import "ios/chrome/browser/favicon/ios_chrome_large_icon_service_factory.h"
+#import "ios/chrome/browser/favicon/model/ios_chrome_large_icon_cache_factory.h"
+#import "ios/chrome/browser/favicon/model/ios_chrome_large_icon_service_factory.h"
 #import "ios/chrome/browser/first_run/model/first_run.h"
 #import "ios/chrome/browser/ntp/model/new_tab_page_tab_helper.h"
 #import "ios/chrome/browser/ntp/model/set_up_list_item_type.h"
@@ -141,6 +142,9 @@ using startup_metric_utils::FirstRunSentinelCreationResult;
 }
 
 - (void)showSetUpListWithItems:(NSArray<SetUpListItemViewData*>*)items {
+}
+
+- (void)showSetUpListModuleWithConfigs:(NSArray<SetUpListConfig*>*)configs {
 }
 
 - (void)markSetUpListItemComplete:(SetUpListItemType)type
@@ -364,14 +368,14 @@ class ContentSuggestionsMediatorTest : public PlatformTest {
   testing::StrictMock<favicon::MockFaviconService> mock_favicon_service_;
   std::unique_ptr<TestChromeBrowserState> chrome_browser_state_;
   std::unique_ptr<Browser> browser_;
-  WebStateList* web_state_list_;
+  raw_ptr<WebStateList> web_state_list_;
   std::unique_ptr<web::FakeWebState> fake_web_state_;
   id dispatcher_;
   id consumer_;
   std::unique_ptr<favicon::LargeIconServiceImpl> large_icon_service_;
   std::unique_ptr<MockPromosManager> promos_manager_;
   ContentSuggestionsMediator* mediator_;
-  FakeUrlLoadingBrowserAgent* url_loader_;
+  raw_ptr<FakeUrlLoadingBrowserAgent> url_loader_;
   std::unique_ptr<base::HistogramTester> histogram_tester_;
   ContentSuggestionsMetricsRecorder* metrics_recorder_;
   std::unique_ptr<commerce::MockShoppingService> shopping_service_;
@@ -539,7 +543,7 @@ TEST_F(ContentSuggestionsMediatorTest, TestMagicStackConsumerCall) {
   scoped_feature_list_.Reset();
   scoped_feature_list_.InitWithFeatures({kMagicStack}, {});
   OCMExpect([consumer_ setMagicStackOrder:[OCMArg any]]);
-  OCMExpect([consumer_ showSetUpListWithItems:[OCMArg any]]);
+  OCMExpect([consumer_ showSetUpListModuleWithConfigs:[OCMArg any]]);
   OCMExpect([consumer_ setShortcutTilesConfig:[OCMArg any]]);
   [consumer_ setExpectationOrderMatters:YES];
   mediator_.consumer = consumer_;

@@ -579,21 +579,6 @@ TEST_F(FormStructureTestImpl, ShouldBeParsed_TwoFields_HasAutocomplete) {
   EXPECT_TRUE(form_structure->ShouldBeParsed());
 }
 
-// Tests that unmappable autocomplete values containing "address" are treated
-// as HtmlFieldType::kUnspecified instead of
-// HtmlFieldType::kUnrecognized.
-TEST_F(FormStructureTestImpl, IgnoreUnmappableAutocompleteValues) {
-  base::test::ScopedFeatureList feature_list;
-  feature_list.InitAndEnableFeature(
-      features::kAutofillIgnoreUnmappableAutocompleteValues);
-
-  CheckFormStructureTestData(
-      {{{.description_for_logging = "IgnoreUnmappableAutocompleteValues",
-         .fields = {{.autocomplete_attribute = "address-info"}}},
-        {.determine_heuristic_type = true},
-        {.expected_html_type = {HtmlFieldType::kUnspecified}}}});
-}
-
 // Tests that ShouldBeParsed returns true for a form containing less than three
 // fields if at least one has an autocomplete attribute.
 TEST_F(FormStructureTestImpl, DetermineHeuristicTypes_AutocompleteFalse) {
@@ -2745,13 +2730,16 @@ TEST_F(FormStructureTestImpl, FindFieldsEligibleForManualFilling) {
             FormStructure::FindFieldsEligibleForManualFilling(forms));
 }
 
-// Tests that ParseFieldTypesWithPatterns() sets (only) the PatternSource.
+// Tests that AssignBestFieldTypes() sets (only) the PatternSource.
 TEST_P(FormStructureTest_ForPatternSource, ParseFieldTypesWithPatterns) {
   FormData form = test::CreateTestAddressFormData();
   FormStructure form_structure(form);
   ParsingContext context(GeoIpCountryCode(""), LanguageCode(""),
                          pattern_source());
-  test_api(form_structure).ParseFieldTypesWithPatterns(context);
+  test_api(form_structure)
+      .AssignBestFieldTypes(
+          test_api(form_structure).ParseFieldTypesWithPatterns(context),
+          pattern_source());
   ASSERT_THAT(form_structure.fields(), Not(IsEmpty()));
 
   auto get_heuristic_type = [&](const AutofillField& field) {

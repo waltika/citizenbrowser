@@ -66,7 +66,6 @@ class GPU_GLES2_EXPORT SharedImageInterfaceInProcess
       const SharedImageInterfaceInProcess&) = delete;
 
   // SharedImageInterface:
-  ~SharedImageInterfaceInProcess() override;
   scoped_refptr<ClientSharedImage> CreateSharedImage(
       viz::SharedImageFormat format,
       const gfx::Size& size,
@@ -115,7 +114,7 @@ class GPU_GLES2_EXPORT SharedImageInterfaceInProcess
       uint32_t usage,
       base::StringPiece debug_label,
       gfx::GpuMemoryBufferHandle buffer_handle) override;
-  scoped_refptr<ClientSharedImage> CreateSharedImage(
+  SharedImageInterface::SharedImageMapping CreateSharedImage(
       viz::SharedImageFormat format,
       const gfx::Size& size,
       const gfx::ColorSpace& color_space,
@@ -169,6 +168,9 @@ class GPU_GLES2_EXPORT SharedImageInterfaceInProcess
       const gpu::Mailbox& mailbox) override;
 
   const SharedImageCapabilities& GetCapabilities() override;
+
+ protected:
+  ~SharedImageInterfaceInProcess() override;
 
  private:
   // Parameters needed to be passed in to set up the class on the GPU.

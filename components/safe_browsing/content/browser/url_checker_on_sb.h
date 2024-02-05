@@ -83,7 +83,7 @@ class UrlCheckerOnSB final {
   UrlCheckerOnSB(
       GetDelegateCallback delegate_getter,
       int frame_tree_node_id,
-      absl::optional<int64_t> navigation_id,
+      std::optional<int64_t> navigation_id,
       base::RepeatingCallback<content::WebContents*()> web_contents_getter,
       OnCompleteCheckCallback complete_callback,
       bool url_real_time_lookup_enabled,
@@ -106,12 +106,17 @@ class UrlCheckerOnSB final {
   // Replaces the current |complete_callback_| with the new |callback|.
   void SwapCompleteCallback(OnCompleteCheckCallback callback);
 
+  // Returns a list of URLs that are checked by |url_checker_|.
+  const std::vector<GURL>& GetRedirectChain();
+
   void SetUrlCheckerForTesting(
       std::unique_ptr<SafeBrowsingUrlCheckerImpl> checker);
 
-  absl::optional<int64_t> navigation_id() { return navigation_id_; }
+  std::optional<int64_t> navigation_id() { return navigation_id_; }
 
   bool IsRealTimeCheckForTesting();
+
+  void AddUrlInRedirectChainForTesting(const GURL& url);
 
   base::WeakPtr<UrlCheckerOnSB> AsWeakPtr() {
     return weak_factory_.GetWeakPtr();
@@ -142,7 +147,7 @@ class UrlCheckerOnSB final {
   std::unique_ptr<SafeBrowsingUrlCheckerImpl> url_checker_;
   std::unique_ptr<SafeBrowsingUrlCheckerImpl> url_checker_for_testing_;
   int frame_tree_node_id_;
-  absl::optional<int64_t> navigation_id_;
+  std::optional<int64_t> navigation_id_;
   base::RepeatingCallback<content::WebContents*()> web_contents_getter_;
   OnCompleteCheckCallback complete_callback_;
   bool url_real_time_lookup_enabled_ = false;
@@ -152,6 +157,8 @@ class UrlCheckerOnSB final {
   size_t pending_checks_ = 0;
   std::string url_lookup_service_metric_suffix_;
   GURL last_committed_url_;
+  // A list of URLs that are checked by |url_checker_|.
+  std::vector<GURL> redirect_chain_;
   base::WeakPtr<RealTimeUrlLookupServiceBase> url_lookup_service_;
   base::WeakPtr<HashRealTimeService> hash_realtime_service_;
   hash_realtime_utils::HashRealTimeSelection hash_realtime_selection_ =

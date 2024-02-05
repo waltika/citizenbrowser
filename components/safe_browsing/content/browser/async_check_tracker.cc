@@ -4,6 +4,8 @@
 
 #include "components/safe_browsing/content/browser/async_check_tracker.h"
 
+#include "base/functional/callback_forward.h"
+#include "base/metrics/histogram_functions.h"
 #include "components/safe_browsing/content/browser/base_ui_manager.h"
 #include "components/safe_browsing/content/browser/unsafe_resource_util.h"
 #include "components/safe_browsing/core/common/features.h"
@@ -46,6 +48,21 @@ bool AsyncCheckTracker::IsMainPageLoadPending(
   return resource.IsMainPageLoadPendingWithSyncCheck();
 }
 
+// static
+std::optional<base::TimeTicks>
+AsyncCheckTracker::GetBlockedPageCommittedTimestamp(
+    const security_interstitials::UnsafeResource& resource) {
+  content::WebContents* web_contents =
+      unsafe_resource_util::GetWebContentsForResource(resource);
+  if (web_contents && AsyncCheckTracker::FromWebContents(web_contents) &&
+      resource.navigation_id.has_value() &&
+      base::FeatureList::IsEnabled(kSafeBrowsingAsyncRealTimeCheck)) {
+    return AsyncCheckTracker::FromWebContents(web_contents)
+        ->GetNavigationCommittedTimestamp(resource.navigation_id.value());
+  }
+  return std::nullopt;
+}
+
 AsyncCheckTracker::AsyncCheckTracker(content::WebContents* web_contents,
                                      scoped_refptr<BaseUIManager> ui_manager)
     : content::WebContentsUserData<AsyncCheckTracker>(*web_contents),
@@ -53,12 +70,12 @@ AsyncCheckTracker::AsyncCheckTracker(content::WebContents* web_contents,
       ui_manager_(std::move(ui_manager)) {}
 
 AsyncCheckTracker::~AsyncCheckTracker() {
-  DeletePendingCheckers(/*excluded_navigation_id=*/absl::nullopt);
+  DeletePendingCheckers(/*excluded_navigation_id=*/std::nullopt);
 }
 
 void AsyncCheckTracker::TransferUrlChecker(
     std::unique_ptr<UrlCheckerOnSB> checker) {
-  absl::optional<int64_t> navigation_id = checker->navigation_id();
+  std::optional<int64_t> navigation_id = checker->navigation_id();
   CHECK(navigation_id.has_value());
   int64_t id = navigation_id.value();
   // If there is an old checker with the same navigation_id, we should delete
@@ -68,6 +85,8 @@ void AsyncCheckTracker::TransferUrlChecker(
   pending_checkers_[id] = std::move(checker);
   pending_checkers_[id]->SwapCompleteCallback(base::BindRepeating(
       &AsyncCheckTracker::PendingCheckerCompleted, GetWeakPtr(), id));
+  base::UmaHistogramCounts10000("SafeBrowsing.AsyncCheck.PendingCheckersSize",
+                                pending_checkers_.size());
 }
 
 void AsyncCheckTracker::PendingCheckerCompleted(
@@ -78,7 +97,13 @@ void AsyncCheckTracker::PendingCheckerCompleted(
   }
   if (result.has_post_commit_interstitial_skipped) {
     CHECK(!result.proceed);
-    show_interstitial_after_finish_navigation_ = true;
+    if (IsNavigationPending(navigation_id)) {
+      show_interstitial_after_finish_navigation_ = true;
+    } else {
+      // If the navigation has already finished, show a warning immediately.
+      MaybeDisplayBlockingPage(
+          pending_checkers_[navigation_id]->GetRedirectChain(), navigation_id);
+    }
   }
   if (!result.proceed || result.all_checks_completed) {
     // No need to keep the checker around if proceed is false. We
@@ -90,23 +115,31 @@ void AsyncCheckTracker::PendingCheckerCompleted(
 }
 
 bool AsyncCheckTracker::IsNavigationPending(int64_t navigation_id) {
-  // This approach works based on the assumption that
-  //   1) DidStartNavigation must be called before DidFinishNavigation.
-  //   2) DidFinishNavigation must be called if DidStartNavigation is called (to
-  //      avoid memory leak).
-  //   3) The navigation id remains unchanged.
-  return base::Contains(pending_navigation_ids_, navigation_id);
+  return !base::Contains(committed_navigation_timestamps_, navigation_id);
 }
 
-void AsyncCheckTracker::DidStartNavigation(content::NavigationHandle* handle) {
-  pending_navigation_ids_.insert(handle->GetNavigationId());
+std::optional<base::TimeTicks>
+AsyncCheckTracker::GetNavigationCommittedTimestamp(int64_t navigation_id) {
+  if (!base::Contains(committed_navigation_timestamps_, navigation_id)) {
+    return std::nullopt;
+  }
+  return committed_navigation_timestamps_[navigation_id];
 }
 
 void AsyncCheckTracker::DidFinishNavigation(content::NavigationHandle* handle) {
   int64_t navigation_id = handle->GetNavigationId();
-  pending_navigation_ids_.erase(navigation_id);
-  // TODO(crbug.com/1501194): Add histograms to track the size of
-  // pending_navigation_ids_ and pending_checkers_.
+  if (handle->HasCommitted() && !handle->IsSameDocument()) {
+    // Do not filter out non primary main frame navigation because
+    // `IsNavigationPending` may be called for these navigation. For example,
+    // an async check is performed on the current WebContents (so
+    // AsyncCheckTracker is created) and then a prerendered navigation starts
+    // on the same WebContents.
+    committed_navigation_timestamps_[navigation_id] = base::TimeTicks::Now();
+  }
+  base::UmaHistogramCounts10000(
+      "SafeBrowsing.AsyncCheck.CommittedNavigationIdsSize",
+      committed_navigation_timestamps_.size());
+
   if (!handle->IsInPrimaryMainFrame() || handle->IsSameDocument() ||
       !handle->HasCommitted()) {
     return;
@@ -123,11 +156,18 @@ void AsyncCheckTracker::DidFinishNavigation(content::NavigationHandle* handle) {
   // may be removed for other reasons.
   show_interstitial_after_finish_navigation_ = false;
 
+  MaybeDisplayBlockingPage(handle->GetRedirectChain(),
+                           handle->GetNavigationId());
+}
+
+void AsyncCheckTracker::MaybeDisplayBlockingPage(
+    const std::vector<GURL>& redirect_chain,
+    int64_t navigation_id) {
   // Fields in `resource` is filled in by the call to
   // GetSeverestThreatForNavigation.
   UnsafeResource resource;
-  ThreatSeverity severity =
-      ui_manager_->GetSeverestThreatForNavigation(handle, resource);
+  ThreatSeverity severity = ui_manager_->GetSeverestThreatForRedirectChain(
+      redirect_chain, navigation_id, resource);
   if (severity == std::numeric_limits<ThreatSeverity>::max() ||
       resource.threat_type == SBThreatType::SB_THREAT_TYPE_SAFE) {
     return;
@@ -166,10 +206,11 @@ void AsyncCheckTracker::MaybeDeleteChecker(int64_t navigation_id) {
         FROM_HERE, std::move(pending_checkers_[navigation_id]));
   }
   pending_checkers_.erase(navigation_id);
+  MaybeCallOnAllCheckersCompletedCallback();
 }
 
 void AsyncCheckTracker::DeletePendingCheckers(
-    absl::optional<int64_t> excluded_navigation_id) {
+    std::optional<int64_t> excluded_navigation_id) {
   for (auto it = pending_checkers_.begin(); it != pending_checkers_.end();) {
     if (excluded_navigation_id.has_value() &&
         it->first == excluded_navigation_id.value()) {
@@ -183,11 +224,24 @@ void AsyncCheckTracker::DeletePendingCheckers(
                                                      std::move(it->second));
     }
     it = pending_checkers_.erase(it);
+    MaybeCallOnAllCheckersCompletedCallback();
   }
 }
 
 size_t AsyncCheckTracker::PendingCheckersSizeForTesting() {
   return pending_checkers_.size();
+}
+
+void AsyncCheckTracker::SetOnAllCheckersCompletedForTesting(
+    base::OnceClosure callback) {
+  on_all_checkers_completed_callback_for_testing_ = std::move(callback);
+}
+
+void AsyncCheckTracker::MaybeCallOnAllCheckersCompletedCallback() {
+  if (pending_checkers_.empty() &&
+      on_all_checkers_completed_callback_for_testing_) {
+    std::move(on_all_checkers_completed_callback_for_testing_).Run();
+  }
 }
 
 base::WeakPtr<AsyncCheckTracker> AsyncCheckTracker::GetWeakPtr() {

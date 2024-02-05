@@ -21,6 +21,7 @@
 <translation id="1119447706177454957">Erro interno</translation>
 <translation id="1124772482545689468">Usuário</translation>
 <translation id="1128128132059598906">EAP-TTLS</translation>
+<translation id="1134416403025830762">multiplique</translation>
 <translation id="1145018782460575098">A janela de atualização de firmware para dispositivos externos está aberta. <ph name="NUM_UPDATES" /> atualizações disponíveis.</translation>
 <translation id="1145516343487477149">Encontre artigos de ajuda e respostas a perguntas comuns sobre Chromebooks</translation>
 <translation id="1154390310959620237">Só é possível personalizar cinco atalhos. Exclua um para adicionar outro.</translation>
@@ -56,6 +57,7 @@
 <translation id="1330426557709298164">JPG</translation>
 <translation id="1337912285145772892">Ajustar à área de digitalização</translation>
 <translation id="1367951781824006909">Escolher um arquivo</translation>
+<translation id="1371650399987522809">Feedback sobre o plano de fundo com a tecnologia de IA do Google</translation>
 <translation id="1387854245479784695">Isso é uma agregação de todos os núcleos</translation>
 <translation id="1394661041439318933">O estojo tem <ph name="BATTERY_PERCENTAGE" />% de bateria.</translation>
 <translation id="1397738625398125236">O gateway pode receber um ping</translation>
@@ -87,13 +89,16 @@
 <translation id="155865706765934889">Touchpad</translation>
 <translation id="1561927818299383735">cor da retroiluminação</translation>
 <translation id="1565038567006703504">Não é possível atualizar <ph name="DEVICE_NAME" /></translation>
+<translation id="1566493343215789965">divida</translation>
 <translation id="1567064801249837505">Álbuns</translation>
 <translation id="1572585716423026576">Definir como plano de fundo</translation>
 <translation id="1578784163189013834">Escolher o plano de fundo do protetor de tela</translation>
 <translation id="160633243685262989">Imagem de prévia</translation>
 <translation id="1611649489706141841">avançar</translation>
 <translation id="1615335640928990664">Uso de dados desde <ph name="FRIENDLY_DATE" /></translation>
+<translation id="1615576200479539465">Gerando imagens…</translation>
 <translation id="1621067168122174824">Executar teste de carregamento</translation>
+<translation id="1626590945318984973">Atalho indisponível. Pressione um novo atalho sem usar as teclas de função e <ph name="META_KEY" />.</translation>
 <translation id="1639239467298939599">Carregando</translation>
 <translation id="1641857168437328880">Alimentador de documentos (unilateral)</translation>
 <translation id="1643449475550628585">Mudar a imagem do plano de fundo diariamente</translation>
@@ -264,6 +269,7 @@
 <translation id="2878387241690264070">Descarregou <ph name="RATE" /> em <ph name="NUM_SECONDS" /> segundos.</translation>
 <translation id="2880569433548999039">Protetor de tela Fluxo das nuvens</translation>
 <translation id="2926057806159140518">Insira seu nome de usuário e sua senha ou leia o QR code</translation>
+<translation id="2938573842839598578">Para um resultado aproximado, <ph name="OPERATOR_TEXT" /> o valor de <ph name="CATEGORY_TEXT" /> por <ph name="CONVERSION_RATE" /></translation>
 <translation id="2940811910881150316">Não foi possível testar o dispositivo. Abra a tampa novamente para testar.</translation>
 <translation id="2941112035454246133">Baixa</translation>
 <translation id="3008341117444806826">ATUALIZAR</translation>
@@ -336,6 +342,7 @@
 <translation id="3517001332549868749">Atualização do ChromeOS</translation>
 <translation id="3527036260304016759">Falha - Erro desconhecido</translation>
 <translation id="3532980081107202182">Aproximadamente <ph name="MIN_REMAINING" /> minutos restantes</translation>
+<translation id="3547264467365135390">Fórmula</translation>
 <translation id="3557205324756024651">Identidade local (opcional)</translation>
 <translation id="3565064564551103223">IPs permitidos</translation>
 <translation id="3569407787324516067">Protetor de tela</translation>
@@ -413,6 +420,7 @@
 <translation id="4113067922640381334">Agora você tem acesso a novos <ph name="BEGIN_LINK_WALLPAPER_SUBPAGE" />planos de fundo<ph name="END_LINK_WALLPAPER_SUBPAGE" /></translation>
 <translation id="4117637339509843559">Modo escuro</translation>
 <translation id="4130035430755296270">Passe o cursor para ver mais opções de layout</translation>
+<translation id="4130750466177569591">Aceito</translation>
 <translation id="4131410914670010031">Preto e branco</translation>
 <translation id="4145784616224233563">Firewall HTTP</translation>
 <translation id="4147897805161313378">Google Fotos</translation>
@@ -452,7 +460,9 @@
 <translation id="4394049700291259645">Desativar</translation>
 <translation id="439429847087949098">Reiniciando <ph name="DEVICE_NAME" /></translation>
 <translation id="4395835743215824109">personalizar teclado</translation>
+<translation id="4403262788869804671">Atalhos sem a tecla <ph name="META_KEY" /> podem entrar em conflito com o atalho de algum app. Pressione esse atalho novamente para continuar a usá-lo ou pressione um novo atalho usando a tecla <ph name="KEY" />.</translation>
 <translation id="4415951057168511744">Avatar atual</translation>
+<translation id="4417830657741848074">O administrador configurou alguns apps para iniciar automaticamente. É possível que alguns desses não estejam fechados.</translation>
 <translation id="4422041425070339732">seta para baixo</translation>
 <translation id="4425149324548788773">Meu Drive</translation>
 <translation id="4428374560396076622">A rede <ph name="NETWORK_NAME" /> está desativada</translation>
@@ -465,6 +475,7 @@
 <translation id="4469288414739283461">Protetor de tela Fluxo da Terra</translation>
 <translation id="4479639480957787382">Ethernet</translation>
 <translation id="4483049906298469269">Falha no ping do gateway de rede não padrão</translation>
+<translation id="4500722292849917410">Atalho indisponível. Pressione um novo atalho usando uma tecla modificadora (Ctrl, Alt, Shift ou <ph name="META_KEY" />).</translation>
 <translation id="4500966230243561393">Cor da interface</translation>
 <translation id="4503223151711056411">Seta para a esquerda</translation>
 <translation id="4507392511610824664">aumentar o brilho</translation>
@@ -512,6 +523,7 @@
 <translation id="4832079907277790330">Selecionar a pasta no app Arquivos…</translation>
 <translation id="4835901797422965222">Não há redes ativas</translation>
 <translation id="4839698083503556542">Crie seu próprio filme</translation>
+<translation id="48409034532829769">O administrador configurou o app <ph name="APP_NAME" /> para ser iniciado automaticamente. Não é possível fechar esse app.</translation>
 <translation id="484462545196658690">Automática</translation>
 <translation id="4847902821209177679"><ph name="TOPIC_SOURCE" /> Opção "<ph name="TOPIC_SOURCE_DESC" />" selecionada. Pressione "Enter" para selecionar álbuns do <ph name="TOPIC_SOURCE" /></translation>
 <translation id="484790837831576105">(Android) Resolução de DNS</translation>
@@ -538,6 +550,7 @@
 <translation id="4969079779290789265">Dividir</translation>
 <translation id="4972592110715526173">mudar o modo</translation>
 <translation id="498186245079027698">Confira o scanner e tente novamente. Confirme se há armazenamento local suficiente para salvar os arquivos digitalizados.</translation>
+<translation id="4982627662315910959">Atalho indisponível. Pressione um novo atalho usando Shift e mais uma tecla modificadora (Ctrl, Alt ou <ph name="META_KEY" />).</translation>
 <translation id="4985509611418653372">Executar</translation>
 <translation id="4987769320337599931">Firewall</translation>
 <translation id="4988526792673242964">Páginas</translation>
@@ -839,11 +852,13 @@
 <translation id="7180611975245234373">Atualizar</translation>
 <translation id="7180865173735832675">Personalizar</translation>
 <translation id="7184043045742675738">Clique em qualquer tecla para personalizar o botão. Reposicione a tecla com o mouse ou as teclas de seta.</translation>
+<translation id="7206979415662233817">Termos de Serviço</translation>
 <translation id="7212547870105584639">Gerenciar configurações do APN de rede. Os APNs estabelecem uma conexão entre a rede celular e a Internet. <ph name="BEGIN_LINK_LEARN_MORE" />Saiba mais<ph name="END_LINK_LEARN_MORE" /></translation>
 <translation id="7212734716605298123">Atualizações de firmware para dispositivos externos</translation>
 <translation id="7216409898977639127">Operadora de celular</translation>
 <translation id="725133483556299729">Selecione um e-mail</translation>
 <translation id="7271040990581020067">O scanner está em uso. Tente novamente mais tarde.</translation>
+<translation id="7271932918253517778">O atalho com as teclas da primeira fileira precisa incluir a tecla <ph name="META_KEY" />.</translation>
 <translation id="7274587244503383581"><ph name="PRINTED_PAGES_NUMBER" />/<ph name="TOTAL_PAGES_NUMBER" /></translation>
 <translation id="7281657306185710294">Sinta a brisa</translation>
 <translation id="7287310195820267359">Coleções de plano de fundo</translation>
@@ -856,6 +871,10 @@
 <translation id="7311368985037279727">cor do teclado</translation>
 <translation id="7317831949569936035">Registro escolar</translation>
 <translation id="7319430975418800333">A3</translation>
+<translation id="7331297744262591636">Você precisa ter pelo menos 18 anos e concorda que o uso dos planos de fundo de IA está sujeito aos <ph name="GOOGLE_TERMS_OF_SERVICE_LINK" />Termos de Serviço do Google<ph name="END_LINK_GOOGLE_TERMS_OF_SERVICE" /> e aos <ph name="BEGIN_LINK_GEN_AI_TERMS_OF_SERVICE" />Termos de Serviço adicionais da IA generativa<ph name="END_LINK_GEN_AI_TERMS_OF_SERVICE" />.
+          <ph name="LINE_BREAK" />
+          <ph name="LINE_BREAK" />
+          Só é possível criar planos de fundo com IA para uso pessoal e não comercial. Quando você recebe ajuda com o plano de fundo, o texto é enviado aos servidores da IA do Google para gerar sugestões, de acordo com a <ph name="BEGIN_LINK_GOOGLE_PRIVACY_POLICY" />Política de Privacidade do Google<ph name="END_LINK_GOOGLE_PRIVACY_POLICY" />. <ph name="BEGIN_LINK_LEARN_MORE" />Saiba mais<ph name="END_LINK_LEARN_MORE" /></translation>
 <translation id="7343581795491695942"><ph name="QUERY_TEXT" />; <ph name="RESULT_TEXT" />; Pressione Pesquisar + barra de espaço para ver o resultado na Pesquisa Google.</translation>
 <translation id="7343649194310845056">Dispositivos de rede</translation>
 <translation id="7353413232959255829">Resultado <ph name="LIST_POSITION" /> de <ph name="LIST_SIZE" /> da pesquisa: <ph name="SEARCH_RESULT_TEXT" />. Pressione Enter para navegar até o atalho.</translation>

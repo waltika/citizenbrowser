@@ -158,6 +158,14 @@ BASE_FEATURE(kCacheControlNoStoreEnterBackForwardCache,
              "CacheControlNoStoreEnterBackForwardCache",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
+// This killswitch is distinct from the OT.
+// It allows us to remotely disable the feature, and get it to stop working even
+// on sites that are in possession of a valid token. When that happens, all API
+// calls gated by the killswitch will fail graceully.
+BASE_FEATURE(kCapturedSurfaceControlKillswitch,
+             "CapturedSurfaceControlKillswitch",
+             base::FEATURE_ENABLED_BY_DEFAULT);
+
 // This serves as an overall kill switch to kill CdmStorageDatabase. If
 // disabled, which it is by default, no operations will be routed through the
 // CdmStorage* path, even in the migration code that lives in MediaLicense* code
@@ -777,7 +785,7 @@ BASE_FEATURE(kPushSubscriptionChangeEvent,
 // See https://crbug.com/838348 and https://crbug.com/1220337.
 BASE_FEATURE(kQueueNavigationsWhileWaitingForCommit,
              "QueueNavigationsWhileWaitingForCommit",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // When enabled, sends SubresourceResponseStarted IPC only when the user has
 // allowed any HTTPS-related warning exceptions. From field data, (see
@@ -1163,11 +1171,9 @@ BASE_FEATURE(kWebAssemblyBaseline,
              base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Enable WebAssembly JSPI.
-#if defined(ARCH_CPU_X86_64) || defined(ARCH_CPU_ARM64)
 BASE_FEATURE(kEnableExperimentalWebAssemblyJSPI,
              "WebAssemblyExperimentalJSPI",
              base::FEATURE_DISABLED_BY_DEFAULT);
-#endif  // defined(ARCH_CPU_X86_64) || defined(ARCH_CPU_ARM64)
 
 // Enable support for the WebAssembly Garbage Collection proposal:
 // https://github.com/WebAssembly/gc.
@@ -1274,12 +1280,6 @@ BASE_FEATURE(kAccessibilityPageZoomEnhancements,
 // enables the associated UI.
 BASE_FEATURE(kSmartZoom, "SmartZoom", base::FEATURE_DISABLED_BY_DEFAULT);
 
-// Automatically disables accessibility on Android when no assistive
-// technologies are present
-BASE_FEATURE(kAutoDisableAccessibilityV2,
-             "AutoDisableAccessibilityV2",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 // Enables the mojo based gin java bridge implementation.
 BASE_FEATURE(kGinJavaBridgeMojo,
              "GinJavaBridgeMojo",
@@ -1301,12 +1301,6 @@ BASE_FEATURE(kMouseAndTrackpadDropdownMenu,
 BASE_FEATURE(kRequestDesktopSiteWindowSetting,
              "RequestDesktopSiteWindowSetting",
              base::FEATURE_ENABLED_BY_DEFAULT);
-
-// Request Desktop Site zoom for Android. Apply a pre-defined page zoom level
-// when desktop user agent is used.
-BASE_FEATURE(kRequestDesktopSiteZoom,
-             "RequestDesktopSiteZoom",
-             base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Apply text selection menu order correction logic for Android.
 // TODO(https://crbug.com/1506484) This is a kill switch landed in M122.

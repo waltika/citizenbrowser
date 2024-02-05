@@ -141,9 +141,6 @@ BASE_DECLARE_FEATURE(kEnableShortenedPasswordAutoFillInstruction);
 // Feature flag to enable startup latency improvements.
 BASE_DECLARE_FEATURE(kEnableStartupImprovements);
 
-// Feature flag to enable Apple Calendar event in experience kit.
-BASE_DECLARE_FEATURE(kEnableExpKitAppleCalendar);
-
 // Feature flag / Kill Switch for TCRex.
 BASE_DECLARE_FEATURE(kTCRexKillSwitch);
 
@@ -195,9 +192,6 @@ bool IsConsistencyNewAccountInterfaceEnabled();
 // Feature flag to enable the new layout of the NTP omnibox.
 BASE_DECLARE_FEATURE(kNewNTPOmniboxLayout);
 
-// Feature flag to move the steady-state (unfocused) omnibox to the bottom.
-BASE_DECLARE_FEATURE(kBottomOmniboxSteadyState);
-
 // Feature param under kBottomOmniboxDefaultSetting to select the default
 // setting.
 extern const char kBottomOmniboxDefaultSettingParam[];
@@ -207,18 +201,9 @@ extern const char kBottomOmniboxDefaultSettingParamSafariSwitcher[];
 // Feature flag to change the default position of the omnibox.
 BASE_DECLARE_FEATURE(kBottomOmniboxDefaultSetting);
 
-// Feature flag to retrieve device switcher results for omnibox default
-// position. Enabled by default.
-BASE_DECLARE_FEATURE(kBottomOmniboxDeviceSwitcherResults);
-
-// Returns true if `kBottomOmniboxSteadyState` feature flag is enabled and the
-// current device is a phone. This checks that the flag is enabled, not that the
-// omnibox is currently at the bottom.
+// Returns true if the bottom omnibox feature is enabled. This does not check
+// that the omnibox is currently at the bottom.
 bool IsBottomOmniboxSteadyStateEnabled();
-
-// Returns true if `kBottomOmniboxDeviceSwitcherResults` feature flag is
-// enabled.
-bool IsBottomOmniboxDeviceSwitcherResultsEnabled();
 
 // Feature flag to enable the bottom omnibox FRE promo.
 BASE_DECLARE_FEATURE(kBottomOmniboxPromoFRE);

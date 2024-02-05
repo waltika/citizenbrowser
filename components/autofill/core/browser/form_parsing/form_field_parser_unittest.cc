@@ -21,13 +21,13 @@
 
 namespace autofill {
 
-class FormFieldTest
-    : public FormFieldTestBase,
+class FormFieldParserTest
+    : public FormFieldParserTestBase,
       public ::testing::TestWithParam<PatternProviderFeatureState> {
  public:
-  FormFieldTest() : FormFieldTestBase(GetParam()) {}
-  FormFieldTest(const FormFieldTest&) = delete;
-  FormFieldTest& operator=(const FormFieldTest&) = delete;
+  FormFieldParserTest() : FormFieldParserTestBase(GetParam()) {}
+  FormFieldParserTest(const FormFieldParserTest&) = delete;
+  FormFieldParserTest& operator=(const FormFieldParserTest&) = delete;
 
  protected:
   // Parses all added fields using `ParseFormFields`.
@@ -68,7 +68,7 @@ class FormFieldTest
     return field_candidates_map_.size();
   }
 
-  // FormFieldTestBase:
+  // FormFieldParserTestBase:
   // This function is unused in these unit tests, because FormFieldParser is not
   // a parser itself, but the infrastructure combining them.
   std::unique_ptr<FormFieldParser> Parse(ParsingContext& context,
@@ -80,8 +80,8 @@ class FormFieldTest
 };
 
 INSTANTIATE_TEST_SUITE_P(
-    FormFieldTest,
-    FormFieldTest,
+    FormFieldParserTest,
+    FormFieldParserTest,
     ::testing::ValuesIn(PatternProviderFeatureState::All()));
 
 struct MatchTestCase {
@@ -118,13 +118,12 @@ const MatchTestCase kMatchTestCases[]{
     // Make sure the circumflex in 'crêpe' is not treated as a word boundary.
     {u"crêpe", {}, {u"\\bcr\\b"}}};
 
-INSTANTIATE_TEST_SUITE_P(FormFieldTest,
+INSTANTIATE_TEST_SUITE_P(FormFieldParserTest,
                          MatchTest,
                          testing::ValuesIn(kMatchTestCases));
 
 TEST_P(MatchTest, Match) {
   const auto& [label, positive_patterns, negative_patterns] = GetParam();
-  constexpr MatchParams kMatchLabel{{MatchAttribute::kLabel}, {}};
   AutofillField field;
   SCOPED_TRACE("label = " + base::UTF16ToUTF8(label));
   field.label = label;
@@ -134,19 +133,19 @@ TEST_P(MatchTest, Match) {
                            PatternSource::kLegacy);
     SCOPED_TRACE("positive_pattern = " + base::UTF16ToUTF8(pattern));
     EXPECT_TRUE(FormFieldParser::MatchForTesting(context, &field, pattern,
-                                                 kMatchLabel));
+                                                 {MatchAttribute::kLabel}));
   }
   for (const auto& pattern : negative_patterns) {
     ParsingContext context(GeoIpCountryCode(""), LanguageCode(""),
                            PatternSource::kLegacy);
     SCOPED_TRACE("negative_pattern = " + base::UTF16ToUTF8(pattern));
     EXPECT_FALSE(FormFieldParser::MatchForTesting(context, &field, pattern,
-                                                  kMatchLabel));
+                                                  {MatchAttribute::kLabel}));
   }
 }
 
 // Test that we ignore checkable elements.
-TEST_P(FormFieldTest, ParseFormFieldsIgnoreCheckableElements) {
+TEST_P(FormFieldParserTest, ParseFormFieldsIgnoreCheckableElements) {
   AddFormFieldData(FormControlType::kInputCheckbox, "", "Is PO Box",
                    UNKNOWN_TYPE);
   // Add 3 dummy fields to reach kMinRequiredFieldsForHeuristics = 3.
@@ -159,7 +158,7 @@ TEST_P(FormFieldTest, ParseFormFieldsIgnoreCheckableElements) {
 
 // Test that the minimum number of required fields for the heuristics considers
 // whether a field is actually fillable.
-TEST_P(FormFieldTest, ParseFormFieldsEnforceMinFillableFields) {
+TEST_P(FormFieldParserTest, ParseFormFieldsEnforceMinFillableFields) {
   AddTextFormFieldData("", "Address line 1", ADDRESS_HOME_LINE1);
   AddTextFormFieldData("", "Address line 2", ADDRESS_HOME_LINE2);
   AddTextFormFieldData("", "Search", SEARCH_TERM);
@@ -168,36 +167,20 @@ TEST_P(FormFieldTest, ParseFormFieldsEnforceMinFillableFields) {
   EXPECT_EQ(0, ParseFormFields());
 }
 
-// Tests that the `parseable_name()` is parsed as an autocomplete type.
-TEST_P(FormFieldTest, ParseNameAsAutocompleteType) {
-  base::test::ScopedFeatureList autocomplete_feature;
-  autocomplete_feature.InitAndEnableFeature(
-      features::kAutofillParseNameAsAutocompleteType);
-
-  AddTextFormFieldData("given-name", "", NAME_FIRST);
-  AddTextFormFieldData("family-name", "", NAME_LAST);
-  AddTextFormFieldData("cc-exp-month", "", CREDIT_CARD_EXP_MONTH);
-  // The label is not parsed as an autocomplete type.
-  AddTextFormFieldData("", "cc-exp-month", UNKNOWN_TYPE);
-  EXPECT_EQ(3, ParseFormFields());
-  TestClassificationExpectations();
-}
-
 // Test that the parseable label is used when the feature is enabled.
-TEST_P(FormFieldTest, TestParseableLabels) {
+TEST_P(FormFieldParserTest, TestParseableLabels) {
   AddTextFormFieldData("", "not a parseable label", UNKNOWN_TYPE);
   AutofillField* autofill_field = list_.back().get();
   autofill_field->set_parseable_label(u"First Name");
 
-  constexpr MatchParams kMatchLabel{{MatchAttribute::kLabel}, {}};
   {
     base::test::ScopedFeatureList feature_list;
     feature_list.InitAndEnableFeature(
         features::kAutofillEnableSupportForParsingWithSharedLabels);
     ParsingContext context(GeoIpCountryCode(""), LanguageCode(""),
                            PatternSource::kLegacy);
-    EXPECT_TRUE(FormFieldParser::MatchForTesting(context, autofill_field,
-                                                 u"First Name", kMatchLabel));
+    EXPECT_TRUE(FormFieldParser::MatchForTesting(
+        context, autofill_field, u"First Name", {MatchAttribute::kLabel}));
   }
   {
     base::test::ScopedFeatureList feature_list;
@@ -205,13 +188,13 @@ TEST_P(FormFieldTest, TestParseableLabels) {
         features::kAutofillEnableSupportForParsingWithSharedLabels);
     ParsingContext context(GeoIpCountryCode(""), LanguageCode(""),
                            PatternSource::kLegacy);
-    EXPECT_FALSE(FormFieldParser::MatchForTesting(context, autofill_field,
-                                                  u"First Name", kMatchLabel));
+    EXPECT_FALSE(FormFieldParser::MatchForTesting(
+        context, autofill_field, u"First Name", {MatchAttribute::kLabel}));
   }
 }
 
 // Tests that `ParseSingleFieldForms` is called as part of `ParseFormFields`.
-TEST_P(FormFieldTest, ParseSingleFieldFormsInsideParseFormField) {
+TEST_P(FormFieldParserTest, ParseSingleFieldFormsInsideParseFormField) {
   AddTextFormFieldData(
       "", "Phone",
       base::FeatureList::IsEnabled(features::kAutofillDefaultToCityAndNumber)
@@ -226,7 +209,7 @@ TEST_P(FormFieldTest, ParseSingleFieldFormsInsideParseFormField) {
 }
 
 // Test that `ParseSingleFieldForms` parses single field promo codes.
-TEST_P(FormFieldTest, ParseFormFieldsForSingleFieldPromoCode) {
+TEST_P(FormFieldParserTest, ParseFormFieldsForSingleFieldPromoCode) {
   // Parse single field promo code.
   AddTextFormFieldData("", "Promo code", MERCHANT_PROMO_CODE);
   EXPECT_EQ(1, ParseSingleFieldForms());
@@ -241,7 +224,7 @@ TEST_P(FormFieldTest, ParseFormFieldsForSingleFieldPromoCode) {
 }
 
 // Test that `ParseSingleFieldForms` parses single field IBAN.
-TEST_P(FormFieldTest, ParseSingleFieldFormsIban) {
+TEST_P(FormFieldParserTest, ParseSingleFieldFormsIban) {
   // Parse single field IBAN.
   AddTextFormFieldData("", "IBAN", IBAN_VALUE);
   EXPECT_EQ(1, ParseSingleFieldForms());
@@ -256,7 +239,7 @@ TEST_P(FormFieldTest, ParseSingleFieldFormsIban) {
 }
 
 // Test that `ParseStandaloneCvcField` parses standalone CVC fields.
-TEST_P(FormFieldTest, ParseStandaloneCVCFields) {
+TEST_P(FormFieldParserTest, ParseStandaloneCVCFields) {
   base::test::ScopedFeatureList scoped_feature(
       features::kAutofillParseVcnCardOnFileStandaloneCvcFields);
 
@@ -290,7 +273,7 @@ const ParseInAnyOrderTestcase kParseInAnyOrderTestcases[]{
     // No field matches.
     {{{false, false}, {false, false}}, {}}};
 
-INSTANTIATE_TEST_SUITE_P(FormFieldTest,
+INSTANTIATE_TEST_SUITE_P(FormFieldParserTest,
                          ParseInAnyOrderTest,
                          testing::ValuesIn(kParseInAnyOrderTestcases));
 
@@ -352,7 +335,7 @@ TEST_P(ParseInAnyOrderTest, ParseInAnyOrder) {
 // rule to require at least 3 different field *types*.
 // Note that "fillable" refers to the field type, not whether a specific field
 // is visible and editable by the user.
-TEST_P(FormFieldTest, ParseFormRequires3DistinctFieldTypes) {
+TEST_P(FormFieldParserTest, ParseFormRequires3DistinctFieldTypes) {
   AddTextFormFieldData("name_origin", "From:", NAME_FULL);
   AddTextFormFieldData("name_destination", "To:", NAME_FULL);
   AddTextFormFieldData("name_via", "Via...", NAME_FULL);
@@ -370,14 +353,14 @@ TEST_P(FormFieldTest, ParseFormRequires3DistinctFieldTypes) {
   TestClassificationExpectations();
 }
 
-TEST_P(FormFieldTest, ParseStandaloneZipDisabledForUS) {
+TEST_P(FormFieldParserTest, ParseStandaloneZipDisabledForUS) {
   base::test::ScopedFeatureList enabled{
       features::kAutofillEnableZipOnlyAddressForms};
   AddTextFormFieldData("zip", "ZIP", ADDRESS_HOME_ZIP);
   EXPECT_EQ(0, ParseFormFields(GeoIpCountryCode("US")));
 }
 
-TEST_P(FormFieldTest, ParseStandaloneZipEnabledForBR) {
+TEST_P(FormFieldParserTest, ParseStandaloneZipEnabledForBR) {
   base::test::ScopedFeatureList enabled{
       features::kAutofillEnableZipOnlyAddressForms};
   AddTextFormFieldData("cep", "CEP", ADDRESS_HOME_ZIP);
@@ -385,14 +368,14 @@ TEST_P(FormFieldTest, ParseStandaloneZipEnabledForBR) {
   TestClassificationExpectations();
 }
 
-TEST_P(FormFieldTest, ParseStandaloneEmail) {
+TEST_P(FormFieldParserTest, ParseStandaloneEmail) {
   AddTextFormFieldData("email", "email", EMAIL_ADDRESS);
   AddTextFormFieldData("unknown", "Horseradish", UNKNOWN_TYPE);
   EXPECT_EQ(1, ParseStandaloneEmailFields());
   TestClassificationExpectations();
 }
 
-TEST_P(FormFieldTest, ParseStandaloneEmailWithNoEmailFields) {
+TEST_P(FormFieldParserTest, ParseStandaloneEmailWithNoEmailFields) {
   AddTextFormFieldData("unknown", "Horseradish", UNKNOWN_TYPE);
   EXPECT_EQ(0, ParseStandaloneEmailFields());
   TestClassificationExpectations();
@@ -400,7 +383,7 @@ TEST_P(FormFieldTest, ParseStandaloneEmailWithNoEmailFields) {
 
 // Tests that an email field is recognized even though it matches the pattern
 // nombre.*dirección, which is used to detect address name/type patterns.
-TEST_P(FormFieldTest, ParseStandaloneEmailSimilarToAddressName) {
+TEST_P(FormFieldParserTest, ParseStandaloneEmailSimilarToAddressName) {
   AddTextFormFieldData("-",
                        "nombre de usuario o dirección de correo electrónico",
                        EMAIL_ADDRESS);

@@ -13,30 +13,63 @@
 
 namespace views {
 class ImageView;
-class Label;
+class View;
 }  // namespace views
 
 namespace ash {
 
-// View for a Picker list item. Can have text, an icon, and/or image contents.
-// TODO: b/316935667 - Work out what can be in an item and how to lay it out.
+// View for a Picker item with text or an image as its primary contents. Can
+// optionally have other parts such as a leading icon and secondary text.
 class ASH_EXPORT PickerItemView : public views::Button {
   METADATA_HEADER(PickerItemView, views::Button)
 
  public:
-  explicit PickerItemView(views::Button::PressedCallback callback);
+  // Determines layout and styling of the item.
+  enum class ItemType {
+    // Used for items with small primary contents, e.g. an emoji or symbol.
+    kSmallGridItem,
+    // Used for items with large primary contents, e.g. a gif.
+    kLargeGridItem,
+    // Used for items with primary contents along with other optional details,
+    // e.g. a url with an icon.
+    kListItem,
+  };
+
+  explicit PickerItemView(views::Button::PressedCallback callback,
+                          ItemType item_type);
   PickerItemView(const PickerItemView&) = delete;
   PickerItemView& operator=(const PickerItemView&) = delete;
   ~PickerItemView() override;
 
-  void SetText(const std::u16string& text);
-  void SetIcon(const gfx::VectorIcon& icon);
-  void SetImageContents(std::unique_ptr<views::ImageView> image_contents);
+  void SetLeadingIcon(const gfx::VectorIcon& icon);
+
+  // Sets the primary text or image of the list item. This replaces any existing
+  // contents in the primary container.
+  void SetPrimaryText(const std::u16string& primary_text);
+  void SetPrimaryImage(std::unique_ptr<views::ImageView> primary_image);
+
+  void SetSecondaryText(const std::u16string& secondary_text);
+
+  ItemType item_type() const { return item_type_; }
+
+  const views::View* leading_container_for_testing() const {
+    return leading_container_;
+  }
+  const views::View* primary_container_for_testing() const {
+    return primary_container_;
+  }
 
  private:
-  raw_ptr<views::Label> text_label_ = nullptr;
-  raw_ptr<views::ImageView> icon_view_ = nullptr;
-  raw_ptr<views::ImageView> image_contents_ = nullptr;
+  ItemType item_type_;
+
+  // Contains the item's leading icon if it has been set.
+  raw_ptr<views::View> leading_container_ = nullptr;
+
+  // Contains the item's primary contents, which can be text or an image.
+  raw_ptr<views::View> primary_container_ = nullptr;
+
+  // Contains the item's secondary text if it has been set.
+  raw_ptr<views::View> secondary_container_ = nullptr;
 };
 
 }  // namespace ash

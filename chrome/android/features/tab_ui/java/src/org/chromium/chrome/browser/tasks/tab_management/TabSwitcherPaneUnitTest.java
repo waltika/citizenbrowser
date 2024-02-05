@@ -43,7 +43,9 @@ import org.chromium.base.Callback;
 import org.chromium.base.supplier.ObservableSupplier;
 import org.chromium.base.supplier.ObservableSupplierImpl;
 import org.chromium.base.supplier.OneshotSupplierImpl;
+import org.chromium.base.supplier.Supplier;
 import org.chromium.base.test.BaseRobolectricTestRunner;
+import org.chromium.base.test.util.UserActionTester;
 import org.chromium.chrome.browser.hub.DisplayButtonData;
 import org.chromium.chrome.browser.hub.FullButtonData;
 import org.chromium.chrome.browser.hub.HubContainerView;
@@ -81,6 +83,8 @@ public class TabSwitcherPaneUnitTest {
     @Mock private View.OnClickListener mNewTabButtonClickListener;
     @Mock private TabModelFilter mTabModelFilter;
     @Mock private PaneHubController mPaneHubController;
+    @Mock private TabSwitcherCustomViewManager.Delegate mCustomViewManagerDelegate;
+    @Mock private View mCustomView;
 
     @Captor ArgumentCaptor<OnSharedPreferenceChangeListener> mPriceAnnotationsPrefListenerCaptor;
     @Captor ArgumentCaptor<Callback<Integer>> mOnTabClickedCallbackCaptor;
@@ -94,10 +98,14 @@ public class TabSwitcherPaneUnitTest {
     private MockTabModel mTabModel;
     private int mTimesCreated;
 
+    private UserActionTester mActionTester;
+
     @Before
     public void setUp() {
         mContext = ApplicationProvider.getApplicationContext();
         when(mHubContainerView.getContext()).thenReturn(mContext);
+
+        mActionTester = new UserActionTester();
 
         PriceTrackingFeatures.setPriceTrackingEnabledForTesting(true);
         PriceTrackingFeatures.setIsSignedInAndSyncEnabledForTesting(true);
@@ -108,6 +116,11 @@ public class TabSwitcherPaneUnitTest {
         mTabModel = new MockTabModel(mProfile, null);
         when(mTabModelFilter.getTabModel()).thenReturn(mTabModel);
 
+        Supplier<Boolean> gridDialogVisibilitySupplier = () -> false;
+        when(mTabSwitcherPaneCoordinator.getTabSwitcherCustomViewManagerDelegate())
+                .thenReturn(mCustomViewManagerDelegate);
+        when(mTabSwitcherPaneCoordinator.getTabGridDialogVisibilitySupplier())
+                .thenReturn(gridDialogVisibilitySupplier);
         doAnswer(
                         invocation -> {
                             mTimesCreated++;
@@ -473,20 +486,27 @@ public class TabSwitcherPaneUnitTest {
         mTabSwitcherPane.initWithNative();
         mTabSwitcherPane.createTabSwitcherPaneCoordinator();
 
-        assertNull(mTabSwitcherPane.getTabSwitcherCustomViewManager());
-        verify(mTabSwitcherPaneCoordinator).getTabSwitcherCustomViewManager();
+        assertNotNull(mTabSwitcherPane.getTabGridDialogVisibilitySupplier());
+        verify(mTabSwitcherPaneCoordinator).getTabGridDialogVisibilitySupplier();
     }
 
     @Test
     @SmallTest
     public void testGetCustomViewManager() {
-        assertNull(mTabSwitcherPane.getTabSwitcherCustomViewManager());
+        assertNotNull(mTabSwitcherPane.getTabSwitcherCustomViewManager());
 
         mTabSwitcherPane.initWithNative();
         mTabSwitcherPane.createTabSwitcherPaneCoordinator();
+        verify(mTabSwitcherPaneCoordinator).getTabSwitcherCustomViewManagerDelegate();
 
-        assertNull(mTabSwitcherPane.getTabSwitcherCustomViewManager());
-        verify(mTabSwitcherPaneCoordinator).getTabSwitcherCustomViewManager();
+        TabSwitcherCustomViewManager customViewManager =
+                mTabSwitcherPane.getTabSwitcherCustomViewManager();
+        Runnable r = () -> {};
+        assertTrue(customViewManager.requestView(mCustomView, r, true));
+        verify(mCustomViewManagerDelegate).addCustomView(mCustomView, r, true);
+
+        mTabSwitcherPane.destroyTabSwitcherPaneCoordinator();
+        verify(mCustomViewManagerDelegate).removeCustomView(mCustomView);
     }
 
     @Test
@@ -555,6 +575,29 @@ public class TabSwitcherPaneUnitTest {
 
         mOnTabClickedCallbackCaptor.getValue().onResult(tabId);
         verify(mPaneHubController).selectTabAndHideHub(tabId);
+    }
+
+    @Test
+    @SmallTest
+    public void testPriceDropRecord() {
+        mTabModel.addTab(TAB_ID);
+        mTabSwitcherPane.initWithNative();
+        mTabSwitcherPane.notifyLoadHint(LoadHint.HOT);
+        ShadowLooper.runUiThreadTasks();
+
+        mTabModel.setIndex(0, TabSelectionType.FROM_USER, false);
+        assertEquals(1, mActionTester.getActionCount("Commerce.TabGridSwitched.NoPriceDrop"));
+
+        mTabModel.addTab(TAB_ID + 1);
+        mTabModel.setIndex(1, TabSelectionType.FROM_USER, false);
+        assertEquals(2, mActionTester.getActionCount("Commerce.TabGridSwitched.NoPriceDrop"));
+
+        mTabSwitcherPane.notifyLoadHint(LoadHint.COLD);
+        ShadowLooper.runUiThreadTasks();
+
+        mTabModel.addTab(TAB_ID + 2);
+        mTabModel.setIndex(2, TabSelectionType.FROM_USER, false);
+        assertEquals(2, mActionTester.getActionCount("Commerce.TabGridSwitched.NoPriceDrop"));
     }
 
     private void createSelectedTab() {

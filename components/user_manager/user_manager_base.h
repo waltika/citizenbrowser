@@ -7,6 +7,7 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
@@ -25,7 +26,6 @@
 #include "components/user_manager/user_manager.h"
 #include "components/user_manager/user_manager_export.h"
 #include "components/user_manager/user_type.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 
 class PrefRegistrySimple;
 
@@ -95,6 +95,9 @@ class USER_MANAGER_EXPORT UserManagerBase : public UserManager {
                     const std::string& user_id_hash,
                     bool browser_restart,
                     bool is_child) override;
+  bool OnUserProfileCreated(const AccountId& account_id,
+                            PrefService* prefs) override;
+  void OnUserProfileWillBeDestroyed(const AccountId& account_id) override;
   void SwitchActiveUser(const AccountId& account_id) override;
   void SwitchToLastActiveUser() override;
   void OnSessionStarted() override;
@@ -119,7 +122,7 @@ class USER_MANAGER_EXPORT UserManagerBase : public UserManager {
                             const std::string& display_email) override;
   UserType GetUserType(const AccountId& account_id) override;
   void SaveUserType(const User* user) override;
-  absl::optional<std::string> GetOwnerEmail() override;
+  std::optional<std::string> GetOwnerEmail() override;
   void RecordOwner(const AccountId& owner) override;
   void UpdateUserAccountData(const AccountId& account_id,
                              const UserAccountData& account_data) override;
@@ -219,16 +222,6 @@ class USER_MANAGER_EXPORT UserManagerBase : public UserManager {
   virtual void LoadDeviceLocalAccounts(
       std::set<AccountId>* device_local_accounts_set) = 0;
 
-  // Called when the Profile instance for a user identified by `account_id`
-  // is created. `prefs` should be the one that is owned by Profile.
-  // The 'prefs' must be kept alive until OnUserProfileWillBeDestroyed
-  // for the user is called.
-  // Returns whether actually the prefs are used or not.
-  bool OnUserProfileCreated(const AccountId& account_id, PrefService* prefs);
-  // Called just before the Profile for a user identified by `account_id`
-  // will be destroyed.
-  void OnUserProfileWillBeDestroyed(const AccountId& account_id);
-
   // Notifies observers that active user has changed.
   void NotifyActiveUserChanged(User* active_user);
 
@@ -270,7 +263,7 @@ class USER_MANAGER_EXPORT UserManagerBase : public UserManager {
   // If |trigger_cryptohome_removal| is set to true, this triggeres an
   // asynchronous operation to remove the user data in Cryptohome.
   void RemoveUserFromListImpl(const AccountId& account_id,
-                              absl::optional<UserRemovalReason> reason,
+                              std::optional<UserRemovalReason> reason,
                               bool trigger_cryptohome_removal);
 
   // Implementation for RemoveUser method. This is an asynchronous part of the
@@ -422,7 +415,7 @@ class USER_MANAGER_EXPORT UserManagerBase : public UserManager {
 
   // Cached name of device owner. Defaults to empty if the value has not
   // been read from trusted device policy yet.
-  absl::optional<AccountId> owner_account_id_ = absl::nullopt;
+  std::optional<AccountId> owner_account_id_ = std::nullopt;
 
   mutable base::OnceCallbackList<void(const AccountId&)>
       pending_owner_callbacks_;

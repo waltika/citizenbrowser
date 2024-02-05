@@ -11,6 +11,7 @@
 #include "components/global_media_controls/public/constants.h"
 #include "components/global_media_controls/public/media_item_manager.h"
 #include "components/global_media_controls/public/media_item_ui_observer.h"
+#include "components/global_media_controls/public/views/media_item_ui_detailed_view.h"
 #include "components/media_message_center/media_notification_item.h"
 #include "components/strings/grit/components_strings.h"
 #include "components/vector_icons/vector_icons.h"
@@ -81,9 +82,9 @@ MediaItemUIView::MediaItemUIView(
     base::WeakPtr<media_message_center::MediaNotificationItem> item,
     std::unique_ptr<MediaItemUIFooter> footer_view,
     std::unique_ptr<MediaItemUIDeviceSelector> device_selector_view,
-    absl::optional<media_message_center::NotificationTheme> notification_theme,
-    absl::optional<media_message_center::MediaColorTheme> media_color_theme,
-    absl::optional<MediaDisplayPage> media_display_page)
+    std::optional<media_message_center::NotificationTheme> notification_theme,
+    std::optional<media_message_center::MediaColorTheme> media_color_theme,
+    std::optional<MediaDisplayPage> media_display_page)
     : views::Button(PressedCallback()),
       id_(id),
       has_notification_theme_(notification_theme.has_value()) {
@@ -115,9 +116,9 @@ MediaItemUIView::MediaItemUIView(
   swipeable_container_ = AddChildView(std::move(swipeable_container));
 
   // Pressing callback for the updated quick settings media view will be handled
-  // in MediaNotificationViewAshImpl because it only wants to activate the
-  // original web contents when media labels are pressed, but it also relies on
-  // the button callback here to go to detailed media view.
+  // in MediaItemUIDetailedView because it only wants to activate the original
+  // web contents when media labels are pressed, but it also relies on the
+  // button callback here to go to detailed media view.
   if (use_cros_updated_ui_ &&
       media_display_page == MediaDisplayPage::kQuickSettingsMediaView) {
     SetCallback(base::BindRepeating(&MediaItemUIView::ContainerClicked,
@@ -140,14 +141,14 @@ MediaItemUIView::MediaItemUIView(
       device_selector_view_ = device_selector_view.get();
     }
 
-    // Focus behavior will be set inside MediaNotificationViewAshImpl.
+    // Focus behavior will be set inside MediaItemUIDetailedView.
     SetFocusBehavior(views::View::FocusBehavior::NEVER);
 
     SetPreferredSize(kCrOSMediaItemUpdatedUISize);
     SetLayoutManager(std::make_unique<views::FillLayout>());
 
     view_ = swipeable_container_->AddChildView(
-        std::make_unique<MediaNotificationViewAshImpl>(
+        std::make_unique<MediaItemUIDetailedView>(
             this, std::move(item), std::move(footer_view),
             std::move(device_selector_view), /*dismiss_button=*/nullptr,
             media_color_theme.value(), media_display_page.value()));

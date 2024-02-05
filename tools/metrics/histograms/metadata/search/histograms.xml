@@ -300,7 +300,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Search.ContextualSearch.NetError" enum="NetErrorCodes"
-    expires_after="2024-05-19">
+    expires_after="2024-07-21">
   <owner>donnd@chromium.org</owner>
   <owner>basiaz@google.com</owner>
   <summary>
@@ -381,7 +381,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Search.ContextualSearch.SelectionExpanded"
-    enum="ContextualSearchGestureIsTap" expires_after="2024-05-19">
+    enum="ContextualSearchGestureIsTap" expires_after="2024-07-21">
   <owner>donnd@chromium.org</owner>
   <owner>twellington@chromium.org</owner>
   <summary>
@@ -727,7 +727,7 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
-<histogram name="Search.Lens.ViewportDimensionsSent.Success" units="Boolean"
+<histogram name="Search.Lens.ViewportDimensionsSent.Success" enum="Boolean"
     expires_after="2024-06-02">
   <owner>mercerd@google.com</owner>
   <owner>lens-chrome-eng@google.com</owner>
@@ -891,7 +891,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Search.QueryTiles.TrendingTileEvent" enum="TrendingTileEvent"
-    expires_after="2024-05-19">
+    expires_after="2024-07-21">
   <owner>qinmin@chromium.org</owner>
   <owner>chrome-upboarding-eng@google.com</owner>
   <summary>
@@ -1053,6 +1053,17 @@ chromium-metrics-reviews@google.com.
     from 1 on are true Related Searches suggestions. Written when a Related
     Searches suggestion in the UI is selected. Implemented for Android. (Expired
     in 2023-02-12. Revived in 2024-11-03.)
+  </summary>
+</histogram>
+
+<histogram name="Search.SearchEngineDuplicateCounts" units="keyword duplicates"
+    expires_after="2024-07-21">
+  <owner>dgn@chromium.org</owner>
+  <owner>droger@chromium.org</owner>
+  <summary>
+    The number of keyword duplicates resulting from conflict resolution. This is
+    sampled once per browser session immediately after the client syncs Search
+    Engines.
   </summary>
 </histogram>
 

@@ -626,12 +626,7 @@ BASE_FEATURE(kUseMultiPlaneFormatForSoftwareVideo,
 // Enables using RasterInterface in VideoResourceUpdater.
 BASE_FEATURE(kRasterInterfaceInVideoResourceUpdater,
              "RasterInterfaceInVideoResourceUpdater",
-#if BUILDFLAG(IS_ANDROID)
-             base::FEATURE_DISABLED_BY_DEFAULT
-#else
-             base::FEATURE_ENABLED_BY_DEFAULT
-#endif
-);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Enables binding software video NV12/P010 GMBs as separate shared images.
 BASE_FEATURE(kMultiPlaneSoftwareVideoSharedImages,
@@ -727,7 +722,12 @@ BASE_FEATURE(kGlobalMediaControlsAutoDismiss,
 BASE_FEATURE(kGlobalMediaControlsCrOSUpdatedUI,
              "GlobalMediaControlsCrOSUpdatedUI",
              base::FEATURE_DISABLED_BY_DEFAULT);
-#endif
+#else   // BUILDFLAG(IS_CHROMEOS)
+// Updated global media controls UI for all the non-CrOS desktop platforms.
+BASE_FEATURE(kGlobalMediaControlsUpdatedUI,
+             "GlobalMediaControlsUpdatedUI",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+#endif  // BUILDFLAG(IS_CHROMEOS)
 
 #if !BUILDFLAG(IS_ANDROID)
 // If enabled, users can request Media Remoting without fullscreen-in-tab.
@@ -877,18 +877,13 @@ BASE_FEATURE(kVideoBlitColorAccuracy,
              "video-blit-color-accuracy",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
-// A client (e.g. cast mirroring) can allow a video encoder to drop a frame.
-BASE_FEATURE(kVideoEncoderFrameDrop,
-             "VideoEncoderFrameDrop",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
 #if BUILDFLAG(IS_APPLE)
 // Use VideoToolbox for AV1 hardware decoding.
 // Owner: dalecurtis@chromium.org, sandersd@chromium.org
 // Expiry: When enabled by default for a full release cycle
 BASE_FEATURE(kVideoToolboxAv1Decoding,
              "VideoToolboxAv1Decoding",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Use the new VideoToolboxVideoDecoder for hardware decoding.
 // Owner: sandersd@chromium.org
@@ -897,6 +892,16 @@ BASE_FEATURE(kVideoToolboxVideoDecoder,
              "VideoToolboxVideoDecoder",
              base::FEATURE_DISABLED_BY_DEFAULT);
 #endif  // BUILDFLAG(IS_APPLE)
+
+// A video encoder is enabled to drop a frame in cast mirroring.
+BASE_FEATURE(kCastVideoEncoderFrameDrop,
+             "CastVideoEncoderFrameDrop",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+// A hardware video encoder is enabled to drop a frame in WebRTC.
+BASE_FEATURE(kWebRTCHardwareVideoEncoderFrameDrop,
+             "WebRTCHardwareVideoEncoderFrameDrop",
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Inform webrtc with correct video color space information whenever
 // possible.
@@ -1218,6 +1223,10 @@ BASE_FEATURE(kAllowMediaCodecSoftwareDecoder,
 BASE_FEATURE(kBuiltInHlsPlayer,
              "BuiltInHlsPlayer",
              base::FEATURE_DISABLED_BY_DEFAULT);
+
+BASE_FEATURE(kBuiltInHlsMP4,
+             "kBuiltInHlsMP4",
+             base::FEATURE_DISABLED_BY_DEFAULT);
 #endif  // BUILDFLAG(ENABLE_HLS_DEMUXER)
 
 #if BUILDFLAG(USE_CHROMEOS_MEDIA_ACCELERATION)
@@ -1230,7 +1239,12 @@ BASE_FEATURE(kChromeOSHWAV1Decoder,
 // ChromeOS.
 BASE_FEATURE(kChromeOSHWVBREncoding,
              "ChromeOSHWVBREncoding",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+#if defined(ARCH_CPU_X86_FAMILY)
+             base::FEATURE_ENABLED_BY_DEFAULT
+#else
+             base::FEATURE_DISABLED_BY_DEFAULT
+#endif
+);
 
 // Use a dedicated thread for hardware video decoding in Video decoder process.
 // If this is disabled, a sequenced task runner in base::ThreadPool is used for
@@ -1261,6 +1275,14 @@ BASE_FEATURE(kUSeSequencedTaskRunnerForVEA,
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 #if defined(ARCH_CPU_ARM_FAMILY)
+// Experimental support for GL based scaling for NV12 on Trogdor.
+// Normally LibYUV is used to scale these frames. This flag enables
+// an experimental GL-based scaling method.
+// Owner: bchoobineh@chromium.org
+// Expiry: When GLImageProcessor is deleted
+BASE_FEATURE(kUseGLForScaling,
+             "UseGLForScaling",
+             base::FEATURE_DISABLED_BY_DEFAULT);
 // Experimental support for GL based image processing. On some architectures,
 // the hardware accelerated video decoder outputs frames in a format not
 // understood by the display controller. We usually use LibYUV to convert these
@@ -1700,7 +1722,7 @@ BASE_FEATURE(kLibaomUseChromeThreads,
 // Allows decoding of theora / vp3 content.
 BASE_FEATURE(kTheoraVideoCodec,
              "TheoraVideoCodec",
-             base::FEATURE_ENABLED_BY_DEFAULT);
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 #if BUILDFLAG(IS_CHROMEOS)
 // Allows demuxing of AVI and decoding of MPEG4 streams. These should not be

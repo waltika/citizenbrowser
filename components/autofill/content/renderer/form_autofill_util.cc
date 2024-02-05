@@ -14,6 +14,7 @@
 #include <utility>
 #include <vector>
 
+#include "base/check_deref.h"
 #include "base/check_op.h"
 #include "base/command_line.h"
 #include "base/containers/contains.h"
@@ -1006,7 +1007,7 @@ void SortByFieldRendererIds(std::vector<WebFormControlElement>& elements) {
 }
 
 std::vector<WebFormControlElement>::iterator SearchInSortedVector(
-    const FormFieldData& field,
+    const FormFieldData::FillData& field,
     std::vector<WebFormControlElement>& sorted_elements) {
   auto get_field_renderer_id = [](const WebFormControlElement& e) {
     return GetFieldRendererId(e);
@@ -1023,7 +1024,7 @@ std::vector<WebFormControlElement>::iterator SearchInSortedVector(
   return it;
 }
 
-bool ShouldSkipFillField(const FormFieldData& field,
+bool ShouldSkipFillField(const FormFieldData::FillData& field,
                          const WebFormControlElement& element,
                          const WebFormControlElement& trigger_element) {
   // Skip all checkable or non-modifiable elements, except select fields because
@@ -1092,12 +1093,12 @@ bool ShouldSkipFillField(const FormFieldData& field,
 // Sets the |field|'s value to the value in |data|, and specifies the section
 // for filled fields.  Also sets the "autofilled" attribute,
 // causing the background to be blue.
-void FillFormField(const FormFieldData& data,
+void FillFormField(const FormFieldData::FillData& data,
                    bool is_initiating_node,
-                   blink::WebFormControlElement* field,
+                   blink::WebFormControlElement& field,
                    FieldDataManager& field_data_manager) {
-  CHECK(!IsCheckableElement(*field));
-  WebInputElement input_element = field->DynamicTo<WebInputElement>();
+  CHECK(!IsCheckableElement(field));
+  WebInputElement input_element = field.DynamicTo<WebInputElement>();
   WebAutofillState new_autofill_state = data.is_autofilled
                                             ? WebAutofillState::kAutofilled
                                             : WebAutofillState::kNotFilled;
@@ -1110,42 +1111,42 @@ void FillFormField(const FormFieldData& data,
   }
 
   if (IsTextInput(input_element)) {
-    field_data_manager.UpdateFieldDataMap(GetFieldRendererId(*field), value,
+    field_data_manager.UpdateFieldDataMap(GetFieldRendererId(field), value,
                                           FieldPropertiesFlags::kAutofilled);
   }
-  field->SetAutofillValue(blink::WebString::FromUTF16(value),
-                          new_autofill_state);
+  field.SetAutofillValue(blink::WebString::FromUTF16(value),
+                         new_autofill_state);
   // Changing the field's value might trigger JavaScript, which is capable of
   // destroying the frame.
-  if (!field->GetDocument().GetFrame()) {
+  if (!field.GetDocument().GetFrame()) {
     return;
   }
 
   if (is_initiating_node &&
       (IsTextInput(input_element) || IsMonthInput(input_element) ||
-       IsTextAreaElement(*field))) {
-    auto length = base::checked_cast<unsigned>(field->Value().length());
-    field->SetSelectionRange(length, length);
+       IsTextAreaElement(field))) {
+    auto length = base::checked_cast<unsigned>(field.Value().length());
+    field.SetSelectionRange(length, length);
     // selectionchange event is capable of destroying the frame.
-    if (!field->GetDocument().GetFrame()) {
+    if (!field.GetDocument().GetFrame()) {
       return;
     }
     // Clear the current IME composition (the underline), if there is one.
-    field->GetDocument().GetFrame()->UnmarkText();
+    field.GetDocument().GetFrame()->UnmarkText();
   }
 }
 
 // Sets the |field|'s "suggested" (non JS visible) value to the value in |data|.
 // Also sets the "autofilled" attribute, causing the background to be blue.
-void PreviewFormField(const FormFieldData& data,
+void PreviewFormField(const FormFieldData::FillData& data,
                       bool is_initiating_node,
-                      blink::WebFormControlElement* field,
+                      blink::WebFormControlElement& field,
                       FieldDataManager& field_data_manager) {
-  CHECK(!IsCheckableElement(*field));
+  CHECK(!IsCheckableElement(field));
   // Preview input, textarea and select fields. For input fields, excludes
   // checkboxes and radio buttons, as there is no provision for
   // setSuggestedCheckedValue in WebInputElement.
-  WebInputElement input_element = field->DynamicTo<WebInputElement>();
+  WebInputElement input_element = field.DynamicTo<WebInputElement>();
   WebAutofillState new_autofill_state = data.is_autofilled
                                             ? WebAutofillState::kPreviewed
                                             : WebAutofillState::kNotFilled;
@@ -1155,15 +1156,15 @@ void PreviewFormField(const FormFieldData& data,
     input_element.SetSuggestedValue(blink::WebString::FromUTF16(
         data.value.substr(0, input_element.MaxLength())));
     input_element.SetAutofillState(new_autofill_state);
-  } else if (IsTextAreaElement(*field) || IsSelectOrSelectListElement(*field)) {
-    field->SetSuggestedValue(blink::WebString::FromUTF16(data.value));
-    field->SetAutofillState(new_autofill_state);
+  } else if (IsTextAreaElement(field) || IsSelectOrSelectListElement(field)) {
+    field.SetSuggestedValue(blink::WebString::FromUTF16(data.value));
+    field.SetAutofillState(new_autofill_state);
   }
 
   if (is_initiating_node &&
-      (IsTextInput(input_element) || IsTextAreaElement(*field))) {
+      (IsTextInput(input_element) || IsTextAreaElement(field))) {
     // Select the part of the text that the user didn't type.
-    PreviewSuggestion(field->SuggestedValue().Utf16(), field->Value().Utf16(),
+    PreviewSuggestion(field.SuggestedValue().Utf16(), field.Value().Utf16(),
                       field);
   }
 }
@@ -1555,17 +1556,6 @@ bool ScriptModifiedUsernameOrCreditCardNumberAcceptable(
   return field_data_manager.FindMatchedValue(value);
 }
 
-// Build a map from entries in |form_control_renderer_ids| to their indices,
-// for more efficient lookup.
-base::flat_map<FieldRendererId, size_t> BuildRendererIdToIndex(
-    base::span<const FieldRendererId> form_control_renderer_ids) {
-  std::vector<std::pair<FieldRendererId, size_t>> items;
-  items.reserve(form_control_renderer_ids.size());
-  for (size_t i = 0; i < form_control_renderer_ids.size(); i++)
-    items.emplace_back(form_control_renderer_ids[i], i);
-  return base::flat_map<FieldRendererId, size_t>(std::move(items));
-}
-
 }  // namespace
 
 std::vector<WebElement> GetWebElementsFromIdList(const WebDocument& document,
@@ -1874,15 +1864,7 @@ FormRendererId GetFormRendererId(const blink::WebElement& e) {
   if (e.IsNull()) {
     return FormRendererId();
   }
-  if (base::FeatureList::IsEnabled(
-          blink::features::kAutofillUseDomNodeIdForRendererId)) {
     return FormRendererId(e.GetDomNodeId());
-  }
-  WebFormElement form = e.DynamicTo<WebFormElement>();
-  CHECK(!form.IsNull())
-      << "FormRendererIds of non-WebFormElements, i.e., contenteditables, are "
-         "only supported with DomNodeIds";
-  return FormRendererId(form.UniqueRendererFormId());
 }
 
 FieldRendererId GetFieldRendererId(const blink::WebElement& e) {
@@ -1893,16 +1875,7 @@ FieldRendererId GetFieldRendererId(const blink::WebElement& e) {
   // contenteditable, we just that `e` is not a WebFormElement to protect
   // against confusions between Get{Form,Field}RendererId().
   CHECK(e.DynamicTo<WebFormElement>().IsNull());
-
-  if (base::FeatureList::IsEnabled(
-          blink::features::kAutofillUseDomNodeIdForRendererId)) {
-    return FieldRendererId(e.GetDomNodeId());
-  }
-  WebFormControlElement form_control = e.DynamicTo<WebFormControlElement>();
-  CHECK(!form_control.IsNull())
-      << "FieldRendererIds of non-WebFormControlElements, i.e., "
-         "contenteditables, are only supported with DomNodeIds";
-  return FieldRendererId(form_control.UniqueRendererFormControlId());
+  return FieldRendererId(e.GetDomNodeId());
 }
 
 base::i18n::TextDirection GetTextDirectionForElement(
@@ -2164,10 +2137,7 @@ FindFormAndFieldForFormControlElement(
 
 std::optional<FormData> FindFormForContentEditable(
     const blink::WebElement& content_editable) {
-  CHECK(base::FeatureList::IsEnabled(features::kAutofillContentEditables));
-  if (!base::FeatureList::IsEnabled(
-          blink::features::kAutofillUseDomNodeIdForRendererId) ||
-      !content_editable.DynamicTo<WebFormElement>().IsNull() ||
+  if (!content_editable.DynamicTo<WebFormElement>().IsNull() ||
       !content_editable.DynamicTo<WebFormControlElement>().IsNull() ||
       !content_editable.IsContentEditable() ||
       (!content_editable.ParentNode().IsNull() &&
@@ -2225,7 +2195,7 @@ std::optional<FormData> FindFormForContentEditable(
 }
 
 std::vector<std::pair<FieldRef, blink::WebAutofillState>> ApplyFormAction(
-    base::span<const FormFieldData> fields,
+    base::span<const FormFieldData::FillData> fields,
     const WebFormControlElement& initiating_element,
     mojom::ActionType action_type,
     mojom::ActionPersistence action_persistence,
@@ -2252,7 +2222,7 @@ std::vector<std::pair<FieldRef, blink::WebAutofillState>> ApplyFormAction(
   // This container stores the pairs of autofillable WebFormControlElement* and
   // the corresponding FormFieldData* of `form.fields` that are used to fill
   // this element.
-  std::vector<std::pair<WebFormControlElement*, const FormFieldData*>>
+  std::vector<std::pair<WebFormControlElement*, const FormFieldData::FillData*>>
       autofillable_elements_index_pairs;
 
   std::vector<std::pair<FieldRef, blink::WebAutofillState>> filled_fields;
@@ -2282,7 +2252,7 @@ std::vector<std::pair<FieldRef, blink::WebAutofillState>> ApplyFormAction(
   // * Send the blur event.
   // * For each other element, focus -> autofill -> blur.
   // * Send the focus event for the initially focused element.
-  for (const FormFieldData& field : fields) {
+  for (const FormFieldData::FillData& field : fields) {
     auto it = SearchInSortedVector(field, control_elements);
     if (it == control_elements.end()) {
       continue;
@@ -2312,7 +2282,7 @@ std::vector<std::pair<FieldRef, blink::WebAutofillState>> ApplyFormAction(
           field.value != element.Value().Utf16() ||
           !base::FeatureList::IsEnabled(
               features::kAutofillHighlightOnlyChangedValuesInPreviewMode)) {
-        fill_or_preview(field, is_initiating_element, &element,
+        fill_or_preview(field, is_initiating_element, element,
                         field_data_manager);
       }
       continue;
@@ -2340,7 +2310,8 @@ std::vector<std::pair<FieldRef, blink::WebAutofillState>> ApplyFormAction(
        autofillable_elements_index_pairs) {
     filled_fields.emplace_back(*filled_element,
                                filled_element->GetAutofillState());
-    fill_or_preview(*field_data, false, filled_element, field_data_manager);
+    fill_or_preview(*field_data, false, CHECK_DEREF(filled_element),
+                    field_data_manager);
   }
 
   // A focus event is emitted for the initiating element after autofilling is
@@ -2445,8 +2416,8 @@ bool IsWebElementEmpty(const blink::WebElement& root) {
 
 void PreviewSuggestion(const std::u16string& suggestion,
                        const std::u16string& user_input,
-                       blink::WebFormControlElement* input_element) {
-  input_element->SetSelectionRange(
+                       blink::WebFormControlElement& input_element) {
+  input_element.SetSelectionRange(
       base::checked_cast<unsigned>(user_input.length()),
       base::checked_cast<unsigned>(suggestion.length()));
 }
@@ -2539,135 +2510,42 @@ std::u16string InferLabelForElement(const WebFormControlElement& element,
   return u"";
 }
 
-WebFormElement FindFormByRendererId(const WebDocument& doc,
-                                    FormRendererId form_renderer_id) {
-  if (base::FeatureList::IsEnabled(
-          blink::features::kAutofillUseDomNodeIdForRendererId)) {
-    if (!form_renderer_id) {
-      return WebFormElement();
-    }
-    WebNode node = WebNode::FromDomNodeId(form_renderer_id.value());
-    WebFormElement form = node.DynamicTo<WebFormElement>();
-    return !form.IsNull() && form.IsConnected() && form.GetDocument().GetFrame()
-               ? form
-               : WebFormElement();
+WebFormElement FindFormByRendererId(FormRendererId form_renderer_id) {
+  if (!form_renderer_id) {
+    return WebFormElement();
   }
-  for (const auto& form : doc.Forms()) {
-    if (GetFormRendererId(form) == form_renderer_id)
-      return form;
-  }
-  return WebFormElement();
+  WebNode node = WebNode::FromDomNodeId(form_renderer_id.value());
+  WebFormElement form = node.DynamicTo<WebFormElement>();
+  return !form.IsNull() && form.IsConnected() && form.GetDocument().GetFrame()
+             ? form
+             : WebFormElement();
 }
 
 WebFormControlElement FindFormControlByRendererId(
-    const WebDocument& doc,
-    FieldRendererId queried_form_control,
-    std::optional<FormRendererId> form_to_be_searched /*= std::nullopt*/) {
-  if (base::FeatureList::IsEnabled(
-          blink::features::kAutofillUseDomNodeIdForRendererId)) {
-    if (!queried_form_control) {
-      return WebFormControlElement();
-    }
-    WebNode node = WebNode::FromDomNodeId(queried_form_control.value());
-    WebFormControlElement form_control =
-        node.DynamicTo<WebFormControlElement>();
-    return !form_control.IsNull() && form_control.IsConnected() &&
-                   form_control.GetDocument().GetFrame()
-               ? form_control
-               : WebFormControlElement();
+    FieldRendererId queried_form_control) {
+  if (!queried_form_control) {
+    return WebFormControlElement();
   }
-  auto FindField = [&](const WebVector<WebFormControlElement>& fields) {
-    auto it =
-        base::ranges::find(fields, queried_form_control, GetFieldRendererId);
-    return it != fields.end() ? *it : WebFormControlElement();
-  };
-
-  auto IsCandidate =
-      [&form_to_be_searched](const FormRendererId& expected_form_renderer_id) {
-        return !form_to_be_searched.has_value() ||
-               form_to_be_searched.value() == expected_form_renderer_id;
-      };
-
-  if (IsCandidate(FormRendererId())) {
-    // Search the unowned form.
-    WebFormControlElement e = FindField(doc.UnassociatedFormControls());
-    if (form_to_be_searched == FormRendererId() || !e.IsNull())
-      return e;
-  }
-  for (const WebFormElement& form : doc.Forms()) {
-    // If the |form_to_be_searched| is specified, skip this form if it is not
-    // the right one.
-    if (!IsCandidate(GetFormRendererId(form))) {
-      continue;
-    }
-    WebFormControlElement e = FindField(form.GetFormControlElements());
-    if (form_to_be_searched == GetFormRendererId(form) || !e.IsNull())
-      return e;
-  }
-  return WebFormControlElement();
+  WebNode node = WebNode::FromDomNodeId(queried_form_control.value());
+  WebFormControlElement form_control = node.DynamicTo<WebFormControlElement>();
+  return !form_control.IsNull() && form_control.IsConnected() &&
+                 form_control.GetDocument().GetFrame()
+             ? form_control
+             : WebFormControlElement();
 }
 
 std::vector<WebFormControlElement> FindFormControlsByRendererId(
-    const WebDocument& doc,
     base::span<const FieldRendererId> queried_form_controls) {
-  if (base::FeatureList::IsEnabled(
-          blink::features::kAutofillUseDomNodeIdForRendererId)) {
-    std::vector<WebFormControlElement> control_elements;
-    control_elements.reserve(queried_form_controls.size());
-    for (FieldRendererId queried_form_control : queried_form_controls) {
-      control_elements.push_back(
-          FindFormControlByRendererId(doc, queried_form_control));
-    }
-    return control_elements;
+  std::vector<WebFormControlElement> control_elements;
+  control_elements.reserve(queried_form_controls.size());
+  for (FieldRendererId queried_form_control : queried_form_controls) {
+    control_elements.push_back(
+        FindFormControlByRendererId(queried_form_control));
   }
-  std::vector<WebFormControlElement> result(queried_form_controls.size());
-  auto renderer_id_to_index_map = BuildRendererIdToIndex(queried_form_controls);
-
-  auto AddToResultIfQueried = [&](const WebFormControlElement& field) {
-    auto it = renderer_id_to_index_map.find(GetFieldRendererId(field));
-    if (it != renderer_id_to_index_map.end())
-      result[it->second] = field;
-  };
-
-  for (const auto& form : doc.Forms()) {
-    for (const auto& field : form.GetFormControlElements())
-      AddToResultIfQueried(field);
-  }
-  for (const auto& field : doc.UnassociatedFormControls()) {
-    AddToResultIfQueried(field);
-  }
-  return result;
-}
-
-std::vector<WebFormControlElement> FindFormControlsByRendererId(
-    const WebDocument& doc,
-    FormRendererId form_renderer_id,
-    base::span<const FieldRendererId> queried_form_controls) {
-  if (base::FeatureList::IsEnabled(
-          blink::features::kAutofillUseDomNodeIdForRendererId)) {
-    return FindFormControlsByRendererId(doc, queried_form_controls);
-  }
-  std::vector<WebFormControlElement> result(queried_form_controls.size());
-  WebFormElement form = FindFormByRendererId(doc, form_renderer_id);
-  if (form.IsNull())
-    return result;
-
-  auto renderer_id_to_index_map = BuildRendererIdToIndex(queried_form_controls);
-
-  for (const auto& field : form.GetFormControlElements()) {
-    auto it = renderer_id_to_index_map.find(GetFieldRendererId(field));
-    if (it == renderer_id_to_index_map.end())
-      continue;
-    result[it->second] = field;
-  }
-  return result;
+  return control_elements;
 }
 
 WebElement FindContentEditableByRendererId(FieldRendererId field_renderer_id) {
-  if (!base::FeatureList::IsEnabled(
-          blink::features::kAutofillUseDomNodeIdForRendererId)) {
-    return WebElement();
-  }
   WebElement field =
       WebNode::FromDomNodeId(*field_renderer_id).DynamicTo<WebElement>();
   return !field.IsNull() && field.IsContentEditable() ? field : WebElement();

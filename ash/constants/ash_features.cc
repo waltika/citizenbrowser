@@ -131,10 +131,6 @@ BASE_FEATURE(kAmbientModeManagedScreensaver,
 
 BASE_FEATURE(kApnRevamp, "ApnRevamp", base::FEATURE_DISABLED_BY_DEFAULT);
 
-BASE_FEATURE(kAppLaunchAutomation,
-             "AppLaunchAutomation",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
 // Controls whether to enable ARC ADB sideloading support.
 BASE_FEATURE(kArcAdbSideloadingFeature,
              "ArcAdbSideloading",
@@ -253,6 +249,11 @@ BASE_FEATURE(kAvatarsCloudMigration,
              "AvatarsCloudMigration",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
+// Enables the new media player features.
+BASE_FEATURE(kBackgroundListening,
+             "BackgroundListening",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
 // Make Battery Saver available.
 BASE_FEATURE(kBatterySaver,
              "CrosBatterySaver",
@@ -280,9 +281,6 @@ const base::FeatureParam<double> kBatterySaverActivationChargePercent{
 BASE_FEATURE(kBatterySaverAlwaysOn,
              "CrosBatterySaverAlwaysOn",
              base::FEATURE_DISABLED_BY_DEFAULT);
-
-// Controls enabling/disabling the birch feature.
-BASE_FEATURE(kBirchFeature, "BirchFeature", base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Enables or disables the usage of fixed Bluetooth A2DP packet size to improve
 // audio performance in noisy environment.
@@ -1019,19 +1017,6 @@ const base::FeatureParam<std::string> kFastPairPwaCompanionPlayStoreUri{
     &kFastPairPwaCompanion, "pwa-companion-play-store-uri",
     /*default*/ ""};
 
-// Sets Fast Pair scanning to low power mode.
-BASE_FEATURE(kFastPairLowPower,
-             "FastPairLowPower",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
-// The amount of seconds we should scan while in low power mode before stopping.
-const base::FeatureParam<double> kFastPairLowPowerActiveSeconds{
-    &kFastPairLowPower, "active-seconds", 2};
-
-// The amount of seconds we should pause scanning while in low power mode.
-const base::FeatureParam<double> kFastPairLowPowerInactiveSeconds{
-    &kFastPairLowPower, "inactive-seconds", 3};
-
 // Allows Fast Pair to use software scanning on devices which don't support
 // hardware offloading of BLE scans.
 BASE_FEATURE(kFastPairSoftwareScanning,
@@ -1186,6 +1171,11 @@ BASE_FEATURE(kFirstPartyVietnameseInput,
              "FirstPartyVietnameseInput",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
+// Enables or disables the Flex Auto-Enrollment feature on ChromeOS
+BASE_FEATURE(kFlexAutoEnrollment,
+             "FlexAutoEnrollment",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
 // Enables or disables Floating Workspace feature on ChromeOS
 BASE_FEATURE(kFloatingWorkspace,
              "FloatingWorkspace",
@@ -1234,6 +1224,11 @@ BASE_FEATURE(kForceEnableServerSideSpeechRecognitionForDev,
 BASE_FEATURE(kForceReSyncDrive,
              "ForceReSyncDrive",
              base::FEATURE_ENABLED_BY_DEFAULT);
+
+// Controls enabling/disabling the forest feature.
+BASE_FEATURE(kForestFeature,
+             "ForestFeature",
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Controls whether to allow keeping full screen mode after unlock.
 BASE_FEATURE(kFullscreenAfterUnlockAllowed,
@@ -1373,7 +1368,7 @@ BASE_FEATURE(kHandwritingLibraryDlc,
 // If enabled, the Help app will render the App Detail Page and entry point.
 BASE_FEATURE(kHelpAppAppDetailPage,
              "HelpAppAppDetailPage",
-             base::FEATURE_ENABLED_BY_DEFAULT);
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 // If enabled, the Help app will render the Apps List page and entry point.
 BASE_FEATURE(kHelpAppAppsList,
@@ -1929,8 +1924,6 @@ BASE_FEATURE(kNotificationsInContextMenu,
              "NotificationsInContextMenu",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-BASE_FEATURE(kOak, "Oak", base::FEATURE_DISABLED_BY_DEFAULT);
-
 // Controls whether to enable on-device grammar check service.
 BASE_FEATURE(kOnDeviceGrammarCheck,
              "OnDeviceGrammarCheck",
@@ -2018,9 +2011,14 @@ BASE_FEATURE(kOobeSkipAssistant,
              "OobeSkipAssistant",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
-// Enables or disables the Oobe quick start flow.
+// Enables or disables the OOBE QuickStart flow.
 BASE_FEATURE(kOobeQuickStart,
              "OobeQuickStart",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+// Enables or disables the OOBE QuickStart flow on the login screen.
+BASE_FEATURE(kOobeQuickStartOnLoginScreen,
+             "OobeQuickStartOnLoginScreen",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Enables or disables search customizable shortcuts in launcher.
@@ -2218,8 +2216,6 @@ BASE_FEATURE(kPhoneHubShortQuickActionPodsTitles,
              "PhoneHubShortQuickActionPodsTitles",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
-BASE_FEATURE(kPine, "Pine", base::FEATURE_DISABLED_BY_DEFAULT);
-
 // Enables the new picker feature.
 BASE_FEATURE(kPicker, "Picker", base::FEATURE_DISABLED_BY_DEFAULT);
 
@@ -2348,7 +2344,7 @@ BASE_FEATURE(kProjectorRedirectToPwa,
              base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Controls whether projector V2 is enabled.
-BASE_FEATURE(kProjectorV2, "ProjectorV2", base::FEATURE_DISABLED_BY_DEFAULT);
+BASE_FEATURE(kProjectorV2, "ProjectorV2", base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Controls whether the transcript chapter title feature is enabled.
 BASE_FEATURE(kProjectorTranscriptChapterTitle,
@@ -2670,7 +2666,7 @@ BASE_FEATURE(kFeatureManagementSystemLiveCaption,
 // Replaces uses of `SystemNudge` with the new `AnchoredNudge` component.
 BASE_FEATURE(kSystemNudgeMigration,
              "SystemNudgeMigration",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Enables the ability to play sounds for system services.
 BASE_FEATURE(kSystemSounds, "SystemSounds", base::FEATURE_ENABLED_BY_DEFAULT);
@@ -2930,46 +2926,17 @@ BASE_FEATURE(kWindowSplitting,
 // position their windows using only mouse and touch gestures.
 BASE_FEATURE(kWmMode, "WmMode", base::FEATURE_DISABLED_BY_DEFAULT);
 
-// Enables or disables Fresnel Device Active reporting on ChromeOS.
-BASE_FEATURE(kDeviceActiveClient,
-             "DeviceActiveClient",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
-// Enables or disables PSM CheckIn for the 28 day active device active pings
-// on ChromeOS.
-BASE_FEATURE(kDeviceActiveClient28DayActiveCheckIn,
-             "DeviceActiveClient28DayActiveCheckIn",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 // Enables or disables PSM CheckMembership for 28 day device active pings
 // on ChromeOS.
 BASE_FEATURE(kDeviceActiveClient28DayActiveCheckMembership,
              "DeviceActiveClient28DayActiveCheckMembership",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-// Enables or disables PSM CheckMembership for daily device active pings
-// on ChromeOS.
-BASE_FEATURE(kDeviceActiveClientDailyCheckMembership,
-             "DeviceActiveClientDailyCheckMembership",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
-// Enables or disables PSM CheckIn for the churn cohort device active pings
-// on ChromeOS.
-BASE_FEATURE(kDeviceActiveClientChurnCohortCheckIn,
-             "DeviceActiveClientChurnCohortCheckIn",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 // Enables or disables PSM CheckMembership for the churn cohort device active
 // pings on ChromeOS.
 BASE_FEATURE(kDeviceActiveClientChurnCohortCheckMembership,
              "DeviceActiveClientChurnCohortCheckMembership",
              base::FEATURE_DISABLED_BY_DEFAULT);
-
-// Enables or disables PSM CheckIn for the churn observation device active
-// pings on ChromeOS.
-BASE_FEATURE(kDeviceActiveClientChurnObservationCheckIn,
-             "DeviceActiveClientChurnObservationCheckIn",
-             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Enables or disables PSM CheckMembership for the churn observation
 // device active pings on ChromeOS.
@@ -3220,16 +3187,16 @@ bool IsBackgroundBlurEnabled() {
 #endif
 }
 
+bool IsBackgroundListeningEnabled() {
+  return base::FeatureList::IsEnabled(kBackgroundListening);
+}
+
 bool IsBatterySaverAvailable() {
   return base::FeatureList::IsEnabled(kBatterySaver);
 }
 
 bool IsBatterySaverAlwaysOn() {
   return base::FeatureList::IsEnabled(kBatterySaverAlwaysOn);
-}
-
-bool IsBirchFeatureEnabled() {
-  return base::FeatureList::IsEnabled(kBirchFeature);
 }
 
 bool IsBluetoothDisconnectWarningEnabled() {
@@ -3444,10 +3411,6 @@ bool IsFastPairSavedDevicesNicknamesEnabled() {
   return base::FeatureList::IsEnabled(kFastPairSavedDevicesNicknames);
 }
 
-bool IsFastPairLowPowerEnabled() {
-  return base::FeatureList::IsEnabled(kFastPairLowPower);
-}
-
 bool IsFastPairPwaCompanionEnabled() {
   return base::FeatureList::IsEnabled(kFastPairPwaCompanion);
 }
@@ -3512,6 +3475,11 @@ bool IsFirmwareUpdateUIV2Enabled() {
   return base::FeatureList::IsEnabled(kFirmwareUpdateUIV2);
 }
 
+bool IsFlexAutoEnrollmentEnabled() {
+  return switches::IsRevenBranding() &&
+         base::FeatureList::IsEnabled(kFlexAutoEnrollment);
+}
+
 bool IsFloatingWorkspaceEnabled() {
   return base::FeatureList::IsEnabled(kFloatingWorkspace);
 }
@@ -3535,6 +3503,11 @@ bool ShouldForceEnableServerSideSpeechRecognitionForDev() {
 
 bool IsForceReSyncDriveEnabled() {
   return base::FeatureList::IsEnabled(kForceReSyncDrive);
+}
+
+bool IsForestFeatureEnabled() {
+  return switches::IsForestSecretKeyMatched() &&
+         base::FeatureList::IsEnabled(kForestFeature);
 }
 
 bool IsFullscreenAfterUnlockAllowed() {
@@ -3959,10 +3932,6 @@ bool IsNotificationsInContextMenuEnabled() {
   return base::FeatureList::IsEnabled(kNotificationsInContextMenu);
 }
 
-bool IsOakEnabled() {
-  return base::FeatureList::IsEnabled(kOak);
-}
-
 bool AreOngoingProcessesEnabled() {
   return base::FeatureList::IsEnabled(kOngoingProcesses);
 }
@@ -4022,6 +3991,11 @@ bool IsOobeLazyLoadingEnabled() {
 
 bool IsOobeQuickStartEnabled() {
   return base::FeatureList::IsEnabled(kOobeQuickStart);
+}
+
+bool IsOobeQuickStartOnLoginScreenEnabled() {
+  return IsOobeQuickStartEnabled() &&
+         base::FeatureList::IsEnabled(kOobeQuickStartOnLoginScreen);
 }
 
 bool IsOobeTouchpadScrollEnabled() {
@@ -4136,10 +4110,6 @@ bool IsPhoneHubShortQuickActionPodsTitlesEnabled() {
 
 bool IsPickerUpdateEnabled() {
   return base::FeatureList::IsEnabled(kPicker);
-}
-
-bool IsPineEnabled() {
-  return base::FeatureList::IsEnabled(kPine);
 }
 
 bool IsPinAutosubmitBackfillFeatureEnabled() {

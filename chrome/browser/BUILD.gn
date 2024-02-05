@@ -57,6 +57,10 @@ if (is_win) {
   import("//build/config/win/manifest.gni")
 }
 
+assert(!is_fuchsia, "Fuchsia shouldn't use anything in //chrome")
+
+# TODO(jam): remove is_fuchsia below
+
 declare_args() {
   # You can set the variable 'use_official_enterprise_connectors_api_keys' to
   # true to use the Google-internal file containing official API keys
@@ -144,8 +148,6 @@ static_library("browser") {
     "accessibility/accessibility_labels_service_factory.h",
     "accessibility/accessibility_state_utils.cc",
     "accessibility/accessibility_state_utils.h",
-    "accessibility/accessibility_ui.cc",
-    "accessibility/accessibility_ui.h",
     "accessibility/page_colors.cc",
     "accessibility/page_colors.h",
     "accessibility/page_colors_factory.cc",
@@ -314,8 +316,6 @@ static_library("browser") {
     "component_updater/masked_domain_list_component_installer.h",
     "component_updater/mei_preload_component_installer.cc",
     "component_updater/mei_preload_component_installer.h",
-    "component_updater/network_quality_observer.cc",
-    "component_updater/network_quality_observer.h",
     "component_updater/optimization_guide_on_device_model_installer.cc",
     "component_updater/optimization_guide_on_device_model_installer.h",
     "component_updater/pki_metadata_component_installer.cc",
@@ -832,7 +832,6 @@ static_library("browser") {
     "model_execution/model_execution_session.h",
     "model_execution/model_manager_impl.cc",
     "model_execution/model_manager_impl.h",
-    "native_window_notification_source.h",
     "navigation_predictor/anchor_element_preloader.cc",
     "navigation_predictor/anchor_element_preloader.h",
     "navigation_predictor/navigation_predictor.cc",
@@ -873,6 +872,8 @@ static_library("browser") {
     "net/net_error_tab_helper.h",
     "net/net_export_helper.cc",
     "net/net_export_helper.h",
+    "net/network_annotation_monitor.cc",
+    "net/network_annotation_monitor.h",
     "net/probe_message.cc",
     "net/probe_message.h",
     "net/profile_network_context_service.cc",
@@ -1900,6 +1901,8 @@ static_library("browser") {
       "picture_in_picture/auto_pip_setting_view.h",
       "preloading/preview/preview_manager.cc",
       "preloading/preview/preview_manager.h",
+      "preloading/preview/preview_navigation_throttle.cc",
+      "preloading/preview/preview_navigation_throttle.h",
       "preloading/preview/preview_tab.cc",
       "preloading/preview/preview_tab.h",
       "preloading/preview/preview_zoom_controller.cc",
@@ -1926,6 +1929,8 @@ static_library("browser") {
       "user_education/user_education_service.h",
       "user_education/user_education_service_factory.cc",
       "user_education/user_education_service_factory.h",
+      "webapps/webapps_client_desktop.cc",
+      "webapps/webapps_client_desktop.h",
     ]
   }
 
@@ -2006,6 +2011,7 @@ static_library("browser") {
     "//pdf:buildflags",
     "//services/data_decoder/public/mojom",
     "//services/image_annotation/public/mojom",
+    "//services/network/public/mojom",
     "//sql",
   ]
 
@@ -2989,7 +2995,6 @@ static_library("browser") {
       "android/thin_webview/chrome_thin_webview_initializer.h",
       "android/trusted_cdn.cc",
       "android/trusted_cdn.h",
-      "android/usage_stats/notification_suspender.cc",
       "android/usage_stats/usage_stats_bridge.cc",
       "android/usage_stats/usage_stats_bridge.h",
       "android/usage_stats/usage_stats_database.cc",
@@ -3208,6 +3213,7 @@ static_library("browser") {
       "metrics/page_load_metrics_provider.h",
       "notifications/notification_platform_bridge_android.cc",
       "notifications/notification_platform_bridge_android.h",
+      "notifications/notification_suspender_android.cc",
       "notifications/notification_trigger_scheduler_android.cc",
       "notifications/notification_trigger_scheduler_android.h",
       "notifications/scheduler/display_agent_android.cc",
@@ -3391,6 +3397,8 @@ static_library("browser") {
       "wallet/android/boarding_pass_detector.h",
       "webapps/pwa_restore_promo_utils_android.cc",
       "webapps/web_app_offline_android.cc",
+      "webapps/webapps_client_android.cc",
+      "webapps/webapps_client_android.h",
       "webauthn/android/cable_module_android.cc",
       "webauthn/android/cable_registration_state.cc",
       "webauthn/android/cable_registration_state.h",
@@ -4071,6 +4079,7 @@ static_library("browser") {
       "new_tab_page/modules/history_clusters/history_clusters_module_util.h",
       "new_tab_page/modules/history_clusters/history_clusters_page_handler.cc",
       "new_tab_page/modules/history_clusters/history_clusters_page_handler.h",
+      "new_tab_page/modules/history_clusters/ranking/history_cluster_metrics.h",
       "new_tab_page/modules/history_clusters/ranking/history_clusters_module_ranker.cc",
       "new_tab_page/modules/history_clusters/ranking/history_clusters_module_ranker.h",
       "new_tab_page/modules/history_clusters/ranking/history_clusters_module_ranking_metrics_logger.cc",
@@ -4284,6 +4293,7 @@ static_library("browser") {
       "search/background/ntp_custom_background_service_observer.h",
       "search/background/wallpaper_search/wallpaper_search_background_manager.cc",
       "search/background/wallpaper_search/wallpaper_search_background_manager.h",
+      "search/background/wallpaper_search/wallpaper_search_background_manager_observer.h",
       "search/background/wallpaper_search/wallpaper_search_data.cc",
       "search/background/wallpaper_search/wallpaper_search_data.h",
       "search/background/wallpaper_search/wallpaper_search_service.cc",
@@ -4554,6 +4564,10 @@ static_library("browser") {
       "webauthn/cablev2_devices.h",
       "webauthn/chrome_authenticator_request_delegate.cc",
       "webauthn/chrome_authenticator_request_delegate.h",
+      "webauthn/enclave_manager.cc",
+      "webauthn/enclave_manager.h",
+      "webauthn/enclave_manager_factory.cc",
+      "webauthn/enclave_manager_factory.h",
       "webauthn/local_credential_management.cc",
       "webauthn/local_credential_management.h",
       "webauthn/observable_authenticator_list.cc",
@@ -4613,12 +4627,14 @@ static_library("browser") {
       "//chrome/browser/ui/webui/web_app_internals:mojo_bindings",
       "//chrome/browser/web_applications",
       "//chrome/browser/web_applications/app_service",
+      "//chrome/browser/webauthn/proto",
       "//chrome/common/apps/platform_apps",
       "//chrome/common/importer:interfaces",
       "//chrome/common/themes:autogenerated_theme_util",
       "//chrome/services/media_gallery_util/public/cpp",
       "//components/access_code_cast/common:metrics",
       "//components/app_constants",
+      "//components/cbor",
       "//components/commerce/core:cart_db_content_proto",
       "//components/commerce/core:coupon_db_content_proto",
       "//components/commerce/core:discounts_db_content_proto",
@@ -4677,6 +4693,10 @@ static_library("browser") {
 
       # TODO(crbug.com/1402145): Remove circular dependencies.
       "//chrome/browser/web_applications/app_service",
+
+      # Needs //chrome/browser/content_settings, but its sources are in
+      # //chrome/browser instead.
+      "//chrome/browser/smart_card",
     ]
     if (!is_android && !is_chromeos) {
       sources += [
@@ -5261,6 +5281,7 @@ static_library("browser") {
       "//chrome/browser/ash",
       "//chrome/browser/ash/borealis:borealis_installer_types_mojom",
       "//chrome/browser/ash/crosapi",
+      "//chrome/browser/ash/mojo_service_manager:mojo_service_manager",
       "//chrome/browser/ash/power/ml/smart_dim",
       "//chrome/browser/ash/smart_reader",
       "//chrome/browser/ash/system_web_apps",
@@ -5289,6 +5310,7 @@ static_library("browser") {
       "//chrome/browser/ui/webui/ash/crostini_installer:mojo_bindings",
       "//chrome/browser/ui/webui/ash/crostini_upgrader:mojo_bindings",
       "//chrome/browser/ui/webui/ash/emoji:mojo_bindings",
+      "//chrome/browser/ui/webui/ash/emoji:seal_mojom",
       "//chrome/browser/ui/webui/ash/enterprise_reporting:mojo_bindings",
       "//chrome/browser/ui/webui/ash/launcher_internals:mojo_bindings",
       "//chrome/browser/ui/webui/ash/manage_mirrorsync:mojo_bindings",
@@ -5822,6 +5844,7 @@ static_library("browser") {
       "//chrome/browser/apps/app_service/app_install:navigation_throttle",
       "//chrome/browser/chromeos",
       "//chrome/browser/chromeos/cros_apps",
+      "//chrome/browser/chromeos/cros_apps/api",
       "//chrome/browser/chromeos/drivefs",
       "//chrome/browser/chromeos/extensions/telemetry",
       "//chrome/browser/metrics/structured:features",
@@ -5961,10 +5984,6 @@ static_library("browser") {
       "notifications/win/notification_template_builder.cc",
       "notifications/win/notification_template_builder.h",
       "obsolete_system/obsolete_system_win.cc",
-      "os_crypt/app_bound_encryption_metrics_win.cc",
-      "os_crypt/app_bound_encryption_metrics_win.h",
-      "os_crypt/app_bound_encryption_win.cc",
-      "os_crypt/app_bound_encryption_win.h",
       "password_manager/password_manager_util_win.cc",
       "password_manager/password_manager_util_win.h",
       "performance_monitor/metric_evaluator_helper_win.cc",
@@ -6062,6 +6081,7 @@ static_library("browser") {
       "//base/win:base_win_buildflags",
       "//chrome/app:chrome_exe_main_exports",
       "//chrome/app/theme:chrome_unscaled_resources_grit",
+      "//chrome/browser/os_crypt",
       "//chrome/browser/web_applications/chrome_pwa_launcher:util",
       "//chrome/browser/win/conflicts:module_info",
       "//chrome/chrome_elf:constants",
@@ -6222,8 +6242,6 @@ static_library("browser") {
       "media_galleries/mac/mtp_device_delegate_impl_mac.mm",
       "memory_details_mac.cc",
       "metrics/chrome_browser_main_extra_parts_metrics_mac.mm",
-      "metrics/power/coalition_resource_usage_provider_mac.h",
-      "metrics/power/coalition_resource_usage_provider_mac.mm",
       "metrics/power/power_metrics_provider_mac.h",
       "metrics/power/power_metrics_provider_mac.mm",
       "notifications/mac/mac_notification_provider_factory.cc",
@@ -8420,6 +8438,7 @@ static_library("test_support") {
     "//testing/gtest",
     "//ui/gfx",
     "//ui/gfx:test_support",
+    "//ui/shell_dialogs",
   ]
 
   if (is_android) {

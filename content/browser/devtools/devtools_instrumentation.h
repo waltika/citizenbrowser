@@ -48,6 +48,10 @@ class X509Certificate;
 struct WebTransportError;
 }  // namespace net
 
+namespace network {
+class URLLoaderFactoryBuilder;
+}  // namespace network
+
 namespace download {
 struct DownloadCreateInfo;
 class DownloadItem;
@@ -114,8 +118,7 @@ bool WillCreateURLLoaderFactory(
     RenderFrameHostImpl* rfh,
     bool is_navigation,
     bool is_download,
-    mojo::PendingReceiver<network::mojom::URLLoaderFactory>*
-        target_factory_receiver,
+    network::URLLoaderFactoryBuilder& factory_builder,
     network::mojom::URLLoaderFactoryOverridePtr* factory_override);
 
 bool WillCreateURLLoaderFactoryForServiceWorker(
@@ -126,8 +129,7 @@ bool WillCreateURLLoaderFactoryForServiceWorker(
 bool WillCreateURLLoaderFactoryForServiceWorkerMainScript(
     const ServiceWorkerContextWrapper* context_wrapper,
     int64_t version_id,
-    mojo::PendingReceiver<network::mojom::URLLoaderFactory>*
-        loader_factory_receiver);
+    network::URLLoaderFactoryBuilder& factory_builder);
 
 bool WillCreateURLLoaderFactoryForSharedWorker(
     SharedWorkerHost* host,
@@ -138,12 +140,6 @@ bool WillCreateURLLoaderFactoryForWorkerMainScript(
     const base::UnguessableToken& worker_token,
     network::mojom::URLLoaderFactoryOverridePtr* factory_override);
 
-bool WillCreateURLLoaderFactory(
-    RenderFrameHostImpl* rfh,
-    bool is_navigation,
-    bool is_download,
-    std::unique_ptr<network::mojom::URLLoaderFactory>* factory);
-
 bool WillCreateURLLoaderFactoryInternal(
     DevToolsAgentHostImpl* agent_host,
     const base::UnguessableToken& devtools_token,
@@ -151,8 +147,7 @@ bool WillCreateURLLoaderFactoryInternal(
     StoragePartition* storage_partition,
     bool is_navigation,
     bool is_download,
-    mojo::PendingReceiver<network::mojom::URLLoaderFactory>*
-        target_factory_receiver,
+    network::URLLoaderFactoryBuilder* factory_builder,
     network::mojom::URLLoaderFactoryOverridePtr* factory_override);
 
 void OnPrefetchRequestWillBeSent(

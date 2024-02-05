@@ -26,7 +26,6 @@
 #include "components/safe_browsing/core/common/safe_browsing_prefs.h"
 #include "components/signin/public/base/consent_level.h"
 #include "google_apis/gaia/gaia_auth_util.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 
 #if BUILDFLAG(IS_ANDROID)
 #include "base/json/json_reader.h"
@@ -488,6 +487,7 @@ void PasswordReuseManagerImpl::OnPrimaryAccountChanged(
             saved_creds_entry->FindDouble(kLoginHashedPassword).value());
         password_hash_data.force_update = true;
         hash_password_manager_.SavePasswordHash(password_hash_data);
+        SchedulePasswordHashUpdate(/*sign_in_state_for_metrics=*/std::nullopt);
         metrics_util::LogGaiaPasswordHashChange(
             metrics_util::GaiaPasswordHashChange::SAVED_ON_CHROME_SIGNIN,
             /*is_sync_password=*/true);

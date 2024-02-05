@@ -17,7 +17,6 @@
 #include "build/chromeos_buildflags.h"
 #include "chrome/browser/about_flags.h"
 #include "chrome/browser/accessibility/accessibility_labels_service.h"
-#include "chrome/browser/accessibility/accessibility_ui.h"
 #include "chrome/browser/accessibility/invert_bubble_prefs.h"
 #include "chrome/browser/ash/notifications/update_notification_showing_controller.h"
 #include "chrome/browser/browser_process_impl.h"
@@ -89,6 +88,7 @@
 #include "chrome/browser/ui/toolbar/chrome_labs/chrome_labs_prefs.h"
 #include "chrome/browser/ui/toolbar/chrome_location_bar_model_delegate.h"
 #include "chrome/browser/ui/toolbar/toolbar_pref_names.h"
+#include "chrome/browser/ui/webui/accessibility/accessibility_ui.h"
 #include "chrome/browser/ui/webui/bookmarks/bookmark_prefs.h"
 #include "chrome/browser/ui/webui/flags/flags_ui.h"
 #include "chrome/browser/ui/webui/ntp/new_tab_ui.h"
@@ -969,6 +969,24 @@ const char kPPAPISharedImagesForVideoDecoderAllowed[] =
 const char kBorealisVmTokenHash[] = "borealis.vm_token_hash";
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
+// Deprecated 01/2024.
+#if BUILDFLAG(IS_CHROMEOS_ASH)
+constexpr char kExtendedFkeysModifier[] =
+    "ash.settings.extended_fkeys_modifier";
+#endif  // BUILDFLAG(IS_CHROMEOS_ASH)
+
+// Deprecated 01/2024.
+constexpr char kNtpShownPage[] = "ntp.shown_page";
+constexpr char kNtpAppPageNames[] = "ntp.app_page_names";
+
+// Deprecated 01/2024.
+#if BUILDFLAG(IS_WIN)
+const char kSearchResultsPagePrimaryFontsPref[] =
+    "cached_fonts.search_results_page.primary";
+const char kSearchResultsPageFallbackFontsPref[] =
+    "cached_fonts.search_results_page.fallback";
+#endif  // BUILDFLAG(IS_WIN)
+
 // Register local state used only for migration (clearing or moving to a new
 // key).
 void RegisterLocalStatePrefsForMigration(PrefRegistrySimple* registry) {
@@ -1082,6 +1100,11 @@ void RegisterLocalStatePrefsForMigration(PrefRegistrySimple* registry) {
 
   // Deprecated 01/2024.
   registry->RegisterBooleanPref(kPPAPISharedImagesForVideoDecoderAllowed, true);
+
+  // Deprecated 01/2024.
+#if BUILDFLAG(IS_CHROMEOS_ASH)
+  registry->RegisterIntegerPref(kExtendedFkeysModifier, 0);
+#endif
 }
 
 // Register prefs used only for migration (clearing or moving to a new key).
@@ -1367,6 +1390,16 @@ void RegisterProfilePrefsForMigration(
   registry->RegisterDictionaryPref(kPersistedSystemExtensions);
   registry->RegisterStringPref(kBorealisVmTokenHash, "");
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
+
+  // Deprecated 01/2024.
+  registry->RegisterIntegerPref(kNtpShownPage, 0);
+  registry->RegisterListPref(kNtpAppPageNames);
+
+  // Deprecated 01/2024.
+#if BUILDFLAG(IS_WIN)
+  registry->RegisterListPref(kSearchResultsPagePrimaryFontsPref);
+  registry->RegisterListPref(kSearchResultsPageFallbackFontsPref);
+#endif
 }
 
 void ClearSyncRequestedPrefAndMaybeMigrate(PrefService* profile_prefs) {
@@ -1838,7 +1871,6 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
   media_router::RegisterProfilePrefs(registry);
   NewTabPageHandler::RegisterProfilePrefs(registry);
   NewTabPageUI::RegisterProfilePrefs(registry);
-  NewTabUI::RegisterProfilePrefs(registry);
   ntp::SafeBrowsingHandler::RegisterProfilePrefs(registry);
   ntp_tiles::CustomLinksManagerImpl::RegisterProfilePrefs(registry);
   PhotosService::RegisterProfilePrefs(registry);
@@ -2230,6 +2262,11 @@ void MigrateObsoleteLocalStatePrefs(PrefService* local_state) {
   // Added 01/2024.
   local_state->ClearPref(kPPAPISharedImagesForVideoDecoderAllowed);
 
+// Added 01/2024.
+#if BUILDFLAG(IS_CHROMEOS_ASH)
+  local_state->ClearPref(kExtendedFkeysModifier);
+#endif
+
   // Please don't delete the following line. It is used by PRESUBMIT.py.
   // END_MIGRATE_OBSOLETE_LOCAL_STATE_PREFS
 
@@ -2602,6 +2639,22 @@ void MigrateObsoleteProfilePrefs(PrefService* profile_prefs,
   profile_prefs->ClearPref(kPersistedSystemExtensions);
   profile_prefs->ClearPref(kBorealisVmTokenHash);
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
+
+#if !BUILDFLAG(IS_ANDROID)
+  // Deprecated 1/2024.
+  performance_manager::user_tuning::prefs::MigrateTabDiscardingExceptionsPref(
+      profile_prefs);
+#endif
+
+  // Added 01/2024.
+  profile_prefs->ClearPref(kNtpShownPage);
+  profile_prefs->ClearPref(kNtpAppPageNames);
+
+  // Deprecated 01/2024.
+#if BUILDFLAG(IS_WIN)
+  profile_prefs->ClearPref(kSearchResultsPagePrimaryFontsPref);
+  profile_prefs->ClearPref(kSearchResultsPageFallbackFontsPref);
+#endif
 
   // Please don't delete the following line. It is used by PRESUBMIT.py.
   // END_MIGRATE_OBSOLETE_PROFILE_PREFS

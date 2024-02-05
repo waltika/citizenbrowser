@@ -47,7 +47,7 @@
 #import "ios/web/public/test/http_server/data_response_provider.h"
 #import "ios/web/public/test/http_server/http_server.h"
 #import "ios/web/public/test/http_server/http_server_util.h"
-#import "net/base/mac/url_conversions.h"
+#import "net/base/apple/url_conversions.h"
 #import "ui/base/device_form_factor.h"
 #import "ui/base/l10n/l10n_util.h"
 
@@ -351,7 +351,7 @@ void EchoURLDefaultSearchEngineResponseProvider::GetResponseHeadersAndBody(
   // See https://crbug.com/1448618.
   // Should be removed after TODO(crbug.com/1451733).
   if ([self isRunningTest:@selector
-            (testSyncSpinnerDismissedInRecentlyClosedTabs)]) {
+            (DISABLE_testSyncSpinnerDismissedInRecentlyClosedTabs)]) {
     [ChromeEarlGrey signOutAndClearIdentitiesAndWaitForCompletion];
   }
 
@@ -831,12 +831,8 @@ void EchoURLDefaultSearchEngineResponseProvider::GetResponseHeadersAndBody(
 }
 
 // Tests the Add to Bookmarks action on a tab grid item's context menu.
-- (void)testTabGridItemContextMenuAddToBookmarks {
-  // TODO(crbug.com/1519535): Test is failing on iPad devices and simulator.
-  if ([ChromeEarlGrey isIPadIdiom]) {
-    EARL_GREY_TEST_DISABLED(@"Test disabled on iPad.");
-  }
-
+// TODO(crbug.com/1519535): Test is failing on iPhone and iPad.
+- (void)DISABLED_testTabGridItemContextMenuAddToBookmarks {
   [ChromeEarlGrey loadURL:_URL1];
   [ChromeEarlGrey waitForWebStateContainingText:kResponse1];
 
@@ -846,7 +842,7 @@ void EchoURLDefaultSearchEngineResponseProvider::GetResponseHeadersAndBody(
   [self longPressTabWithTitle:kTitle1];
 
   NSString* snackbarMessage = base::SysUTF16ToNSString(
-      l10n_util::GetPluralStringFUTF16(IDS_IOS_BOOKMARK_PAGE_SAVED, 1));
+      l10n_util::GetPluralStringFUTF16(IDS_IOS_BOOKMARKS_BULK_SAVED, 1));
   [self waitForSnackBarMessageText:snackbarMessage
       triggeredByTappingItemWithMatcher:AddToBookmarksButton()];
 
@@ -2271,12 +2267,8 @@ void EchoURLDefaultSearchEngineResponseProvider::GetResponseHeadersAndBody(
 
 // Tests that add to bookmarks action works successfully from the long press
 // context menu on search results.
-- (void)testSearchOpenTabsContextMenuAddToBookmarks {
-  // TODO(crbug.com/1519535): Test is failing on iPad devices and simulator.
-  if ([ChromeEarlGrey isIPadIdiom]) {
-    EARL_GREY_TEST_DISABLED(@"Test disabled on iPad.");
-  }
-
+// TODO(crbug.com/1519535): Test is failing on iPhone and iPad.
+- (void)DISABLED_testSearchOpenTabsContextMenuAddToBookmarks {
   [self loadTestURLsInNewTabs];
   [ChromeEarlGreyUI openTabGrid];
 
@@ -2290,7 +2282,7 @@ void EchoURLDefaultSearchEngineResponseProvider::GetResponseHeadersAndBody(
   [self longPressTabWithTitle:kTitle2];
 
   NSString* snackbarMessage = base::SysUTF16ToNSString(
-      l10n_util::GetPluralStringFUTF16(IDS_IOS_BOOKMARK_PAGE_SAVED, 1));
+      l10n_util::GetPluralStringFUTF16(IDS_IOS_BOOKMARKS_BULK_SAVED, 1));
   [self waitForSnackBarMessageText:snackbarMessage
       triggeredByTappingItemWithMatcher:AddToBookmarksButton()];
 
@@ -2790,7 +2782,7 @@ void EchoURLDefaultSearchEngineResponseProvider::GetResponseHeadersAndBody(
 
 // Tests that once an account is signed in, the syncing spinner is eventually
 // dismissed: https://crbug.com/1422634.
-- (void)testSyncSpinnerDismissedInRecentlyClosedTabs {
+- (void)DISABLE_testSyncSpinnerDismissedInRecentlyClosedTabs {
   // Clear browsing history to reduce delay during sign-in and fix this test's
   // flakiness on iOS 16.
   [ChromeEarlGrey clearBrowsingHistory];

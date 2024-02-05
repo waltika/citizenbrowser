@@ -91,9 +91,6 @@ class BookmarkBridgeTest : public testing::Test {
         std::make_unique<bookmarks::TestBookmarkClient>();
     BookmarkNode* managed_node = bookmark_client->EnableManagedNode();
     managed_node->SetTitle(u"Managed bookmarks");
-    if (enable_account_bookmarks) {
-      bookmark_client->AllowFoldersForAccountStorage();
-    }
     bookmark_model_ =
         std::make_unique<bookmarks::BookmarkModel>(std::move(bookmark_client));
     bookmark_model_->LoadEmptyForTest();
@@ -103,8 +100,7 @@ class BookmarkBridgeTest : public testing::Test {
     std::unique_ptr<ReadingListManagerImpl> account_reading_list_manager =
         nullptr;
     if (enable_account_bookmarks) {
-      base::test::ScopedFeatureList features;
-      features.InitWithFeatures(
+      features_.InitWithFeatures(
           /*enabled_features=*/{syncer::kEnableBookmarkFoldersForAccountStorage,
                                 syncer::kReplaceSyncPromosWithSignInPromos},
           /*disabled_features=*/{});
@@ -169,6 +165,7 @@ class BookmarkBridgeTest : public testing::Test {
     return std::move(reading_list_model);
   }
 
+  base::test::ScopedFeatureList features_;
   base::SimpleTestClock clock_;
 
   std::unique_ptr<TestingProfileManager> profile_manager_;
@@ -178,10 +175,10 @@ class BookmarkBridgeTest : public testing::Test {
   raw_ptr<PartnerBookmarksShim> partner_bookmarks_shim_;
 
   std::unique_ptr<ReadingListModel> account_reading_list_model_;
-  raw_ptr<ReadingListManager> account_reading_list_manager_;
+  raw_ptr<ReadingListManagerImpl> account_reading_list_manager_;
 
   std::unique_ptr<ReadingListModel> local_or_syncable_reading_list_model_;
-  raw_ptr<ReadingListManager> local_or_syncable_reading_list_manager_;
+  raw_ptr<ReadingListManagerImpl> local_or_syncable_reading_list_manager_;
 
   std::unique_ptr<BookmarkBridge> bookmark_bridge_;
 
@@ -213,6 +210,47 @@ TEST_F(BookmarkBridgeTest, TestGetMostRecentlyAddedUserBookmarkIdForUrl) {
   recently_added = local_or_syncable_reading_list_manager()->Add(url, "fourth");
   ASSERT_EQ(
       recently_added,
+      bookmark_bridge()->GetMostRecentlyAddedUserBookmarkIdForUrlImpl(url));
+}
+
+TEST_F(BookmarkBridgeTest,
+       TestGetMostRecentlyAddedUserBookmarkIdForUrlBeforeReadingListLoads) {
+  GURL url = GURL("http://foo.com");
+  ASSERT_EQ(
+      nullptr,
+      bookmark_bridge()->GetMostRecentlyAddedUserBookmarkIdForUrlImpl(url));
+
+  // Add to the reading list and verify that it's the most recently added.
+  auto* recently_added =
+      local_or_syncable_reading_list_manager()->Add(url, "test");
+  ASSERT_EQ(
+      recently_added,
+      bookmark_bridge()->GetMostRecentlyAddedUserBookmarkIdForUrlImpl(url));
+
+  local_or_syncable_reading_list_manager_->SetIsLoadedForTests(false);
+  ASSERT_EQ(
+      nullptr,
+      bookmark_bridge()->GetMostRecentlyAddedUserBookmarkIdForUrlImpl(url));
+}
+
+TEST_F(
+    BookmarkBridgeTest,
+    TestGetMostRecentlyAddedUserBookmarkIdForUrlBeforeReadingListLoadsWithAccountBookmarks) {
+  CreateBookmarkBridge(/*enable_account_bookmarks=*/true);
+  GURL url = GURL("http://foo.com");
+  ASSERT_EQ(
+      nullptr,
+      bookmark_bridge()->GetMostRecentlyAddedUserBookmarkIdForUrlImpl(url));
+
+  // Add to the reading list and verify that it's the most recently added.
+  auto* recently_added = account_reading_list_manager_->Add(url, "test");
+  ASSERT_EQ(
+      recently_added,
+      bookmark_bridge()->GetMostRecentlyAddedUserBookmarkIdForUrlImpl(url));
+
+  account_reading_list_manager_->SetIsLoadedForTests(false);
+  ASSERT_EQ(
+      nullptr,
       bookmark_bridge()->GetMostRecentlyAddedUserBookmarkIdForUrlImpl(url));
 }
 

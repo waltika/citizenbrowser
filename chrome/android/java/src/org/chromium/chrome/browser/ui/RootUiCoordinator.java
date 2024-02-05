@@ -875,11 +875,9 @@ public class RootUiCoordinator
 
         if (DeviceFormFactor.isWindowOnTablet(mWindowAndroid)
                 && (RequestDesktopUtils.maybeDefaultEnableGlobalSetting(
-                                getPrimaryDisplaySizeInInches(),
-                                Profile.getLastUsedRegularProfile(),
-                                mActivity)
-                        || RequestDesktopUtils.maybeDisableGlobalSetting(
-                                Profile.getLastUsedRegularProfile()))) {
+                        getPrimaryDisplaySizeInInches(),
+                        Profile.getLastUsedRegularProfile(),
+                        mActivity))) {
             // TODO(crbug.com/1350274): Remove this explicit load when this bug is addressed.
             if (mActivityTabProvider != null && mActivityTabProvider.get() != null) {
                 mActivityTabProvider
@@ -902,7 +900,8 @@ public class RootUiCoordinator
                             getBottomSheetController(),
                             mBrowserControlsManager,
                             mLayoutManagerSupplier,
-                            mWindowAndroid);
+                            mWindowAndroid,
+                            mActivityLifecycleDispatcher);
             mReadAloudControllerSupplier.set(controller);
             mReadAloudContextualSearchObserver =
                     new ContextualSearchObserver() {
@@ -1444,7 +1443,7 @@ public class RootUiCoordinator
                             () -> {
                                 new QuickDeleteController(
                                         mActivity,
-                                        new QuickDeleteDelegateImpl(),
+                                        new QuickDeleteDelegateImpl(mTabSwitcherSupplier),
                                         mModalDialogManagerSupplier.get(),
                                         mSnackbarManagerSupplier.get(),
                                         mLayoutManager,
@@ -1561,8 +1560,7 @@ public class RootUiCoordinator
                             hideAppMenu();
                             // Attempt to show the promo sheet for the restore tabs feature.
                             // Do not attempt to show the promo if in incognito mode.
-                            if (RestoreTabsFeatureHelper.RESTORE_TABS_PROMO.isEnabled()
-                                    && !mTabModelSelectorSupplier.get().isIncognitoSelected()) {
+                            if (!mTabModelSelectorSupplier.get().isIncognitoSelected()) {
                                 // TODO(1458646): Add support for triggering in incognito mode.
                                 attemptToShowRestoreTabsPromo();
                             }
@@ -1758,7 +1756,12 @@ public class RootUiCoordinator
                         sheetInitializedCallback,
                         mActivity.getWindow(),
                         mWindowAndroid.getKeyboardDelegate(),
-                        () -> mActivity.findViewById(R.id.sheet_container));
+                        () -> mActivity.findViewById(R.id.sheet_container),
+                        () -> {
+                            return mEdgeToEdgeControllerSupplier.get() == null
+                                    ? 0
+                                    : mEdgeToEdgeControllerSupplier.get().getBottomInset();
+                        });
         BottomSheetControllerFactory.setExceptionReporter(
                 (throwable) ->
                         ChromePureJavaExceptionReporter.reportJavaException((Throwable) throwable));

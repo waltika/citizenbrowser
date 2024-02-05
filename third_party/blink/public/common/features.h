@@ -116,9 +116,6 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kAudioWorkletThreadRealtimePriority);
 BLINK_COMMON_EXPORT
 BASE_DECLARE_FEATURE(kAutofillSendUnidentifiedKeyAfterFill);
 
-BLINK_COMMON_EXPORT
-BASE_DECLARE_FEATURE(kAutofillUseDomNodeIdForRendererId);
-
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kAutomaticLazyFrameLoadingToAds);
 BLINK_COMMON_EXPORT extern const base::FeatureParam<int>
     kTimeoutMillisForLazyAds;
@@ -156,6 +153,8 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kBackForwardCacheWithKeepaliveRequest);
 
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kBackgroundResourceFetch);
+
+BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kBakedGamutMapping);
 
 // Used to configure a per-origin allowlist of performance.mark events that are
 // permitted to be included in slow reports traces. See crbug.com/1181774.
@@ -395,17 +394,12 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kDroppedTouchSequenceIncludesTouchEnd);
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
     kEagerCacheStorageSetupForServiceWorkers);
 
-// Early exit when the style or class attribute of an element is set to the same
-// value as before.
-BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kEarlyExitOnNoopClassOrStyleChange);
-
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kEditingNG);
 
 // Enables establishing the GPU channel asnchronously when requesting a new
 // layer tree frame sink.
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kEstablishGpuChannelAsync);
 
-BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kEventTimingMatchPresentationIndex);
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kDeprecateUnload);
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kDeprecateUnloadByAllowList);
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kDeprecateUnloadByUserAndOrigin);
@@ -414,10 +408,6 @@ BLINK_COMMON_EXPORT extern const base::FeatureParam<int>
 BLINK_COMMON_EXPORT extern const base::FeatureParam<int> kDeprecateUnloadBucket;
 BLINK_COMMON_EXPORT extern const base::FeatureParam<std::string>
     kDeprecateUnloadAllowlist;
-// This feature (EventTimingReportAllEarlyEntriesOnPaintedPresentation) is
-// having an effect only when EventTimingMatchPresentationIndex is turned on.
-BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
-    kEventTimingReportAllEarlyEntriesOnPaintedPresentation);
 
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kExcludeLowEntropyImagesFromLCP);
 BLINK_COMMON_EXPORT extern const base::FeatureParam<double>
@@ -691,6 +681,18 @@ BLINK_COMMON_EXPORT extern const base::FeatureParam<int>
 // The maximum URL length allowed for LCPP.
 BLINK_COMMON_EXPORT extern const base::FeatureParam<int>
     kLCPScriptObserverMaxUrlLength;
+
+// If enabled, LCP image origin is predicted and preconnected automatically.
+BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kLCPPAutoPreconnectLcpOrigin);
+
+// Origins are automatically preconnected if frequencies are above this
+// threshold.
+BLINK_COMMON_EXPORT extern const base::FeatureParam<double>
+    kLCPPAutoPreconnectFrequencyThreshold;
+
+// The maximum number of origins to be preconnected
+BLINK_COMMON_EXPORT extern const base::FeatureParam<int>
+    kkLCPPAutoPreconnectMaxPreconnectOriginsCount;
 
 // If enabled, fetched font URLs are observed to predict font usage in the
 // future navigation.
@@ -1232,6 +1234,14 @@ BLINK_COMMON_EXPORT extern const base::FeatureParam<base::TimeDelta>
 // main frame has fenced frame depth 1, etc).
 BLINK_COMMON_EXPORT extern const base::FeatureParam<int>
     kSharedStorageMaxAllowedFencedFrameDepthForSelectURL;
+// If enabled, sends additional details in the error message for the
+// rejected promise when shared storage is disabled, for local troubleshooting
+// and use in testing.
+//
+// NOTE: To preserve user privacy, this feature param MUST remain false by
+// default.
+BLINK_COMMON_EXPORT extern const base::FeatureParam<bool>
+    kSharedStorageExposeDebugMessageForSettingsStatus;
 
 // If enabled, limits the number of times per origin per pageload that
 // `sharedStorage.selectURL()` is allowed to be invoked.
@@ -1363,8 +1373,6 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kThreadedPreloadScanner);
 // below.
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
     kThrottleDisplayNoneAndVisibilityHiddenCrossOriginIframes);
-
-BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kThrottleForegroundTimers);
 
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kThrottleInstallingServiceWorker);
 BLINK_COMMON_EXPORT extern const base::FeatureParam<int>

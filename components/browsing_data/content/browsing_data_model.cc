@@ -65,7 +65,7 @@ struct GetDataOwner {
   template <class T>
   BrowsingDataModel::DataOwner operator()(const T& data_key) const {
     if (delegate_) {
-      absl::optional<BrowsingDataModel::DataOwner> owner =
+      std::optional<BrowsingDataModel::DataOwner> owner =
           delegate_->GetDataOwner(data_key, storage_type_);
       if (owner.has_value()) {
         return *owner;
@@ -545,10 +545,10 @@ void OnDelegateDataLoaded(
 }
 
 // If `data_key` represents a non-1P partition, returns the site on which it
-// is partitioned, absl::nullopt otherwise.
-absl::optional<net::SchemefulSite> GetThirdPartyPartitioningSite(
+// is partitioned, std::nullopt otherwise.
+std::optional<net::SchemefulSite> GetThirdPartyPartitioningSite(
     const BrowsingDataModel::DataKey& data_key) {
-  absl::optional<net::SchemefulSite> top_level_site = absl::nullopt;
+  std::optional<net::SchemefulSite> top_level_site = std::nullopt;
   absl::visit(
       base::Overloaded{
           [&](const url::Origin&) {},
@@ -631,7 +631,7 @@ bool BrowsingDataModel::BrowsingDataEntryView::Matches(
                      *data_owner);
 }
 
-absl::optional<net::SchemefulSite>
+std::optional<net::SchemefulSite>
 BrowsingDataModel::BrowsingDataEntryView::GetThirdPartyPartitioningSite()
     const {
   // Partition information is only dependent on it's `data_key`.
@@ -896,8 +896,6 @@ void BrowsingDataModel::PopulateFromDisk(base::OnceClosure finished_callback) {
       attribution_reporting::features::kConversionMeasurement);
   bool is_private_aggregation_enabled =
       base::FeatureList::IsEnabled(blink::features::kPrivateAggregationApi);
-  bool is_migrate_storage_to_bdm_enabled = base::FeatureList::IsEnabled(
-      browsing_data::features::kMigrateStorageToBDM);
   bool is_cookies_tree_model_deprecated = base::FeatureList::IsEnabled(
       browsing_data::features::kDeprecateCookiesTreeModel);
 
@@ -910,17 +908,22 @@ void BrowsingDataModel::PopulateFromDisk(base::OnceClosure finished_callback) {
   // until `finished_callback` has been run. Thus, it's safe to pass raw `this`
   // to backend callbacks.
 
-  // Issued Trust Tokens:
+  // Issued Trust Tokens
   storage_partition_->GetNetworkContext()->GetStoredTrustTokenCounts(
       base::BindOnce(&OnTrustTokenIssuanceInfoLoaded, this, completion));
 
+  // Quota Storage
+  quota_helper_->StartFetching(
+      base::BindOnce(&OnQuotaStorageLoaded, this, completion));
+  storage_partition_->GetDOMStorageContext()->GetLocalStorageUsage(
+      base::BindOnce(&OnLocalStorageLoaded, this, completion));
   // Shared storage origins
   if (is_shared_storage_enabled) {
     storage_partition_->GetSharedStorageManager()->FetchOrigins(
         base::BindOnce(&OnSharedStorageLoaded, this, completion));
   }
 
-  // Shared Dictionaries.
+  // Shared Dictionaries
   if (is_shared_dictionary_enabled) {
     storage_partition_->GetNetworkContext()->GetSharedDictionaryUsageInfo(
         base::BindOnce(&OnSharedDictionaryUsageLoaded, this, completion));
@@ -944,13 +947,7 @@ void BrowsingDataModel::PopulateFromDisk(base::OnceClosure finished_callback) {
         base::BindOnce(&OnPrivateAggregationLoaded, this, completion));
   }
 
-  if (is_migrate_storage_to_bdm_enabled) {
-    quota_helper_->StartFetching(
-        base::BindOnce(&OnQuotaStorageLoaded, this, completion));
-    storage_partition_->GetDOMStorageContext()->GetLocalStorageUsage(
-        base::BindOnce(&OnLocalStorageLoaded, this, completion));
-  }
-
+  // Cookies
   if (is_cookies_tree_model_deprecated) {
     storage_partition_->GetCookieManagerForBrowserProcess()->GetAllCookies(
         base::BindOnce(&OnCookiesLoaded, this, completion));

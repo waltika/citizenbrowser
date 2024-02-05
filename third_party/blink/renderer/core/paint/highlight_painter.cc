@@ -20,14 +20,15 @@
 #include "third_party/blink/renderer/core/layout/inline/text_offset_range.h"
 #include "third_party/blink/renderer/core/layout/layout_object.h"
 #include "third_party/blink/renderer/core/layout/svg/layout_svg_inline_text.h"
+#include "third_party/blink/renderer/core/layout/text_decoration_offset.h"
 #include "third_party/blink/renderer/core/paint/document_marker_painter.h"
+#include "third_party/blink/renderer/core/paint/highlight_overlay.h"
 #include "third_party/blink/renderer/core/paint/line_relative_rect.h"
 #include "third_party/blink/renderer/core/paint/marker_range_mapping_context.h"
-#include "third_party/blink/renderer/core/paint/highlight_overlay.h"
-#include "third_party/blink/renderer/core/paint/text_decoration_painter.h"
-#include "third_party/blink/renderer/core/paint/text_painter.h"
 #include "third_party/blink/renderer/core/paint/paint_auto_dark_mode.h"
 #include "third_party/blink/renderer/core/paint/paint_info.h"
+#include "third_party/blink/renderer/core/paint/text_decoration_painter.h"
+#include "third_party/blink/renderer/core/paint/text_painter.h"
 #include "third_party/blink/renderer/platform/graphics/graphics_context_state_saver.h"
 #include "third_party/blink/renderer/platform/instrumentation/use_counter.h"
 
@@ -415,21 +416,31 @@ HighlightPainter::HighlightPainter(
       }
     }
     if (!parts_.empty()) {
-      // TODO(schenney) The code here still results in n^2 calculations or,
-      // more precisely, O(num_edges * text_length) because
-      // CaretInlinePositionForOffset ultimately does a linear walk through
-      // the text shaping result looking for the offset while accumulating
-      // character widths. Given the edges are sorted, we should enable
-      // one pass through the text to accumulate all the necessary offset
-      // positions.
-      edges_info_.push_back(
-          HighlightEdgeInfo{parts_[0].range.from,
-                            fragment_item_.CaretInlinePositionForOffset(
-                                cursor_.CurrentText(), parts_[0].range.from)});
-      for (const HighlightPart& part : parts_) {
+      if (const ShapeResultView* shape_result_view =
+              fragment_item_->TextShapeResult()) {
+        const ShapeResult* shape_result =
+            shape_result_view->CreateShapeResult();
+        unsigned start_offset = fragment_item_->StartOffset();
         edges_info_.push_back(HighlightEdgeInfo{
-            part.range.to, fragment_item_.CaretInlinePositionForOffset(
-                               cursor_.CurrentText(), part.range.to)});
+            parts_[0].range.from,
+            LayoutUnit::FromFloatRound(shape_result->CaretPositionForOffset(
+                parts_[0].range.from - start_offset, cursor_.CurrentText()))});
+        for (const HighlightPart& part : parts_) {
+          edges_info_.push_back(HighlightEdgeInfo{
+              part.range.to,
+              LayoutUnit::FromFloatRound(shape_result->CaretPositionForOffset(
+                  part.range.to - start_offset, cursor_.CurrentText()))});
+        }
+      } else {
+        edges_info_.push_back(HighlightEdgeInfo{
+            parts_[0].range.from,
+            fragment_item_.CaretInlinePositionForOffset(cursor_.CurrentText(),
+                                                        parts_[0].range.from)});
+        for (const HighlightPart& part : parts_) {
+          edges_info_.push_back(HighlightEdgeInfo{
+              part.range.to, fragment_item_.CaretInlinePositionForOffset(
+                                 cursor_.CurrentText(), part.range.to)});
+        }
       }
     }
   }
@@ -731,15 +742,16 @@ void HighlightPainter::PaintOneSpellingGrammarDecoration(
   const LineRelativeRect rect = LineRelativeWorldRect(range);
 
   absl::optional<TextDecorationInfo> decoration_info{};
-  decoration_painter_.UpdateDecorationInfo(decoration_info, style, rect,
-                                           decoration_override);
+  decoration_painter_.UpdateDecorationInfo(decoration_info, fragment_item_,
+                                           style, rect, decoration_override);
 
   GraphicsContextStateSaver saver{paint_info_.context};
   ClipToPartDecorations(rect);
 
+  const TextDecorationOffset decoration_offset(fragment_item_.Style());
   text_painter_.PaintDecorationsExceptLineThrough(
       fragment_paint_info_.Slice(paint_start_offset, paint_end_offset),
-      fragment_item_, paint_info_, text_style, *decoration_info,
+      decoration_offset, paint_info_, text_style, *decoration_info,
       LineFor(marker_type));
 }
 
@@ -1068,21 +1080,8 @@ LineRelativeRect HighlightPainter::LocalRectInWritingModeSpace(
 
 void HighlightPainter::ClipToPartDecorations(
     const LineRelativeRect& part_rect) {
-  gfx::RectF clip_rect{part_rect};
-
-  // Whether it’s best to clip to selection rect on both axes or only inline
-  // depends on the situation, but the latter can improve the appearance of
-  // decorations. For example, we often paint overlines entirely past the
-  // top edge of selection rect, and wavy underlines have similar problems.
-  //
-  // Sadly there’s no way to clip to a rect of infinite height, so for now,
-  // let’s clip to selection rect plus its height both above and below. This
-  // should be enough to avoid clipping most decorations in the wild.
-  //
-  // TODO(crbug.com/1433400): take text-underline-offset and other
-  // text-decoration properties into account?
-  clip_rect.set_y(clip_rect.y() - clip_rect.height());
-  clip_rect.set_height(3.0 * clip_rect.height());
+  const gfx::RectF clip_rect =
+      TextDecorationPainter::ExpandRectForDecorations(part_rect);
   paint_info_.context.Clip(clip_rect);
 }
 
@@ -1133,8 +1132,9 @@ void HighlightPainter::PaintDecorationsExceptLineThrough(
                                            : decoration_rect;
 
     absl::optional<TextDecorationInfo> decoration_info{};
-    decoration_painter_.UpdateDecorationInfo(
-        decoration_info, *decoration_layer.style, decoration_rect);
+    decoration_painter_.UpdateDecorationInfo(decoration_info, fragment_item_,
+                                             *decoration_layer.style,
+                                             decoration_rect);
 
     if (!state_saver.Saved()) {
       state_saver.Save();
@@ -1156,9 +1156,10 @@ void HighlightPainter::PaintDecorationsExceptLineThrough(
       }
     }
 
+    const TextDecorationOffset decoration_offset(fragment_item_.Style());
     text_painter_.PaintDecorationsExceptLineThrough(
         fragment_paint_info_.Slice(part.range.from, part.range.to),
-        fragment_item_, paint_info_, decoration_layer.text_style,
+        decoration_offset, paint_info_, decoration_layer.text_style,
         *decoration_info, lines_to_paint);
   }
 }
@@ -1198,8 +1199,9 @@ void HighlightPainter::PaintDecorationsOnlyLineThrough(
                                            : decoration_rect;
 
     absl::optional<TextDecorationInfo> decoration_info{};
-    decoration_painter_.UpdateDecorationInfo(
-        decoration_info, *decoration_layer.style, decoration_rect);
+    decoration_painter_.UpdateDecorationInfo(decoration_info, fragment_item_,
+                                             *decoration_layer.style,
+                                             decoration_rect);
 
     if (!state_saver.Saved()) {
       state_saver.Save();
@@ -1221,9 +1223,8 @@ void HighlightPainter::PaintDecorationsOnlyLineThrough(
       }
     }
 
-    text_painter_.PaintDecorationsOnlyLineThrough(fragment_item_, paint_info_,
-                                                  decoration_layer.text_style,
-                                                  *decoration_info);
+    text_painter_.PaintDecorationsOnlyLineThrough(
+        paint_info_, decoration_layer.text_style, *decoration_info);
   }
 }
 
@@ -1304,11 +1305,11 @@ void HighlightPainter::PaintDecoratedText(const StringView& text,
       fragment_item_, text, paint_start_offset, paint_end_offset);
   decoration_rect.Move(LineRelativeOffset::CreateFromBoxOrigin(box_origin_));
   TextDecorationPainter decoration_painter(
-      text_painter_, fragment_item_, paint_info_,
+      text_painter_, decoration_painter_.InlineContext(), paint_info_,
       pseudo_style ? *pseudo_style : originating_style_, text_style,
       decoration_rect, selection_);
 
-  decoration_painter.Begin(TextDecorationPainter::kOriginating);
+  decoration_painter.Begin(fragment_item_, TextDecorationPainter::kOriginating);
   decoration_painter.PaintExceptLineThrough(
       fragment_paint_info_.Slice(paint_start_offset, paint_end_offset));
 

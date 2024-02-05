@@ -42,7 +42,8 @@ class ChromeComposeClient
     : public compose::ComposeClient,
       public content::WebContentsObserver,
       public content::WebContentsUserData<ChromeComposeClient>,
-      public compose::mojom::ComposeClientPageHandler {
+      public compose::mojom::ComposeClientPageHandler,
+      public InnerTextProvider {
  public:
   using EntryPoint = autofill::AutofillComposeDelegate::UiEntryPoint;
   ChromeComposeClient(const ChromeComposeClient&) = delete;
@@ -60,6 +61,7 @@ class ChromeComposeClient
   bool HasSession(const autofill::FieldGlobalId& trigger_field_id) override;
   bool ShouldTriggerPopup(
       const autofill::FormFieldData& trigger_field) override;
+  compose::PageUkmTracker* getPageUkmTracker() override;
 
   // ComposeClientPageHandler
   // Shows the compose dialog.
@@ -72,6 +74,11 @@ class ChromeComposeClient
   // Opens the Compose-related Chrome settings page in a new tab when the
   // "Go to Settings" link is clicked in the MSBB dialog.
   void OpenComposeSettings() override;
+
+  // InnerTextProvider
+  void GetInnerText(content::RenderFrameHost& host,
+                    absl::optional<int> node_id,
+                    content_extraction::InnerTextCallback callback) override;
 
   bool GetMSBBStateFromPrefs();
 
@@ -92,6 +99,7 @@ class ChromeComposeClient
       optimization_guide::OptimizationGuideModelExecutor* model_executor);
   void SetSkipShowDialogForTest(bool should_skip);
   void SetSessionIdForTest(base::Token session_id);
+  void SetInnerTextProviderForTest(InnerTextProvider* inner_text);
 
   // content::WebContentsObserver implementation.
   // Called when the primary page location changes. This includes reloads.
@@ -137,6 +145,7 @@ class ChromeComposeClient
   optimization_guide::OptimizationGuideModelExecutor* GetModelExecutor();
   optimization_guide::OptimizationGuideDecider* GetOptimizationGuide();
   base::Token GetSessionId();
+  InnerTextProvider* GetInnerTextProvider();
   std::unique_ptr<TranslateLanguageProvider> translate_language_provider_;
   std::unique_ptr<ComposeEnabling> compose_enabling_;
 
@@ -196,6 +205,8 @@ class ChromeComposeClient
   std::optional<std::pair<autofill::FieldGlobalId, autofill::FormGlobalId>>
       active_compose_ids_;
 
+  std::optional<InnerTextProvider*> inner_text_provider_for_test_;
+
   // Saved states for each compose field.
   base::flat_map<autofill::FieldGlobalId, std::unique_ptr<ComposeSession>>
       sessions_;
@@ -214,7 +225,8 @@ class ChromeComposeClient
   // Used to test Compose in a tab at |chrome://compose|.
   std::unique_ptr<ComposeSession> debug_session_;
 
-  // On destruction reports per-pageload UKM metrics (if any).
+  // Collects per-pageload UKM metrics and reports them on destruction (if any
+  // were collected).
   std::unique_ptr<compose::PageUkmTracker> page_ukm_tracker_;
 
   bool skip_show_dialog_for_test_ = false;

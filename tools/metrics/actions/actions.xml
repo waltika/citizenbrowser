@@ -9485,6 +9485,60 @@ should be able to be added at any place in this file.
   </description>
 </action>
 
+<action name="DownloadNotificationV2.Button_Cancel">
+  <owner>andrewxu@chromium.org</owner>
+  <owner>cros-system-ui-productivity-eng@google.com</owner>
+  <description>
+    User clicks &quot;Cancel&quot; button on a download notification with the
+    downloads integration V2 feature enabled.
+  </description>
+</action>
+
+<action name="DownloadNotificationV2.Button_Pause">
+  <owner>andrewxu@chromium.org</owner>
+  <owner>cros-system-ui-productivity-eng@google.com</owner>
+  <description>
+    User clicks &quot;Pause&quot; button on a download notification with the
+    downloads integration V2 feature enabled.
+  </description>
+</action>
+
+<action name="DownloadNotificationV2.Button_Resume">
+  <owner>andrewxu@chromium.org</owner>
+  <owner>cros-system-ui-productivity-eng@google.com</owner>
+  <description>
+    User clicks &quot;Resume&quot; button on a download notification with the
+    downloads integration V2 feature enabled.
+  </description>
+</action>
+
+<action name="DownloadNotificationV2.Button_ShowInFolder">
+  <owner>andrewxu@chromium.org</owner>
+  <owner>cros-system-ui-productivity-eng@google.com</owner>
+  <description>
+    User clicks &quot;Show in folder&quot; button on a download notification
+    with the downloads integration V2 feature enabled.
+  </description>
+</action>
+
+<action name="DownloadNotificationV2.Click_Completed">
+  <owner>andrewxu@chromium.org</owner>
+  <owner>cros-system-ui-productivity-eng@google.com</owner>
+  <description>
+    User clicks a completed download notification's body with the downloads
+    integration V2 feature enabled.
+  </description>
+</action>
+
+<action name="DownloadNotificationV2.Click_InProgress">
+  <owner>andrewxu@chromium.org</owner>
+  <owner>cros-system-ui-productivity-eng@google.com</owner>
+  <description>
+    User clicks an in-progress download notification's body with the downloads
+    integration V2 feature enabled.
+  </description>
+</action>
+
 <action name="Downloads_OpenUrlOfDownloadedItem">
   <owner>chrome-analysis-team@google.com</owner>
   <description>
@@ -9664,6 +9718,15 @@ should be able to be added at any place in this file.
   <description>
     User exited browser/API fullscreen mode by clicking on the pop up close
     button on the top of the screen.
+  </description>
+</action>
+
+<action name="ExpandSearchEngineDescription">
+  <owner>jyammine@google.com</owner>
+  <owner>chrome-waffle-eng@google.com</owner>
+  <description>
+    Action indicating that the user expanded the chevron in the search engine
+    choice page to view the search engine description.
   </description>
 </action>
 
@@ -31100,6 +31163,16 @@ should be able to be added at any place in this file.
   </description>
 </action>
 
+<action name="SearchEngineChoiceScreenShown">
+  <owner>jyammine@google.com</owner>
+  <owner>chrome-waffle-eng@google.com</owner>
+  <description>
+    Recorded when the search engine choice screen is displayed. The screen could
+    be displayed in the modal dialog (or promo) and the first run experience on
+    iOS and Desktop and the profile creation flow on Desktop.
+  </description>
+</action>
+
 <action name="SearchEnginePromo.ExistingDevice.PromoSelected">
   <owner>yusufo@chromium.org</owner>
   <description>
@@ -39417,6 +39490,11 @@ should be able to be added at any place in this file.
   <description>Please enter the description of this user action.</description>
 </action>
 
+<action name="UniversalInstallFromMenu">
+  <owner>Please list the metric's owners. Add more owner tags as needed.</owner>
+  <description>Please enter the description of the metric.</description>
+</action>
+
 <action name="Unlink">
   <owner>Please list the metric's owners. Add more owner tags as needed.</owner>
   <description>Please enter the description of this user action.</description>
@@ -41208,6 +41286,8 @@ should be able to be added at any place in this file.
       label="For iOSReplaceSyncPromosWithSignInPromos feature"/>
   <suffix name="iOSShareToolbarItemFeature"
       label="For iOSShareToolbarItemFeature feature"/>
+  <suffix name="iOSSwipeBackForwardFeature"
+      label="For iOSSwipeBackForwardFeature feature"/>
   <suffix name="iOSTabGridSwipeLeftForIncognito"
       label="For iOSTabGridSwipeLeftForIncognito feature"/>
   <suffix name="iOSTabGridToolbarItemFeature"
@@ -41298,7 +41378,7 @@ should be able to be added at any place in this file.
   <suffix name="RequestDesktopSiteExceptionsGeneric"
       label="For the RequestDesktopSiteExceptionsGeneric feature."/>
   <suffix name="RequestDesktopSiteOptIn"
-      label="For the RequestDesktopSiteOptIn feature."/>
+      label="For the RequestDesktopSiteOptIn feature. (obsolete)"/>
   <suffix name="RequestDesktopSiteWindowSetting"
       label="For the RequestDesktopSiteWindowSetting feature."/>
   <suffix name="RestoreTabsOnFRE" label="For the RestoreTabsOnFRE feature."/>

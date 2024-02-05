@@ -607,8 +607,7 @@ class Browser : public TabStripModelObserver,
   void ResetTryToCloseWindow();
 
   // Figure out if there are tabs that have beforeunload handlers.
-  // It starts beforeunload/unload processing as a side-effect.
-  bool TabsNeedBeforeUnloadFired();
+  bool TabsNeedBeforeUnloadFired() const;
 
   // Browser closing consists of the following phases:
   //
@@ -798,7 +797,7 @@ class Browser : public TabStripModelObserver,
   }
 
   // True when the mouse cursor is locked.
-  bool IsMouseLocked() const;
+  bool IsPointerLocked() const;
 
   // Called each time the browser window is shown.
   void OnWindowDidShow();
@@ -1004,10 +1003,10 @@ class Browser : public TabStripModelObserver,
                  const gfx::Rect& selection_rect,
                  int active_match_ordinal,
                  bool final_update) override;
-  void RequestToLockMouse(content::WebContents* web_contents,
+  void RequestPointerLock(content::WebContents* web_contents,
                           bool user_gesture,
                           bool last_unlocked_by_target) override;
-  void LostMouseLock() override;
+  void LostPointerLock() override;
   void RequestKeyboardLock(content::WebContents* web_contents,
                            bool esc_key_locked) override;
   void CancelKeyboardLockRequest(content::WebContents* web_contents) override;

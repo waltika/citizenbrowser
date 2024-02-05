@@ -176,7 +176,7 @@ BASE_FEATURE(kZeroSuggestPrefetching,
 // Enables prefetching of the zero prefix suggestions for eligible users on SRP.
 BASE_FEATURE(kZeroSuggestPrefetchingOnSRP,
              "ZeroSuggestPrefetchingOnSRP",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             enabled_by_default_desktop_only);
 
 // Enables prefetching of the zero prefix suggestions for eligible users on the
 // Web (i.e. non-NTP and non-SRP URLs).
@@ -545,6 +545,11 @@ BASE_FEATURE(kShortcutsDatabaseUseBuiltInRecoveryIfSupported,
 // If enabled, |SearchProvider| will not function in Zero Suggest.
 BASE_FEATURE(kAblateSearchProviderWarmup,
              "AblateSearchProviderWarmup",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+// Enables storing successful query/match in the shortcut database On Android.
+BASE_FEATURE(kOmniboxShortcutsAndroid,
+             "OmniboxShortcutsAndroid",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 }  // namespace omnibox

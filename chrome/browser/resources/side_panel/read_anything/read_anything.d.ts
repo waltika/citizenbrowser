@@ -215,6 +215,10 @@ declare namespace chrome {
     // Sets the default language. Used by tests only.
     function setLanguageForTesting(code: string): void;
 
+    // Called when the side panel has finished loading and it's safe to call
+    // SidePanelWebUIView::ShowUI
+    function shouldShowUI(): boolean;
+
     ////////////////////////////////////////////////////////////////
     // Implemented in read_anything/app.ts and called by native c++.
     ////////////////////////////////////////////////////////////////
@@ -263,7 +267,7 @@ declare namespace chrome {
     // Gets the nodes for the previous text that should be spoken and
     // highlighted. Use getNextTextStartIndex and getNextTextEndIndex to get
     // the bounds for text associated with these nodes.
-    function getPreviousText(maxTextLength: number): number[];
+    function getPreviousText(): number[];
 
     // Signal that the supported fonts should be updated i.e. that the brower's
     // preferred language has changed.

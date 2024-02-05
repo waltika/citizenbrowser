@@ -14,7 +14,6 @@
 #include "content/browser/citizen_x/browser_citizennotes_agent_host.h"
 #include "content/browser/citizen_x/dedicated_worker_citizennotes_agent_host.h"
 #include "content/browser/citizen_x/citizennotes_issue_storage.h"
-#include "content/browser/citizen_x/citizennotes_url_loader_interceptor.h"
 #include "content/browser/citizen_x/protocol/audits.h"
 #include "content/browser/citizen_x/protocol/cnaudits_handler.h"
 #include "content/browser/citizen_x/protocol/cnbrowser_handler.h"
@@ -48,7 +47,6 @@
 #include "citizennotes_agent_host_impl.h"
 #include "citizennotes_instrumentation.h"
 #include "mojo/public/cpp/bindings/pending_remote.h"
-#include "mojo/public/cpp/bindings/self_owned_receiver.h"
 #include "net/base/features.h"
 #include "net/base/load_flags.h"
 #include "net/cookies/canonical_cookie.h"
@@ -57,9 +55,9 @@
 #include "net/quic/web_transport_error.h"
 #include "net/ssl/ssl_info.h"
 #include "services/network/public/cpp/citizennotes_observer_util.h"
+#include "services/network/public/cpp/url_loader_factory_builder.h"
 #include "services/network/public/mojom/citizennotes_observer.mojom.h"
 #include "services/network/public/mojom/network_context.mojom.h"
-#include "services/network/public/mojom/url_loader_factory.mojom.h"
 #include "third_party/blink/public/mojom/devtools/inspector_issue.mojom.h"
 #include "third_party/blink/public/mojom/navigation/navigation_params.mojom.h"
 
@@ -1244,8 +1242,7 @@ bool WillCreateURLLoaderFactory(
     RenderFrameHostImpl* rfh,
     bool is_navigation,
     bool is_download,
-    mojo::PendingReceiver<network::mojom::URLLoaderFactory>*
-        target_factory_receiver,
+    network::URLLoaderFactoryBuilder& factory_builder,
     network::mojom::URLLoaderFactoryOverridePtr* factory_override) {
   DCHECK(!is_download || is_navigation);
 
@@ -1257,8 +1254,8 @@ bool WillCreateURLLoaderFactory(
 
   return WillCreateURLLoaderFactoryInternal(
       frame_agent_host, rfh->GetCitizenNotesFrameToken(), rph->GetID(),
-      rph->GetStoragePartition(), is_navigation, is_download,
-      target_factory_receiver, factory_override);
+      rph->GetStoragePartition(), is_navigation, is_download, &factory_builder,
+      factory_override);
 }
 
 bool WillCreateURLLoaderFactoryInternal(
@@ -1268,8 +1265,7 @@ bool WillCreateURLLoaderFactoryInternal(
     StoragePartition* storage_partition,
     bool is_navigation,
     bool is_download,
-    mojo::PendingReceiver<network::mojom::URLLoaderFactory>*
-        target_factory_receiver,
+    network::URLLoaderFactoryBuilder* factory_builder,
     network::mojom::URLLoaderFactoryOverridePtr* factory_override) {
   DCHECK(!is_download || is_navigation);
 
@@ -1311,10 +1307,11 @@ bool WillCreateURLLoaderFactoryInternal(
   DCHECK(handler_override->overridden_factory_receiver);
   if (!factory_override) {
     // Not a subresource navigation, so just override the target receiver.
-    mojo::FusePipes(std::move(*target_factory_receiver),
+    auto [receiver, remote] = factory_builder->Append();
+    mojo::FusePipes(std::move(receiver),
                     std::move(citizennotes_override.overriding_factory));
-    *target_factory_receiver =
-        std::move(citizennotes_override.overridden_factory_receiver);
+    mojo::FusePipes(std::move(citizennotes_override.overridden_factory_receiver),
+                    std::move(remote));
   } else if (!*factory_override) {
     // No other overrides, so just returns ours as is.
     *factory_override = network::mojom::URLLoaderFactoryOverride::New(
@@ -1345,14 +1342,13 @@ bool WillCreateURLLoaderFactoryForServiceWorker(
       worker_agent_host, worker_agent_host->citizennotes_worker_token(),
       rph->GetID(), rph->GetStoragePartition(),
       /*is_navigation=*/false, /*is_download=*/false,
-      /*target_factory_receiver=*/nullptr, factory_override);
+      /*factory_builder=*/nullptr, factory_override);
 }
 
 bool WillCreateURLLoaderFactoryForServiceWorkerMainScript(
     const ServiceWorkerContextWrapper* context_wrapper,
     int64_t version_id,
-    mojo::PendingReceiver<network::mojom::URLLoaderFactory>*
-        target_factory_receiver) {
+    network::URLLoaderFactoryBuilder& factory_builder) {
   ServiceWorkerCitizenNotesAgentHost* worker_agent_host =
       ServiceWorkerCitizenNotesManager::GetInstance()
           ->GetCitizenNotesAgentHostForNewInstallingWorker(context_wrapper,
@@ -1363,7 +1359,7 @@ bool WillCreateURLLoaderFactoryForServiceWorkerMainScript(
       worker_agent_host, worker_agent_host->citizennotes_worker_token(),
       ChildProcessHost::kInvalidUniqueID, context_wrapper->storage_partition(),
       /*is_navigation=*/true,
-      /*is_download=*/false, target_factory_receiver,
+      /*is_download=*/false, &factory_builder,
       /*factory_override=*/nullptr);
 }
 
@@ -1382,7 +1378,7 @@ bool WillCreateURLLoaderFactoryForSharedWorker(
       worker_agent_host, worker_agent_host->citizennotes_worker_token(),
       rph->GetID(), rph->GetStoragePartition(),
       /*is_navigation=*/false, /*is_download=*/false,
-      /*target_factory_receiver=*/nullptr, factory_override);
+      /*factory_builder=*/nullptr, factory_override);
 }
 
 bool WillCreateURLLoaderFactoryForWorkerMainScript(
@@ -1395,25 +1391,7 @@ bool WillCreateURLLoaderFactoryForWorkerMainScript(
   return WillCreateURLLoaderFactoryInternal(
       host, worker_token, rph->GetID(), rph->GetStoragePartition(),
       /*is_navigation=*/false, /*is_download=*/false,
-      /*target_factory_receiver=*/nullptr, factory_override);
-}
-
-bool WillCreateURLLoaderFactory(
-    RenderFrameHostImpl* rfh,
-    bool is_navigation,
-    bool is_download,
-    std::unique_ptr<network::mojom::URLLoaderFactory>* factory) {
-  mojo::PendingRemote<network::mojom::URLLoaderFactory> proxied_factory;
-  mojo::PendingReceiver<network::mojom::URLLoaderFactory> receiver =
-      proxied_factory.InitWithNewPipeAndPassReceiver();
-  if (!WillCreateURLLoaderFactory(rfh, is_navigation, is_download, &receiver,
-                                  nullptr)) {
-    return false;
-  }
-  mojo::MakeSelfOwnedReceiver(std::move(*factory), std::move(receiver));
-  *factory = std::make_unique<CitizenNotesURLLoaderFactoryAdapter>(
-      std::move(proxied_factory));
-  return true;
+      /*factory_builder=*/nullptr, factory_override);
 }
 
 void OnPrefetchRequestWillBeSent(
@@ -1551,10 +1529,10 @@ void OnInterestGroupAuctionEventOccurred(
     const std::string& unique_auction_id,
     base::optional_ref<const std::string> parent_auction_id,
     const base::Value::Dict& auction_config) {
-  /*DispatchToAgents(
+  DispatchToAgents(
       frame_tree_node_id,
       &protocol::CNStorageHandler::NotifyInterestGroupAuctionEventOccurred,
-      event_time, type, unique_auction_id, parent_auction_id, auction_config);*/
+      event_time, type, unique_auction_id, parent_auction_id, auction_config);
 }
 
 void OnInterestGroupAuctionNetworkRequestCreated(
@@ -1562,10 +1540,10 @@ void OnInterestGroupAuctionNetworkRequestCreated(
     content::InterestGroupAuctionFetchType type,
     const std::string& request_id,
     const std::vector<std::string>& citizennotes_auction_ids) {
-  /*DispatchToAgents(frame_tree_node_id,
+  DispatchToAgents(frame_tree_node_id,
                    &protocol::CNStorageHandler::
                        NotifyInterestGroupAuctionNetworkRequestCreated,
-                   type, request_id, citizennotes_auction_ids);*/
+                   type, request_id, citizennotes_auction_ids);
 }
 
 void OnNavigationRequestWillBeSent(

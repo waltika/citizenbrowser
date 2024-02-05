@@ -160,12 +160,6 @@ BASE_FEATURE(kAutofillSendUnidentifiedKeyAfterFill,
              "AutofillSendUnidentifiedKeyAfterFill",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-// When enabled, Autofill will start identifying web elements using DOMNodeIds
-// instead of static counters.
-BASE_FEATURE(kAutofillUseDomNodeIdForRendererId,
-             "AutofillUseDomNodeIdForRendererId",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 // Apply lazy-loading to ad frames which have embeds likely impacting Core Web
 // Vitals.
 BASE_FEATURE(kAutomaticLazyFrameLoadingToAds,
@@ -259,6 +253,12 @@ BASE_FEATURE(kBackForwardCacheWithKeepaliveRequest,
 // more details.
 BASE_FEATURE(kBackgroundResourceFetch,
              "BackgroundResourceFetch",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+// Redefine the oklab and oklch spaces to have gamut mapping baked into them.
+// https://crbug.com/1508329
+BASE_FEATURE(kBakedGamutMapping,
+             "BakedGamutMapping",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Used to configure a per-origin allowlist of performance.mark events that are
@@ -738,10 +738,6 @@ BASE_FEATURE(kEagerCacheStorageSetupForServiceWorkers,
              "EagerCacheStorageSetupForServiceWorkers",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
-BASE_FEATURE(kEarlyExitOnNoopClassOrStyleChange,
-             "EarlyExitOnNoopClassOrStyleChange",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 BASE_FEATURE(kEstablishGpuChannelAsync,
              "EstablishGpuChannelAsync",
 #if BUILDFLAG(IS_ANDROID)
@@ -752,17 +748,6 @@ BASE_FEATURE(kEstablishGpuChannelAsync,
              base::FEATURE_DISABLED_BY_DEFAULT
 #endif
 );
-
-// Enables reporting Event Timing with matching presentation promise index only.
-BASE_FEATURE(kEventTimingMatchPresentationIndex,
-             "EventTimingMatchPresentationIndex",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
-// Enables reporting Event Timing entries with a smaller presentation index on
-// resolved painted presentation.
-BASE_FEATURE(kEventTimingReportAllEarlyEntriesOnPaintedPresentation,
-             "EventTimingReportAllEarlyEntriesOnPaintedPresentation",
-             base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Enables unload handler deprecation via Permissions-Policy.
 // https://crbug.com/1324111
@@ -1206,6 +1191,16 @@ const base::FeatureParam<int> kLCPScriptObserverMaxUrlLength{
 
 const base::FeatureParam<int> kLCPScriptObserverMaxUrlCountPerOrigin{
     &kLCPScriptObserver, "lcpp_max_url_count_per_origin", 5};
+
+BASE_FEATURE(kLCPPAutoPreconnectLcpOrigin,
+             "LCPPAutoPreconnectLcpOrigin",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+const base::FeatureParam<double> kLCPPAutoPreconnectFrequencyThreshold{
+    &kLCPPAutoPreconnectLcpOrigin, "lcpp_preconnect_frequency_threshold", 0.5};
+
+const base::FeatureParam<int> kkLCPPAutoPreconnectMaxPreconnectOriginsCount{
+    &kLCPPAutoPreconnectLcpOrigin, "lcpp_preconnect_max_origins", 2};
 
 BASE_FEATURE(kLCPPFontURLPredictor,
              "LCPPFontURLPredictor",
@@ -1878,6 +1873,12 @@ const base::FeatureParam<int>
     kSharedStorageMaxAllowedFencedFrameDepthForSelectURL = {
         &kSharedStorageAPI,
         "SharedStorageMaxAllowedFencedFrameDepthForSelectURL", 1};
+// NOTE: To preserve user privacy, the
+// `kSharedStorageExposeDebugMessageForSettingsStatus` feature param MUST remain
+// false by default.
+const base::FeatureParam<bool>
+    kSharedStorageExposeDebugMessageForSettingsStatus = {
+        &kSharedStorageAPI, "ExposeDebugMessageForSettingsStatus", false};
 
 BASE_FEATURE(kSharedStorageSelectURLLimit,
              "SharedStorageSelectURLLimit",
@@ -2067,12 +2068,6 @@ BASE_FEATURE(kThreadedPreloadScanner,
 BASE_FEATURE(kThrottleDisplayNoneAndVisibilityHiddenCrossOriginIframes,
              "ThrottleDisplayNoneAndVisibilityHiddenCrossOriginIframes",
              base::FEATURE_ENABLED_BY_DEFAULT);
-
-// Throttles Javascript timer wake ups (both same origin and cross origin) on
-// foreground pages.
-BASE_FEATURE(kThrottleForegroundTimers,
-             "ThrottleForegroundTimers",
-             base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Enable throttling of fetch() requests from service workers in the
 // installing state.  The limit of 3 was chosen to match the limit

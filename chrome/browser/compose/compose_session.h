@@ -11,6 +11,7 @@
 
 #include "base/check_op.h"
 #include "base/timer/elapsed_timer.h"
+#include "chrome/browser/content_extraction/inner_text.h"
 #include "chrome/common/compose/compose.mojom.h"
 #include "components/autofill/core/common/unique_ids.h"
 #include "components/compose/core/browser/compose_metrics.h"
@@ -20,6 +21,11 @@
 #include "mojo/public/cpp/bindings/pending_remote.h"
 #include "mojo/public/cpp/bindings/receiver.h"
 #include "mojo/public/cpp/bindings/remote.h"
+#include "services/metrics/public/cpp/ukm_source_id.h"
+
+namespace base {
+class ElapsedTimer;
+}  // namespace base
 
 namespace content {
 class WebContents;
@@ -28,6 +34,17 @@ class WebContents;
 namespace content_extraction {
 struct InnerTextResult;
 }  // namespace content_extraction
+
+// A simple interface to reroute inner text calls to allow for test mocks.
+class InnerTextProvider {
+ public:
+  virtual void GetInnerText(content::RenderFrameHost& host,
+                            absl::optional<int> node_id,
+                            content_extraction::InnerTextCallback callback) = 0;
+
+ protected:
+  virtual ~InnerTextProvider() = default;
+};
 
 // The state of a compose session. This currently includes the model quality log
 // entry, and the mojo based compose state.
@@ -58,6 +75,8 @@ class ComposeSession : public compose::mojom::ComposeSessionPageHandler {
       optimization_guide::OptimizationGuideModelExecutor* executor,
       optimization_guide::ModelQualityLogsUploader* model_quality_logs_uploader,
       base::Token session_id,
+      InnerTextProvider* inner_text,
+      autofill::FieldRendererId node_id,
       ComposeCallback callback = base::NullCallback());
   ~ComposeSession() override;
 
@@ -99,12 +118,15 @@ class ComposeSession : public compose::mojom::ComposeSessionPageHandler {
   void OpenBugReportingLink() override;
 
   // Opens the Compose Learn More page in a new tab when the "Learn more" link
-  // is clicked in the FRE dialog.
+  // is clicked in the FRE or Compose dialog.
   void OpenComposeLearnMorePage() override;
 
   // Opens the Compose feedback survey page in a new tab. This implementation is
   // designed for Dogfood only.
   void OpenFeedbackSurveyLink() override;
+
+  // Opens the sign in page in a new tab when the "Sign in" link is clicked.
+  void OpenSignInPage() override;
 
   // Saves the user feedback supplied form the UI to include in quality logs.
   void SetUserFeedback(compose::mojom::UserFeedback feedback) override;
@@ -140,6 +162,10 @@ class ComposeSession : public compose::mojom::ComposeSessionPageHandler {
 
   void set_fre_complete(bool fre_complete) { fre_complete_ = fre_complete; }
 
+  void set_msbb_settings_opened() {
+    session_events_.msbb_settings_opened = true;
+  }
+
   bool get_fre_complete() { return fre_complete_; }
 
   void SetFirstRunCompleted();
@@ -155,24 +181,24 @@ class ComposeSession : public compose::mojom::ComposeSessionPageHandler {
   void SetCloseReason(compose::ComposeSessionCloseReason close_reason);
 
  private:
-  void ProcessError(compose::mojom::ComposeStatus status);
+  void ProcessError(compose::EvalLocation eval_location,
+                    compose::mojom::ComposeStatus status);
   void ModelExecutionCallback(
       const base::ElapsedTimer& request_start,
       int request_id,
       bool was_input_edited,
-      optimization_guide::OptimizationGuideModelStreamingExecutionResult result,
-      std::unique_ptr<optimization_guide::ModelQualityLogEntry> log_entry);
-  void ModelExecutionProgress(
       optimization_guide::OptimizationGuideModelStreamingExecutionResult
           result);
+  void ModelExecutionProgress(optimization_guide::StreamingResponse result);
   void ModelExecutionComplete(
       base::TimeDelta request_delta,
       bool was_input_edited,
-      optimization_guide::OptimizationGuideModelStreamingExecutionResult result,
-      std::unique_ptr<optimization_guide::ModelQualityLogEntry> log_entry);
+      optimization_guide::OptimizationGuideModelStreamingExecutionResult
+          result);
 
   // Adds page content to the session context.
-  void AddPageContentToSession(std::string inner_text);
+  void AddPageContentToSession(std::string inner_text,
+                               std::optional<uint64_t> node_offset);
 
   // Makes compose or rewrite request.
   void MakeRequest(optimization_guide::proto::ComposeRequest request,
@@ -223,15 +249,11 @@ class ComposeSession : public compose::mojom::ComposeSessionPageHandler {
   // The state of the MSBB preference
   bool current_msbb_state_;
   bool msbb_initially_off_;
-  bool msbb_enabled_during_session_;
 
   // Reason that a compose msbb session was exited, used for metrics.
   compose::ComposeMSBBSessionCloseReason msbb_close_reason_;
   // State tracking whether the FRE has been completed
   bool fre_complete_ = false;
-
-  // True if the user completed the FRE in this session.
-  bool fre_completed_in_session_ = false;
 
   // Reason that a FRE session was exited, used for metrics.
   compose::ComposeFirstRunSessionCloseReason fre_close_reason_;
@@ -240,6 +262,9 @@ class ComposeSession : public compose::mojom::ComposeSessionPageHandler {
   compose::ComposeSessionCloseReason close_reason_;
   // Reason that a compose session was exited, used for quality logging.
   optimization_guide::proto::FinalStatus final_status_;
+
+  // Tracks how long a session has been open.
+  std::unique_ptr<base::ElapsedTimer> session_duration_;
 
   // ComposeSession is owned by WebContentsUserData, so `web_contents_` outlives
   // `this`.
@@ -260,11 +285,20 @@ class ComposeSession : public compose::mojom::ComposeSessionPageHandler {
 
   bool collect_inner_text_;
 
+  // This pointer is to a class that owns and creates this class, so will
+  // outlive the session.
+  raw_ptr<InnerTextProvider> inner_text_caller_;
+
   // Logging counters.
   compose::ComposeSessionEvents session_events_;
 
+  // UKM source ID.
+  ukm::SourceId ukm_source_id_;
+
   // If true, the inner-text was received.
   bool got_inner_text_ = false;
+
+  autofill::FieldRendererId node_id_;
 
   base::OnceClosure continue_compose_;
 

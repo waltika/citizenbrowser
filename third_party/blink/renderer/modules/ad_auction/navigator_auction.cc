@@ -54,6 +54,7 @@
 #include "third_party/blink/renderer/bindings/modules/v8/v8_auction_ad_interest_group_key.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_auction_ad_interest_group_size.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_auction_additional_bid_signature.h"
+#include "third_party/blink/renderer/bindings/modules/v8/v8_auction_report_buyer_debug_mode_config.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_auction_report_buyers_config.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_protected_audience_private_aggregation_config.h"
 #include "third_party/blink/renderer/bindings/modules/v8/v8_union_adproperties_adpropertiessequence.h"
@@ -72,6 +73,7 @@
 #include "third_party/blink/renderer/core/page/page.h"
 #include "third_party/blink/renderer/modules/ad_auction/ads.h"
 #include "third_party/blink/renderer/modules/ad_auction/join_leave_queue.h"
+#include "third_party/blink/renderer/modules/ad_auction/protected_audience.h"
 #include "third_party/blink/renderer/modules/ad_auction/validate_blink_interest_group.h"
 #include "third_party/blink/renderer/modules/geolocation/geolocation_coordinates.h"
 #include "third_party/blink/renderer/platform/bindings/exception_state.h"
@@ -381,9 +383,9 @@ String ErrorInvalidAdRequestConfig(const AdRequestConfig& config,
                         error.Utf8().c_str());
 }
 
-String ErrorInvalidAuctionConfigUint128(const AuctionAdConfig& config,
-                                        const String& field_name,
-                                        const String& error) {
+String ErrorInvalidAuctionConfigUint(const AuctionAdConfig& config,
+                                     const String& field_name,
+                                     const String& error) {
   return String::Format("%s for AuctionAdConfig with seller '%s': %s",
                         field_name.Utf8().c_str(),
                         config.seller().Utf8().c_str(), error.Utf8().c_str());
@@ -462,6 +464,17 @@ bool Jsonify(const ScriptState& script_state,
   // Check for this, and consider it a failure (since we didn't properly
   // serialize a value, and v8::JSON::Parse() rejects "undefined").
   return output != "undefined";
+}
+
+base::expected<uint64_t, String> CopyBigIntToUint64(const BigInt& bigint) {
+  if (bigint.IsNegative()) {
+    return base::unexpected("Negative BigInt cannot be converted to uint64");
+  }
+  absl::optional<absl::uint128> value = bigint.ToUInt128();
+  if (!value.has_value() || absl::Uint128High64(*value) != 0) {
+    return base::unexpected("Too large BigInt; Must fit in 64 bits");
+  }
+  return absl::Uint128Low64(*value);
 }
 
 base::expected<absl::uint128, String> CopyBigIntToUint128(
@@ -620,7 +633,6 @@ bool CopyExecutionModeFromIdlToMojo(const ExecutionContext& execution_context,
                               input.executionMode());
   }
 
-  // TODO(crbug.com/1330341): Support "frozen-context".
   if (input.executionMode() == "compatibility") {
     output.execution_mode =
         mojom::blink::InterestGroup::ExecutionMode::kCompatibilityMode;
@@ -2008,7 +2020,7 @@ bool CopyAuctionReportBuyerKeysFromIdlToMojo(
   for (const BigInt& value : input.auctionReportBuyerKeys()) {
     ASSIGN_OR_RETURN(
         auto bucket, CopyBigIntToUint128(value), [&](String error) {
-          exception_state.ThrowTypeError(ErrorInvalidAuctionConfigUint128(
+          exception_state.ThrowTypeError(ErrorInvalidAuctionConfigUint(
               input, "auctionReportBuyerKeys", std::move(error)));
           return false;
         });
@@ -2051,7 +2063,7 @@ bool CopyAuctionReportBuyersFromIdlToMojo(
     ASSIGN_OR_RETURN(
         auto bucket, CopyBigIntToUint128(report_config->bucket()),
         [&](String error) {
-          exception_state.ThrowTypeError(ErrorInvalidAuctionConfigUint128(
+          exception_state.ThrowTypeError(ErrorInvalidAuctionConfigUint(
               input, "auctionReportBuyers", error));
           return false;
         });
@@ -2059,6 +2071,40 @@ bool CopyAuctionReportBuyersFromIdlToMojo(
         report_type, mojom::blink::AuctionReportBuyersConfig::New(
                          std::move(bucket), report_config->scale()));
   }
+
+  return true;
+}
+
+bool CopyAuctionReportBuyerDebugModeConfigFromIdlToMojo(
+    ExceptionState& exception_state,
+    const AuctionAdConfig& input,
+    mojom::blink::AuctionAdConfig& output) {
+  if (!input.hasAuctionReportBuyerDebugModeConfig()) {
+    return true;
+  }
+
+  const AuctionReportBuyerDebugModeConfig* debug_mode_config =
+      input.auctionReportBuyerDebugModeConfig();
+  bool enabled = debug_mode_config->enabled();
+  absl::optional<uint64_t> debug_key;
+  if (debug_mode_config->hasDebugKeyNonNull()) {
+    ASSIGN_OR_RETURN(
+        debug_key, CopyBigIntToUint64(debug_mode_config->debugKeyNonNull()),
+        [&](String error) {
+          exception_state.ThrowTypeError(ErrorInvalidAuctionConfigUint(
+              input, "auctionReportBuyerDebugModeConfig", error));
+          return false;
+        });
+    if (!enabled) {
+      exception_state.ThrowTypeError(ErrorInvalidAuctionConfigUint(
+          input, "auctionReportBuyerDebugModeConfig",
+          "debugKey can only be specified when debug mode is enabled."));
+    }
+  }
+
+  output.auction_ad_config_non_shared_params
+      ->auction_report_buyer_debug_mode_config =
+      mojom::blink::AuctionReportBuyerDebugModeConfig::New(enabled, debug_key);
 
   return true;
 }
@@ -2264,6 +2310,8 @@ mojom::blink::AuctionAdConfigPtr IdlAuctionConfigToMojo(
                                                *mojo_config) ||
       !CopyAuctionReportBuyersFromIdlToMojo(exception_state, config,
                                             *mojo_config) ||
+      !CopyAuctionReportBuyerDebugModeConfigFromIdlToMojo(
+          exception_state, config, *mojo_config) ||
       !CopyRequiredSellerSignalsFromIdlToMojo(context, exception_state, config,
                                               *mojo_config) ||
       !CopyRequestedSizeFromIdlToMojo(context, exception_state, config,
@@ -3020,7 +3068,8 @@ NavigatorAuction::NavigatorAuction(Navigator& navigator)
           kMaxActiveCrossSiteClears,
           WTF::BindRepeating(&NavigatorAuction::StartClear,
                              WrapWeakPersistent(this))),
-      ad_auction_service_(navigator.GetExecutionContext()) {
+      ad_auction_service_(navigator.GetExecutionContext()),
+      protected_audience_(MakeGarbageCollected<ProtectedAudience>()) {
   navigator.GetExecutionContext()->GetBrowserInterfaceBroker().GetInterface(
       ad_auction_service_.BindNewPipeAndPassReceiver(
           navigator.GetExecutionContext()->GetTaskRunner(
@@ -4068,6 +4117,14 @@ bool NavigatorAuction::deprecatedRunAdAuctionEnforcesKAnonymity(
     Navigator&) {
   return base::FeatureList::IsEnabled(
       blink::features::kFledgeEnforceKAnonymity);
+}
+
+// static
+ProtectedAudience* NavigatorAuction::protectedAudience(
+    ScriptState* script_state,
+    Navigator& navigator) {
+  return From(ExecutionContext::From(script_state), navigator)
+      .protected_audience_;
 }
 
 ScriptPromise NavigatorAuction::getInterestGroupAdAuctionData(

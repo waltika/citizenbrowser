@@ -447,7 +447,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="BackForwardCache.Restore.NavigationToFirstPaint" units="ms"
-    expires_after="2024-05-19">
+    expires_after="2024-07-21">
   <owner>sreejakshetty@chromium.org</owner>
   <owner>altimin@chromium.org</owner>
   <owner>bfcache-dev@chromium.org</owner>
@@ -540,7 +540,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram
     name="Navigation.BackForward.TimeFromOpenBackNavigationMenuToCloseMenu"
-    units="ms" expires_after="2024-04-28">
+    units="ms" expires_after="2024-07-21">
   <owner>leimy@chromium.org</owner>
   <owner>bfcache-dev@chromium.org</owner>
   <summary>
@@ -770,7 +770,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Navigation.Guest.IsHTTPOrHTTPS"
-    enum="BooleanHttpBasedOrOtherScheme" expires_after="2024-03-24">
+    enum="BooleanHttpBasedOrOtherScheme" expires_after="2024-07-21">
   <owner>alexmos@chromium.org</owner>
   <owner>creis@chromium.org</owner>
   <owner>wjmaclean@chromium.org</owner>
@@ -939,6 +939,51 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram
+    name="Navigation.MainFrame.NewNavigation.IgnoreRestore.IsHTTPOrHTTPS.{DurationFromTo}.Time"
+    units="ms" expires_after="2024-04-20">
+  <owner>chikamune@chromium.org</owner>
+  <owner>yyanagisawa@chromium.org</owner>
+  <owner>kouhei@chromium.org</owner>
+  <summary>
+    Record when (a) the navigation happened in MainFrame, (b) it was a new
+    navigation, (c) it was not a session restore, (d) the URL was http or https,
+    and (e) the navigation was successfully committed. Measures the duration
+    between {DurationFromTo}. This is also included in the trace log.
+  </summary>
+  <token key="DurationFromTo">
+    <variant name="BeginNavigationToLoaderStart"
+        summary="when the BeginNavigation starts, to when the
+                 NavigationURLLoader starts"/>
+    <variant name="FetchStart"
+        summary="when the browser is ready to fetch the document using an
+                 HTTP(S) request (which is called as fetchStart), to when the
+                 first HTTP(S) request is sent"/>
+    <variant name="LoaderStartToFetchStart"
+        summary="when the NavigationURLLoader starts, to when the browser is
+                 ready to fetch the document using an HTTP(S) request (which
+                 is called as fetchStart)"/>
+    <variant name="LoaderStartToReceiveResponse"
+        summary="when the NavigationURLLoader starts, to when the browser
+                 process receives the response (HTTP header)"/>
+    <variant name="NavigationStartToBeginNavigation"
+        summary="when the navigation starts, to when the BeginNavigation
+                 starts"/>
+    <variant name="ReceiveHeaders"
+        summary="when the first HTTP(S) request is sent, to when the final
+                 headers are received in the network service. This duration
+                 can involve multiple redirects"/>
+    <variant name="ReceiveHeadersToReceiveResponse"
+        summary="when the final headers are received in the network service,
+                 to when the browser process receives the response (HTTP
+                 header)"/>
+    <variant name="ReceiveResponseToCommitNavigation"
+        summary="when the browser process receives the response (HTTP
+                 header), to when the CommitNavigation mojo API is called in
+                 the browser process"/>
+  </token>
+</histogram>
+
+<histogram
     name="Navigation.MainFrame.RendererInitiated.InitiatorFramePresentAtStart"
     enum="BooleanPresent" expires_after="2023-10-01">
   <owner>yaoxia@chromium.org</owner>
@@ -997,7 +1042,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Navigation.MainFrameProfileType2" enum="BrowserProfileType"
-    expires_after="2024-05-19">
+    expires_after="2024-07-21">
   <owner>rhalavati@chromium.org</owner>
   <owner>chrome-privacy-core@google.com</owner>
   <summary>
@@ -1154,7 +1199,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram
     name="Navigation.PendingCommit.DidBlockGetFrameHostForNavigation.{RegularOrMHTMLType}"
-    units="Boolean" expires_after="2023-12-31">
+    enum="Boolean" expires_after="2023-12-31">
   <owner>dcheng@chromium.org</owner>
   <owner>rakina@chromium.org</owner>
   <summary>
@@ -1413,7 +1458,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Navigation.StartToCommit" units="ms"
-    expires_after="2024-05-19">
+    expires_after="2024-07-21">
   <owner>nasko@chromium.org</owner>
   <owner>csharrison@chromium.org</owner>
   <summary>
@@ -1481,7 +1526,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Navigation.TimeToReadyToCommit2" units="ms"
-    expires_after="2024-05-19">
+    expires_after="2024-07-21">
   <owner>clamy@chromium.org</owner>
   <owner>nasko@chromium.org</owner>
   <summary>
@@ -1541,7 +1586,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="NavigationSuggestion.Event2" enum="NavigationSuggestionEvent"
-    expires_after="2023-06-04">
+    expires_after="2024-06-04">
   <owner>meacer@chromium.org</owner>
   <owner>security-enamel@chromium.org</owner>
   <summary>
@@ -1710,44 +1755,6 @@ chromium-metrics-reviews@google.com.
     RecordPrerenderActivationTransition().
   </summary>
   <token key="PreloadingTriggerType" variants="PreloadingTriggerType"/>
-</histogram>
-
-<histogram
-    name="Prerender.Experimental.BookmarkBar.EnterToPressDuration{ButtonType}"
-    units="ms" expires_after="2024-02-24">
-  <owner>robertlin@chromium.org</owner>
-  <owner>toyoshim@chromium.org</owner>
-  <owner>chrome-prerendering@google.com</owner>
-  <summary>
-    The metrics for preload bookmark to understand the distribution of delay to
-    press {ButtonType}. Recorded when the mouse {ButtonType} is pressed.
-  </summary>
-  <token key="ButtonType">
-    <variant name="" summary="any button"/>
-    <variant name=".LeftButton" summary="the left button"/>
-  </token>
-</histogram>
-
-<histogram
-    name="Prerender.Experimental.BookmarkBar.HoverDuration{OriginType}.{ConversionResultType}"
-    units="ms" expires_after="2024-02-24">
-  <owner>robertlin@chromium.org</owner>
-  <owner>toyoshim@chromium.org</owner>
-  <owner>chrome-prerendering@google.com</owner>
-  <summary>
-    The metrics for preload boomark to understand the distribution of mouse
-    hovering duration from {OriginType}. It records mouse hovering duration time
-    when mouse leaves the bookmark button areas without using it as NotTaken, or
-    when the bookmark is actually clicked as Taken.
-  </summary>
-  <token key="OriginType">
-    <variant name="" summary="the time mouse entering to the button"/>
-    <variant name=".FromLastMouseMove" summary="the last time mouse move"/>
-  </token>
-  <token key="ConversionResultType">
-    <variant name="NotTaken"/>
-    <variant name="Taken"/>
-  </token>
 </histogram>
 
 <histogram name="Prerender.Experimental.BookmarkBar.PredictionResult"
