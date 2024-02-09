@@ -127,7 +127,7 @@ void CitizenXBubbleViewImpl::PopulateScrollView(
   }
 
   MaybeSizeToContents();
-  Layout();
+  DeprecatedLayoutImmediately();
 }
 
 void CitizenXBubbleViewImpl::MaybeSizeToContents() {

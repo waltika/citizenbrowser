@@ -68,12 +68,12 @@ DisplayFeatureOrientationTypeFromString(const std::string& type) {
   return absl::nullopt;
 }
 
-base::expected<device::mojom::DevicePostureType, protocol::Response>
+base::expected<blink::mojom::DevicePostureType, protocol::Response>
 DevicePostureTypeFromString(const std::string& type) {
   if (type == Emulation::DevicePosture::TypeEnum::Continuous) {
-    return device::mojom::DevicePostureType::kContinuous;
+    return blink::mojom::DevicePostureType::kContinuous;
   } else if (type == Emulation::DevicePosture::TypeEnum::Folded) {
-    return device::mojom::DevicePostureType::kFolded;
+    return blink::mojom::DevicePostureType::kFolded;
   } else {
     return base::unexpected(
         protocol::Response::InvalidParams("Invalid posture type"));

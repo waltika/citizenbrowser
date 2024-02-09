@@ -43,7 +43,7 @@ js_library("welcome") {
   extra_deps = [ ":web_components" ]
   externs_list = [
     "$externs_path/tts.js",
-    "//ui/webui/resources/cr_elements/cr_input/cr_input_externs.js",
+    "//ash/webui/common/resources/cr_elements/cr_input/cr_input_externs.js",
   ]
 }
 
@@ -52,7 +52,6 @@ js_library("welcome_dialog") {
   deps = [
     "../../components:long_touch_detector",
     "../../components:oobe_cr_lottie",
-    "../../components:quick_start_entry_point",
     "../../components/behaviors:oobe_i18n_behavior",
     "../../components/dialogs:oobe_modal_dialog",
     "//third_party/polymer/v3_0/components-chromium/polymer:polymer_bundled",

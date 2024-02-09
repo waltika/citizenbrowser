@@ -11,6 +11,7 @@
 #include <utility>
 #include <vector>
 
+#include "ash/constants/ash_pref_names.h"
 #include "base/command_line.h"
 #include "base/feature_list.h"
 #include "base/functional/bind.h"
@@ -167,6 +168,7 @@
 #include "ash/public/cpp/ambient/ambient_prefs.h"
 #include "chrome/browser/apps/app_service/webapk/webapk_prefs.h"
 #include "chrome/browser/ash/accessibility/magnifier_type.h"
+#include "chrome/browser/ash/app_mode/device_weekly_scheduled_suspend_policy_handler.h"
 #include "chrome/browser/ash/app_restore/full_restore_prefs.h"
 #include "chrome/browser/ash/arc/policy/arc_policy_handler.h"
 #include "chrome/browser/ash/borealis/borealis_prefs.h"
@@ -186,6 +188,7 @@
 #include "chrome/browser/policy/default_geolocation_policy_handler.h"
 #include "chrome/browser/policy/device_login_screen_geolocation_access_level_policy_handler.h"
 #include "chrome/browser/policy/os_color_mode_policy_handler.h"
+#include "chrome/browser/policy/screen_capture_location_policy_handler.h"
 #include "chromeos/ash/components/settings/cros_settings_names.h"
 #include "chromeos/ash/services/assistant/public/cpp/assistant_prefs.h"
 #include "chromeos/ash/services/multidevice_setup/public/cpp/prefs.h"
@@ -1575,7 +1578,7 @@ const PolicyToPreferenceMapEntry kSimplePolicyMap[] = {
     ash::prefs::kGlanceablesEnabled,
     base::Value::Type::BOOLEAN },
   { key::kFullRestoreMode,
-    ash::full_restore::kRestoreAppsAndPagesPrefName,
+    ash::prefs::kRestoreAppsAndPagesPrefName,
     base::Value::Type::INTEGER },
   { key::kDeviceSwitchFunctionKeysBehaviorEnabled,
     ash::prefs::kDeviceSwitchFunctionKeysBehaviorEnabled,
@@ -2051,15 +2054,6 @@ const PolicyToPreferenceMapEntry kSimplePolicyMap[] = {
   { key::kBeforeunloadEventCancelByPreventDefaultEnabled,
     policy_prefs::kBeforeunloadEventCancelByPreventDefaultEnabled,
     base::Value::Type::BOOLEAN},
-  { key::kDefaultMidiSetting,
-    prefs::kManagedDefaultMidi,
-    base::Value::Type::INTEGER },
-  { key::kMidiAllowedForUrls,
-    prefs::kManagedMidiAllowedForUrls,
-    base::Value::Type::LIST },
-  { key::kMidiBlockedForUrls,
-    prefs::kManagedMidiBlockedForUrls,
-    base::Value::Type::LIST },
   { key::kIPv6ReachabilityOverrideEnabled,
     prefs::kIPv6ReachabilityOverrideEnabled,
     base::Value::Type::BOOLEAN },
@@ -2485,6 +2479,13 @@ std::unique_ptr<ConfigurationPolicyHandlerList> BuildHandlerList(
       static_cast<int>(enterprise_signin::ProfileReauthPrompt::kDoNotPrompt),
       static_cast<int>(enterprise_signin::ProfileReauthPrompt::kPromptInTab),
       false));
+  handlers->AddHandler(
+      std::make_unique<policy::SimpleSchemaValidatingPolicyHandler>(
+          policy::key::kToolbarAvatarLabelSettings,
+          prefs::kToolbarAvatarLabelSettings, chrome_schema,
+          policy::SchemaOnErrorStrategy::SCHEMA_STRICT,
+          policy::SimpleSchemaValidatingPolicyHandler::RECOMMENDED_PROHIBITED,
+          policy::SimpleSchemaValidatingPolicyHandler::MANDATORY_ALLOWED));
 #elif BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_FUCHSIA)
   handlers->AddHandler(
       std::make_unique<ManagedAccountRestrictionsPolicyHandler>(chrome_schema));
@@ -2799,6 +2800,7 @@ std::unique_ptr<ConfigurationPolicyHandlerList> BuildHandlerList(
       std::make_unique<bruschetta::BruschettaInstallerPolicyHandler>(
           chrome_schema));
   handlers->AddHandler(std::make_unique<DriveFileSyncAvailablePolicyHandler>());
+  handlers->AddHandler(std::make_unique<ScreenCaptureLocationPolicyHandler>());
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
 // On most platforms, there is a legacy policy
@@ -2932,6 +2934,12 @@ std::unique_ptr<ConfigurationPolicyHandlerList> BuildHandlerList(
   handlers->AddHandler(std::make_unique<BatterySaverPolicyHandler>());
 #endif  // BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX) ||
         // BUILDFLAG(IS_CHROMEOS_ASH)
+
+#if BUILDFLAG(IS_CHROMEOS_ASH)
+  handlers->AddHandler(
+      std::make_unique<DeviceWeeklyScheduledSuspendPolicyHandler>(
+          chrome_schema));
+#endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
   return handlers;
 }

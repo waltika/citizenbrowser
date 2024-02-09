@@ -144,6 +144,40 @@ enum class ComposeShowStatus {
   kMaxValue = kFeatureFlagDisabled,
 };
 
+enum class EvalLocation : int {
+  // Response was evaluated on the server.
+  kServer,
+  // Response was evaluated on the device.
+  kOnDevice,
+};
+
+// Keep in sync with ComposeSessionEvalLocation in
+// src/tools/metrics/histograms/metadata/compose/enums.xml.
+enum class SessionEvalLocation {
+  // No responses were evaluated.
+  kNone = 0,
+  // All responses were evaluated on the server.
+  kServer = 1,
+  // All responses were evaluated on the device.
+  kOnDevice = 2,
+  // Some responses were evaluated on the server and some on the device.
+  kMixed = 3,
+  kMaxValue = kMixed,
+};
+
+// Enum for recording the feedback state of a Compose request.
+// These values are persisted to logs. Entries should not be renumbered and
+// numeric values should never be reused. Keep in sync with
+// ComposeRequestFeedback in
+// src/tools/metrics/histograms/metadata/compose/enums.xml.
+enum class ComposeRequestFeedback {
+  kNoFeedback = 0,
+  kPositiveFeedback = 1,
+  kNegativeFeedback = 2,
+  kRequestError = 3,
+  kMaxValue = kRequestError,
+};
+
 // Struct containing event and logging information for an individual
 // |ComposeSession|.
 struct ComposeSessionEvents {
@@ -199,13 +233,6 @@ struct ComposeSessionEvents {
   unsigned int on_device_responses = 0;
   // Number of server responses received.
   unsigned int server_responses = 0;
-};
-
-enum class EvalLocation {
-  // Response was evaluated on the server.
-  kServer,
-  // Response was evaluated on the device.
-  kOnDevice,
 };
 
 // Enum with the possible reasons for it being impossible to open the Compose
@@ -330,6 +357,9 @@ void LogComposeDialogSelectionLength(int length);
 // Log the session duration with |session_suffix| applied to histogram name.
 void LogComposeSessionDuration(base::TimeDelta session_duration,
                                std::string session_suffix = "");
+
+void LogComposeRequestFeedback(EvalLocation eval_location,
+                               ComposeRequestFeedback feedback);
 
 }  // namespace compose
 

@@ -209,7 +209,7 @@ class TestFederatedIdentityModalDialogViewDelegate
 
   void SetClosure(base::OnceClosure closure) { closure_ = std::move(closure); }
 
-  void NotifyClose() override {
+  void OnClose() override {
     DCHECK(closure_);
     std::move(closure_).Run();
     closed_ = true;
@@ -331,7 +331,7 @@ class WebIdBrowserTest : public ContentBrowserTest {
         std::make_unique<TestFederatedIdentityModalDialogViewDelegate>();
     test_browser_client_->SetIdentityRegistry(
         shell()->web_contents(), test_modal_dialog_view_delegate_->GetWeakPtr(),
-        url::Origin::Create(GURL(BaseIdpUrl())));
+        GURL(BaseIdpUrl()));
   }
 
  protected:
@@ -1174,7 +1174,7 @@ IN_PROC_BROWSER_TEST_F(WebIdAuthzBrowserTest, Authz_openPopUpWindow) {
           test_browser_client_->GetIdentityRequestDialogControllerForTests());
 
   // Expects the account chooser to be opened. Selects the first account.
-  EXPECT_CALL(*controller, ShowAccountsDialog(_, _, _, _, _, _, _, _, _))
+  EXPECT_CALL(*controller, ShowAccountsDialog(_, _, _, _, _, _, _, _, _, _))
       .WillOnce(::testing::WithArg<6>([&config_url](auto on_selected) {
         std::move(on_selected)
             .Run(config_url,

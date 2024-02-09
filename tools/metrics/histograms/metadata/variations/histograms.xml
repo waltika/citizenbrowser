@@ -235,7 +235,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Variations.Headers.RequestContextCategory"
-    enum="VariationsHeadersRequestContextCategory" expires_after="2024-06-02">
+    enum="VariationsHeadersRequestContextCategory" expires_after="2024-08-04">
   <owner>asvitkine@chromium.org</owner>
   <owner>jwd@chromium.org</owner>
   <owner>caitlinfischer@google.com</owner>
@@ -446,7 +446,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Variations.SafeModeCachedFlags.Streak.Crashes" units="crashes"
-    expires_after="2024-05-26">
+    expires_after="2024-07-28">
   <owner>hnakashima@chromium.org</owner>
   <owner>src/chrome/browser/flags/OWNERS</owner>
   <summary>
@@ -459,7 +459,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Variations.SafeModeCachedFlags.{Event}"
-    enum="VariationsSafeModeCachedFlagsBehavior" expires_after="2024-05-26">
+    enum="VariationsSafeModeCachedFlagsBehavior" expires_after="2024-07-28">
   <owner>hnakashima@chromium.org</owner>
   <owner>src/chrome/browser/flags/OWNERS</owner>
   <summary>

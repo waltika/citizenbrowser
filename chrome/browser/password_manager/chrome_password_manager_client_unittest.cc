@@ -144,7 +144,7 @@ FormData MakePasswordFormData() {
   field.id_attribute = field.name;
   field.name_attribute = field.name;
   field.form_control_type = autofill::FormControlType::kInputPassword;
-  field.unique_renderer_id = FieldRendererId(123);
+  field.renderer_id = FieldRendererId(123);
   form_data.fields.push_back(field);
 
   return form_data;
@@ -170,7 +170,7 @@ FormData CreateFormForRenderHost(content::RenderFrameHost& rfh,
   form.url = rfh.GetLastCommittedURL();
   form.action = form.url;
   form.host_frame = autofill::LocalFrameToken(rfh.GetFrameToken().value());
-  form.unique_renderer_id = autofill::test::MakeFormRendererId();
+  form.renderer_id = autofill::test::MakeFormRendererId();
   form.fields = std::move(fields);
   for (FormFieldData& field : form.fields) {
     field.host_frame = form.host_frame;
@@ -456,45 +456,6 @@ TEST_F(ChromePasswordManagerClientTest, LogEntryNotifyRenderer) {
   log_router->UnregisterReceiver(&log_receiver);
   EXPECT_TRUE(WasLoggingActivationMessageSent(&logging_active));
   EXPECT_FALSE(logging_active);
-}
-
-TEST_F(ChromePasswordManagerClientTest, GetPasswordSyncState) {
-  sync_service()->GetUserSettings()->SetSelectedTypes(
-      /*sync_everything=*/false,
-      /*types=*/{syncer::UserSelectableType::kPasswords});
-  sync_service()->SetIsUsingExplicitPassphrase(false);
-
-  ChromePasswordManagerClient* client = GetClient();
-
-  // Passwords are syncing and custom passphrase isn't used.
-  EXPECT_EQ(password_manager::SyncState::kSyncingNormalEncryption,
-            client->GetPasswordSyncState());
-
-  // Sync paused due to a persistent auth error.
-  sync_service()->SetPersistentAuthError();
-  EXPECT_EQ(password_manager::SyncState::kNotSyncing,
-            client->GetPasswordSyncState());
-
-  // Again, using a custom passphrase.
-  sync_service()->ClearAuthError();
-  sync_service()->SetIsUsingExplicitPassphrase(true);
-
-  EXPECT_EQ(password_manager::SyncState::kSyncingWithCustomPassphrase,
-            client->GetPasswordSyncState());
-
-  // Report correctly if we aren't syncing passwords.
-  sync_service()->GetUserSettings()->SetSelectedTypes(
-      /*sync_everything=*/false,
-      /*types=*/{syncer::UserSelectableType::kBookmarks});
-
-  EXPECT_EQ(password_manager::SyncState::kNotSyncing,
-            client->GetPasswordSyncState());
-
-  // Again, without a custom passphrase.
-  sync_service()->SetIsUsingExplicitPassphrase(false);
-
-  EXPECT_EQ(password_manager::SyncState::kNotSyncing,
-            client->GetPasswordSyncState());
 }
 
 TEST_F(ChromePasswordManagerClientTest,
@@ -1293,9 +1254,9 @@ TEST_F(ChromePasswordManagerClientAndroidTest,
       *weak_mock_pwd_controller,
       RefreshSuggestionsForField(FocusedFieldType::kFillablePasswordField,
                                  /*is_manual_generation_available=*/false));
-  GetClient()->FocusedInputChanged(
-      driver.get(), observed_form_data.fields[0].unique_renderer_id,
-      FocusedFieldType::kFillablePasswordField);
+  GetClient()->FocusedInputChanged(driver.get(),
+                                   observed_form_data.fields[0].renderer_id,
+                                   FocusedFieldType::kFillablePasswordField);
 }
 
 TEST_F(ChromePasswordManagerClientAndroidTest,
@@ -1311,6 +1272,7 @@ TEST_F(ChromePasswordManagerClientAndroidTest,
       static_cast<MockPasswordStoreInterface*>(
           GetClient()->GetProfilePasswordStore());
   base::WeakPtr<PasswordStoreConsumer> store_consumer;
+  EXPECT_CALL(*mock_store, IsAbleToSavePasswords).WillRepeatedly(Return(true));
   EXPECT_CALL(*mock_store, GetLogins(_, _))
       .WillOnce(SaveArg<1>(&store_consumer));
   driver->GetPasswordManager()->OnPasswordFormsParsed(driver.get(),
@@ -1327,9 +1289,9 @@ TEST_F(ChromePasswordManagerClientAndroidTest,
       *weak_mock_pwd_controller,
       RefreshSuggestionsForField(FocusedFieldType::kFillablePasswordField,
                                  /*is_manual_generation_available=*/true));
-  GetClient()->FocusedInputChanged(
-      driver.get(), observed_form_data.fields[0].unique_renderer_id,
-      FocusedFieldType::kFillablePasswordField);
+  GetClient()->FocusedInputChanged(driver.get(),
+                                   observed_form_data.fields[0].renderer_id,
+                                   FocusedFieldType::kFillablePasswordField);
 }
 
 TEST_F(ChromePasswordManagerClientAndroidTest,
@@ -1471,14 +1433,10 @@ class ChromePasswordManagerClientWithAccountStoreAndroidTest
     // Using the account store on Android also requires UPM support for local
     // passwords.
     feature_list_.InitWithFeatures(
-        {password_manager::features::kEnablePasswordsAccountStorage,
-         password_manager::features::
+        {password_manager::features::
              kUnifiedPasswordManagerLocalPasswordsAndroidNoMigration,
          password_manager::features::kSharedPasswordNotificationUI},
         {});
-    base::CommandLine::ForCurrentProcess()->AppendSwitch(
-        password_manager_android_util::
-            kSkipLocalUpmGmsCoreVersionCheckForTesting);
 
     ChromePasswordManagerClientAndroidTest::SetUp();
 

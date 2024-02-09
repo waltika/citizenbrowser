@@ -37,13 +37,15 @@ class ThreadWrapper;
 
 namespace base {
 
+namespace android {
+class PreFreezeBackgroundMemoryTrimmer;
+}
 namespace internal {
 class DelayTimerBase;
 class DelayedTaskManager;
 }
 class DeadlineTimer;
 class MetronomeTimer;
-class PreFreezeBackgroundMemoryTrimmer;
 class SingleThreadTaskRunner;
 class TimeDelta;
 class TimeTicks;
@@ -70,7 +72,7 @@ class PostDelayedTaskPassKey {
   friend class media::AlsaPcmInputStream;
   friend class media::FakeAudioWorker;
 #if BUILDFLAG(IS_ANDROID)
-  friend class base::PreFreezeBackgroundMemoryTrimmer;
+  friend class base::android::PreFreezeBackgroundMemoryTrimmer;
 #endif
 };
 
@@ -246,7 +248,7 @@ class BASE_EXPORT SequencedTaskRunner : public TaskRunner {
   // appropriate to invoke this if `task` may take a long time to run.
   //
   // TODO(crbug.com/1503967): This API is still in development. It doesn't yet
-  // support SEQUENCE_CHECKER or SequenceLocalStorage.
+  // support SequenceLocalStorage.
   virtual bool RunOrPostTask(subtle::RunOrPostTaskPassKey,
                              const Location& from_here,
                              OnceClosure task);

@@ -11,12 +11,15 @@
 
 #include "ash/picker/model/picker_category.h"
 #include "ash/picker/model/picker_model.h"
+#include "ash/picker/views/picker_caps_nudge_view.h"
+#include "ash/picker/views/picker_icons.h"
 #include "ash/picker/views/picker_item_view.h"
 #include "ash/picker/views/picker_section_view.h"
-#include "ash/resources/vector_icons/vector_icons.h"
+#include "ash/picker/views/picker_strings.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
+#include "ui/chromeos/styles/cros_tokens_color_mappings.h"
 #include "ui/views/layout/flex_layout.h"
 #include "ui/views/layout/layout_manager.h"
 #include "ui/views/layout/layout_types.h"
@@ -28,9 +31,6 @@ namespace {
 const std::u16string kPlaceholderCategorySectionTitle =
     u"Placeholder Categories";
 
-// TODO: b/316935667 - Get a relevant icon for each category.
-const gfx::VectorIcon& kPlaceholderIcon = kImeMenuEmoticonIcon;
-
 }  // namespace
 
 PickerZeroStateView::PickerZeroStateView(
@@ -38,16 +38,17 @@ PickerZeroStateView::PickerZeroStateView(
   SetLayoutManager(std::make_unique<views::FlexLayout>())
       ->SetOrientation(views::LayoutOrientation::kVertical);
 
+  AddChildView(std::make_unique<PickerCapsNudgeView>());
+
   // TODO: b/316935911 - Get actual sections for the categories.
   auto* section_view = AddChildView(
       std::make_unique<PickerSectionView>(kPlaceholderCategorySectionTitle));
   for (auto category : PickerModel().GetAvailableCategories()) {
     auto item_view = std::make_unique<PickerItemView>(
-        base::BindRepeating(select_category_callback, category),
-        PickerItemView::ItemType::kListItem);
-    item_view->SetPrimaryText(GetStringForPickerCategory(category));
-    item_view->SetLeadingIcon(kPlaceholderIcon);
-    section_view->AddItem(std::move(item_view));
+        base::BindRepeating(select_category_callback, category));
+    item_view->SetPrimaryText(GetLabelForPickerCategory(category));
+    item_view->SetLeadingIcon(GetIconForPickerCategory(category));
+    section_view->AddListItem(std::move(item_view));
   }
   section_views_.push_back(section_view);
 }

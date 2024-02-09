@@ -59,6 +59,13 @@ chromium-metrics-reviews@google.com.
              suggestion"/>
 </enum>
 
+<enum name="ComposeRequestFeedback">
+  <int value="0" label="No feedback given"/>
+  <int value="1" label="Postivie feedback given"/>
+  <int value="2" label="Negative feedback given"/>
+  <int value="3" label="Request error"/>
+</enum>
+
 <enum name="ComposeRequestReason">
   <int value="0" label="Create button"/>
   <int value="1" label="Retry button"/>
@@ -99,6 +106,13 @@ chromium-metrics-reviews@google.com.
       label="Session implicitly closed, often by web contents destruction"/>
   <int value="3" label="New session with selected text opened"/>
   <int value="4" label="Session was closed while waiting for a response"/>
+</enum>
+
+<enum name="ComposeSessionEvalLocation">
+  <int value="0" label="None"/>
+  <int value="1" label="Server only"/>
+  <int value="2" label="On-device only"/>
+  <int value="3" label="Mixed - server and on-device"/>
 </enum>
 
 <enum name="ComposeSessionEventTypes">

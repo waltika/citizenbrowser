@@ -15,12 +15,13 @@
 #include "base/strings/strcat.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/thread_pool.h"
+#include "base/task/thread_pool/thread_pool_instance.h"
 #include "base/time/time.h"
 
 #include <optional>
 #include <string>
 
-namespace base {
+namespace base::android {
 namespace {
 
 // This constant is chosen arbitrarily, to allow time for the background tasks
@@ -28,16 +29,11 @@ namespace {
 const base::TimeDelta kDelayForMetrics = base::Seconds(2);
 
 std::optional<uint64_t> GetPrivateMemoryFootprint() {
-  return base::android::PmfUtils::GetPrivateMemoryFootprintForCurrentProcess();
+  return PmfUtils::GetPrivateMemoryFootprintForCurrentProcess();
 }
 
 uint64_t BytesToMiB(uint64_t v) {
   return v / 1024 / 1024;
-}
-
-bool IsAndroidUPlus() {
-  return base::android::BuildInfo::GetInstance()->sdk_int() >=
-         base::android::SDK_VERSION_U;
 }
 
 const char* GetProcessType() {
@@ -56,7 +52,7 @@ std::string GetMetricName(const char* suffix) {
   CHECK(base::CommandLine::InitializedForCurrentProcess());
   const char* process_type = GetProcessType();
   return StrCat(
-      {"Memory.PreFreeze.", process_type, ".PrivateMemoryFootprint.", suffix});
+      {"Memory.PreFreeze2.", process_type, ".PrivateMemoryFootprint.", suffix});
 }
 
 void MaybeRecordMetric(const std::string metric_name,
@@ -65,8 +61,8 @@ void MaybeRecordMetric(const std::string metric_name,
   if (!value_bytes.has_value()) {
     return;
   }
-  UmaHistogramMemoryLargeMB(metric_name,
-                            static_cast<int>(BytesToMiB(value_bytes.value())));
+  UmaHistogramMemoryMB(metric_name,
+                       static_cast<int>(BytesToMiB(value_bytes.value())));
 }
 
 std::optional<uint64_t> PmfDiff(std::optional<uint64_t> pmf_before,
@@ -83,11 +79,7 @@ std::optional<uint64_t> PmfDiff(std::optional<uint64_t> pmf_before,
 }
 
 void RecordMetrics(std::optional<uint64_t> pmf_before) {
-  // We need the process type to record the metrics below, which we get from
-  // the command line.
-  if (!base::CommandLine::InitializedForCurrentProcess()) {
-    return;
-  }
+  CHECK(base::CommandLine::InitializedForCurrentProcess());
 
   std::string before_name = GetMetricName("Before");
   std::string after_name = GetMetricName("After");
@@ -100,17 +92,6 @@ void RecordMetrics(std::optional<uint64_t> pmf_before) {
   MaybeRecordMetric(diff_name, PmfDiff(pmf_before, pmf_after));
 }
 
-void PostMetricsTask(std::optional<uint64_t> pmf_before) {
-  // PreFreeze is only for Android U and greater, so no need to record metrics
-  // for older versions.
-  if (!IsAndroidUPlus()) {
-    return;
-  }
-  base::ThreadPool::PostDelayedTask(FROM_HERE, {MayBlock()},
-                                    base::BindOnce(&RecordMetrics, pmf_before),
-                                    kDelayForMetrics);
-}
-
 }  // namespace
 
 BASE_FEATURE(kOnPreFreezeMemoryTrim,
@@ -118,12 +99,41 @@ BASE_FEATURE(kOnPreFreezeMemoryTrim,
              FEATURE_DISABLED_BY_DEFAULT);
 
 PreFreezeBackgroundMemoryTrimmer::PreFreezeBackgroundMemoryTrimmer()
-    : is_respecting_modern_trim_(IsAndroidUPlus()) {}
+    : is_respecting_modern_trim_(BuildInfo::GetInstance()->sdk_int() >=
+                                 SDK_VERSION_U) {}
 
 // static
 PreFreezeBackgroundMemoryTrimmer& PreFreezeBackgroundMemoryTrimmer::Instance() {
   static base::NoDestructor<PreFreezeBackgroundMemoryTrimmer> instance;
   return *instance;
+}
+
+void PreFreezeBackgroundMemoryTrimmer::PostMetricsTask(
+    std::optional<uint64_t> pmf_before) {
+  // PreFreeze is only for Android U and greater, so no need to record metrics
+  // for older versions.
+  if (!IsRespectingModernTrim()) {
+    return;
+  }
+
+  // We need the process type to record the metrics below, which we get from
+  // the command line. We cannot post the task below if the thread pool is not
+  // initialized yet.
+  if (!base::CommandLine::InitializedForCurrentProcess() ||
+      !base::ThreadPoolInstance::Get()) {
+    return;
+  }
+
+  // The posted task will be more likely to survive background killing in
+  // experiments that change the memory trimming behavior. Run as USER_BLOCKING
+  // to reduce this sample imbalance in experiment groups. Normally tasks
+  // collecting metrics should use BEST_EFFORT, but when running in background a
+  // number of subtle effects may influence the real delay of those tasks. The
+  // USER_BLOCKING will allow to estimate the number of better-survived tasks
+  // more precisely.
+  base::ThreadPool::PostDelayedTask(
+      FROM_HERE, {base::TaskPriority::USER_BLOCKING, MayBlock()},
+      base::BindOnce(&RecordMetrics, pmf_before), kDelayForMetrics);
 }
 
 // static
@@ -141,8 +151,16 @@ void PreFreezeBackgroundMemoryTrimmer::PostDelayedBackgroundTaskInternal(
     const base::Location& from_here,
     base::OnceClosure task,
     base::TimeDelta delay) {
-  if (!IsRespectingModernTrim() ||
-      !base::FeatureList::IsEnabled(kOnPreFreezeMemoryTrim)) {
+  // Preserve previous behaviour on versions before Android U.
+  if (!IsRespectingModernTrim()) {
+    task_runner->PostDelayedTask(from_here, std::move(task), delay);
+  }
+
+  {
+    base::AutoLock locker(lock_);
+    did_register_task_ = true;
+  }
+  if (!base::FeatureList::IsEnabled(kOnPreFreezeMemoryTrim)) {
     task_runner->PostDelayedTask(from_here, std::move(task), delay);
     return;
   }
@@ -182,13 +200,16 @@ void PreFreezeBackgroundMemoryTrimmer::OnPreFreeze() {
 }
 
 void PreFreezeBackgroundMemoryTrimmer::OnPreFreezeInternal() {
-  PostMetricsTask(GetPrivateMemoryFootprint());
+  base::AutoLock locker(lock_);
+  if (did_register_task_) {
+    PostMetricsTask(GetPrivateMemoryFootprint());
+  }
+
   if (!IsRespectingModernTrim() ||
       !base::FeatureList::IsEnabled(kOnPreFreezeMemoryTrim)) {
     return;
   }
 
-  base::AutoLock locker(lock_);
   while (!background_tasks_.empty()) {
     auto background_task = std::move(background_tasks_.front());
     background_tasks_.pop_front();
@@ -288,4 +309,4 @@ void PreFreezeBackgroundMemoryTrimmer::BackgroundTask::Start(
       delay);
 }
 
-}  // namespace base
+}  // namespace base::android

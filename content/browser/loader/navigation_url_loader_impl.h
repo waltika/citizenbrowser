@@ -85,18 +85,6 @@ class CONTENT_EXPORT NavigationURLLoaderImpl
 
   ~NavigationURLLoaderImpl() override;
 
-  // TODO(kinuko): Some method parameters can probably be just kept as
-  // member variables rather than being passed around.
-
-  // Intercepts loading of frame requests when network service is enabled and
-  // either a network::mojom::TrustedURLLoaderHeaderClient is being used or
-  // for schemes not handled by network service (e.g. files). This must be
-  // called on the UI thread or before threads start.
-  using URLLoaderFactoryInterceptor = base::RepeatingCallback<void(
-      network::URLLoaderFactoryBuilder& factory_builder)>;
-  static void SetURLLoaderFactoryInterceptorForTesting(
-      const URLLoaderFactoryInterceptor& interceptor);
-
   // Creates a URLLoaderFactory for a navigation. The factory uses
   // `header_client`. This should have the same settings as the factory from
   // the URLLoaderFactoryGetter. Called on the UI thread.
@@ -142,13 +130,12 @@ class CONTENT_EXPORT NavigationURLLoaderImpl
   // redirects.
   void Restart();
 
-  // `interceptor` is non-null if this is called by one of the interceptors
-  // (via a LoaderCallback).
-  // `single_request_handler` is the RequestHandler given by the
-  // `interceptor`, non-null if the interceptor wants to handle the request.
+  // `interceptor_result` is the result from the current interceptor (or nullopt
+  // if not called via `LoaderCallback`).
+  // `next_interceptor` indicates the index of the next interceptor to check.
   void MaybeStartLoader(
-      NavigationLoaderInterceptor* interceptor,
-      scoped_refptr<network::SharedURLLoaderFactory> single_request_factory);
+      size_t next_interceptor_index,
+      std::optional<NavigationLoaderInterceptor::Result> interceptor_result);
 
   // This is the `fallback_callback` passed to
   // NavigationLoaderInterceptor::MaybeCreateLoader. It allows an interceptor
@@ -270,7 +257,6 @@ class CONTENT_EXPORT NavigationURLLoaderImpl
   std::optional<SubresourceLoaderParams> subresource_loader_params_;
 
   std::vector<std::unique_ptr<NavigationLoaderInterceptor>> interceptors_;
-  size_t interceptor_index_ = 0;
 
   // Set to true if the default URLLoader (network service) was used for the
   // current navigation.

@@ -106,11 +106,15 @@ class VIZ_SERVICE_EXPORT SkiaOutputDevice {
       base::RepeatingCallback<void(gpu::SwapBuffersCompleteParams,
                                    const gfx::Size& pixel_size,
                                    gfx::GpuFenceHandle release_fence)>;
+  using ReleaseOverlaysCallback =
+      base::RepeatingCallback<void(const std::vector<gpu::Mailbox>)>;
+
   SkiaOutputDevice(
       GrDirectContext* gr_context,
       skgpu::graphite::Context* graphite_context,
       gpu::MemoryTracker* memory_tracker,
-      DidSwapBufferCompleteCallback did_swap_buffer_complete_callback);
+      DidSwapBufferCompleteCallback did_swap_buffer_complete_callback,
+      ReleaseOverlaysCallback release_overlays_callback = base::DoNothing());
 
   SkiaOutputDevice(const SkiaOutputDevice&) = delete;
   SkiaOutputDevice& operator=(const SkiaOutputDevice&) = delete;
@@ -152,8 +156,6 @@ class VIZ_SERVICE_EXPORT SkiaOutputDevice {
 
   // Enable or disable DC layers. Must be called before DC layers are scheduled.
   virtual void SetEnableDCLayers(bool enabled);
-
-  virtual void SetGpuVSyncEnabled(bool enabled);
 
   virtual void SetVSyncDisplayID(int64_t display_id) {}
 
@@ -267,6 +269,7 @@ class VIZ_SERVICE_EXPORT SkiaOutputDevice {
 
   uint64_t swap_id_ = 0;
   DidSwapBufferCompleteCallback did_swap_buffer_complete_callback_;
+  ReleaseOverlaysCallback release_overlays_callback_;
 
   base::queue<SwapInfo> pending_swaps_;
   base::TimeTicks viz_scheduled_draw_;

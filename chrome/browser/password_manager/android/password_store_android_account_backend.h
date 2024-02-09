@@ -7,6 +7,7 @@
 
 #include "chrome/browser/password_manager/android/password_store_android_backend.h"
 #include "components/password_manager/core/browser/password_store/password_store_backend.h"
+#include "components/password_manager/core/browser/password_store/password_store_interface.h"
 
 namespace syncer {
 class SyncService;
@@ -23,9 +24,12 @@ class PasswordSyncControllerDelegateAndroid;
 class PasswordStoreAndroidAccountBackend : public PasswordStoreBackend,
                                            public PasswordStoreAndroidBackend {
  public:
+  // `is_account_store` allows to control whether the backend is used by profile
+  // or account password store.
   PasswordStoreAndroidAccountBackend(
       PrefService* prefs,
-      AffiliationsPrefetcher* affiliations_prefetcher);
+      AffiliationsPrefetcher* affiliations_prefetcher,
+      password_manager::IsAccountStore is_account_store);
 
   PasswordStoreAndroidAccountBackend(
       base::PassKey<class PasswordStoreAndroidAccountBackendTest>,
@@ -34,8 +38,7 @@ class PasswordStoreAndroidAccountBackend : public PasswordStoreBackend,
       std::unique_ptr<PasswordSyncControllerDelegateAndroid>
           sync_controller_delegate,
       PrefService* prefs,
-      AffiliationsPrefetcher* affiliations_prefetcher,
-      const TryFixPassphraseErrorCb& try_fix_passphrase_error_cb);
+      AffiliationsPrefetcher* affiliations_prefetcher);
   ~PasswordStoreAndroidAccountBackend() override;
 
   // PasswordStoreAndroidBackend implementation
@@ -44,6 +47,7 @@ class PasswordStoreAndroidAccountBackend : public PasswordStoreBackend,
                    base::RepeatingClosure sync_enabled_or_disabled_cb,
                    base::OnceCallback<void(bool)> completion) override;
   void Shutdown(base::OnceClosure shutdown_completed) override;
+  bool IsAbleToSavePasswords() override;
   void GetAllLoginsAsync(LoginsOrErrorReply callback) override;
   void GetAllLoginsWithAffiliationAndBrandingAsync(
       LoginsOrErrorReply callback) override;
@@ -81,11 +85,13 @@ class PasswordStoreAndroidAccountBackend : public PasswordStoreBackend,
   SmartBubbleStatsStore* GetSmartBubbleStatsStore() override;
   base::WeakPtr<PasswordStoreBackend> AsWeakPtr() override;
 
+ private:
   // PasswordStoreAndroidBackend implementation.
   PasswordStoreBackendErrorRecoveryType RecoverOnErrorAndReturnResult(
       AndroidBackendAPIErrorCode error) override;
+  void OnCallToGMSCoreSucceeded() override;
+  std::string GetAccountToRetryOperation() override;
 
- private:
   // If |forms_or_error| contains forms, it retrieves and fills in affiliation
   // and branding information for Android credentials in the forms and invokes
   // |callback| with the result. If an error was received instead, it directly
@@ -106,19 +112,15 @@ class PasswordStoreAndroidAccountBackend : public PasswordStoreBackend,
   // called.
   void SyncShutdown();
 
-  // Callback to be invoked when the backend finished initializing with
-  // the success status of the initialization.
-  base::OnceCallback<void(bool)> init_completion_callback_;
-
   raw_ptr<AffiliationsPrefetcher> affiliations_prefetcher_ = nullptr;
   raw_ptr<AffiliatedMatchHelper> affiliated_match_helper_ = nullptr;
+  raw_ptr<syncer::SyncService> sync_service_ = nullptr;
 
   // Delegate to handle sync events.
   std::unique_ptr<PasswordSyncControllerDelegateAndroid>
       sync_controller_delegate_;
 
-  // Nullable.
-  const TryFixPassphraseErrorCb try_fix_passphrase_error_cb_;
+  bool should_disable_saving_due_to_error_ = false;
 
   base::WeakPtrFactory<PasswordStoreAndroidAccountBackend> weak_ptr_factory_{
       this};

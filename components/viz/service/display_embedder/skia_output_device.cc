@@ -120,11 +120,13 @@ SkiaOutputDevice::SkiaOutputDevice(
     GrDirectContext* gr_context,
     skgpu::graphite::Context* graphite_context,
     gpu::MemoryTracker* memory_tracker,
-    DidSwapBufferCompleteCallback did_swap_buffer_complete_callback)
+    DidSwapBufferCompleteCallback did_swap_buffer_complete_callback,
+    ReleaseOverlaysCallback release_overlays_callback)
     : gr_context_(gr_context),
       graphite_context_(graphite_context),
       did_swap_buffer_complete_callback_(
           std::move(did_swap_buffer_complete_callback)),
+      release_overlays_callback_(std::move(release_overlays_callback)),
       memory_type_tracker_(
           std::make_unique<gpu::MemoryTypeTracker>(memory_tracker)),
       latency_tracker_(std::make_unique<ui::LatencyTracker>()),
@@ -182,10 +184,6 @@ bool SkiaOutputDevice::SetDrawRectangle(const gfx::Rect& draw_rectangle) {
 }
 
 void SkiaOutputDevice::SetEnableDCLayers(bool enable) {
-  NOTREACHED();
-}
-
-void SkiaOutputDevice::SetGpuVSyncEnabled(bool enabled) {
   NOTREACHED();
 }
 

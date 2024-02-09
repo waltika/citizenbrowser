@@ -20,6 +20,7 @@
 #include "base/strings/utf_string_conversions.h"
 #include "build/build_config.h"
 #include "components/autofill/core/common/autofill_switches.h"
+#include "components/autofill/core/common/dense_set.h"
 
 namespace autofill {
 

@@ -120,7 +120,7 @@ of interesting buckets, such as "internal + external".
 </histogram>
 
 <histogram name="ExtensionBlacklist.UnblacklistInstalled"
-    enum="ExtensionLocation" expires_after="2024-05-26">
+    enum="ExtensionLocation" expires_after="2024-07-28">
   <owner>anunoy@chromium.org</owner>
   <owner>chrome-counter-abuse-alerts@google.com</owner>
   <summary>
@@ -146,7 +146,7 @@ of interesting buckets, such as "internal + external".
 </histogram>
 
 <histogram name="Extensions.ActiveScriptController.DeniedExtensions"
-    units="Extension Count" expires_after="2024-06-02">
+    units="Extension Count" expires_after="2024-08-04">
   <owner>rdevlin.cronin@chromium.org</owner>
   <owner>extensions-core@chromium.org</owner>
   <summary>
@@ -580,7 +580,7 @@ of interesting buckets, such as "internal + external".
 </histogram>
 
 <histogram name="Extensions.CWSInfoService.NetworkResponseCodeOrError"
-    enum="CombinedHttpResponseAndNetErrorCode" expires_after="2024-05-04">
+    enum="CombinedHttpResponseAndNetErrorCode" expires_after="2024-08-04">
   <owner>anunoy@chromium.org</owner>
   <owner>chrome-counter-abuse-alerts@google.com</owner>
   <summary>
@@ -590,7 +590,7 @@ of interesting buckets, such as "internal + external".
 </histogram>
 
 <histogram name="Extensions.CWSInfoService.NetworkRetriesTillSuccess"
-    units="retries" expires_after="2024-05-04">
+    units="retries" expires_after="2024-08-04">
   <owner>anunoy@chromium.org</owner>
   <owner>chrome-counter-abuse-alerts@google.com</owner>
   <summary>

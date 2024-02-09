@@ -164,17 +164,16 @@ class PredictionManager : public PredictionModelDownloadObserver {
   // Contains the model registration specific info to be kept for each
   // optimization target.
   struct ModelRegistrationInfo {
-    ModelRegistrationInfo(std::optional<proto::Any> metadata,
-                          OptimizationTargetModelObserver* model_observer);
+    explicit ModelRegistrationInfo(std::optional<proto::Any> metadata);
     ~ModelRegistrationInfo();
 
     // The feature-provided metadata that was registered with the prediction
     // manager.
     std::optional<proto::Any> metadata;
 
-    // The model observer that was registered to receive model updates from
-    // the prediction manager.
-    raw_ptr<OptimizationTargetModelObserver> model_observer;
+    // The set of model observers that were registered to receive model updates
+    // from the prediction manager.
+    base::ObserverList<OptimizationTargetModelObserver> model_observers;
   };
 
   friend class PredictionManagerTestBase;
@@ -337,9 +336,6 @@ class PredictionManager : public PredictionModelDownloadObserver {
   // internals page. Not owned. Guaranteed to outlive |this|, since the logger
   // and |this| are owned by the optimization guide keyed service.
   raw_ptr<OptimizationGuideLogger> optimization_guide_logger_;
-
-  // A reference to the PrefService for this profile. Not owned.
-  raw_ptr<PrefService, DanglingUntriaged> pref_service_ = nullptr;
 
   // The repeating callback that will be used to determine if component updates
   // are enabled.

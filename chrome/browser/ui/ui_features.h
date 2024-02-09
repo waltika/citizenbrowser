@@ -213,6 +213,8 @@ BASE_DECLARE_FEATURE(kTabSearchUseMetricsReporter);
 
 BASE_DECLARE_FEATURE(kTearOffWebAppTabOpensWebAppWindow);
 
+BASE_DECLARE_FEATURE(kToolbarPinning);
+
 // Determines how screenshots of the toolbar uses Software or Hardware drawing.
 // Works on Android 10+.
 BASE_DECLARE_FEATURE(kToolbarUseHardwareBitmapDraw);
@@ -223,6 +225,8 @@ BASE_DECLARE_FEATURE(kTopChromeWebUIUsesSpareRenderer);
 BASE_DECLARE_FEATURE(kUpdateTextOptions);
 extern const base::FeatureParam<int> kUpdateTextOptionNumber;
 #endif
+
+BASE_DECLARE_FEATURE(kEnterpriseProfileBadging);
 
 BASE_DECLARE_FEATURE(kWebUIBubblePerProfilePersistence);
 

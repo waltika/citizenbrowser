@@ -10,7 +10,9 @@
 
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
+#include "base/strings/string_number_conversions.h"
 #include "base/strings/utf_string_conversions.h"
+#include "chrome/browser/history/history_service_factory.h"
 #include "chrome/browser/new_tab_page/modules/v2/tab_resumption/tab_resumption.mojom.h"
 #include "chrome/browser/new_tab_page/modules/v2/tab_resumption/tab_resumption_util.h"
 #include "chrome/browser/profiles/profile.h"
@@ -18,6 +20,7 @@
 #include "chrome/browser/ui/webui/ntp/new_tab_ui.h"
 #include "chrome/common/pref_names.h"
 #include "chrome/common/url_constants.h"
+#include "components/history/core/browser/history_types.h"
 #include "components/history/core/browser/mojom/history_types.mojom.h"
 #include "components/prefs/scoped_user_pref_update.h"
 #include "components/search/ntp_features.h"
@@ -31,6 +34,14 @@
 
 using history::BrowsingHistoryService;
 using history::HistoryService;
+
+const size_t kCategoryBlockListCount = 18;
+constexpr std::array<std::string_view, kCategoryBlockListCount>
+    kCategoryBlockList{"/g/11b76fyj2r", "/m/09lkz",  "/m/012mj",  "/m/01rbb",
+                       "/m/02px0wr",    "/m/028hh",  "/m/034qg",  "/m/034dj",
+                       "/m/0jxxt",      "/m/015fwp", "/m/04shl0", "/m/01h6rj",
+                       "/m/05qt0",      "/m/06gqm",  "/m/09l0j_", "/m/01pxgq",
+                       "/m/0chbx",      "/m/02c66t"};
 
 namespace {
 // Maximum number of sessions we're going to display on the NTP
@@ -71,8 +82,9 @@ history::mojom::TabPtr SessionTabToMojom(const ::sessions::SessionTab& tab,
   tab_mojom->url = GURL(*dictionary.FindString("url"));
   tab_mojom->title = *dictionary.FindString("title");
 
-  tab_mojom->relative_time =
+  tab_mojom->relative_time_text =
       base::UTF16ToUTF8(FormatRelativeTime(tab.timestamp));
+  tab_mojom->relative_time = base::Time::Now() - tab.timestamp;
 
   return tab_mojom;
 }
@@ -114,12 +126,73 @@ TabResumptionPageHandler::TabResumptionPageHandler(
     content::WebContents* web_contents)
     : profile_(Profile::FromBrowserContext(web_contents->GetBrowserContext())),
       web_contents_(web_contents),
-      page_handler_(this, std::move(pending_page_handler)) {
+      page_handler_(this, std::move(pending_page_handler)),
+      visibility_threshold_(
+          static_cast<float>(base::GetFieldTrialParamByFeatureAsDouble(
+              ntp_features::kNtpTabResumptionModule,
+              ntp_features::kNtpTabResumptionModuleVisibilityThresholdDataParam,
+              /*Default value for visibility threshold*/ 0.5))),
+      categories_blocklist_(GetTabResumptionCategories(
+          ntp_features::kNtpTabResumptionModuleCategoriesBlocklistParam,
+          {kCategoryBlockList.begin(), kCategoryBlockListCount})) {
   DCHECK(profile_);
   DCHECK(web_contents_);
 }
 
 TabResumptionPageHandler::~TabResumptionPageHandler() = default;
+
+void TabResumptionPageHandler::OnQueryURLsComplete(
+    std::vector<history::mojom::TabPtr> tabs,
+    GetTabsCallback callback,
+    std::vector<history::QueryURLResult> results) {
+  history::VisitVector visit_rows;
+  for (auto result : results) {
+    for (auto visit : result.visits) {
+      visit_rows.push_back(visit);
+    }
+  }
+  auto* history_service = HistoryServiceFactory::GetForProfile(
+      profile_, ServiceAccessType::EXPLICIT_ACCESS);
+  history_service->ToAnnotatedVisits(
+      visit_rows,
+      /*compute_redirect_chain_start_properties=*/false,
+      base::BindOnce(&TabResumptionPageHandler::OnAnnotatedVisits,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(tabs),
+                     std::move(callback)),
+      &task_tracker_);
+}
+
+void TabResumptionPageHandler::OnAnnotatedVisits(
+    std::vector<history::mojom::TabPtr> tabs,
+    GetTabsCallback callback,
+    const std::vector<history::AnnotatedVisit> annotated_visits) {
+  std::vector<history::mojom::TabPtr> scored_tabs;
+  std::set<int> scored_tab_indices;
+  for (const auto& annotated_visit : annotated_visits) {
+    float visibility_score =
+        annotated_visit.content_annotations.model_annotations.visibility_score;
+    /* If score is -1, it has not been evaluated for visibility */
+    if (visibility_score < visibility_threshold_ && visibility_score >= 0) {
+      continue;
+    }
+    if (IsVisitInCategories(annotated_visit, categories_blocklist_)) {
+      continue;
+    }
+    for (size_t i = 0; i < tabs.size(); i++) {
+      if (annotated_visit.url_row.url() == tabs[i]->url &&
+          scored_tab_indices.find(i) == scored_tab_indices.end()) {
+        scored_tab_indices.insert(i);
+        break;
+      }
+    }
+  }
+
+  for (auto i : scored_tab_indices) {
+    scored_tabs.push_back(std::move(tabs[i]));
+  }
+
+  std::move(callback).Run(std::move(scored_tabs));
+}
 
 void TabResumptionPageHandler::GetTabs(GetTabsCallback callback) {
   const std::string fake_data_param = base::GetFieldTrialParamValueByFeature(
@@ -143,7 +216,18 @@ void TabResumptionPageHandler::GetTabs(GetTabsCallback callback) {
   }
 
   auto tabs_mojom = GetForeignTabs();
-  std::move(callback).Run(std::move(tabs_mojom));
+  std::vector<GURL> urls;
+  for (const auto& tab : tabs_mojom) {
+    urls.push_back(tab->url);
+  }
+  auto* history_service = HistoryServiceFactory::GetForProfile(
+      profile_, ServiceAccessType::EXPLICIT_ACCESS);
+  history_service->QueryURLs(
+      urls, /*want_visits=*/true,
+      base::BindOnce(&TabResumptionPageHandler::OnQueryURLsComplete,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(tabs_mojom),
+                     std::move(callback)),
+      &task_tracker_);
 }
 
 // static

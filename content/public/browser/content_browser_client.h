@@ -75,7 +75,7 @@
 #include "third_party/blink/public/mojom/manifest/manifest.mojom-forward.h"
 #include "third_party/blink/public/mojom/origin_trials/origin_trials_settings.mojom-forward.h"
 #include "third_party/blink/public/mojom/payments/payment_credential.mojom-forward.h"
-#include "ui/accessibility/ax_mode.h"
+#include "third_party/blink/public/mojom/worker/shared_worker_info.mojom.h"
 #include "ui/base/page_transition_types.h"
 #include "ui/base/window_open_disposition.h"
 
@@ -296,6 +296,14 @@ class CONTENT_EXPORT ContentBrowserClient {
   // data that should be pasted is passed in.
   using IsClipboardPasteAllowedCallback = base::OnceCallback<void(
       std::optional<ClipboardPasteData> clipboard_paste_data)>;
+
+  // Callback used with the `IsClipboardCopyAllowedByPolicy()` method.
+  // If the copy is allowed, nullopt is passed to the callback and `data` is
+  // expected to be copied. Otherwise, `replacement_data` should be written in
+  // plaintext to the clipboard.
+  using IsClipboardCopyAllowedCallback =
+      base::OnceCallback<void(const std::u16string& data,
+                              std::optional<std::u16string> replacement_data)>;
 
   virtual ~ContentBrowserClient() = default;
 
@@ -802,6 +810,7 @@ class CONTENT_EXPORT ContentBrowserClient {
       const std::optional<url::Origin>& top_frame_origin,
       const std::string& name,
       const blink::StorageKey& storage_key,
+      const blink::mojom::SharedWorkerSameSiteCookies same_site_cookies,
       BrowserContext* context,
       int render_process_id,
       int render_frame_id);
@@ -1661,7 +1670,7 @@ class CONTENT_EXPORT ContentBrowserClient {
       const base::RepeatingCallback<WebContents*()>& wc_getter,
       NavigationUIData* navigation_ui_data,
       int frame_tree_node_id,
-      absl::optional<int64_t> navigation_id);
+      std::optional<int64_t> navigation_id);
 
   // Allows the embedder to register one or more URLLoaderThrottles for handling
   // a user-initiated `fetch(url, {keepalive: true})` request from documents or
@@ -1778,6 +1787,12 @@ class CONTENT_EXPORT ContentBrowserClient {
 
     // For prefetches.
     kPrefetch,
+
+    // For DevTools-initiated requests.
+    kDevTools,
+
+    // For early hints.
+    kEarlyHints,
   };
 
   // Allows the embedder to intercept URLLoaderFactory interfaces used by the
@@ -1819,7 +1834,7 @@ class CONTENT_EXPORT ContentBrowserClient {
   //
   // |ukm_source_id| can be used to record UKM events associated with the
   // page or worker this URLLoaderFactory is intended for (it may be
-  // kInvalidUkmSourceId if there is no such ID available).
+  // ukm::kInvalidSourceIdObj if there is no such ID available).
   //
   // |factory_builder| is used to add interceptors for requests for the
   // URLLoaderFactory.
@@ -2327,10 +2342,6 @@ class CONTENT_EXPORT ContentBrowserClient {
                                            BrowserContext* context,
                                            RenderFrameHost* render_frame_host);
 
-  // Returns the default accessibility mode for the given browser context.
-  virtual ui::AXMode GetAXModeForBrowserContext(
-      BrowserContext* browser_context);
-
 #if BUILDFLAG(IS_ANDROID)
   // Defines the heuristics we can use to enable wide color gamut (WCG).
   enum class WideColorGamutHeuristic {
@@ -2479,16 +2490,14 @@ class CONTENT_EXPORT ContentBrowserClient {
       ClipboardPasteData clipboard_paste_data,
       IsClipboardPasteAllowedCallback callback);
 
-  // Returns true if a copy to the clipboard from `url` is allowed by the
-  // CopyPreventionSettings policy, false otherwise. The check is only performed
-  // if `data_size_in_bytes` is greater or equal than the minimum data size
-  // specified in the policy. If the copy is blocked `replacement_data` will be
-  // filled with an explainer message meant to be written to the clipboard for
-  // the user to see.
-  virtual bool IsClipboardCopyAllowed(content::BrowserContext* browser_context,
-                                      const GURL& url,
-                                      size_t data_size_in_bytes,
-                                      std::u16string& replacement_data);
+  // Determines if a clipboard copy is allowed by enterprise policies. The
+  // implementation might show UX to the user and call `callback`
+  // asynchronously.
+  virtual void IsClipboardCopyAllowedByPolicy(
+      const ClipboardEndpoint& source,
+      const ClipboardMetadata& metadata,
+      const std::u16string& data,
+      IsClipboardCopyAllowedCallback callback);
 
 #if BUILDFLAG(ENABLE_VR)
   // Allows the embedder to provide mechanisms to integrate with WebXR

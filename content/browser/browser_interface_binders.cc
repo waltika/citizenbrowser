@@ -19,6 +19,8 @@
 #include "content/browser/attribution_reporting/attribution_internals_ui.h"
 #include "content/browser/background_fetch/background_fetch_service_impl.h"
 #include "content/browser/bad_message.h"
+#include "content/browser/binder_wrappers/ad_auction_service_impl_wrapper.h"
+#include "content/browser/binder_wrappers/keyboard_lock_service_impl_wrapper.h"
 #include "content/browser/bluetooth/web_bluetooth_service_impl.h"
 #include "content/browser/browser_context_impl.h"
 #include "content/browser/browser_main_loop.h"
@@ -27,13 +29,12 @@
 #include "content/browser/contacts/contacts_manager_impl.h"
 #include "content/browser/content_index/content_index_service_impl.h"
 #include "content/browser/cookie_store/cookie_store_manager.h"
+#include "content/browser/device_posture/device_posture_provider_impl.h"
 #include "content/browser/eye_dropper_chooser_impl.h"
 #include "content/browser/handwriting/handwriting_recognition_service_factory.h"
 #include "content/browser/image_capture/image_capture_impl.h"
 #include "content/browser/indexed_db/indexed_db_internals.mojom.h"
 #include "content/browser/indexed_db/indexed_db_internals_ui.h"
-#include "content/browser/interest_group/ad_auction_service_impl.h"
-#include "content/browser/keyboard_lock/keyboard_lock_service_impl.h"
 #include "content/browser/loader/content_security_notifier.h"
 #include "content/browser/media/media_web_contents_observer.h"
 #include "content/browser/media/midi_host.h"
@@ -685,11 +686,6 @@ void BindPressureManager(
       std::move(receiver));
 }
 
-void BindDevicePostureProvider(
-    mojo::PendingReceiver<device::mojom::DevicePostureProvider> receiver) {
-  GetDeviceService().BindDevicePostureProvider(std::move(receiver));
-}
-
 VibrationManagerBinder& GetVibrationManagerBinderOverride() {
   static base::NoDestructor<VibrationManagerBinder> binder;
   return *binder;
@@ -720,6 +716,14 @@ void BindSocketManager(
       ->BindP2PSocketManager(
           frame->GetIsolationInfoForSubresources().network_anonymization_key(),
           std::move(receiver), frame->GetGlobalId());
+}
+
+void BindDevicePostureProvider(
+    RenderFrameHost* frame_host,
+    mojo::PendingReceiver<blink::mojom::DevicePostureProvider> receiver) {
+  DevicePostureProviderImpl::GetOrCreate(
+      WebContents::FromRenderFrameHost(frame_host))
+      ->Bind(std::move(receiver));
 }
 
 }  // namespace
@@ -765,6 +769,9 @@ void PopulateFrameBinders(RenderFrameHostImpl* host, mojo::BinderMap* map) {
   map->Add<blink::mojom::DedicatedWorkerHostFactory>(base::BindRepeating(
       &RenderFrameHostImpl::CreateDedicatedWorkerHostFactory,
       base::Unretained(host)));
+
+  map->Add<blink::mojom::DevicePostureProvider>(
+      base::BindRepeating(&BindDevicePostureProvider, base::Unretained(host)));
 
   map->Add<blink::mojom::FeatureObserver>(base::BindRepeating(
       &RenderFrameHostImpl::GetFeatureObserver, base::Unretained(host)));
@@ -936,9 +943,6 @@ void PopulateFrameBinders(RenderFrameHostImpl* host, mojo::BinderMap* map) {
   map->Add<blink::test::mojom::VirtualAuthenticatorManager>(
       base::BindRepeating(&RenderFrameHostImpl::GetVirtualAuthenticatorManager,
                           base::Unretained(host)));
-
-  map->Add<device::mojom::DevicePostureProvider>(
-      base::BindRepeating(&BindDevicePostureProvider));
 
   // BrowserMainLoop::GetInstance() may be null on unit tests.
   if (BrowserMainLoop::GetInstance()) {
@@ -1161,11 +1165,11 @@ void PopulateBinderMapWithContext(
       base::BindRepeating(&CookieStoreManager::BindReceiverForFrame));
   map->Add<blink::mojom::ContentIndexService>(
       base::BindRepeating(&ContentIndexServiceImpl::CreateForFrame));
-  map->Add<blink::mojom::KeyboardLockService>(
-      base::BindRepeating(&KeyboardLockServiceImpl::CreateMojoService));
+
+  KeyboardLockServiceImplCreateMojoService(*map);
+
   if (base::FeatureList::IsEnabled(blink::features::kInterestGroupStorage)) {
-    map->Add<blink::mojom::AdAuctionService>(
-        base::BindRepeating(&AdAuctionServiceImpl::CreateMojoService));
+    AdAuctionServiceImplCreateMojoService(*map);
   }
   map->Add<blink::mojom::MediaSessionService>(
       base::BindRepeating(&MediaSessionServiceImpl::Create));

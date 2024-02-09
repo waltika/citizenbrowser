@@ -28,6 +28,8 @@
 
 #include "third_party/blink/renderer/modules/accessibility/ax_object_cache_impl.h"
 
+#include <numeric>
+
 #include "base/auto_reset.h"
 #include "base/containers/contains.h"
 #include "base/memory/scoped_refptr.h"
@@ -116,6 +118,9 @@
 #include "ui/accessibility/ax_event.h"
 #include "ui/accessibility/ax_role_properties.h"
 #include "ui/accessibility/mojom/ax_relative_bounds.mojom-blink.h"
+#if DCHECK_IS_ON()
+#include "third_party/blink/renderer/modules/accessibility/ax_debug_utils.h"
+#endif
 
 // Prevent code that runs during the lifetime of the stack from altering the
 // document lifecycle, for the main document, and the popup document if present.
@@ -1459,7 +1464,7 @@ AXObject* AXObjectCacheImpl::RepairChildrenOfIncludedParent(Node* child) {
       }
       ax_ancestor->SetNeedsToUpdateChildren();
     }
-  };
+  }
 
   // The first included ancestor needs to update its children.
   ax_included_ancestor->ChildrenChangedWithCleanLayout();
@@ -1763,6 +1768,12 @@ void AXObjectCacheImpl::Remove(AXID ax_id, bool notify_parent) {
   AXObject* obj = it != objects_.end() ? it->value : nullptr;
   if (!obj)
     return;
+
+#if DCHECK_IS_ON()
+  if (obj->LastKnownIsIncludedInTreeValue()) {
+    --included_node_count_;
+  }
+#endif
 
   if (notify_parent && !has_been_disposed_) {
     ChildrenChangedOnAncestorOf(obj);
@@ -2150,11 +2161,22 @@ bool AXObjectCacheImpl::CanDeferTreeUpdate(Document* tree_update_document) {
   }
 
   if (tree_update_document != document_) {
+    // If the popup_document_ is null, throw this tree update away, because:
+    // - Updates that occur BEFORE the popup is tracked in a11y don't matter,
+    // as we will build the entire popup's AXObject subtree once we are
+    // notified about the popup.
+    // - Updates that occur AFTER the popup is no longer tracked could occur
+    // while the popup is currently closing, in which case the updates are no
+    // longer useful.
+    if (!popup_document_) {
+      return false;
+    }
     // If we are queuing an update to a document other than the main document,
     // then it must be in an active popup document. The cache would never
     // receive notifications from other documents.
-    DCHECK(popup_document_);
-    DCHECK_EQ(tree_update_document, popup_document_);
+    DUMP_WILL_BE_CHECK_EQ(tree_update_document, popup_document_)
+        << "Update in non-main, non-popup document: "
+        << tree_update_document->Url().GetString();
   }
 
   return true;
@@ -2398,11 +2420,11 @@ void AXObjectCacheImpl::FocusableChangedWithCleanLayout(Node* node) {
     // Elements that are hidden but focusable are not ignored. Therefore, if a
     // hidden element's focusable state changes, it's ignored state must be
     // recomputed. It may be newly included in the tree, which means the
-    // parents must be updated.
-    // TODO(accessibility) Is this necessary? We have other places in the code
-    // that automatically do a children changed on parents of nodes whose
-    // ignored or included states change.
-    ChildrenChangedWithCleanLayout(obj->CachedParentObject());
+    // parents must be updated. We invalidate the entire subtree so that
+    // the inclusion state is recomputed for all nodes potentially in a name
+    // from contents computation.
+    RemoveSubtreeWhenSafe(node);
+    return;
   }
 
   // Refresh the focusable state and State::kIgnored on the exposed object.
@@ -3672,8 +3694,7 @@ void AXObjectCacheImpl::FireAXEventImmediately(
 }
 
 bool AXObjectCacheImpl::IsAriaOwned(const AXObject* object) const {
-  CHECK(relation_cache_);
-  return relation_cache_->IsAriaOwned(object);
+  return relation_cache_ ? relation_cache_->IsAriaOwned(object) : false;
 }
 
 AXObject* AXObjectCacheImpl::ValidatedAriaOwner(const AXObject* object) const {
@@ -3709,6 +3730,14 @@ bool AXObjectCacheImpl::MayHaveHTMLLabel(const HTMLElement& elem) {
 
   // Return true if any ancestor is a label, as in <label><input></label>.
   return Traversal<HTMLLabelElement>::FirstAncestor(elem);
+}
+
+bool AXObjectCacheImpl::IsLabelOrDescription(Element& element) {
+  if (IsA<HTMLLabelElement>(element)) {
+    return true;
+  }
+  CHECK(relation_cache_);
+  return relation_cache_ && relation_cache_->IsARIALabelOrDescription(element);
 }
 
 void AXObjectCacheImpl::CheckedStateChanged(Node* node) {
@@ -3897,10 +3926,15 @@ void AXObjectCacheImpl::MaybeNewRelationTarget(Node& node, AXObject* obj) {
   CHECK(relation_cache_);
   relation_cache_->UpdateRelatedTree(&node, obj);
 
-  if (!obj)
+  // |obj| can become detached in UpdateRelatedTree(), while processing
+  // aria_owns relations, if it is determined that |obj| is part of a pruned
+  // subtree.
+  if (!obj || obj->IsDetached()) {
     return;
+  }
 
-  DCHECK_EQ(obj->GetNode(), &node);
+  CHECK_EQ(obj->GetNode(), &node)
+      << "\nMismatched object and node: " << obj->ToString(true, true);
 
   // Process completed relations for new ids. These are relations where
   // the target AXObject didn't exist when the relation was initially cached.
@@ -4130,7 +4164,12 @@ void AXObjectCacheImpl::HandleAttributeChanged(const QualifiedName& attr_name,
   } else if (attr_name == html_names::kForAttr) {
     if (relation_cache_) {
       if (HTMLLabelElement* label = DynamicTo<HTMLLabelElement>(element)) {
-        MarkElementDirty(relation_cache_->LabelChanged(*label));
+        if (Node* label_target = relation_cache_->LabelChanged(*label)) {
+          // If label_target's subtree was ignored because it was hidden, it
+          // will no longer be, because labels must be unignored to partake
+          // in name calculations.
+          MarkElementDirty(label_target);
+        }
       }
     }
   } else if (attr_name == html_names::kIdAttr) {
@@ -4372,21 +4411,8 @@ void AXObjectCacheImpl::HandleEventSubscriptionChanged(
 }
 
 void AXObjectCacheImpl::IdChangedWithCleanLayout(Node* node) {
-  if (AXObject* obj = Get(node)) {
-    // The id attribute has changed, which can change an object's ignored
-    // state, because an object backed with an element having an id attribute
-    // is always unignored, since it could be the end point of a relation.
-    // Call UpdateCachedAttributeValuesIfNeeded() to force the ignored state
-    // and included states to be recomputed, and if it tree inclusion changes,
-    // this call will also recompute the tree structure.
-    // TODO(aleventhal) This should no longer be necessary, because queuing this
-    // method via DefertreeUpdate() should have already marked the node dirty,
-    // and any next call for an cached value will call
-    // UpdateCachedAttributeValuesIfNeeded().
-    obj->UpdateCachedAttributeValuesIfNeeded();
-    // When the id attribute changes, the relations its in may also change.
-    MaybeNewRelationTarget(*node, obj);
-  }
+  // When the id attribute changes, the relations its in may also change.
+  MaybeNewRelationTarget(*node, Get(node));
 }
 
 void AXObjectCacheImpl::AriaOwnsChangedWithCleanLayout(Node* node) {
@@ -4809,29 +4835,6 @@ AXObject* AXObjectCacheImpl::GetSerializationTarget(AXObject* obj) {
     return nullptr;
   }
 
-  // A <slot> descendant of a node that is still in the DOM but no longer
-  // rendered will return true for Node::isConnected() and false for
-  // AXObject::IsDetached(). But from the perspective of platform ATs, this
-  // subtree is not connected and is detached.
-  // TODO(accessibility): The relevance check probably applies to all nodes
-  // not just slot elements.
-  if (const HTMLSlotElement* slot =
-          ToHTMLSlotElementIfSupportsAssignmentOrNull(obj->GetNode())) {
-    if (!AXObjectCacheImpl::IsRelevantSlotElement(*slot))
-      return nullptr;
-  }
-
-  // Ensure still in tree.
-  if (obj->IsMissingParent()) {
-    // TODO(accessibility) Only needed because of <select> size changes.
-    // This should become a DCHECK(!obj->IsMissingParent()) once the shadow DOM
-    // is used for <select> elements instead of AXMenuList* and AXListBox*
-    // classes.
-    if (!RestoreParentOrPruneWithCleanLayout(obj)) {
-      return nullptr;
-    }
-  }
-
   // Return included in tree object.
   if (obj->AccessibilityIsIncludedInTree())
     return obj;
@@ -5128,7 +5131,9 @@ void AXObjectCacheImpl::SerializeDirtyObjectsAndEvents(
     DCHECK_GT(update.nodes.size(), 0U);
 
     for (auto& node_data : update.nodes) {
-      DCHECK(node_data.id);
+      AXID id = node_data.id;
+      DCHECK(id);
+      VLOG(1) << "*** AX Serialize: " << ObjectFromAXID(id)->ToString(true);
       auto result = already_serialized_ids.insert(node_data.id);
       if (!result.is_new_entry) {
         redundant_serialization_count++;
@@ -5208,7 +5213,30 @@ void AXObjectCacheImpl::SerializeDirtyObjectsAndEvents(
     VLOG(1) << "AXEvent: " << event.event_type << " on "
             << ObjectFromAXID(event.id);
   }
+
+#if DCHECK_IS_ON()
+  if (!HasDirtyObjects()) {
+    CheckTreeConsistency(*this, *ax_tree_serializer_);
+  }
+
+  // Provide the expected node count in the last update, so that
+  // AXTree::Unserialize() can check for tree consistency on the browser side.
+  if (!updates.back().tree_checks) {
+    updates.back().tree_checks = std::make_optional<ui::AXTreeChecks>();
+  }
+  updates.back().tree_checks->node_count = included_node_count_;
+#endif  // DCHECK_IS_ON()
 }
+
+#if DCHECK_IS_ON()
+void AXObjectCacheImpl::UpdateIncludedNodeCount(const AXObject* obj) {
+  if (obj->LastKnownIsIncludedInTreeValue()) {
+    ++included_node_count_;
+  } else {
+    --included_node_count_;
+  }
+}
+#endif  // DCHECK_IS_ON()
 
 void AXObjectCacheImpl::GetImagesToAnnotate(
     ui::AXTreeUpdate& update,
@@ -5539,7 +5567,13 @@ void AXObjectCacheImpl::HandleScrollPositionChanged(
 
 const AtomicString& AXObjectCacheImpl::ComputedRoleForNode(Node* node) {
   // Accessibility tree must be updated before getting an object.
-  SCOPED_DISALLOW_LIFECYCLE_TRANSITION();
+  // Disallow a scope transition on the main document (which needs to already be
+  // updated to its correct lifecycle state at this point, or else there would
+  // be an illegal re-entrance to its lifecycle), but not for any popup document
+  // that is open. That's because popup documents update their lifecycle async
+  // from the main document, and hence any forced update to the popup document's
+  // lifecycle here is not re-entrance but rather a "forced" lifecycle update.
+  DocumentLifecycle::DisallowTransitionScope scoped(document_->Lifecycle());
   ProcessDeferredAccessibilityEvents(GetDocument(), /*force*/ true);
   ScopedFreezeAXCache scoped_freeze_cache(*this);
   AXObject* obj = Get(node);
@@ -5548,8 +5582,9 @@ const AtomicString& AXObjectCacheImpl::ComputedRoleForNode(Node* node) {
 }
 
 String AXObjectCacheImpl::ComputedNameForNode(Node* node) {
-  // Accessibility tree must be updated before getting an object.
-  SCOPED_DISALLOW_LIFECYCLE_TRANSITION();
+  // Accessibility tree must be updated before getting an object. See comment in
+  // ComputedRoleForNode() for explanation of disallow transition scope usage.
+  DocumentLifecycle::DisallowTransitionScope scoped(document_->Lifecycle());
   ProcessDeferredAccessibilityEvents(GetDocument(), /*force*/ true);
   ScopedFreezeAXCache scoped_freeze_cache(*this);
   AXObject* obj = Get(node);

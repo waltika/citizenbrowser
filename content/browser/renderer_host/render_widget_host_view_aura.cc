@@ -31,6 +31,7 @@
 #include "content/browser/accessibility/browser_accessibility_manager.h"
 #include "content/browser/accessibility/browser_accessibility_state_impl.h"
 #include "content/browser/bad_message.h"
+#include "content/browser/device_posture/device_posture_provider_impl.h"
 #include "content/browser/gpu/compositor_util.h"
 #include "content/browser/renderer_host/cursor_manager.h"
 #include "content/browser/renderer_host/delegated_frame_host_client_aura.h"
@@ -127,11 +128,6 @@
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)
 #include "ui/wm/core/ime_util_chromeos.h"
-#endif
-
-#if BUILDFLAG(IS_CHROMEOS_ASH)
-#include "ui/base/ime/ash/extension_ime_util.h"
-#include "ui/base/ime/ash/input_method_manager.h"
 #endif
 
 #if BUILDFLAG(IS_CHROMEOS)
@@ -319,7 +315,7 @@ void RenderWidgetHostViewAura::InitAsChild(gfx::NativeView parent_view) {
 
 #if BUILDFLAG(IS_WIN)
   // This will fetch and set the display features.
-  EnsureDevicePostureServiceConnection();
+  ObserveDevicePosturePlatformProvider();
 #endif
 }
 
@@ -398,7 +394,7 @@ void RenderWidgetHostViewAura::InitAsPopup(
 
 #if BUILDFLAG(IS_WIN)
   // This will fetch and set the display features.
-  EnsureDevicePostureServiceConnection();
+  ObserveDevicePosturePlatformProvider();
 #endif
 }
 
@@ -730,17 +726,25 @@ void RenderWidgetHostViewAura::UpdateBackgroundColor() {
 }
 
 #if BUILDFLAG(IS_WIN)
-void RenderWidgetHostViewAura::EnsureDevicePostureServiceConnection() {
-  if (device_posture_provider_.is_bound() &&
-      device_posture_provider_.is_connected()) {
+void RenderWidgetHostViewAura::ObserveDevicePosturePlatformProvider() {
+  if (device_posture_observation_.IsObserving()) {
     return;
   }
-  GetDeviceService().BindDevicePostureProvider(
-      device_posture_provider_.BindNewPipeAndPassReceiver());
-  device_posture_provider_->AddListenerAndGetCurrentViewportSegments(
-      device_posture_receiver_.BindNewPipeAndPassRemote(),
-      base::BindOnce(&RenderWidgetHostViewAura::OnViewportSegmentsChanged,
-                     base::Unretained(this)));
+
+  if (!host() || !host()->delegate()) {
+    return;
+  }
+
+  DevicePostureProviderImpl* posture_provider =
+      host()->delegate()->GetDevicePostureProvider();
+  if (!posture_provider) {
+    return;
+  }
+
+  DevicePosturePlatformProvider* platform_provider =
+      posture_provider->platform_provider();
+  device_posture_observation_.Observe(platform_provider);
+  OnViewportSegmentsChanged(platform_provider->GetViewportSegments());
 }
 #endif
 
@@ -1743,19 +1747,6 @@ bool RenderWidgetHostViewAura::SetAutocorrectRange(
     base::UmaHistogramEnumeration(
         "InputMethod.Assistive.Autocorrect.Count",
         TextInputClient::SubClass::kRenderWidgetHostViewAura);
-
-#if BUILDFLAG(IS_CHROMEOS_ASH)
-    auto* input_method_manager = ash::input_method::InputMethodManager::Get();
-    if (input_method_manager &&
-        ash::extension_ime_util::IsExperimentalMultilingual(
-            input_method_manager->GetActiveIMEState()
-                ->GetCurrentInputMethod()
-                .id())) {
-      base::UmaHistogramEnumeration(
-          "InputMethod.MultilingualExperiment.Autocorrect.Count",
-          TextInputClient::SubClass::kRenderWidgetHostViewAura);
-    }
-#endif
   }
 
   auto* input_handler = GetFrameWidgetInputHandlerForFocusedWidget();

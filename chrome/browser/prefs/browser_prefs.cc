@@ -18,7 +18,7 @@
 #include "chrome/browser/about_flags.h"
 #include "chrome/browser/accessibility/accessibility_labels_service.h"
 #include "chrome/browser/accessibility/invert_bubble_prefs.h"
-#include "chrome/browser/ash/notifications/update_notification_showing_controller.h"
+#include "chrome/browser/accessibility/prefers_default_scrollbar_styles_prefs.h"
 #include "chrome/browser/browser_process_impl.h"
 #include "chrome/browser/chrome_content_browser_client.h"
 #include "chrome/browser/chromeos/enterprise/cloud_storage/policy_utils.h"
@@ -347,6 +347,7 @@
 #include "chrome/browser/ash/app_mode/arc/arc_kiosk_app_manager.h"
 #include "chrome/browser/ash/app_mode/kiosk_chrome_app_manager.h"
 #include "chrome/browser/ash/app_mode/kiosk_cryptohome_remover.h"
+#include "chrome/browser/ash/app_mode/kiosk_system_session.h"
 #include "chrome/browser/ash/app_mode/web_app/web_kiosk_app_manager.h"
 #include "chrome/browser/ash/app_restore/full_restore_prefs.h"
 #include "chrome/browser/ash/apps/apk_web_app_service.h"
@@ -436,6 +437,7 @@
 #include "chrome/browser/ui/ash/shelf/chrome_shelf_prefs.h"
 #include "chrome/browser/ui/webui/ash/login/enable_debugging_screen_handler.h"
 #include "chrome/browser/ui/webui/ash/settings/os_settings_ui.h"
+#include "chrome/browser/ui/webui/settings/reset_settings_handler.h"
 #include "chrome/browser/upgrade_detector/upgrade_detector_chromeos.h"
 #include "chromeos/ash/components/audio/audio_devices_pref_handler_impl.h"
 #include "chromeos/ash/components/local_search_service/search_metrics_reporter.h"
@@ -514,9 +516,12 @@
 #include "chrome/browser/ui/startup/first_run_service.h"
 #endif
 
+#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_CHROMEOS)
+#include "chrome/browser/downgrade/downgrade_prefs.h"
+#endif
+
 #if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_CHROMEOS_ASH)
 #include "chrome/browser/device_identity/device_oauth2_token_store_desktop.h"
-#include "chrome/browser/downgrade/downgrade_prefs.h"
 #include "chrome/browser/ui/startup/default_browser_prompt.h"
 #endif
 
@@ -987,6 +992,22 @@ const char kSearchResultsPageFallbackFontsPref[] =
     "cached_fonts.search_results_page.fallback";
 #endif  // BUILDFLAG(IS_WIN)
 
+// Deprecated 01/2024.
+#if BUILDFLAG(IS_CHROMEOS_ASH)
+constexpr char kUpdateNotificationLastShownMilestone[] =
+    "update_notification_last_shown_milestone";
+#endif  // BUILDFLAG(IS_CHROMEOS_ASH)
+
+// Deprecated 02/2024.
+#if BUILDFLAG(IS_ANDROID)
+constexpr char kSavePasswordsSuspendedByError[] =
+    "profile.save_passwords_suspended_by_error";
+#endif
+constexpr char kSafeBrowsingDeepScanPromptSeen[] =
+    "safebrowsing.deep_scan_prompt_seen";
+constexpr char kSafeBrowsingEsbEnabledTimestamp[] =
+    "safebrowsing.esb_enabled_timestamp";
+
 // Register local state used only for migration (clearing or moving to a new
 // key).
 void RegisterLocalStatePrefsForMigration(PrefRegistrySimple* registry) {
@@ -1400,6 +1421,18 @@ void RegisterProfilePrefsForMigration(
   registry->RegisterListPref(kSearchResultsPagePrimaryFontsPref);
   registry->RegisterListPref(kSearchResultsPageFallbackFontsPref);
 #endif
+
+  // Deprecated 01/2024.
+#if BUILDFLAG(IS_CHROMEOS_ASH)
+  registry->RegisterIntegerPref(kUpdateNotificationLastShownMilestone, -10);
+#endif
+
+  // Deprecated 02/2024.
+#if BUILDFLAG(IS_ANDROID)
+  registry->RegisterBooleanPref(kSavePasswordsSuspendedByError, false);
+#endif
+  registry->RegisterBooleanPref(kSafeBrowsingDeepScanPromptSeen, false);
+  registry->RegisterTimePref(kSafeBrowsingEsbEnabledTimestamp, base::Time());
 }
 
 void ClearSyncRequestedPrefAndMaybeMigrate(PrefService* profile_prefs) {
@@ -1568,6 +1601,7 @@ void RegisterLocalState(PrefRegistrySimple* registry) {
   ash::HWDataUsageController::RegisterLocalStatePrefs(registry);
   ash::KerberosCredentialsManager::RegisterLocalStatePrefs(registry);
   ash::KioskChromeAppManager::RegisterLocalStatePrefs(registry);
+  ash::KioskSystemSession::RegisterLocalStatePrefs(registry);
   ash::KioskCryptohomeRemover::RegisterPrefs(registry);
   ash::language_prefs::RegisterPrefs(registry);
   ash::local_search_service::SearchMetricsReporter::RegisterLocalStatePrefs(
@@ -1585,6 +1619,7 @@ void RegisterLocalState(PrefRegistrySimple* registry) {
       registry);
   ash::Preferences::RegisterPrefs(registry);
   ash::ResetScreen::RegisterPrefs(registry);
+  settings::ResetSettingsHandler::RegisterLocalStatePrefs(registry);
   ash::SchedulerConfigurationManager::RegisterLocalStatePrefs(registry);
   ash::ServicesCustomizationDocument::RegisterPrefs(registry);
   ash::standalone_browser::migrator_util::RegisterLocalStatePrefs(registry);
@@ -1658,9 +1693,12 @@ void RegisterLocalState(PrefRegistrySimple* registry) {
 #endif  // BUILDFLAG(GOOGLE_CHROME_BRANDING)
 #endif  // BUILDFLAG(IS_WIN)
 
+#if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_CHROMEOS)
+  downgrade::RegisterPrefs(registry);
+#endif
+
 #if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_CHROMEOS_ASH)
   RegisterDefaultBrowserPromptPrefs(registry);
-  downgrade::RegisterPrefs(registry);
   DeviceOAuth2TokenStoreDesktop::RegisterPrefs(registry);
 #endif
 
@@ -1754,6 +1792,7 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
   PushMessagingAppIdentifier::RegisterProfilePrefs(registry);
   QuietNotificationPermissionUiState::RegisterProfilePrefs(registry);
   RegisterBrowserUserPrefs(registry);
+  RegisterPrefersDefaultScrollbarStylesPrefs(registry);
   safe_browsing::file_type::RegisterProfilePrefs(registry);
   safe_browsing::RegisterProfilePrefs(registry);
   SearchPrefetchService::RegisterProfilePrefs(registry);
@@ -1910,6 +1949,7 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
   registry->RegisterListPref(prefs::kDeskAPIThirdPartyAllowlist);
   registry->RegisterBooleanPref(prefs::kInsightsExtensionEnabled, false);
   registry->RegisterBooleanPref(prefs::kEssentialSearchEnabled, false);
+  registry->RegisterBooleanPref(prefs::kLastEssentialSearchValue, false);
   // By default showing Sync Consent is set to true. It can changed by policy.
   registry->RegisterBooleanPref(prefs::kEnableSyncConsent, true);
   registry->RegisterListPref(
@@ -1976,7 +2016,6 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
   ash::ServicesCustomizationDocument::RegisterProfilePrefs(registry);
   ash::settings::OSSettingsUI::RegisterProfilePrefs(registry);
   ash::StartupUtils::RegisterOobeProfilePrefs(registry);
-  ash::UpdateNotificationShowingController::RegisterProfilePrefs(registry);
   ash::user_image::prefs::RegisterProfilePrefs(registry);
   ash::UserImageSyncObserver::RegisterProfilePrefs(registry);
   ChromeMetricsServiceClient::RegisterProfilePrefs(registry);
@@ -2655,6 +2694,20 @@ void MigrateObsoleteProfilePrefs(PrefService* profile_prefs,
   profile_prefs->ClearPref(kSearchResultsPagePrimaryFontsPref);
   profile_prefs->ClearPref(kSearchResultsPageFallbackFontsPref);
 #endif
+
+  // Deprecated 01/2024.
+#if BUILDFLAG(IS_CHROMEOS_ASH)
+  profile_prefs->ClearPref(kUpdateNotificationLastShownMilestone);
+#endif
+
+  // Deprecated 01/2024.
+#if BUILDFLAG(IS_ANDROID)
+  profile_prefs->ClearPref(kSavePasswordsSuspendedByError);
+#endif
+
+  // Deprecated 02/2024
+  profile_prefs->ClearPref(kSafeBrowsingDeepScanPromptSeen);
+  profile_prefs->ClearPref(kSafeBrowsingEsbEnabledTimestamp);
 
   // Please don't delete the following line. It is used by PRESUBMIT.py.
   // END_MIGRATE_OBSOLETE_PROFILE_PREFS

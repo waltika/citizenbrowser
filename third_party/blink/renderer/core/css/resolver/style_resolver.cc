@@ -920,6 +920,11 @@ void StyleResolver::ForEachUARulesForElement(const Element& element,
     func(default_style_sheets.DefaultForcedColorStyle());
   }
 
+  if (RuntimeEnabledFeatures::PrettyPrintJSONDocumentEnabled() &&
+      GetDocument().IsJSONDocument()) {
+    func(default_style_sheets.DefaultJSONDocumentStyle());
+  }
+
   const auto pseudo_id = GetPseudoId(element, collector);
   if (pseudo_id == kPseudoIdNone) {
     return;
@@ -2953,7 +2958,7 @@ void StyleResolver::PropagateStyleToViewport() {
     PROPAGATE_FROM(document_element_style, ScrollbarWidth, SetScrollbarWidth,
                    EScrollbarWidth::kAuto);
     PROPAGATE_FROM(document_element_style, ScrollbarColor, SetScrollbarColor,
-                   absl::nullopt);
+                   std::nullopt);
     PROPAGATE_FROM(document_element_style, ForcedColorAdjust,
                    SetForcedColorAdjust, EForcedColorAdjust::kAuto);
     if (RuntimeEnabledFeatures::UsedColorSchemeRootScrollbarsEnabled()) {

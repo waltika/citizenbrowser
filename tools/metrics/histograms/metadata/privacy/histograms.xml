@@ -528,7 +528,7 @@ reviewer.
 
 <histogram
     name="PrivacySandbox.AggregationService.ReportSender.HttpResponseOrNetErrorCode"
-    enum="CombinedHttpResponseAndNetErrorCode" expires_after="2024-04-28">
+    enum="CombinedHttpResponseAndNetErrorCode" expires_after="2024-08-04">
   <owner>alexmt@chromium.org</owner>
   <owner>linnan@chromium.org</owner>
   <summary>
@@ -707,6 +707,18 @@ reviewer.
     clock corrections and inaccuracies may contribute noise to this metric.
     Recorded for each report request on each storage retrieval task, even if the
     request is marked as in-progress.
+  </summary>
+</histogram>
+
+<histogram
+    name="PrivacySandbox.AggregationService.Storage.Sql.StoredRequestsPerReportingOrigin"
+    units="requests" expires_after="2024-07-23">
+  <owner>alexmt@chromium.org</owner>
+  <owner>linnan@chromium.org</owner>
+  <summary>
+    Records how many requests were already stored for the reporting origin when
+    the capacity for that origin was checked. Recorded for each StoreRequest
+    attempt.
   </summary>
 </histogram>
 

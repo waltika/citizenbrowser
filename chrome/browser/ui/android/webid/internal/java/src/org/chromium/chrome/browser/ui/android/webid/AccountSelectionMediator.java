@@ -581,7 +581,10 @@ class AccountSelectionMediator {
                         : null);
 
         mBottomSheetContent.computeAndUpdateAccountListHeight();
-        showContent();
+        // When a user opens a page that invokes the FedCM API in a new tab, the tab will be hidden
+        // and we should not show the bottom sheet to avoid confusion.
+        mTab.addObserver(mTabObserver);
+        if (!mTab.isHidden()) showContent();
     }
 
     private void updateHeader() {
@@ -607,10 +610,15 @@ class AccountSelectionMediator {
             if (mRegisteredObservers) return;
 
             mRegisteredObservers = true;
+            if (mHeaderType == HeaderType.SIGN_IN
+                    || mHeaderType == HeaderType.VERIFY
+                    || mHeaderType == HeaderType.VERIFY_AUTO_REAUTHN) {
+                mDelegate.onAccountsDisplayed();
+            }
             mBottomSheetController.addObserver(mBottomSheetObserver);
             KeyboardVisibilityDelegate.getInstance()
                     .addKeyboardVisibilityListener(mKeyboardVisibilityListener);
-            mTab.addObserver(mTabObserver);
+            if (!mTab.hasObserver(mTabObserver)) mTab.addObserver(mTabObserver);
         } else {
             onDismissed(IdentityRequestDialogDismissReason.OTHER);
         }
@@ -666,7 +674,7 @@ class AccountSelectionMediator {
         // This method only has an Account to match the type of the event listener.
         assert account == null;
         if (!shouldInputBeProcessed()) return;
-        mDelegate.onLoginToIdP(mIdpMetadata.getLoginUrl());
+        mDelegate.onLoginToIdP(mIdpMetadata.getConfigUrl(), mIdpMetadata.getLoginUrl());
     }
 
     /** Event listener for when the user taps on the more details button of the bottomsheet. */

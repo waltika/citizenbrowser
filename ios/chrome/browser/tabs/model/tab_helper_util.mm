@@ -30,8 +30,10 @@
 #import "ios/chrome/browser/commerce/model/shopping_persisted_data_tab_helper.h"
 #import "ios/chrome/browser/commerce/model/shopping_service_factory.h"
 #import "ios/chrome/browser/complex_tasks/model/ios_task_tab_helper.h"
+#import "ios/chrome/browser/contextual_panel/model/contextual_panel_tab_helper.h"
 #import "ios/chrome/browser/crash_report/model/breadcrumbs/breadcrumb_manager_tab_helper.h"
 #import "ios/chrome/browser/download/model/ar_quick_look_tab_helper.h"
+#import "ios/chrome/browser/download/model/document_download_tab_helper.h"
 #import "ios/chrome/browser/download/model/download_manager_tab_helper.h"
 #import "ios/chrome/browser/download/model/pass_kit_tab_helper.h"
 #import "ios/chrome/browser/download/model/safari_download_tab_helper.h"
@@ -190,9 +192,7 @@ void AttachTabHelpers(web::WebState* web_state, bool for_prerender) {
 
   // Supervised user services are not supported for off-the-record browser
   // state.
-  if (base::FeatureList::IsEnabled(
-          supervised_user::kFilterWebsitesForSupervisedUsersOnDesktopAndIOS) &&
-      !is_off_the_record) {
+  if (!is_off_the_record) {
     SupervisedUserURLFilterTabHelper::CreateForWebState(web_state);
     SupervisedUserErrorContainer::CreateForWebState(web_state);
   }
@@ -230,6 +230,7 @@ void AttachTabHelpers(web::WebState* web_state, bool for_prerender) {
   // Drive tab helper.
   if (base::FeatureList::IsEnabled(kIOSSaveToDrive)) {
     DriveTabHelper::CreateForWebState(web_state);
+    DocumentDownloadTabHelper::CreateForWebState(web_state);
   }
 
   PageloadForegroundDurationTabHelper::CreateForWebState(web_state);
@@ -310,5 +311,9 @@ void AttachTabHelpers(web::WebState* web_state, bool for_prerender) {
 
   if (!is_off_the_record) {
     PriceNotificationsTabHelper::CreateForWebState(web_state);
+  }
+
+  if (IsContextualPanelEnabled()) {
+    ContextualPanelTabHelper::CreateForWebState(web_state);
   }
 }

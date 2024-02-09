@@ -234,8 +234,7 @@ AppListBubbleView::AppListBubbleView(
                        : views::HighlightBorder::Type::kHighlightBorder1,
       /*insets_type=*/views::HighlightBorder::InsetsType::kHalfInsets));
 
-  views::FillLayout* layout =
-      SetLayoutManager(std::make_unique<views::FillLayout>());
+  SetLayoutManager(std::make_unique<views::FillLayout>());
   a11y_announcer_ = std::make_unique<AppListA11yAnnouncer>(
       AddChildView(std::make_unique<views::View>()));
   InitContentsView(drag_and_drop_host);
@@ -248,7 +247,7 @@ AppListBubbleView::AppListBubbleView(
 
   InitFolderView(drag_and_drop_host);
   // Folder view is laid out manually based on its contents.
-  layout->SetChildViewIgnoredByLayout(folder_view_, true);
+  folder_view_->SetProperty(views::kViewIgnoredByLayoutKey, true);
 
   AddAccelerator(ui::Accelerator(ui::VKEY_ESCAPE, ui::EF_NONE));
   AddAccelerator(ui::Accelerator(ui::VKEY_BROWSER_BACK, ui::EF_NONE));
@@ -399,7 +398,7 @@ void AppListBubbleView::StartShowAnimation(bool is_side_shelf) {
 
   // Ensure layout is up-to-date before animating views.
   if (needs_layout()) {
-    Layout();
+    DeprecatedLayoutImmediately();
   }
   DCHECK(!needs_layout());
 
@@ -676,8 +675,8 @@ bool AppListBubbleView::AcceleratorPressed(const ui::Accelerator& accelerator) {
   return true;
 }
 
-void AppListBubbleView::Layout() {
-  views::View::Layout();
+void AppListBubbleView::Layout(PassKey) {
+  LayoutSuperclass<views::View>(this);
 
   // The folder view has custom layout code that centers the folder over the
   // associated root apps grid folder item.
@@ -756,7 +755,7 @@ void AppListBubbleView::ShowFolderForItemView(AppListItemView* folder_item_view,
   folder_view_->ConfigureForFolderItemView(folder_item_view,
                                            std::move(hide_callback));
   showing_folder_ = true;
-  Layout();
+  DeprecatedLayoutImmediately();
   folder_background_view_->SetVisible(true);
   folder_view_->ScheduleShowHideAnimation(/*show=*/true,
                                           /*hide_for_reparent=*/false);
@@ -859,7 +858,7 @@ void AppListBubbleView::OnHideAnimationEnded(const gfx::Rect& layer_bounds) {
 
 void AppListBubbleView::HideFolderView(bool animate, bool hide_for_reparent) {
   showing_folder_ = false;
-  Layout();
+  DeprecatedLayoutImmediately();
   folder_background_view_->SetVisible(false);
   if (!hide_for_reparent) {
     apps_page_->scrollable_apps_grid_view()->ResetForShowApps();

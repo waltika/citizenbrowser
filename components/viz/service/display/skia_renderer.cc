@@ -80,6 +80,7 @@
 #include "third_party/skia/src/core/SkCanvasPriv.h"
 #include "ui/base/ui_base_features.h"
 #include "ui/gfx/buffer_format_util.h"
+#include "ui/gfx/color_space.h"
 #include "ui/gfx/color_transform.h"
 #include "ui/gfx/geometry/angle_conversions.h"
 #include "ui/gfx/geometry/axis_transform2d.h"
@@ -103,6 +104,12 @@
 namespace viz {
 
 namespace {
+
+#if BUILDFLAG(IS_APPLE) || BUILDFLAG(IS_OZONE)
+BASE_FEATURE(kAddSharedImageRasterReadUsage,
+             "AddSharedImageRasterReadUsage",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+#endif
 
 enum VertexOpacityUsage {
   kNone = 0,
@@ -1235,7 +1242,11 @@ void SkiaRenderer::SwapBuffersComplete(
 
   // Current pending locks should have been committed by the next time
   // SwapBuffers() is completed.
-  committed_overlay_locks_.clear();
+  {
+    DisplayResourceProvider::ScopedBatchReturnResources returner(
+        resource_provider_.get(), /*allow_access_to_gpu_thread=*/true);
+    committed_overlay_locks_.clear();
+  }
   std::swap(committed_overlay_locks_, pending_overlay_locks_.front());
   pending_overlay_locks_.pop_front();
 }
@@ -2544,8 +2555,9 @@ void SkiaRenderer::DrawTextureQuad(const TextureDrawQuad* quad,
     // invalid. Once these tests are migrated, we can remove the override here
     // and revert to Skia's default behavior of assuming sRGB on invalid.
 #if BUILDFLAG(IS_CHROMEOS_ASH)
-  if (!src_color_space.IsValid())
+  if (!src_color_space.IsValid()) {
     override_color_space = CurrentRenderPassSkColorSpace();
+  }
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
 #if BUILDFLAG(IS_ANDROID)
@@ -2582,6 +2594,11 @@ void SkiaRenderer::DrawTextureQuad(const TextureDrawQuad* quad,
       quad->resource_size_in_pixels().IsEmpty()
           ? gfx::RectF(image->width(), image->height())
           : gfx::RectF(gfx::SizeF(quad->resource_size_in_pixels()));
+  // For video frames, `valid_texel_bounds` is VideoFrame::visible_rect which is
+  // passed here via `uv_rect`.
+  if (quad->is_video_frame) {
+    valid_texel_bounds = uv_rect;
+  }
 
   // There are three scenarios where a texture quad cannot be put into a batch:
   // 1. It needs to be blended with a constant background color.
@@ -2947,12 +2964,13 @@ sk_sp<SkColorFilter> SkiaRenderer::GetColorSpaceConversionFilter(
     bool is_video_frame,
     float resource_offset,
     float resource_multiplier) {
-  // Use the current SDR slider white level for HDR videos on
+  // Use the current SDR slider white level for PQ HDR videos on
   // Windows, so that they look similar when rendered by the
   // compositor and when rendered as an overlay (HDR10 MPO).
   // https://crbug.com/1492817
   auto hdr_metadata = src_hdr_metadata;
-  if (is_video_frame && src.IsToneMappedByDefault() &&
+  if (is_video_frame &&
+      src.GetTransferID() == gfx::ColorSpace::TransferID::PQ &&
       base::FeatureList::IsEnabled(features::kUseDisplaySDRMaxLuminanceNits)) {
     hdr_metadata =
         gfx::HDRMetadata::PopulateUnspecifiedWithDefaults(src_hdr_metadata);
@@ -3588,10 +3606,17 @@ SkiaRenderer::GetOrCreateRenderPassOverlayBacking(
   if (it == available_render_pass_overlay_backings_.end()) {
     // Allocate the image for render pass overlay if there is no existing
     // available one.
-    constexpr auto kOverlayUsage = gpu::SHARED_IMAGE_USAGE_SCANOUT |
-                                   gpu::SHARED_IMAGE_USAGE_DISPLAY_READ |
-                                   gpu::SHARED_IMAGE_USAGE_DISPLAY_WRITE |
-                                   gpu::SHARED_IMAGE_USAGE_RASTER_READ;
+    auto kOverlayUsage = gpu::SHARED_IMAGE_USAGE_SCANOUT |
+                         gpu::SHARED_IMAGE_USAGE_DISPLAY_READ |
+                         gpu::SHARED_IMAGE_USAGE_DISPLAY_WRITE;
+    // The SharedImages created here are not used by the raster interface, but
+    // RASTER usage was historically listed. We are in the process of removing
+    // this usage with a reverse killswitch.
+    // TODO(crbug.com/1523914): Remove this code post-safe rollout.
+    if (base::FeatureList::IsEnabled(kAddSharedImageRasterReadUsage)) {
+      kOverlayUsage = kOverlayUsage | gpu::SHARED_IMAGE_USAGE_RASTER_READ;
+    }
+
     auto mailbox = skia_output_surface_->CreateSharedImage(
         buffer_format, buffer_size, color_space, RenderPassAlphaType::kPremul,
         kOverlayUsage, "RenderPassOverlay", gpu::kNullSurfaceHandle);

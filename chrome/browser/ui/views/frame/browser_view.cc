@@ -1524,17 +1524,27 @@ void BrowserView::BookmarkBarStateChanged(
   }
 
   if (MaybeShowBookmarkBar(GetActiveWebContents()))
-    Layout();
+    DeprecatedLayoutImmediately();
+}
+
+void BrowserView::TemporarilyShowBookmarkBar(base::TimeDelta duration) {
+  browser_->SetForceShowBookmarkBarFlag(
+      Browser::ForceShowBookmarkBarFlag::kTabGroupSaved);
+  temporary_bookmark_bar_timer_.Start(
+      FROM_HERE, duration,
+      base::BindOnce(&Browser::ClearForceShowBookmarkBarFlag,
+                     browser_->AsWeakPtr(),
+                     Browser::ForceShowBookmarkBarFlag::kTabGroupSaved));
 }
 
 void BrowserView::UpdateDevTools() {
   UpdateDevToolsForContents(GetActiveWebContents(), true);
-  Layout();
+  DeprecatedLayoutImmediately();
 }
 
 void BrowserView::UpdateCitizenNotes() {
   UpdateCitizenNotesForContents(GetActiveWebContents(), true);
-  Layout();
+  DeprecatedLayoutImmediately();
 }
 
 void BrowserView::UpdateLoadingAnimations(bool is_visible) {
@@ -2201,7 +2211,7 @@ void BrowserView::ToolbarSizeChanged(bool is_animating) {
   // with a gray rect because the clip wasn't updated.
   if (!is_animating) {
     contents_web_view_->InvalidateLayout();
-    contents_container_->Layout();
+    contents_container_->DeprecatedLayoutImmediately();
   }
 
   // Web apps that use Window Controls Overlay (WCO) revert back to the
@@ -2227,7 +2237,7 @@ void BrowserView::TabDraggingStatusChanged(bool is_dragging) {
     // re-layed out. Otherwise we may see web contents get clipped to the window
     // size that was used during dragging.
     contents_web_view_->InvalidateLayout();
-    contents_container_->Layout();
+    contents_container_->DeprecatedLayoutImmediately();
   }
 #endif
 }
@@ -2468,7 +2478,7 @@ void BrowserView::UpdateSidePanelHorizontalAlignment() {
       is_right_aligned ? SidePanel::kAlignRight : SidePanel::kAlignLeft);
   GetBrowserViewLayout()->Layout(this);
   if (side_panel_rounded_corner_) {
-    side_panel_rounded_corner_->Layout();
+    side_panel_rounded_corner_->DeprecatedLayoutImmediately();
     side_panel_rounded_corner_->SchedulePaint();
   }
 }
@@ -4324,7 +4334,7 @@ gfx::Size BrowserView::GetMinimumSize() const {
 ///////////////////////////////////////////////////////////////////////////////
 // BrowserView, views::View overrides:
 
-void BrowserView::Layout() {
+void BrowserView::Layout(PassKey) {
   TRACE_EVENT0("ui", "BrowserView::Layout");
   if (!initialized_ || in_process_fullscreen_)
     return;
@@ -4340,7 +4350,7 @@ void BrowserView::Layout() {
     did_first_layout_while_top_controls_are_sliding_ = false;
   }
 
-  views::View::Layout();
+  LayoutSuperclass<views::View>(this);
 
   // TODO(jamescook): Why was this in the middle of layout code?
   toolbar_->location_bar()->omnibox_view()->SetFocusBehavior(
@@ -4728,7 +4738,7 @@ void BrowserView::UpdateDevToolsForContents(WebContents* web_contents,
     GetContentsLayoutManager()->SetContentsResizingStrategy(
         DevToolsContentsResizingStrategy());
   }
-  contents_container_->Layout();
+  contents_container_->DeprecatedLayoutImmediately();
 
   if (devtools) {
     // When strategy.hide_inspected_contents() returns true, we are hiding
@@ -4791,7 +4801,7 @@ void BrowserView::UpdateCitizenNotesForContents(WebContents* web_contents,
     GetContentsLayoutManager()->SetContentsResizingStrategy(
        CitizenNotesContentsResizingStrategy());
   }
-  contents_container_->Layout();
+  contents_container_->DeprecatedLayoutImmediately();
 
   if (citizennotes) {
     // When strategy.hide_inspected_contents() returns true, we are hiding
@@ -4826,7 +4836,7 @@ void BrowserView::UpdateUIForContents(WebContents* contents) {
   // out when layout is actually required.
   needs_layout |= MaybeShowInfoBar(contents);
   if (needs_layout)
-    Layout();
+    DeprecatedLayoutImmediately();
 }
 
 void BrowserView::ProcessFullscreen(bool fullscreen,
@@ -4843,8 +4853,9 @@ void BrowserView::ProcessFullscreen(bool fullscreen,
 
   // Reduce jankiness during the following position changes by:
   //   * Hiding the window until it's in the final position
-  //   * Ignoring all intervening Layout() calls, which resize the webpage and
-  //     thus are slow and look ugly (enforced via |in_process_fullscreen_|).
+  //   * Ignoring all intervening layout attempts, which would resize the
+  //     webpage and thus are slow and look ugly (enforced via
+  //     |in_process_fullscreen_|).
   if (fullscreen) {
     // Move focus out of the location bar if necessary.
     views::FocusManager* focus_manager = GetFocusManager();
@@ -5446,7 +5457,7 @@ void BrowserView::OnImmersiveRevealStarted() {
   overlay_view_->AddChildView(top_container());
   overlay_view_->SetVisible(true);
   InvalidateLayout();
-  GetWidget()->GetRootView()->Layout();
+  GetWidget()->GetRootView()->DeprecatedLayoutImmediately();
 
 #if BUILDFLAG(IS_CHROMEOS)
   top_container()->SetBackground(
@@ -5457,7 +5468,7 @@ void BrowserView::OnImmersiveRevealStarted() {
 void BrowserView::OnImmersiveRevealEnded() {
   ReparentTopContainerForEndOfImmersive();
   InvalidateLayout();
-  GetWidget()->GetRootView()->Layout();
+  GetWidget()->GetRootView()->DeprecatedLayoutImmediately();
 
 #if BUILDFLAG(IS_CHROMEOS)
   // Ensure that entering/exiting tablet mode on ChromeOS also updates Window

@@ -260,12 +260,14 @@ class PageSpecificContentSettings
       ContentSettingsType type);
 
   // Called when a specific Shared Worker was accessed.
-  static void SharedWorkerAccessed(int render_process_id,
-                                   int render_frame_id,
-                                   const GURL& worker_url,
-                                   const std::string& name,
-                                   const blink::StorageKey& storage_key,
-                                   bool blocked_by_policy);
+  static void SharedWorkerAccessed(
+      int render_process_id,
+      int render_frame_id,
+      const GURL& worker_url,
+      const std::string& name,
+      const blink::StorageKey& storage_key,
+      const blink::mojom::SharedWorkerSameSiteCookies same_site_cookies,
+      bool blocked_by_policy);
 
   // Called when |api_origin| attempts to join an interest group via the
   // Interest Group API.
@@ -369,19 +371,6 @@ class PageSpecificContentSettings
   void OnTwoSitePermissionChanged(ContentSettingsType type,
                                   net::SchemefulSite requesting_site,
                                   ContentSetting content_setting);
-
-  // |originating_page| is non-null when it differs from page(), which happens
-  // when an embedding page's PSCS is notified of an access that happens in an
-  // embedded page (through |MaybeUpdateParent|).
-  void OnStorageAccessed(
-      mojom::ContentSettingsManager::StorageType storage_type,
-      const blink::StorageKey& storage_key,
-      bool blocked_by_policy,
-      content::Page* originating_page = nullptr);
-  void OnSharedWorkerAccessed(const GURL& worker_url,
-                              const std::string& name,
-                              const blink::StorageKey& storage_key,
-                              bool blocked_by_policy);
   void OnInterestGroupJoined(const url::Origin& api_origin,
                              bool blocked_by_policy);
   void OnTopicAccessed(const url::Origin& api_origin,
@@ -404,7 +393,9 @@ class PageSpecificContentSettings
       const GURL& request_origin,
       MicrophoneCameraState new_microphone_camera_state);
 
-  // See |OnStorageAccessed| documentation for more info on |originating_page|.
+  // |originating_page| is non-null when it differs from page(), which happens
+  // when an embedding page's PSCS is notified of an access that happens in an
+  // embedded page (through |MaybeUpdateParent|).
   void OnCookiesAccessed(const content::CookieAccessDetails& details,
                          content::Page* originating_page = nullptr);
   void OnServiceWorkerAccessed(const GURL& scope,

@@ -134,7 +134,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Mobile.ContextMenu.LensWebImageProcessTime" units="ms"
-    expires_after="2024-06-02">
+    expires_after="2024-08-04">
   <owner>hujasonx@google.com</owner>
   <owner>lens-in-bling-team@google.com</owner>
   <summary>
@@ -165,7 +165,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Mobile.ContextMenu.{EntryPoint}.Actions" enum="IOSMenuAction"
-    expires_after="2024-06-02">
+    expires_after="2024-08-04">
   <owner>gambard@chromium.org</owner>
   <owner>bling-team@chromium.org</owner>
   <summary>
@@ -347,7 +347,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram base="true" name="Mobile.Messages.Passwords.Modal.Event"
-    enum="MobileMessagesPasswordsModalEvent" expires_after="2024-05-26">
+    enum="MobileMessagesPasswordsModalEvent" expires_after="2024-07-28">
 <!-- Name completed by histogram_suffixes name="Mobile.Messages.Password.Type" -->
 
   <owner>sczs@chromium.org</owner>

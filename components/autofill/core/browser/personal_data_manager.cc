@@ -9,6 +9,7 @@
 #include <map>
 #include <utility>
 
+#include "base/check_deref.h"
 #include "base/containers/contains.h"
 #include "base/feature_list.h"
 #include "base/functional/bind.h"
@@ -225,12 +226,6 @@ void ReceiveLoadedDbValues(WebDataServiceBase::Handle h,
           ->GetValue());
 }
 
-// A helper function for finding the maximum value in a string->int map.
-static bool CompareVotes(const std::pair<std::string, int>& a,
-                         const std::pair<std::string, int>& b) {
-  return a.second < b.second;
-}
-
 // Orders all `profiles` by the specified `order` rule.
 void OrderProfiles(std::vector<AutofillProfile*>& profiles,
                    PersonalDataManager::ProfileOrder order) {
@@ -402,7 +397,6 @@ void PersonalDataManager::Init(
 
   alternative_state_name_map_updater_ =
       std::make_unique<AlternativeStateNameMapUpdater>(local_state, this);
-  AddObserver(alternative_state_name_map_updater_.get());
 
   // Listen for URL deletions from browsing history.
   history_service_ = history_service;
@@ -450,7 +444,8 @@ void PersonalDataManager::Init(
   Refresh();
 
   address_data_cleaner_ = std::make_unique<AddressDataCleaner>(
-      this, alternative_state_name_map_updater_.get(), pref_service);
+      *this, sync_service, CHECK_DEREF(pref_service),
+      alternative_state_name_map_updater_.get());
   payments_data_cleaner_ = std::make_unique<PaymentsDataCleaner>(this);
 
   // Potentially import profiles for testing. `Init()` is called whenever the
@@ -463,9 +458,6 @@ PersonalDataManager::~PersonalDataManager() {
   CancelPendingLocalQuery(&pending_synced_local_profiles_query_);
   CancelPendingLocalQuery(&pending_creditcards_query_);
   CancelPendingServerQueries();
-
-  if (alternative_state_name_map_updater_)
-    RemoveObserver(alternative_state_name_map_updater_.get());
 }
 
 void PersonalDataManager::Shutdown() {
@@ -480,6 +472,11 @@ void PersonalDataManager::Shutdown() {
   if (identity_manager_)
     identity_manager_->RemoveObserver(this);
   identity_manager_ = nullptr;
+
+  // Make sure that the `address_data_cleaner_` sync observer gets destroyed
+  // before the SyncService's `Shutdown()`.
+  address_data_cleaner_.reset();
+  payments_data_cleaner_.reset();
 }
 
 void PersonalDataManager::OnURLsDeleted(
@@ -622,8 +619,23 @@ void PersonalDataManager::OnWebDataServiceRequestDone(
     }
   }
 
-  if (HasPendingQueries())
+  if (!is_address_data_loaded_ && !HasPendingAddressQueries()) {
+    is_address_data_loaded_ = true;
+    LogStoredAddressDataMetrics();
+  }
+
+  // TODO(b/322170538): Move this block below the `GetServerDatabase()` if,
+  // once address reading logic was moved into a separate class.
+  if (!is_payments_data_loaded_ && !HasPendingPaymentQueries() &&
+      database_helper_->GetServerDatabase()) {
+    is_payments_data_loaded_ = true;
+    LogStoredPaymentsDataMetrics();
+    payments_data_cleaner_->CleanupPaymentsData();
+  }
+
+  if (HasPendingAddressQueries() || HasPendingPaymentQueries()) {
     return;
+  }
 
   if (!database_helper_->GetServerDatabase()) {
     DLOG(WARNING) << "There are no pending queries but the server database "
@@ -632,25 +644,12 @@ void PersonalDataManager::OnWebDataServiceRequestDone(
     return;
   }
 
-  // All personal data is loaded, notify observers. |is_data_loaded_| is false
-  // if this is the initial load.
-  if (!is_data_loaded_) {
-    is_data_loaded_ = true;
-    LogStoredDataMetrics();
-    address_data_cleaner_->MaybeCleanupAddressData();
-    payments_data_cleaner_->CleanupPaymentsData();
-  }
   NotifyPersonalDataObserver();
 }
 
 void PersonalDataManager::OnAutofillChangedBySync(
     syncer::ModelType model_type) {
   Refresh();
-
-  // Note, it's possible that the cleanups are run on the stale data since
-  // `Refresh` is an async operation. But, since the cleanups happen over the
-  // local data, it should be fine.
-  address_data_cleaner_->MaybeCleanupAddressDataAfterSyncChange(model_type);
 }
 
 void PersonalDataManager::OnStateChanged(syncer::SyncService* sync_service) {
@@ -1345,7 +1344,7 @@ void PersonalDataManager::GetNonEmptyTypes(
 }
 
 bool PersonalDataManager::IsDataLoaded() const {
-  return is_data_loaded_;
+  return is_address_data_loaded_ && is_payments_data_loaded_;
 }
 
 std::vector<AutofillProfile*> PersonalDataManager::GetProfiles(
@@ -1693,10 +1692,6 @@ bool PersonalDataManager::ShouldSuggestServerPaymentMethods() const {
   return sync_service_->GetActiveDataTypes().Has(syncer::AUTOFILL_WALLET_DATA);
 }
 
-std::string PersonalDataManager::CountryCodeForCurrentTimezone() const {
-  return base::CountryCodeForCurrentTimezone();
-}
-
 void PersonalDataManager::SetPrefService(PrefService* pref_service) {
   profile_enabled_pref_ = std::make_unique<BooleanPrefMember>();
   credit_card_enabled_pref_ = std::make_unique<BooleanPrefMember>();
@@ -1751,12 +1746,14 @@ const std::string& PersonalDataManager::GetDefaultCountryCodeForNewAddress()
 const std::string& PersonalDataManager::GetCountryCodeForExperimentGroup()
     const {
   // Set to |variations_country_code_| if it exists.
-  if (experiment_country_code_.empty())
+  if (experiment_country_code_.empty()) {
     experiment_country_code_ = variations_country_code_;
+  }
 
   // Failing that, guess based on system timezone.
-  if (experiment_country_code_.empty())
-    experiment_country_code_ = CountryCodeForCurrentTimezone();
+  if (experiment_country_code_.empty()) {
+    experiment_country_code_ = base::CountryCodeForCurrentTimezone();
+  }
 
   // Failing that, guess based on locale. This returns "US" if there is no good
   // guess.
@@ -2359,23 +2356,19 @@ std::string PersonalDataManager::SaveImportedCreditCard(
   return guid;
 }
 
-void PersonalDataManager::LogStoredDataMetrics() const {
-  if (has_logged_stored_data_metrics_) {
-    return;
-  }
-  // Only log this info once per Chrome user profile load.
-  has_logged_stored_data_metrics_ = true;
-
+void PersonalDataManager::LogStoredAddressDataMetrics() const {
   const std::vector<AutofillProfile*> profiles = GetProfiles();
   autofill_metrics::LogStoredProfileMetrics(profiles);
   autofill_metrics::LogStoredProfileTokenQualityMetrics(profiles);
   autofill_metrics::LogLocalProfileSupersetMetrics(std::move(profiles),
                                                    app_locale_);
+}
 
+void PersonalDataManager::LogStoredPaymentsDataMetrics() const {
   AutofillMetrics::LogStoredCreditCardMetrics(
       local_credit_cards_, server_credit_cards_,
       GetServerCardWithArtImageCount(), kDisusedDataModelTimeDelta);
-  autofill_metrics::LogStoredIbanMetrics(local_ibans_,
+  autofill_metrics::LogStoredIbanMetrics(local_ibans_, server_ibans_,
                                          kDisusedDataModelTimeDelta);
   autofill_metrics::LogStoredOfferMetrics(autofill_offer_data_);
   autofill_metrics::LogStoredVirtualCardUsageCount(
@@ -2391,7 +2384,7 @@ std::string PersonalDataManager::MostCommonCountryCodeFromProfiles() const {
   const std::vector<AutofillProfile*>& profiles = GetProfiles();
   const std::vector<std::string>& country_codes =
       CountryDataMap::GetInstance()->country_codes();
-  for (auto* profile : profiles) {
+  for (const AutofillProfile* profile : profiles) {
     std::string country_code = base::ToUpperASCII(
         base::UTF16ToASCII(profile->GetRawInfo(ADDRESS_HOME_COUNTRY)));
     if (base::Contains(country_codes, country_code)) {
@@ -2401,8 +2394,9 @@ std::string PersonalDataManager::MostCommonCountryCodeFromProfiles() const {
 
   // Take the most common country code.
   if (!votes.empty()) {
-    auto iter = std::max_element(votes.begin(), votes.end(), CompareVotes);
-    return iter->first;
+    return base::ranges::max_element(
+               votes, [](auto& a, auto& b) { return a.second < b.second; })
+        ->first;
   }
 
   return std::string();
@@ -2556,10 +2550,8 @@ void PersonalDataManager::OnUserAcceptedUpstreamOffer() {
 }
 
 void PersonalDataManager::NotifyPersonalDataObserver() {
-  // The PDM's state is inconsistent with the database in two cases:
-  // - When profile modifications are still pending: ProfileChangesAreOngoing().
-  // - When reads are still pending.
-  bool pending_changes = ProfileChangesAreOngoing() || HasPendingQueries();
+  bool pending_changes =
+      IsAwaitingPendingAddressChanges() || HasPendingPaymentQueries();
   for (PersonalDataManagerObserver& observer : observers_) {
     observer.OnPersonalDataChanged();
   }
@@ -2667,13 +2659,13 @@ void PersonalDataManager::HandleNextProfileChange(const std::string& guid) {
   is_ongoing = true;
 }
 
-bool PersonalDataManager::ProfileChangesAreOngoing(const std::string& guid) {
-  return ongoing_profile_changes_.find(guid) !=
-             ongoing_profile_changes_.end() &&
-         !ongoing_profile_changes_[guid].empty();
+bool PersonalDataManager::ProfileChangesAreOngoing(
+    const std::string& guid) const {
+  auto it = ongoing_profile_changes_.find(guid);
+  return it != ongoing_profile_changes_.end() && !it->second.empty();
 }
 
-bool PersonalDataManager::ProfileChangesAreOngoing() {
+bool PersonalDataManager::ProfileChangesAreOngoing() const {
   for (const auto& [guid, change] : ongoing_profile_changes_) {
     if (ProfileChangesAreOngoing(guid)) {
       return true;
@@ -2688,10 +2680,13 @@ void PersonalDataManager::OnProfileChangeDone(const std::string& guid) {
   HandleNextProfileChange(guid);
 }
 
-bool PersonalDataManager::HasPendingQueries() {
+bool PersonalDataManager::HasPendingAddressQueries() const {
   return pending_synced_local_profiles_query_ != 0 ||
-         pending_account_profiles_query_ != 0 ||
-         pending_creditcards_query_ != 0 ||
+         pending_account_profiles_query_ != 0;
+}
+
+bool PersonalDataManager::HasPendingPaymentQueries() const {
+  return pending_creditcards_query_ != 0 ||
          pending_server_creditcards_query_ != 0 ||
          pending_server_creditcard_cloud_token_data_query_ != 0 ||
          pending_customer_data_query_ != 0 || pending_offer_data_query_ != 0 ||

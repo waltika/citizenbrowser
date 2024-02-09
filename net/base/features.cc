@@ -23,6 +23,16 @@ BASE_FEATURE(kCapReferrerToOriginOnCrossOrigin,
              "CapReferrerToOriginOnCrossOrigin",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
+BASE_FEATURE(kAsyncDns,
+             "AsyncDns",
+#if BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_ANDROID) || \
+    BUILDFLAG(IS_WIN) || BUILDFLAG(IS_LINUX)
+             base::FEATURE_ENABLED_BY_DEFAULT
+#else
+             base::FEATURE_DISABLED_BY_DEFAULT
+#endif
+);
+
 BASE_FEATURE(kDnsTransactionDynamicTimeouts,
              "DnsTransactionDynamicTimeouts",
              base::FEATURE_DISABLED_BY_DEFAULT);
@@ -407,10 +417,6 @@ const base::FeatureParam<bool> kIpPrivacyBsaEnablePrivacyPass{
 const base::FeatureParam<std::string> kIpPrivacyProxyBPsk{
     &kEnableIpProtectionProxy, /*name=*/"IpPrivacyProxyBPsk",
     /*default_value=*/""};
-
-const base::FeatureParam<bool> kIpPrivacyUseProxyChains{
-    &kEnableIpProtectionProxy, /*name=*/"IpPrivacyUseProxyChains",
-    /*default_value=*/false};
 
 const base::FeatureParam<bool> kIpPrivacyIncludeOAuthTokenInGetProxyConfig{
     &kEnableIpProtectionProxy,

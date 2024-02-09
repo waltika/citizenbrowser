@@ -30,7 +30,7 @@ BASE_FEATURE(kForceInitialSyncWhenDecryptionFails,
 // and filled.
 BASE_FEATURE(kForgotPasswordFormSupport,
              "ForgotPasswordFormSupport",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 #if BUILDFLAG(IS_IOS)
 // Enables password bottom sheet to be displayed (on iOS) when a user is
@@ -84,6 +84,11 @@ BASE_FEATURE(kPasswordReuseDetectionEnabled,
 BASE_FEATURE(kRecoverFromNeverSaveAndroid,
              "RecoverFromNeverSaveAndroid_LAUNCHED",
              base::FEATURE_ENABLED_BY_DEFAULT);
+
+// Removes password suggestion filtering by username.
+BASE_FEATURE(kNoPasswordSuggestionFiltering,
+             "NoPasswordSuggestionFiltering",
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 #if BUILDFLAG(IS_ANDROID)
 // Use GMS AccountSettings to manage passkeys when UPM is not available.

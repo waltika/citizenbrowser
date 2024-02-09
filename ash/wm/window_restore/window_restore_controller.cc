@@ -336,6 +336,10 @@ void WindowRestoreController::OnWidgetInitialized(views::Widget* widget) {
     return;
   }
 
+  if (!window->GetProperty(app_restore::kLaunchedFromAppRestoreKey)) {
+    return;
+  }
+
   // Windows with restore window key less than -1 are launched from desk
   // templates or saved desks; we want to stay in overview for these. Windows
   // with restore window key more than -1 are launched from full restore and we
@@ -499,21 +503,10 @@ bool WindowRestoreController::IsRestoringWindow(aura::Window* window) const {
 }
 
 void WindowRestoreController::MaybeStartPineOverviewSession() {
-  if (!features::IsForestFeatureEnabled()) {
-    return;
-  }
+  CHECK(features::IsForestFeatureEnabled());
 
   OverviewController* overview_controller = OverviewController::Get();
   if (overview_controller->InOverviewSession()) {
-    return;
-  }
-
-  // TODO(sammiequon|zxdan): Need to check "Ask every time" preference, the
-  // pref needs to be moved to ash_pref_names.h.
-
-  aura::Window::Windows windows =
-      Shell::Get()->mru_window_tracker()->BuildWindowForCycleList(kActiveDesk);
-  if (!windows.empty()) {
     return;
   }
 
@@ -561,7 +554,7 @@ void WindowRestoreController::SaveWindowImpl(
   }
   std::unique_ptr<app_restore::WindowInfo> window_info = BuildWindowInfo(
       window, activation_index, /*for_saved_desks=*/false, mru_windows);
-  full_restore::SaveWindowInfo(*window_info);
+  ::full_restore::SaveWindowInfo(*window_info);
 
   if (g_save_window_callback_for_testing)
     g_save_window_callback_for_testing.Run(*window_info);

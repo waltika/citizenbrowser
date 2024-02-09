@@ -21,9 +21,10 @@ struct TaskList;
 class ASH_EXPORT TasksClient {
  public:
   using GetTaskListsCallback =
-      base::OnceCallback<void(const ui::ListModel<TaskList>* task_lists)>;
+      base::OnceCallback<void(bool sucess,
+                              const ui::ListModel<TaskList>* task_lists)>;
   using GetTasksCallback =
-      base::OnceCallback<void(const ui::ListModel<Task>* tasks)>;
+      base::OnceCallback<void(bool success, const ui::ListModel<Task>* tasks)>;
 
   // Done callback for `AddTask` and `UpdateTask`. If the request completes
   // successfully, `task` points to the newly created or updated task, or
@@ -57,6 +58,7 @@ class ASH_EXPORT TasksClient {
   virtual void UpdateTask(const std::string& task_list_id,
                           const std::string& task_id,
                           const std::string& title,
+                          bool completed,
                           OnTaskSavedCallback callback) = 0;
 
   // Method called when the glanceables bubble UI closes. The client can use

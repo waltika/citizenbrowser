@@ -120,9 +120,11 @@ source_set("manual_fill_ui") {
   ]
   deps = [
     "//base",
+    "//components/autofill/core/browser",
     "//components/google/core/common",
     "//components/password_manager/core/browser",
     "//components/password_manager/core/common",
+    "//components/strings",
     "//ios/chrome/app/strings",
     "//ios/chrome/browser/favicon/model",
     "//ios/chrome/browser/net/model:crurl",
@@ -134,7 +136,6 @@ source_set("manual_fill_ui") {
     "//ios/chrome/browser/shared/ui/table_view:table_view",
     "//ios/chrome/browser/shared/ui/table_view:utils",
     "//ios/chrome/browser/ui/settings/password:title_view",
-    "//ios/chrome/common:button_config",
     "//ios/chrome/common:string_util",
     "//ios/chrome/common/ui/favicon",
     "//ios/chrome/common/ui/util",
@@ -223,6 +224,7 @@ source_set("requesters") {
     "//components/autofill/core/browser",
     "//components/autofill/core/common",
     "//components/autofill/ios/browser",
+    "//ios/chrome/browser/autofill/model",
     "//ios/chrome/browser/shared/model/browser_state",
     "//ios/chrome/browser/shared/model/web_state_list:web_state_list",
     "//ios/chrome/browser/ui/autofill:bridges",

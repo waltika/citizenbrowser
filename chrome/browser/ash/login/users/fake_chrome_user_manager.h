@@ -105,7 +105,6 @@ class FakeChromeUserManager : public ChromeUserManager {
                             const std::string& display_email) override;
   void SaveUserType(const user_manager::User* user) override;
   std::optional<std::string> GetOwnerEmail() override;
-  bool IsCurrentUserOwner() const override;
   bool IsCurrentUserCryptohomeDataEphemeral() const override;
   bool IsCurrentUserNonCryptohomeDataEphemeral() const override;
   bool CanCurrentUserLock() const override;
@@ -145,7 +144,7 @@ class FakeChromeUserManager : public ChromeUserManager {
   void KioskAppLoggedIn(user_manager::User* user) override;
   void PublicAccountUserLoggedIn(user_manager::User* user) override;
   // Just make it public for tests.
-  void SetOwnerId(const AccountId& account_id) override;
+  using UserManagerBase::SetOwnerId;
 
   // UserManagerInterface override.
   MultiProfileUserController* GetMultiProfileUserController() override;
@@ -188,10 +187,6 @@ class FakeChromeUserManager : public ChromeUserManager {
     last_session_active_account_id_ = last_session_active_account_id;
   }
 
-  void SetMockUserImageManagerForTesting() {
-    mock_user_image_manager_enabled_ = true;
-  }
-
  protected:
   bool IsEphemeralAccountIdByPolicy(const AccountId& account_id) const override;
 
@@ -205,7 +200,6 @@ class FakeChromeUserManager : public ChromeUserManager {
   EphemeralModeConfig fake_ephemeral_mode_config_;
   bool current_user_ephemeral_ = false;
   bool current_user_child_ = false;
-  bool mock_user_image_manager_enabled_ = false;
 
   raw_ptr<MultiProfileUserController> multi_profile_user_controller_ = nullptr;
 

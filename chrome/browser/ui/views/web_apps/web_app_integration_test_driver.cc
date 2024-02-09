@@ -51,7 +51,6 @@
 #include "chrome/browser/ui/browser_finder.h"
 #include "chrome/browser/ui/browser_list.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"
-#include "chrome/browser/ui/exclusive_access/exclusive_access_test.h"
 #include "chrome/browser/ui/intent_picker_tab_helper.h"
 #include "chrome/browser/ui/startup/startup_browser_creator.h"
 #include "chrome/browser/ui/startup/web_app_startup_utils.h"
@@ -1224,13 +1223,10 @@ void WebAppIntegrationTestDriver::EnterFullScreenApp() {
   if (!BeforeStateChangeAction(__FUNCTION__)) {
     return;
   }
-  BrowserFullscreenModeWaiter fullscreen_observer(
-      app_browser(), /*wait_until_exit_fullscreen_mode=*/false);
   FullscreenController* fullscreen_controller =
       app_browser()->exclusive_access_manager()->fullscreen_controller();
   ASSERT_FALSE(fullscreen_controller->IsFullscreenForBrowser());
-  fullscreen_controller->ToggleBrowserFullscreenMode();
-  fullscreen_observer.Wait();
+  ui_test_utils::ToggleFullscreenModeAndWait(app_browser());
   ASSERT_TRUE(fullscreen_controller->IsFullscreenForBrowser());
   AfterStateChangeAction();
 }
@@ -1239,13 +1235,10 @@ void WebAppIntegrationTestDriver::ExitFullScreenApp() {
   if (!BeforeStateChangeAction(__FUNCTION__)) {
     return;
   }
-  BrowserFullscreenModeWaiter fullscreen_observer(
-      app_browser(), /*wait_until_exit_fullscreen_mode=*/true);
   FullscreenController* fullscreen_controller =
       app_browser()->exclusive_access_manager()->fullscreen_controller();
   ASSERT_TRUE(fullscreen_controller->IsFullscreenForBrowser());
-  fullscreen_controller->ToggleBrowserFullscreenMode();
-  fullscreen_observer.Wait();
+  ui_test_utils::ToggleFullscreenModeAndWait(app_browser());
   ASSERT_FALSE(fullscreen_controller->IsFullscreenForBrowser());
   AfterStateChangeAction();
 }
@@ -4649,7 +4642,6 @@ WebAppIntegrationTest::WebAppIntegrationTest() : helper_(this) {
   // If Lacros is enabled, WebAppIntegrationTest runs in Lacros with crosapi
   // enabled.
   base::Extend(disabled_features, ash::standalone_browser::GetFeatureRefs());
-  disabled_features.push_back(chromeos::features::kCrosShortstand);
 #endif
 #if BUILDFLAG(IS_CHROMEOS)
   // TODO(crbug.com/1357905): Update test driver to work with new UI.
@@ -4665,14 +4657,6 @@ WebAppIntegrationTest::~WebAppIntegrationTest() = default;
 
 void WebAppIntegrationTest::SetUp() {
   helper_.SetUp();
-#if BUILDFLAG(IS_CHROMEOS_LACROS)
-  StartUniqueAshChrome(
-      /*enabled_features=*/{},
-      /*disabled_features=*/{"CrosShortstand"},
-      /*additional_cmdline_switches=*/{},
-      "b/319753599 Migrate shortcuts out of web app system and remove shortcut "
-      "related tests.");
-#endif
   InProcessBrowserTest::SetUp();
 }
 

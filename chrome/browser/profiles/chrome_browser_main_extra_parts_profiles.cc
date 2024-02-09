@@ -232,6 +232,7 @@
 #include "components/site_engagement/content/site_engagement_service.h"
 #include "components/spellcheck/spellcheck_buildflags.h"
 #include "components/supervised_user/core/common/buildflags.h"
+#include "components/sync/base/features.h"
 #include "extensions/buildflags/buildflags.h"
 #include "media/base/media_switches.h"
 #include "ppapi/buildflags/buildflags.h"
@@ -424,8 +425,8 @@
 #include "chrome/browser/browser_switcher/browser_switcher_service_factory.h"
 #include "chrome/browser/enterprise/connectors/analysis/local_binary_upload_service_factory.h"
 #include "chrome/browser/enterprise/signals/signals_aggregator_factory.h"
+#include "chrome/browser/enterprise/signin/profile_token_web_signin_interceptor_factory.h"
 #include "chrome/browser/policy/cloud/profile_token_policy_web_signin_service_factory.h"
-#include "chrome/browser/signin/profile_token_web_signin_interceptor_factory.h"
 #endif
 
 #if defined(TOOLKIT_VIEWS)
@@ -1263,8 +1264,7 @@ void ChromeBrowserMainExtraPartsProfiles::
 #endif
 #if BUILDFLAG(IS_ANDROID)
   WebApkInstallServiceFactory::GetInstance();
-  if (base::FeatureList::IsEnabled(
-          chrome::android::kWebApkBackupAndRestoreBackend)) {
+  if (base::FeatureList::IsEnabled(syncer::kWebApkBackupAndRestoreBackend)) {
     webapk::WebApkSyncServiceFactory::GetInstance();
   }
 #endif

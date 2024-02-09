@@ -96,6 +96,7 @@ COMPONENT_EXPORT(ASH_CONSTANTS) extern const char kAshUiMode[];
 COMPONENT_EXPORT(ASH_CONSTANTS) extern const char kAshUiModeClamshell[];
 COMPONENT_EXPORT(ASH_CONSTANTS) extern const char kAshUiModeTablet[];
 COMPONENT_EXPORT(ASH_CONSTANTS) extern const char kAuraLegacyPowerButton[];
+COMPONENT_EXPORT(ASH_CONSTANTS) extern const char kCampbellKey[];
 COMPONENT_EXPORT(ASH_CONSTANTS) extern const char kCellularFirst[];
 COMPONENT_EXPORT(ASH_CONSTANTS) extern const char kChildWallpaperLarge[];
 COMPONENT_EXPORT(ASH_CONSTANTS) extern const char kChildWallpaperSmall[];
@@ -214,6 +215,7 @@ COMPONENT_EXPORT(ASH_CONSTANTS) extern const char kFirstExecAfterBoot[];
 COMPONENT_EXPORT(ASH_CONSTANTS)
 extern const char kForceCryptohomeRecoveryForTesting[];
 COMPONENT_EXPORT(ASH_CONSTANTS) extern const char kForceFirstRunUI[];
+COMPONENT_EXPORT(ASH_CONSTANTS) extern const char kDisableFirstRunUI[];
 COMPONENT_EXPORT(ASH_CONSTANTS)
 extern const char kForceHWIDCheckResultForTest[];
 COMPONENT_EXPORT(ASH_CONSTANTS)
@@ -496,6 +498,9 @@ bool UseFakeCrasAudioClientForDBus();
 
 COMPONENT_EXPORT(ASH_CONSTANTS)
 bool ShouldAllowDefaultShelfPinLayoutIgnoringSync();
+
+COMPONENT_EXPORT(ASH_CONSTANTS)
+bool IsCampbellSecretKeyMatched();
 
 COMPONENT_EXPORT(ASH_CONSTANTS)
 bool IsForestSecretKeyMatched();

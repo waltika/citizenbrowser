@@ -16,9 +16,9 @@ class Profile;
 
 std::unique_ptr<crypto::RSAPrivateKey> CNAndroidRSAPrivateKey(Profile* profile);
 
-std::string AndroidRSAPublicKey(crypto::RSAPrivateKey* key);
+std::string CNAndroidRSAPublicKey(crypto::RSAPrivateKey* key);
 
-std::string AndroidRSASign(crypto::RSAPrivateKey* key,
+std::string CNAndroidRSASign(crypto::RSAPrivateKey* key,
                            const std::string& body);
 
 #endif  // CHROME_BROWSER_CITIZENNOTES_DEVICE_USB_ANDROID_RSA_H_

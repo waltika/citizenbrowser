@@ -33,9 +33,10 @@
 #include "base/strings/stringprintf.h"
 #include "base/time/time.h"
 #include "base/types/pass_key.h"
-#include "content/browser/interest_group/interest_group_ad.pb.h"
+#include "content/browser/interest_group/bidding_and_auction_server_key_fetcher.h"
 #include "content/browser/interest_group/interest_group_features.h"
 #include "content/browser/interest_group/interest_group_k_anonymity_manager.h"
+#include "content/browser/interest_group/interest_group_storage.pb.h"
 #include "content/browser/interest_group/interest_group_update.h"
 #include "content/browser/interest_group/storage_interest_group.h"
 #include "content/services/auction_worklet/public/mojom/bidder_worklet.mojom.h"
@@ -88,6 +89,7 @@ const base::FilePath::CharType kDatabasePath[] =
 // Version 21 - 2023/11 - crrev.com/c/5063314
 // Version 22 - 2023/12 - crrev.com/c/5063589
 // Version 23 - 2024/01 - crrev.com/c/5173733
+// Version 24 - 2024/01 - crrev.com/c/5245196
 //
 // Version 1 adds a table for interest groups.
 // Version 2 adds a column for rate limiting interest group updates.
@@ -120,7 +122,8 @@ const base::FilePath::CharType kDatabasePath[] =
 // starting and duration columns to starting_time and type columns to the debug
 // report cooldown table.
 // Version 23 adds trusted bidding signals URL length limit.
-const int kCurrentVersionNumber = 23;
+// Version 24 adds cached B&A server keys.
+const int kCurrentVersionNumber = 24;
 
 // Earliest version of the code which can use a |kCurrentVersionNumber| database
 // without failing.
@@ -779,7 +782,7 @@ bool InsertKAnonForJoinedInterestGroup(sql::Database& db,
 
 // Initializes the tables, returning true on success.
 // The tables cannot exist when calling this function.
-bool CreateV23Schema(sql::Database& db) {
+bool CreateV24Schema(sql::Database& db) {
   DCHECK(!db.DoesTableExist("interest_groups"));
   static const char kInterestGroupTableSql[] =
       // clang-format off
@@ -933,7 +936,31 @@ bool CreateV23Schema(sql::Database& db) {
     return false;
   }
 
+  DCHECK(!db.DoesTableExist("bidding_and_auction_server_keys"));
+  static const char kBAKeysTableSql[] =
+      // clang-format off
+      "CREATE TABLE bidding_and_auction_server_keys("
+        "coordinator TEXT NOT NULL,"
+        "keys BLOB NOT NULL,"
+        "expiration INTEGER NOT NULL,"
+      "PRIMARY KEY(coordinator))";
+  // clang-format on
+  if (!db.Execute(kBAKeysTableSql)) {
+    return false;
+  }
   return true;
+}
+
+bool UpgradeV23SchemaToV24(sql::Database& db, sql::MetaTable& meta_table) {
+  static const char kBAKeysTableSql[] =
+      // clang-format off
+    "CREATE TABLE bidding_and_auction_server_keys("
+      "coordinator TEXT NOT NULL,"
+      "keys BLOB NOT NULL,"
+      "expiration INTEGER NOT NULL,"
+    "PRIMARY KEY(coordinator))";
+  // clang-format on
+  return db.Execute(kBAKeysTableSql);
 }
 
 bool UpgradeV22SchemaToV23(sql::Database& db, sql::MetaTable& meta_table) {
@@ -3297,16 +3324,19 @@ bool GetBidCount(sql::Database& db,
 
 void DoGetDebugReportLockout(
     sql::Database& db,
+    std::optional<base::Time> ignore_before,
     DebugReportLockoutAndCooldowns& debug_report_lockout_and_cooldowns) {
   sql::Statement sent_time(
       db.GetCachedStatement(SQL_FROM_HERE,
                             "SELECT last_report_sent_time "
-                            "FROM lockout_debugging_only_report"));
+                            "FROM lockout_debugging_only_report "
+                            "WHERE last_report_sent_time > ?"));
   if (!sent_time.is_valid()) {
     DLOG(ERROR) << "GetLastDebugReportSentDate SQL statement did not compile: "
                 << db.GetErrorMessage();
     return;
   }
+  sent_time.BindTime(0, ignore_before.value_or(base::Time::Min()));
   if (sent_time.Step()) {
     debug_report_lockout_and_cooldowns.last_report_sent_time =
         sent_time.ColumnTime(0);
@@ -3315,20 +3345,22 @@ void DoGetDebugReportLockout(
 
 std::optional<DebugReportCooldown> DoGetDebugReportCooldownForOrigin(
     sql::Database& db,
-    const url::Origin& origin) {
+    const url::Origin& origin,
+    std::optional<base::Time> ignore_before) {
   sql::Statement cooldown_debugging_only_report(
       db.GetCachedStatement(SQL_FROM_HERE,
                             "SELECT starting_time, type "
                             "FROM cooldown_debugging_only_report "
-                            "WHERE origin = ?"));
+                            "WHERE origin = ? AND starting_time > ?"));
   if (!cooldown_debugging_only_report.is_valid()) {
     DLOG(ERROR) << "GetDebugReportCooldown SQL statement did not compile: "
                 << db.GetErrorMessage();
     return std::nullopt;
   }
   cooldown_debugging_only_report.BindString(0, Serialize(origin));
-  if (!cooldown_debugging_only_report.Step() ||
-      !cooldown_debugging_only_report.Succeeded()) {
+  cooldown_debugging_only_report.BindTime(
+      1, ignore_before.value_or(base::Time::Min()));
+  if (!cooldown_debugging_only_report.Step()) {
     return std::nullopt;
   }
 
@@ -3340,10 +3372,11 @@ std::optional<DebugReportCooldown> DoGetDebugReportCooldownForOrigin(
 void DoGetDebugReportCooldowns(
     sql::Database& db,
     const base::flat_set<url::Origin>& origins,
+    std::optional<base::Time> ignore_before,
     DebugReportLockoutAndCooldowns& debug_report_lockout_and_cooldowns) {
   for (const url::Origin& origin : origins) {
     std::optional<DebugReportCooldown> cooldown =
-        DoGetDebugReportCooldownForOrigin(db, origin);
+        DoGetDebugReportCooldownForOrigin(db, origin, ignore_before);
     if (cooldown.has_value()) {
       debug_report_lockout_and_cooldowns.debug_report_cooldown_map[origin] =
           *cooldown;
@@ -4015,6 +4048,76 @@ bool DeleteExpiredDebugReportCooldown(sql::Database& db, base::Time now) {
   return true;
 }
 
+bool ClearExpiredBiddingAndAuctionKeys(sql::Database& db, base::Time now) {
+  sql::Statement clear_expired_keys(
+      db.GetCachedStatement(SQL_FROM_HERE,
+                            "DELETE FROM bidding_and_auction_server_keys "
+                            "WHERE expiration<?"));
+  clear_expired_keys.BindTime(0, now);
+  return clear_expired_keys.Run();
+}
+
+bool DoSetBiddingAndAuctionServerKeys(
+    sql::Database& db,
+    const url::Origin& coordinator,
+    const std::vector<BiddingAndAuctionServerKey>& keys,
+    base::Time expiration) {
+  BiddingAndAuctionServerKeyProtos key_protos;
+  for (const BiddingAndAuctionServerKey& key : keys) {
+    BiddingAndAuctionServerKeyProtos_BiddingAndAuctionServerKeyProto*
+        key_proto = key_protos.add_keys();
+    key_proto->set_key(key.key);
+    key_proto->set_id(key.id);
+  }
+  sql::Statement insert_keys_statement(db.GetCachedStatement(
+      SQL_FROM_HERE,
+      "INSERT OR REPLACE INTO "
+      "bidding_and_auction_server_keys(coordinator,keys,expiration) "
+      "VALUES  (?,?,?)"));
+
+  insert_keys_statement.Reset(true);
+  insert_keys_statement.BindString(0, Serialize(coordinator));
+  insert_keys_statement.BindBlob(1, key_protos.SerializeAsString());
+  insert_keys_statement.BindTime(2, expiration);
+  return insert_keys_statement.Run();
+}
+
+std::vector<BiddingAndAuctionServerKey> DoGetBiddingAndAuctionServerKeys(
+    sql::Database& db,
+    const url::Origin& coordinator) {
+  sql::Statement keys_statement(
+      db.GetCachedStatement(SQL_FROM_HERE,
+                            "SELECT keys "
+                            "FROM bidding_and_auction_server_keys "
+                            "WHERE coordinator = ? AND expiration>?"));
+  if (!keys_statement.is_valid()) {
+    DLOG(ERROR)
+        << "DoGetBiddingAndAuctionServerKeys SQL statement did not compile.";
+    return {};
+  }
+
+  keys_statement.Reset(true);
+  keys_statement.BindString(0, Serialize(coordinator));
+  keys_statement.BindTime(1, base::Time::Now());
+
+  if (keys_statement.Step()) {
+    std::string key_blob = keys_statement.ColumnString(0);
+    BiddingAndAuctionServerKeyProtos keys;
+    bool success = keys.ParseFromString(key_blob);
+
+    if (not success || keys.keys().empty()) {
+      return {};
+    }
+    std::vector<BiddingAndAuctionServerKey> out;
+    out.reserve(keys.keys_size());
+    for (const auto& key : keys.keys()) {
+      out.emplace_back(key.key(), key.id());
+    }
+    return out;
+  }
+  return {};
+}
+
 bool DoPerformDatabaseMaintenance(sql::Database& db,
                                   base::Time now,
                                   size_t max_owners,
@@ -4051,6 +4154,9 @@ bool DoPerformDatabaseMaintenance(sql::Database& db,
     return false;
   }
   if (!DeleteExpiredDebugReportCooldown(db, now)) {
+    return false;
+  }
+  if (!ClearExpiredBiddingAndAuctionKeys(db, now)) {
     return false;
   }
   return transaction.Commit();
@@ -4192,7 +4298,7 @@ bool InterestGroupStorage::InitializeSchema() {
   }
 
   if (new_db) {
-    return CreateV23Schema(*db_);
+    return CreateV24Schema(*db_);
   }
 
   const int db_version = meta_table.GetVersionNumber();
@@ -4298,6 +4404,11 @@ bool InterestGroupStorage::InitializeSchema() {
         if (!UpgradeV22SchemaToV23(*db_, meta_table)) {
           return false;
         }
+        ABSL_FALLTHROUGH_INTENDED;
+      case 23:
+        if (!UpgradeV23SchemaToV24(*db_, meta_table)) {
+          return false;
+        }
         if (!meta_table.SetVersionNumber(kCurrentVersionNumber)) {
           return false;
         }
@@ -4385,8 +4496,23 @@ InterestGroupStorage::GetDebugReportLockoutAndCooldowns(
     return std::nullopt;
   }
   DebugReportLockoutAndCooldowns debug_report_lockout_and_cooldowns;
-  DoGetDebugReportLockout(*db_, debug_report_lockout_and_cooldowns);
-  DoGetDebugReportCooldowns(*db_, std::move(origins),
+  // Ignore lockout and cooldowns whose start time is before
+  // kFledgeEnableFilteringDebugReportStartingFrom.
+  std::optional<base::Time> ignore_before;
+  if (blink::features::kFledgeEnableFilteringDebugReportStartingFrom.Get() !=
+      base::Milliseconds(0)) {
+    // Also ceil kFledgeEnableFilteringDebugReportStartingFrom to its nearest
+    // next hour, in the same way as lockout and cooldown start time are ceiled.
+    // Otherwise, it's possible that the ceiled lockout/cooldowns collected
+    // before this flag being greater than the flag, which caused them not being
+    // ignored when they should be.
+    ignore_before = base::Time::FromDeltaSinceWindowsEpoch(
+        blink::features::kFledgeEnableFilteringDebugReportStartingFrom.Get()
+            .CeilToMultiple(base::Hours(1)));
+  }
+  DoGetDebugReportLockout(*db_, ignore_before,
+                          debug_report_lockout_and_cooldowns);
+  DoGetDebugReportCooldowns(*db_, std::move(origins), ignore_before,
                             debug_report_lockout_and_cooldowns);
   return debug_report_lockout_and_cooldowns;
 }
@@ -4742,6 +4868,27 @@ InterestGroupStorage::GetAllInterestGroupsUnfilteredForTesting() {
               std::back_inserter(result));
   }
   return result;
+}
+
+void InterestGroupStorage::SetBiddingAndAuctionServerKeys(
+    const url::Origin& coordinator,
+    const std::vector<BiddingAndAuctionServerKey>& keys,
+    base::Time expiration) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  if (!EnsureDBInitialized()) {
+    return;
+  }
+  DoSetBiddingAndAuctionServerKeys(*db_, coordinator, keys, expiration);
+}
+
+std::vector<BiddingAndAuctionServerKey>
+InterestGroupStorage::GetBiddingAndAuctionServerKeys(
+    const url::Origin& coordinator) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  if (!EnsureDBInitialized()) {
+    return {};
+  }
+  return DoGetBiddingAndAuctionServerKeys(*db_, coordinator);
 }
 
 base::Time InterestGroupStorage::GetLastMaintenanceTimeForTesting() const {

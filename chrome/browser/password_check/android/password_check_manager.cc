@@ -27,7 +27,7 @@
 using password_manager::PasswordForm;
 using PasswordCheckUIStatus = password_manager::PasswordCheckUIStatus;
 using State = password_manager::BulkLeakCheckService::State;
-using SyncState = password_manager::SyncState;
+using SyncState = password_manager::sync_util::SyncState;
 using CredentialUIEntry = password_manager::CredentialUIEntry;
 using CredentialFacet = password_manager::CredentialFacet;
 using CompromisedCredentialForUI =
@@ -258,7 +258,7 @@ CompromisedCredentialForUI PasswordCheckManager::MakeUICredential(
     // In case no affiliated_web_realm could be obtained we should not have an
     // associated url for android credential.
     credential_facet.url = credential.GetAffiliatedWebRealm().empty()
-                               ? GURL::EmptyGURL()
+                               ? GURL()
                                : GURL(credential.GetAffiliatedWebRealm());
 
   } else {
@@ -316,16 +316,12 @@ bool PasswordCheckManager::CanUseAccountCheck() const {
   SyncState sync_state = password_manager::sync_util::GetPasswordSyncState(
       SyncServiceFactory::GetForProfile(profile_));
   switch (sync_state) {
-    case SyncState::kNotSyncing:
+    case SyncState::kNotActive:
       ABSL_FALLTHROUGH_INTENDED;
-    case SyncState::kSyncingWithCustomPassphrase:
-      ABSL_FALLTHROUGH_INTENDED;
-    case SyncState::kAccountPasswordsActiveWithCustomPassphrase:
+    case SyncState::kActiveWithCustomPassphrase:
       return false;
 
-    case SyncState::kSyncingNormalEncryption:
-      ABSL_FALLTHROUGH_INTENDED;
-    case SyncState::kAccountPasswordsActiveNormalEncryption:
+    case SyncState::kActiveWithNormalEncryption:
       return true;
   }
 }

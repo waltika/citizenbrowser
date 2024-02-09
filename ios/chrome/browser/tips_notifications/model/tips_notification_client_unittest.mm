@@ -6,6 +6,7 @@
 
 #import <UserNotifications/UserNotifications.h>
 
+#import "base/test/task_environment.h"
 #import "base/threading/thread_restrictions.h"
 #import "ios/chrome/browser/default_browser/model/utils.h"
 #import "ios/chrome/browser/default_browser/model/utils_test_support.h"
@@ -22,15 +23,12 @@
 #import "ios/chrome/browser/tips_notifications/model/utils.h"
 #import "ios/chrome/test/testing_application_context.h"
 #import "ios/testing/scoped_block_swizzler.h"
-#import "ios/web/public/test/web_task_environment.h"
 #import "testing/gtest_mac.h"
 #import "testing/platform_test.h"
 #import "third_party/ocmock/OCMock/OCMock.h"
 #import "third_party/ocmock/gtest_support.h"
 
 using startup_metric_utils::FirstRunSentinelCreationResult;
-using tips_notifications::IsTipsNotification;
-using tips_notifications::NotificationType;
 
 class TipsNotificationClientTest : public PlatformTest {
  protected:
@@ -81,10 +79,10 @@ class TipsNotificationClientTest : public PlatformTest {
 
   // Returns an OCMArg that verifies a UNNotificationRequest was passed for the
   // given notification `type`.
-  id NotificationRequestArg(NotificationType type) {
+  id NotificationRequestArg(TipsNotificationType type) {
     return [OCMArg checkWithBlock:^BOOL(UNNotificationRequest* request) {
-      NotificationType requested_type =
-          tips_notifications::ParseType(request).value();
+      TipsNotificationType requested_type =
+          ParseTipsNotificationType(request).value();
       EXPECT_TRUE(IsTipsNotification(request));
       EXPECT_EQ(requested_type, type);
       return YES;
@@ -92,13 +90,33 @@ class TipsNotificationClientTest : public PlatformTest {
   }
 
   // Returns a mock UNNotificationResponse for the given notification `type`.
-  id MockRequestResponse(NotificationType type) {
-    UNNotificationRequest* request = tips_notifications::Request(type);
+  id MockRequestResponse(TipsNotificationType type) {
+    UNNotificationRequest* request = TipsNotificationRequest(type);
     id mock_response = OCMClassMock([UNNotificationResponse class]);
     id mock_notification = OCMClassMock([UNNotification class]);
     OCMStub([mock_response notification]).andReturn(mock_notification);
     OCMStub([mock_notification request]).andReturn(request);
     return mock_response;
+  }
+
+  // Stubs the notification center's completion callback for
+  // getPendingNotificationRequestsWithCompletionHandler.
+  void StubGetPendingRequests(NSArray<UNNotificationRequest*>* requests) {
+    auto completionCaller =
+        ^BOOL(void (^completion)(NSArray<UNNotificationRequest*>* requests)) {
+          completion(requests);
+          return YES;
+        };
+    OCMStub([mock_notification_center_
+        getPendingNotificationRequestsWithCompletionHandler:
+            [OCMArg checkWithBlock:completionCaller]]);
+  }
+
+  // Clears the pref used to store which notification types have already been
+  // sent.
+  void ClearSentNotifications() {
+    GetApplicationContext()->GetLocalState()->SetInteger(
+        kTipsNotificationsSentPref, 0);
   }
 
   // Ensures that Chrome is considered as default browser.
@@ -107,9 +125,8 @@ class TipsNotificationClientTest : public PlatformTest {
   // Ensures that Chrome is not considered as default browser.
   void SetFalseChromeLikelyDefaultBrowser() { ClearDefaultBrowserPromoData(); }
 
-  web::WebTaskEnvironment task_environment_;
-  std::unique_ptr<ios::ChromeBrowserStateManager> browser_state_manager_;
-  raw_ptr<BrowserList> browser_list_;
+  base::test::TaskEnvironment task_environment_;
+  std::unique_ptr<TestChromeBrowserStateManager> browser_state_manager_;
   id mock_scene_state_;
   std::unique_ptr<TestBrowser> browser_;
   std::unique_ptr<TipsNotificationClient> client_ =
@@ -133,10 +150,15 @@ TEST_F(TipsNotificationClientTest, RegisterActionableNotifications) {
 
 // Tests that the client clears any previously requested notifications.
 TEST_F(TipsNotificationClientTest, ClearNotification) {
+  UNNotificationRequest* request =
+      TipsNotificationRequest(TipsNotificationType::kDefaultBrowser);
+  StubGetPendingRequests(@[ request ]);
   OCMExpect([mock_notification_center_
       removePendingNotificationRequestsWithIdentifiers:[OCMArg any]]);
 
-  client_->OnSceneActiveForegroundBrowserReady();
+  base::RunLoop run_loop;
+  client_->OnSceneActiveForegroundBrowserReady(run_loop.QuitClosure());
+  run_loop.Run();
 
   EXPECT_OCMOCK_VERIFY(mock_notification_center_);
 }
@@ -145,11 +167,15 @@ TEST_F(TipsNotificationClientTest, ClearNotification) {
 TEST_F(TipsNotificationClientTest, DefaultBrowserRequest) {
   WriteFirstRunSentinel();
   SetFalseChromeLikelyDefaultBrowser();
+  StubGetPendingRequests(nil);
 
-  id request_arg = NotificationRequestArg(NotificationType::kDefaultBrowser);
+  id request_arg =
+      NotificationRequestArg(TipsNotificationType::kDefaultBrowser);
   OCMExpect([mock_notification_center_ addNotificationRequest:request_arg
                                         withCompletionHandler:[OCMArg any]]);
-  client_->OnSceneActiveForegroundBrowserReady();
+  base::RunLoop run_loop;
+  client_->OnSceneActiveForegroundBrowserReady(run_loop.QuitClosure());
+  run_loop.Run();
 
   EXPECT_OCMOCK_VERIFY(mock_notification_center_);
 }
@@ -162,7 +188,7 @@ TEST_F(TipsNotificationClientTest, DefaultBrowserHandle) {
       startDispatchingToTarget:mock_handler
                    forProtocol:@protocol(PromosManagerCommands)];
 
-  id mock_response = MockRequestResponse(NotificationType::kDefaultBrowser);
+  id mock_response = MockRequestResponse(TipsNotificationType::kDefaultBrowser);
   client_->HandleNotificationInteraction(mock_response);
 
   EXPECT_OCMOCK_VERIFY(mock_handler);
@@ -172,11 +198,14 @@ TEST_F(TipsNotificationClientTest, DefaultBrowserHandle) {
 TEST_F(TipsNotificationClientTest, WhatsNewRequest) {
   WriteFirstRunSentinel();
   SetTrueChromeLikelyDefaultBrowser();
+  StubGetPendingRequests(nil);
 
-  id request_arg = NotificationRequestArg(NotificationType::kWhatsNew);
+  id request_arg = NotificationRequestArg(TipsNotificationType::kWhatsNew);
   OCMExpect([mock_notification_center_ addNotificationRequest:request_arg
                                         withCompletionHandler:[OCMArg any]]);
-  client_->OnSceneActiveForegroundBrowserReady();
+  base::RunLoop run_loop;
+  client_->OnSceneActiveForegroundBrowserReady(run_loop.QuitClosure());
+  run_loop.Run();
 
   EXPECT_OCMOCK_VERIFY(mock_notification_center_);
 }
@@ -189,7 +218,7 @@ TEST_F(TipsNotificationClientTest, WhatsNewHandle) {
       startDispatchingToTarget:mock_handler
                    forProtocol:@protocol(BrowserCoordinatorCommands)];
 
-  id mock_response = MockRequestResponse(NotificationType::kWhatsNew);
+  id mock_response = MockRequestResponse(TipsNotificationType::kWhatsNew);
   client_->HandleNotificationInteraction(mock_response);
 
   EXPECT_OCMOCK_VERIFY(mock_handler);

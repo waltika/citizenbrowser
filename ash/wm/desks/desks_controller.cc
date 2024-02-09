@@ -306,7 +306,7 @@ class DesksController::RemovedDeskData {
                                  .enabled()),
         source_(source),
         desk_close_type_(type) {
-    full_restore::SaveRemovingDeskGuid(desk_->uuid());
+    ::full_restore::SaveRemovingDeskGuid(desk_->uuid());
     desk_->set_is_desk_being_removed(true);
   }
 
@@ -321,7 +321,7 @@ class DesksController::RemovedDeskData {
       toast_manager->Cancel(toast_id_);
       DesksController::Get()->FinalizeDeskRemoval(this);
     }
-    full_restore::ResetRemovingDeskGuid();
+    ::full_restore::ResetRemovingDeskGuid();
   }
 
   const std::string& toast_id() const { return toast_id_; }
@@ -1171,7 +1171,6 @@ int DesksController::GetDeskIndex(const Desk* desk) const {
       return i;
   }
 
-  NOTREACHED();
   return -1;
 }
 
@@ -1638,6 +1637,27 @@ void DesksController::OnFirstSessionStarted() {
   current_account_id_ =
       Shell::Get()->session_controller()->GetActiveAccountId();
   desks_restore_util::RestorePrimaryUserDesks();
+
+  // The DeskProfilesDelegate will be available if lacros and desk profiles are
+  // both enabled.
+  desk_profiles_observer_.Reset();
+  if (auto* delegate = Shell::Get()->GetDeskProfilesDelegate()) {
+    desk_profiles_observer_.Observe(delegate);
+  }
+}
+
+void DesksController::OnProfileRemoved(uint64_t profile_id) {
+  auto* delegate = Shell::Get()->GetDeskProfilesDelegate();
+  CHECK(delegate);
+
+  uint64_t primary_profile_id = delegate->GetPrimaryProfileId();
+  for (auto& desk : desks_) {
+    // If this desk's profile has been removed, revert it to the primary user's
+    // profile (which cannot be deleted).
+    if (desk->lacros_profile_id() == profile_id) {
+      desk->SetLacrosProfileId(primary_profile_id);
+    }
+  }
 }
 
 void DesksController::FireMetricsTimerForTesting() {
@@ -1701,27 +1721,27 @@ void DesksController::ActivateDeskInternal(const Desk* desk,
   auto* shell = Shell::Get();
   auto* overview_controller = shell->overview_controller();
   const bool was_in_overview = overview_controller->InOverviewSession();
-  if (animation_) {
-    // The order here matters. Overview must end before ending tablet split view
-    // before switching desks. (If clamshell split view is active on one or more
-    // displays, then it simply will end when we end overview.) That's because
-    // we don't want `TabletModeWindowManager` maximizing all windows because we
-    // cleared the snapped ones in `SplitViewController` first. See
-    // `TabletModeWindowManager::OnOverviewModeEndingAnimationComplete`.
-    // See also test coverage for this case in
-    // `TabletModeDesksTest.SnappedStateRetainedOnSwitchingDesksFromOverview`.
-    if (was_in_overview) {
-      // Exit overview mode immediately without any animations before taking the
-      // ending desk screenshot. This makes sure that the ending desk screenshot
-      // will only show the windows in that desk, not overview stuff.
-      overview_controller->EndOverview(OverviewEndAction::kDeskActivation,
-                                       OverviewEnterExitType::kImmediateExit);
-    }
-    SplitViewController* split_view_controller =
-        SplitViewController::Get(Shell::GetPrimaryRootWindow());
-    split_view_controller->EndSplitView(
-        SplitViewController::EndReason::kDesksChange);
+  // The order here matters. Overview must end before ending tablet split view
+  // before switching desks. (If clamshell split view is active on one or more
+  // displays, then it simply will end when we end overview.) That's because
+  // we don't want `TabletModeWindowManager` maximizing all windows because we
+  // cleared the snapped ones in `SplitViewController` first. See
+  // `TabletModeWindowManager::OnOverviewModeEndingAnimationComplete`.
+  // See also test coverage for this case in
+  // `TabletModeDesksTest.SnappedStateRetainedOnSwitchingDesksFromOverview`.
+  if (animation_ && was_in_overview) {
+    // Exit overview mode immediately without any animations before taking the
+    // ending desk screenshot. This makes sure that the ending desk screenshot
+    // will only show the windows in that desk, not overview stuff.
+    overview_controller->EndOverview(OverviewEndAction::kDeskActivation,
+                                     OverviewEnterExitType::kImmediateExit);
   }
+  // We should always end split view during a desk change in order to update the
+  // divider widget.
+  SplitViewController* split_view_controller =
+      SplitViewController::Get(Shell::GetPrimaryRootWindow());
+  split_view_controller->EndSplitView(
+      SplitViewController::EndReason::kDesksChange);
 
   MoveVisibleOnAllDesksWindowsFromActiveDeskTo(const_cast<Desk*>(desk));
   active_desk_ = const_cast<Desk*>(desk);
@@ -2328,7 +2348,7 @@ void DesksController::RestackVisibleOnAllDesksWindowsOnActiveDesk() {
           visible_on_all_desks_window->GetProperty(aura::client::kAppType));
       SCOPED_CRASH_KEY_STRING32(
           "Restack", "adw_app_id",
-          full_restore::GetAppId(visible_on_all_desks_window));
+          ::full_restore::GetAppId(visible_on_all_desks_window));
       base::debug::DumpWithoutCrashing();
       continue;
     }

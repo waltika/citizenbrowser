@@ -48,7 +48,7 @@
 #import "ios/chrome/browser/passwords/model/ios_chrome_profile_password_store_factory.h"
 #import "ios/chrome/browser/policy/model/cloud/user_policy_constants.h"
 #import "ios/chrome/browser/policy/model/enterprise_policy_test_helper.h"
-#import "ios/chrome/browser/promos_manager/mock_promos_manager.h"
+#import "ios/chrome/browser/promos_manager/model/mock_promos_manager.h"
 #import "ios/chrome/browser/reading_list/model/reading_list_model_factory.h"
 #import "ios/chrome/browser/reading_list/model/reading_list_test_utils.h"
 #import "ios/chrome/browser/search_engines/model/template_url_service_factory.h"
@@ -232,8 +232,7 @@ class OverflowMenuMediatorTest : public PlatformTest {
     web_state_->SetWebFramesManager(content_world, std::move(frames_manager));
 
     browser_->GetWebStateList()->InsertWebState(
-        0, std::move(test_web_state), WebStateList::INSERT_FORCE_INDEX,
-        WebStateOpener());
+        std::move(test_web_state), WebStateList::InsertionParams::AtIndex(0));
     for (int i = 1; i < kNumberOfWebStates; i++) {
       InsertNewWebState(i);
     }
@@ -346,8 +345,7 @@ class OverflowMenuMediatorTest : public PlatformTest {
     web_state->SetWebFramesManager(content_world, std::move(frames_manager));
 
     browser_->GetWebStateList()->InsertWebState(
-        index, std::move(web_state), WebStateList::INSERT_FORCE_INDEX,
-        WebStateOpener());
+        std::move(web_state), WebStateList::InsertionParams::AtIndex(index));
   }
 
   void SetUpActiveWebState() {

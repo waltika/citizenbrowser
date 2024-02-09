@@ -429,10 +429,10 @@ void CNAndroidUsbDevice::HandleIncoming(std::unique_ptr<CNAdbMessage> message) {
       if (signature_sent_) {
         Queue(std::make_unique<CNAdbMessage>(
             CNAdbMessage::kCommandAUTH, CNAdbMessage::kAuthRSAPublicKey, 0,
-            AndroidRSAPublicKey(rsa_key_.get())));
+            CNAndroidRSAPublicKey(rsa_key_.get())));
       } else {
         signature_sent_ = true;
-        std::string signature = AndroidRSASign(rsa_key_.get(), message->body);
+        std::string signature = CNAndroidRSASign(rsa_key_.get(), message->body);
         if (!signature.empty()) {
           Queue(std::make_unique<CNAdbMessage>(CNAdbMessage::kCommandAUTH,
                                              CNAdbMessage::kAuthSignature, 0,
@@ -440,7 +440,7 @@ void CNAndroidUsbDevice::HandleIncoming(std::unique_ptr<CNAdbMessage> message) {
         } else {
           Queue(std::make_unique<CNAdbMessage>(
               CNAdbMessage::kCommandAUTH, CNAdbMessage::kAuthRSAPublicKey, 0,
-              AndroidRSAPublicKey(rsa_key_.get())));
+              CNAndroidRSAPublicKey(rsa_key_.get())));
         }
       }
     } break;

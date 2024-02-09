@@ -14,6 +14,7 @@
 #include "build/build_config.h"
 #include "build/chromeos_buildflags.h"
 #include "chrome/browser/profiles/profile_attributes_storage.h"
+#include "chrome/browser/signin/web_signin_interceptor.h"
 #include "chrome/browser/sync/sync_ui_util.h"
 #include "chrome/browser/ui/browser_list_observer.h"
 #include "chrome/browser/ui/views/profiles/avatar_toolbar_button.h"
@@ -58,12 +59,14 @@ class AvatarToolbarButtonDelegate : public BrowserListObserver,
 
   bool IsSyncFeatureEnabled() const;
 
-  void ShowHighlightAnimation();
   bool IsHighlightAnimationVisible() const;
 
-#if !BUILDFLAG(IS_CHROMEOS_LACROS) || BUILDFLAG(IS_CHROMEOS_ASH)
-  void ShowSignInText();
-  void HideSignInText();
+#if BUILDFLAG(ENABLE_DICE_SUPPORT)
+  void ShowInterceptText(
+      WebSigninInterceptor::SigninInterceptionType interception_type);
+  void HideText();
+
+  std::u16string GetInterceptText();
 #endif
 
   // Should be called when the icon is updated. This may trigger the identity
@@ -84,7 +87,7 @@ class AvatarToolbarButtonDelegate : public BrowserListObserver,
     kNotShowing,
     kWaitingForImage,
     kShowingName,
-    kShowingSigninText
+    kShowingInterceptText
   };
 
   // BrowserListObserver:
@@ -120,11 +123,12 @@ class AvatarToolbarButtonDelegate : public BrowserListObserver,
   void OnIdentityAnimationTimeout();
   // Called after the user interacted with the button or after some timeout.
   void MaybeHideIdentityAnimation();
-  void HideHighlightAnimation();
 
   // Shows the identity pill animation. If the animation is already showing,
   // this extends the duration of the current animation.
   void ShowIdentityAnimation();
+
+  void Reset();
 
   base::ScopedObservation<ProfileAttributesStorage,
                           ProfileAttributesStorage::Observer>
@@ -149,14 +153,12 @@ class AvatarToolbarButtonDelegate : public BrowserListObserver,
   bool refresh_tokens_loaded_ = false;
   bool has_in_product_help_promo_ = false;
 
-  // Whether the avatar highlight animation is visible. The animation is shown
-  // when an Autofill datatype is saved. When this is true the avatar button
-  // sync paused/error state will be disabled.
-  bool highlight_animation_visible_ = false;
-
-  // Caches the value of the last error so the class can detect when it changes
-  // and notify |avatar_toolbar_button_|.
+  // Caches the value of the last error so the class can detect when it
+  // changes and notify |avatar_toolbar_button_|.
   std::optional<AvatarSyncErrorType> last_avatar_error_;
+
+  std::optional<WebSigninInterceptor::SigninInterceptionType>
+      current_interception_type_;
 
   base::WeakPtrFactory<AvatarToolbarButtonDelegate> weak_ptr_factory_{this};
 };

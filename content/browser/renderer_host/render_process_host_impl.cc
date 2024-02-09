@@ -994,13 +994,6 @@ GetBindHostReceiverInterceptor() {
   return *interceptor;
 }
 
-RenderProcessHostImpl::CreateNetworkFactoryCallback&
-GetCreateNetworkFactoryCallback() {
-  static base::NoDestructor<RenderProcessHostImpl::CreateNetworkFactoryCallback>
-      s_callback;
-  return *s_callback;
-}
-
 RenderProcessHostImpl::BadMojoMessageCallbackForTesting&
 GetBadMojoMessageCallbackForTesting() {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
@@ -1881,10 +1874,11 @@ void RenderProcessHostImpl::BindIndexedDB(
     return;
   }
 
+  auto [state_checker, token] =
+      IndexedDBClientStateCheckerFactory::InitializePendingRemote(rfh_id);
   storage_partition_impl_->GetIndexedDBControl().BindIndexedDB(
       storage::BucketLocator::ForDefaultBucket(storage_key),
-      IndexedDBClientStateCheckerFactory::InitializePendingRemote(rfh_id),
-      std::move(receiver));
+      std::move(state_checker), token, std::move(receiver));
 }
 
 void RenderProcessHostImpl::BindBucketManagerHost(
@@ -2859,37 +2853,6 @@ mojom::Renderer* RenderProcessHostImpl::GetRendererInterface() {
 
 ProcessLock RenderProcessHostImpl::GetProcessLock() const {
   return ChildProcessSecurityPolicyImpl::GetInstance()->GetProcessLock(GetID());
-}
-
-// static
-void RenderProcessHostImpl::SetNetworkFactoryForTesting(
-    const CreateNetworkFactoryCallback& create_network_factory_callback) {
-  DCHECK(!BrowserThread::IsThreadInitialized(BrowserThread::UI) ||
-         BrowserThread::CurrentlyOn(BrowserThread::UI));
-  DCHECK(create_network_factory_callback.is_null() ||
-         GetCreateNetworkFactoryCallback().is_null())
-      << "It is not expected that this is called with non-null callback when "
-      << "another overriding callback is already set.";
-  GetCreateNetworkFactoryCallback() = create_network_factory_callback;
-}
-
-void RenderProcessHostImpl::CreateURLLoaderFactory(
-    mojo::PendingReceiver<network::mojom::URLLoaderFactory> receiver,
-    network::mojom::URLLoaderFactoryParamsPtr params) {
-  DCHECK_CURRENTLY_ON(BrowserThread::UI);
-  DCHECK(params);
-  DCHECK_EQ(GetID(), static_cast<int>(params->process_id));
-
-  if (GetCreateNetworkFactoryCallback().is_null()) {
-    storage_partition_impl_->GetNetworkContext()->CreateURLLoaderFactory(
-        std::move(receiver), std::move(params));
-  } else {
-    mojo::PendingRemote<network::mojom::URLLoaderFactory> original_factory;
-    storage_partition_impl_->GetNetworkContext()->CreateURLLoaderFactory(
-        original_factory.InitWithNewPipeAndPassReceiver(), std::move(params));
-    GetCreateNetworkFactoryCallback().Run(std::move(receiver), GetID(),
-                                          std::move(original_factory));
-  }
 }
 
 bool RenderProcessHostImpl::MayReuseHost() {
@@ -3904,6 +3867,10 @@ base::SafeRef<RenderProcessHost> RenderProcessHostImpl::GetSafeRef() const {
 
 bool RenderProcessHostImpl::IsInitializedAndNotDead() {
   return is_initialized_ && !is_dead_;
+}
+
+bool RenderProcessHostImpl::IsDeletingSoon() {
+  return deleting_soon_;
 }
 
 void RenderProcessHostImpl::SetBlocked(bool blocked) {

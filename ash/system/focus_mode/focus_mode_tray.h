@@ -55,7 +55,7 @@ class ASH_EXPORT FocusModeTray : public TrayBackgroundView,
       const FocusModeSession::Snapshot& session_snapshot) override;
 
   // views::View:
-  void Layout() override;
+  void Layout(PassKey) override;
 
   FocusModeCountdownView* countdown_view_for_testing() {
     return countdown_view_;
@@ -101,6 +101,9 @@ class ASH_EXPORT FocusModeTray : public TrayBackgroundView,
   void AnimateBubbleResize();
   // Updates the progression of the progress indicator.
   void UpdateProgressRing();
+
+  // This is used to track the current session snapshot, if any.
+  std::optional<FocusModeSession::Snapshot> session_snapshot_;
 
   // Image view of the focus mode lamp.
   const raw_ptr<views::ImageView> image_view_;

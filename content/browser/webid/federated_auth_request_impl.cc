@@ -421,6 +421,10 @@ std::optional<std::string> GetIframeOriginForDisplay(
   return iframe_for_display;
 }
 
+bool IsFrameActive(RenderFrameHost* frame) {
+  return frame && frame->IsActive();
+}
+
 bool IsFrameVisible(RenderFrameHost* frame) {
   return frame && frame->IsActive() &&
          frame->GetVisibilityState() == content::PageVisibilityState::kVisible;
@@ -1296,7 +1300,7 @@ void FederatedAuthRequestImpl::OnAllConfigAndWellKnownFetched(
         CHECK(render_frame_host().HasTransientUserActivation());
         // TODO(crbug.com/1487270): we should probably make idp_login_url
         // optional instead of empty.
-        LoginToIdP(/*can_append_hints=*/false,
+        LoginToIdP(/*can_append_hints=*/false, identity_provider_config_url,
                    idp_info->metadata.idp_login_url);
         // TODO(https://crbug.com/1487268): handle the button flow and the
         // Multi IdP API (what should happen if you are logged in to some
@@ -1583,8 +1587,7 @@ void FederatedAuthRequestImpl::MaybeShowAccountsDialog() {
   // The RenderFrameHost may be alive but not visible in the following
   // situations:
   // Situation #1: User switched tabs
-  // Situation #2: User navigated the page. The RenderFrameHost is still
-  //   alive thanks to the BFCache.
+  // Situation #2: User navigated the page with bfcache
   //
   // - If this fetch is as a result of an IdP sign-in status change, the FedCM
   // dialog is either visible or temporarily hidden. Update the contents of
@@ -1593,11 +1596,11 @@ void FederatedAuthRequestImpl::MaybeShowAccountsDialog() {
   // if the RenderFrameHost is hidden because the user does not seem interested
   // in the contents of the current page.
   if (!fetch_data_.for_idp_signin) {
-    bool is_visible = IsFrameVisible(render_frame_host().GetMainFrame());
-    fedcm_metrics_->RecordWebContentsVisibilityUponReadyToShowDialog(
-        is_visible);
+    bool is_active = IsFrameActive(render_frame_host().GetMainFrame());
+    fedcm_metrics_->RecordWebContentsStatusUponReadyToShowDialog(
+        IsFrameVisible(render_frame_host().GetMainFrame()), is_active);
 
-    if (!is_visible) {
+    if (!is_active) {
       CompleteRequestWithError(
           FederatedAuthRequestResult::kErrorRpPageNotVisible,
           TokenStatus::kRpPageNotVisible,
@@ -1606,9 +1609,9 @@ void FederatedAuthRequestImpl::MaybeShowAccountsDialog() {
       return;
     }
 
-    show_accounts_dialog_time_ = base::TimeTicks::Now();
-    fedcm_metrics_->RecordShowAccountsDialogTime(show_accounts_dialog_time_ -
-                                                 start_time_);
+    ready_to_display_accounts_dialog_time_ = base::TimeTicks::Now();
+    fedcm_metrics_->RecordShowAccountsDialogTime(
+        ready_to_display_accounts_dialog_time_ - start_time_);
   }
 
   fetch_data_ = FetchData();
@@ -1655,6 +1658,8 @@ void FederatedAuthRequestImpl::MaybeShowAccountsDialog() {
                      weak_ptr_factory_.GetWeakPtr(),
                      /*can_append_hints=*/false),
       base::BindOnce(&FederatedAuthRequestImpl::OnDialogDismissed,
+                     weak_ptr_factory_.GetWeakPtr()),
+      base::BindOnce(&FederatedAuthRequestImpl::OnAccountsDisplayed,
                      weak_ptr_factory_.GetWeakPtr()));
   devtools_instrumentation::DidShowFedCmDialog(render_frame_host());
 
@@ -1670,6 +1675,10 @@ void FederatedAuthRequestImpl::MaybeShowAccountsDialog() {
   // Although not useful for catching malicious IDPs, it should only be a very
   // small percentage of the samples recorded.
   fedcm_metrics_->RecordAccountsDialogShown();
+}
+
+void FederatedAuthRequestImpl::OnAccountsDisplayed() {
+  accounts_dialog_display_time_ = base::TimeTicks::Now();
 }
 
 void FederatedAuthRequestImpl::HandleAccountsFetchFailure(
@@ -1694,7 +1703,7 @@ void FederatedAuthRequestImpl::HandleAccountsFetchFailure(
     return;
   }
 
-  if (!IsFrameVisible(render_frame_host().GetMainFrame())) {
+  if (!IsFrameActive(render_frame_host().GetMainFrame())) {
     CompleteRequestWithError(FederatedAuthRequestResult::kErrorRpPageNotVisible,
                              TokenStatus::kRpPageNotVisible,
                              /*token_error=*/std::nullopt,
@@ -1768,6 +1777,7 @@ void FederatedAuthRequestImpl::ShowSingleIdpFailureDialog() {
   // ShowFailureDialog() a 2nd time should notify the user that login
   // failed.
   dialog_type_ = kConfirmIdpLogin;
+  config_url_ = idp_info->provider->config->config_url;
   login_url_ = idp_info->metadata.idp_login_url;
   request_dialog_controller_->ShowFailureDialog(
       GetTopFrameOriginForDisplay(GetEmbeddingOrigin()), iframe_for_display,
@@ -1788,9 +1798,9 @@ void FederatedAuthRequestImpl::ShowSingleIdpFailureDialog() {
 
 void FederatedAuthRequestImpl::CloseModalDialogView() {
 #if BUILDFLAG(IS_ANDROID)
-  // On android, invoke NotifyClose on the modal dialog, as the UI code needs to
+  // On android, invoke OnClose on the modal dialog, as the UI code needs to
   // then notify the opener.
-  NotifyClose();
+  OnClose();
 #else
   // On desktop, invoke NotifyClose on the opener.
   if (identity_registry_) {
@@ -2011,7 +2021,7 @@ void FederatedAuthRequestImpl::OnAccountSelected(const GURL& idp_config_url,
   account_id_ = account_id;
   select_account_time_ = base::TimeTicks::Now();
   fedcm_metrics_->RecordContinueOnDialogTime(select_account_time_ -
-                                             show_accounts_dialog_time_);
+                                             accounts_dialog_display_time_);
 
   network_manager_->SendTokenRequest(
       idp_info.endpoints.token, account_id_,
@@ -2116,7 +2126,7 @@ void FederatedAuthRequestImpl::OnDialogDismissed(
   if (should_embargo) {
     base::TimeTicks dismiss_dialog_time = base::TimeTicks::Now();
     fedcm_metrics_->RecordCancelOnDialogTime(dismiss_dialog_time -
-                                             show_accounts_dialog_time_);
+                                             accounts_dialog_display_time_);
   }
   fedcm_metrics_->RecordCancelReason(dismiss_reason);
 
@@ -2137,7 +2147,8 @@ void FederatedAuthRequestImpl::OnDialogDismissed(
                            /*should_delay_callback=*/false);
 }
 
-void FederatedAuthRequestImpl::ShowModalDialog(const GURL& url) {
+void FederatedAuthRequestImpl::ShowModalDialog(const GURL& idp_config_url,
+                                               const GURL& url_to_show) {
   // Reset dialog type since we are not showing a fedcm dialog while the
   // popup window is open.
   if (dialog_type_ != kNone) {
@@ -2149,13 +2160,13 @@ void FederatedAuthRequestImpl::ShowModalDialog(const GURL& url) {
   dialog_type_ = kNone;
 
   WebContents* web_contents = request_dialog_controller_->ShowModalDialog(
-      url, base::BindOnce(&FederatedAuthRequestImpl::OnDialogDismissed,
-                          weak_ptr_factory_.GetWeakPtr()));
+      url_to_show, base::BindOnce(&FederatedAuthRequestImpl::OnDialogDismissed,
+                                  weak_ptr_factory_.GetWeakPtr()));
   // This may be null on Android, as the method cannot return the WebContents of
   // the CCT that will be created.
   if (web_contents) {
     IdentityRegistry::CreateForWebContents(
-        web_contents, weak_ptr_factory_.GetWeakPtr(), url::Origin::Create(url));
+        web_contents, weak_ptr_factory_.GetWeakPtr(), idp_config_url);
   }
 
   // Samples are at most 10 minutes. This metric is used to determine a
@@ -2193,7 +2204,7 @@ void FederatedAuthRequestImpl::OnContinueOnResponseReceived(
   }
 
   // TODO(crbug.com/1429083): record the appropriate metrics.
-  ShowModalDialog(continue_on);
+  ShowModalDialog(idp->config->config_url, continue_on);
 }
 
 void FederatedAuthRequestImpl::ShowErrorDialog(
@@ -2223,7 +2234,8 @@ void FederatedAuthRequestImpl::ShowErrorDialog(
                      token_error),
       token_error && !token_error->url.is_empty()
           ? base::BindOnce(&FederatedAuthRequestImpl::ShowModalDialog,
-                           weak_ptr_factory_.GetWeakPtr(), token_error->url)
+                           weak_ptr_factory_.GetWeakPtr(), config_url_,
+                           token_error->url)
           : base::NullCallback());
   devtools_instrumentation::DidShowFedCmDialog(render_frame_host());
 }
@@ -2259,7 +2271,8 @@ void FederatedAuthRequestImpl::OnTokenResponseReceived(
   base::TimeDelta fetch_time = token_response_time_ - select_account_time_;
   if (should_complete_request_immediately_ ||
       identity_selection_type_ == kAutoButton ||
-      fetch_time >= kTokenRequestDelay) {
+      fetch_time >= kTokenRequestDelay ||
+      rp_mode_ == blink::mojom::RpMode::kButton) {
     std::move(complete_request_callback).Run();
     return;
   }
@@ -2345,7 +2358,9 @@ void FederatedAuthRequestImpl::CompleteTokenRequest(
 
       fedcm_metrics_->RecordTokenResponseAndTurnaroundTime(
           token_response_time_ - select_account_time_,
-          token_response_time_ - start_time_);
+          token_response_time_ - start_time_ -
+              (accounts_dialog_display_time_ -
+               ready_to_display_accounts_dialog_time_));
 
       if (IsFedCmMetricsEndpointEnabled()) {
         for (const auto& metrics_endpoint_kv : metrics_endpoints_) {
@@ -2356,10 +2371,13 @@ void FederatedAuthRequestImpl::CompleteTokenRequest(
 
           if (metrics_endpoint_kv.first == idp_config_url) {
             network_manager_->SendSuccessfulTokenRequestMetrics(
-                metrics_endpoint, show_accounts_dialog_time_ - start_time_,
-                select_account_time_ - show_accounts_dialog_time_,
+                metrics_endpoint,
+                ready_to_display_accounts_dialog_time_ - start_time_,
+                select_account_time_ - accounts_dialog_display_time_,
                 token_response_time_ - select_account_time_,
-                token_response_time_ - start_time_);
+                token_response_time_ - start_time_ -
+                    (accounts_dialog_display_time_ -
+                     ready_to_display_accounts_dialog_time_));
           } else {
             // Send kUserFailure so that IDP cannot tell difference between user
             // selecting a different IDP and user dismissing dialog without
@@ -2506,7 +2524,8 @@ void FederatedAuthRequestImpl::CleanUp() {
   provider_fetcher_.reset();
   account_id_ = std::string();
   start_time_ = base::TimeTicks();
-  show_accounts_dialog_time_ = base::TimeTicks();
+  ready_to_display_accounts_dialog_time_ = base::TimeTicks();
+  accounts_dialog_display_time_ = base::TimeTicks();
   select_account_time_ = base::TimeTicks();
   token_response_time_ = base::TimeTicks();
   accounts_dialog_shown_time_ = std::nullopt;
@@ -2652,7 +2671,7 @@ void FederatedAuthRequestImpl::SetDialogControllerForTests(
   mock_dialog_controller_ = std::move(controller);
 }
 
-void FederatedAuthRequestImpl::NotifyClose() {
+void FederatedAuthRequestImpl::OnClose() {
 #if BUILDFLAG(IS_ANDROID)
   // We invoke this method on the modal dialog on Android, so we may need to
   // create the controller at this point.
@@ -2664,15 +2683,17 @@ void FederatedAuthRequestImpl::NotifyClose() {
   request_dialog_controller_->CloseModalDialog();
 }
 
-bool FederatedAuthRequestImpl::NotifyResolve(const std::string& token) {
+bool FederatedAuthRequestImpl::OnResolve(GURL idp_config_url,
+                                         const std::string& token) {
   // Close the pop-up window post user permission.
-  NotifyClose();
+  OnClose();
 
-  // TODO(crbug.com/1429083): handle the multi-idp case when there are
-  // more than one config_urls hanging.
+  permission_delegate_->GrantSharingPermission(
+      origin(), GetEmbeddingOrigin(), url::Origin::Create(idp_config_url),
+      account_id_);
+
   CompleteRequest(FederatedAuthRequestResult::kSuccess, TokenStatus::kSuccess,
-                  /*token_error=*/std::nullopt,
-                  /*selected_idp_config_url=*/std::nullopt, token,
+                  /*token_error=*/std::nullopt, idp_config_url, token,
                   /*should_delay_callback=*/false);
   // TODO(crbug.com/1429083): handle the corner cases where CompleteRequest
   // can't actually fulfill the request.
@@ -2717,7 +2738,7 @@ void FederatedAuthRequestImpl::DismissAccountsDialogForDevtools(
 
 void FederatedAuthRequestImpl::AcceptConfirmIdpLoginDialogForDevtools() {
   DCHECK(login_url_.is_valid());
-  LoginToIdP(/*can_append_hints=*/true, login_url_);
+  LoginToIdP(/*can_append_hints=*/true, config_url_, login_url_);
 }
 
 void FederatedAuthRequestImpl::DismissConfirmIdpLoginDialogForDevtools() {
@@ -2739,7 +2760,7 @@ void FederatedAuthRequestImpl::ClickErrorDialogGotItForDevtools() {
 
 void FederatedAuthRequestImpl::ClickErrorDialogMoreDetailsForDevtools() {
   DCHECK(token_error_ && token_error_->url.is_valid());
-  ShowModalDialog(token_error_->url);
+  ShowModalDialog(config_url_, token_error_->url);
   OnDismissErrorDialog(
       config_url_, token_request_status_, token_error_,
       IdentityRequestDialogController::DismissReason::kMoreDetailsButton);
@@ -2871,6 +2892,7 @@ void FederatedAuthRequestImpl::SetRequiresUserMediation(
 }
 
 void FederatedAuthRequestImpl::LoginToIdP(bool can_append_hints,
+                                          const GURL& idp_config_url,
                                           GURL login_url) {
   const auto& it = idp_login_infos_.find(login_url);
   CHECK(it != idp_login_infos_.end());
@@ -2880,7 +2902,7 @@ void FederatedAuthRequestImpl::LoginToIdP(bool can_append_hints,
     MaybeAppendQueryParameters(it->second, &login_url);
   }
   permission_delegate_->AddIdpSigninStatusObserver(this);
-  ShowModalDialog(login_url);
+  ShowModalDialog(idp_config_url, login_url);
 }
 
 void FederatedAuthRequestImpl::PreventSilentAccess(

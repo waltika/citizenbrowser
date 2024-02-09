@@ -24,8 +24,8 @@
 #include "components/autofill/core/browser/payments/local_card_migration_manager.h"
 #include "components/autofill/core/browser/test_autofill_client.h"
 #include "components/autofill/core/browser/ui/payments/card_unmask_prompt_options.h"
+#include "components/autofill/core/browser/ui/popup_hiding_reasons.h"
 #include "components/autofill/core/browser/ui/popup_item_ids.h"
-#include "components/autofill/core/browser/ui/popup_types.h"
 #include "components/autofill/core/browser/ui/suggestion.h"
 #include "components/autofill/core/common/password_generation_util.h"
 #include "components/device_reauth/mock_device_authenticator.h"
@@ -135,8 +135,6 @@ class PasswordManagerUtilTest : public testing::Test {
 #if BUILDFLAG(IS_ANDROID)
     pref_service_.registry()->RegisterBooleanPref(
         password_manager::prefs::kOfferToSavePasswordsEnabledGMS, true);
-    pref_service_.registry()->RegisterBooleanPref(
-        password_manager::prefs::kSavePasswordsSuspendedByError, false);
     pref_service_.registry()->RegisterBooleanPref(
         password_manager::prefs::kAutoSignInEnabledGMS, true);
     pref_service_.registry()->RegisterBooleanPref(

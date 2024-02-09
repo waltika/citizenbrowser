@@ -29,6 +29,9 @@
 }
 
 - (void)start {
+  CHECK(self.clientId.has_value());
+  CHECK(self.confirmationMessage);
+
   [self requestPushNotificationPermission];
 }
 
@@ -84,7 +87,9 @@
   NSString* alertTitle =
       l10n_util::GetNSString(IDS_IOS_NOTIFICATIONS_ALERT_TITLE);
   NSString* alertMessage =
-      l10n_util::GetNSString(IDS_IOS_NOTIFICATIONS_ALERT_MESSAGE);
+      self.alertMessage
+          ? self.alertMessage
+          : l10n_util::GetNSString(IDS_IOS_NOTIFICATIONS_ALERT_MESSAGE);
   NSString* cancelTitle =
       l10n_util::GetNSString(IDS_IOS_NOTIFICATIONS_ALERT_CANCEL);
   NSString* settingsTitle =
@@ -120,7 +125,7 @@
   NSString* gaiaID = base::SysUTF8ToNSString(
       infoCache->GetGAIAIdOfBrowserStateAtIndex(browserStateIndex));
   GetApplicationContext()->GetPushNotificationService()->SetPreference(
-      gaiaID, self.clientId, true);
+      gaiaID, self.clientId.value(), true);
 }
 
 // Shows a snackbar message indicating that notifications are enabled.

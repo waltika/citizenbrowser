@@ -396,6 +396,10 @@ BASE_FEATURE(kNtpTabResumptionModule,
              "NtpTabResumptionModule",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
+BASE_FEATURE(kNtpTabResumptionModuleCategories,
+             "NtpTabResumptionModuleCategories",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
 const char kNtpModuleIgnoredCriteriaThreshold[] =
     "NtpModuleIgnoredCriteriaThreshold";
 const char kNtpModuleIgnoredHaTSDelayTimeParam[] =
@@ -458,13 +462,21 @@ const char kNtpHistoryClustersModuleCategoriesBoostlistParam[] =
     "NtpHistoryClustersModuleCategoriesBoostlistParam";
 const char kNtpHistoryClustersModuleMaxClustersParam[] =
     "NtpHistoryClustersModuleMaxClustersParam";
+const char kNtpHistoryClustersModuleMaxCategoriesToRecordParam[] =
+    "NtpHistoryClustersModuleMaxCategoriesToRecordParam";
+const char kNtpHistoryClustersModuleMinCategoryWeightToRecordParam[] =
+    "NtpHistoryClustersModuleMinCategoryWeightToRecordParam";
 const char kNtpHistoryClustersModuleRankingMetricsQueryDaysParam[] =
     "NtpHistoryClustersModuleRankingMetricsQueryDaysParam";
 const char kNtpHistoryClustersModuleScoreThresholdParam[] =
     "NtpHistoryClustersModuleScoreThresholdParam";
 const char kNtpRealboxWidthBehaviorParam[] = "NtpRealboxWidthBehaviorParam";
+const char kNtpTabResumptionModuleCategoriesBlocklistParam[] =
+    "NtpTabResumptionModuleCategoriesBlocklistParam";
 const char kNtpTabResumptionModuleDataParam[] =
     "NtpTabResumptionModuleDataParam";
+const char kNtpTabResumptionModuleVisibilityThresholdDataParam[] =
+    "NtpTabResumptionModuleVisibilityThresholdDataParam";
 const char kWallpaperSearchHatsDelayParam[] = "WallpaperSearchHatsDelayParam";
 
 const base::FeatureParam<bool> kNtpRealboxCr23ExpandedStateBgMatchesOmnibox(

@@ -10,13 +10,12 @@
 #include "ash/picker/model/picker_category.h"
 #include "ash/picker/model/picker_search_results.h"
 #include "ash/picker/views/picker_category_view.h"
-#include "ash/picker/views/picker_item_view.h"
 #include "ash/picker/views/picker_search_field_view.h"
 #include "ash/picker/views/picker_search_results_view.h"
 #include "ash/picker/views/picker_section_view.h"
-#include "ash/picker/views/picker_user_education_view.h"
 #include "ash/picker/views/picker_view_delegate.h"
 #include "ash/picker/views/picker_zero_state_view.h"
+#include "ash/strings/grit/ash_strings.h"
 #include "ash/test/ash_test_base.h"
 #include "ash/test/test_ash_web_view.h"
 #include "ash/test/test_ash_web_view_factory.h"
@@ -27,10 +26,15 @@
 #include "testing/gmock/include/gmock/gmock-matchers.h"
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
+#include "ui/base/l10n/l10n_util.h"
 #include "ui/chromeos/styles/cros_tokens_color_mappings.h"
+#include "ui/display/screen.h"
 #include "ui/events/event_constants.h"
 #include "ui/events/keycodes/keyboard_codes.h"
+#include "ui/gfx/geometry/point.h"
+#include "ui/gfx/geometry/rect.h"
 #include "ui/views/background.h"
+#include "ui/views/controls/textfield/textfield.h"
 #include "ui/views/view_utils.h"
 
 namespace ash {
@@ -43,6 +47,10 @@ using ::testing::Not;
 using ::testing::Optional;
 using ::testing::Property;
 using ::testing::Truly;
+
+constexpr gfx::Rect kDefaultCaretBounds(200, 100, 0, 10);
+constexpr gfx::Point kDefaultCursorPoint(300, 400);
+constexpr gfx::Rect kDefaultFocusedWindowBounds(300, 400);
 
 class PickerViewTest : public AshTestBase {
  public:
@@ -110,7 +118,7 @@ PickerView* GetPickerViewFromWidget(views::Widget& widget) {
 // that the first item is a category. This probably won't be the case once more
 // of the zero state view has been implemented. We should have a better way of
 // getting a category item.
-PickerItemView* GetCategoryItemView(PickerView* picker_view) {
+views::View* GetCategoryItemView(PickerView* picker_view) {
   return picker_view->zero_state_view_for_testing()
       .section_views_for_testing()[0]
       ->item_views_for_testing()[0];
@@ -118,7 +126,9 @@ PickerItemView* GetCategoryItemView(PickerView* picker_view) {
 
 TEST_F(PickerViewTest, CreateWidgetHasCorrectHierarchy) {
   FakePickerViewDelegate delegate;
-  auto widget = PickerView::CreateWidget(&delegate);
+  auto widget =
+      PickerView::CreateWidget(kDefaultCaretBounds, kDefaultCursorPoint,
+                               kDefaultFocusedWindowBounds, &delegate);
 
   // Widget should contain a NonClientView, which has a NonClientFrameView for
   // borders and shadows, and a ClientView with a sole child of the PickerView.
@@ -132,14 +142,18 @@ TEST_F(PickerViewTest, CreateWidgetHasCorrectHierarchy) {
 
 TEST_F(PickerViewTest, CreateWidgetHasCorrectBorder) {
   FakePickerViewDelegate delegate;
-  auto widget = PickerView::CreateWidget(&delegate);
+  auto widget =
+      PickerView::CreateWidget(kDefaultCaretBounds, kDefaultCursorPoint,
+                               kDefaultFocusedWindowBounds, &delegate);
 
   EXPECT_TRUE(widget->non_client_view()->frame_view()->GetBorder());
 }
 
 TEST_F(PickerViewTest, BackgroundIsCorrect) {
   FakePickerViewDelegate delegate;
-  auto widget = PickerView::CreateWidget(&delegate);
+  auto widget =
+      PickerView::CreateWidget(kDefaultCaretBounds, kDefaultCursorPoint,
+                               kDefaultFocusedWindowBounds, &delegate);
   PickerView* view = GetPickerViewFromWidget(*widget);
 
   ASSERT_TRUE(view);
@@ -151,7 +165,9 @@ TEST_F(PickerViewTest, BackgroundIsCorrect) {
 
 TEST_F(PickerViewTest, SizeIsCorrect) {
   FakePickerViewDelegate delegate;
-  auto widget = PickerView::CreateWidget(&delegate);
+  auto widget =
+      PickerView::CreateWidget(kDefaultCaretBounds, kDefaultCursorPoint,
+                               kDefaultFocusedWindowBounds, &delegate);
   widget->Show();
   PickerView* view = GetPickerViewFromWidget(*widget);
 
@@ -160,7 +176,9 @@ TEST_F(PickerViewTest, SizeIsCorrect) {
 
 TEST_F(PickerViewTest, ShowsZeroStateView) {
   FakePickerViewDelegate delegate;
-  auto widget = PickerView::CreateWidget(&delegate);
+  auto widget =
+      PickerView::CreateWidget(kDefaultCaretBounds, kDefaultCursorPoint,
+                               kDefaultFocusedWindowBounds, &delegate);
   PickerView* view = GetPickerViewFromWidget(*widget);
 
   EXPECT_THAT(view->search_field_view_for_testing(),
@@ -173,7 +191,9 @@ TEST_F(PickerViewTest, ShowsZeroStateView) {
 
 TEST_F(PickerViewTest, NonEmptySearchFieldContentsSwitchesToSearchResultsView) {
   FakePickerViewDelegate delegate;
-  auto widget = PickerView::CreateWidget(&delegate);
+  auto widget =
+      PickerView::CreateWidget(kDefaultCaretBounds, kDefaultCursorPoint,
+                               kDefaultFocusedWindowBounds, &delegate);
   widget->Show();
   PickerView* view = GetPickerViewFromWidget(*widget);
 
@@ -187,7 +207,9 @@ TEST_F(PickerViewTest, NonEmptySearchFieldContentsSwitchesToSearchResultsView) {
 
 TEST_F(PickerViewTest, EmptySearchFieldContentsSwitchesToZeroStateView) {
   FakePickerViewDelegate delegate;
-  auto widget = PickerView::CreateWidget(&delegate);
+  auto widget =
+      PickerView::CreateWidget(kDefaultCaretBounds, kDefaultCursorPoint,
+                               kDefaultFocusedWindowBounds, &delegate);
   widget->Show();
   PickerView* view = GetPickerViewFromWidget(*widget);
   PressAndReleaseKey(ui::KeyboardCode::VKEY_A, ui::EF_NONE);
@@ -210,7 +232,9 @@ TEST_F(PickerViewTest, LeftClickSearchResultSelectsResult) {
                 u"section", {{PickerSearchResult::Text(u"result")}}),
         }});
       }));
-  auto widget = PickerView::CreateWidget(&delegate);
+  auto widget =
+      PickerView::CreateWidget(kDefaultCaretBounds, kDefaultCursorPoint,
+                               kDefaultFocusedWindowBounds, &delegate);
   widget->Show();
   PickerView* view = GetPickerViewFromWidget(*widget);
   PressAndReleaseKey(ui::KeyboardCode::VKEY_A, ui::EF_NONE);
@@ -223,9 +247,9 @@ TEST_F(PickerViewTest, LeftClickSearchResultSelectsResult) {
                   ->item_views_for_testing(),
               Not(IsEmpty()));
 
-  PickerItemView* result_view = view->search_results_view_for_testing()
-                                    .section_views_for_testing()[0]
-                                    ->item_views_for_testing()[0];
+  views::View* result_view = view->search_results_view_for_testing()
+                                 .section_views_for_testing()[0]
+                                 ->item_views_for_testing()[0];
   ViewDrawnWaiter().Wait(result_view);
   LeftClickOn(result_view);
 
@@ -235,11 +259,13 @@ TEST_F(PickerViewTest, LeftClickSearchResultSelectsResult) {
 
 TEST_F(PickerViewTest, SwitchesToCategoryView) {
   FakePickerViewDelegate delegate;
-  auto widget = PickerView::CreateWidget(&delegate);
+  auto widget =
+      PickerView::CreateWidget(kDefaultCaretBounds, kDefaultCursorPoint,
+                               kDefaultFocusedWindowBounds, &delegate);
   widget->Show();
 
   PickerView* picker_view = GetPickerViewFromWidget(*widget);
-  PickerItemView* category_item_view = GetCategoryItemView(picker_view);
+  views::View* category_item_view = GetCategoryItemView(picker_view);
   ViewDrawnWaiter().Wait(category_item_view);
   LeftClickOn(category_item_view);
 
@@ -248,14 +274,35 @@ TEST_F(PickerViewTest, SwitchesToCategoryView) {
   EXPECT_FALSE(picker_view->search_results_view_for_testing().GetVisible());
 }
 
+TEST_F(PickerViewTest, SelectingCategoryUpdatesSearchFieldPlaceholderText) {
+  FakePickerViewDelegate delegate;
+  auto widget =
+      PickerView::CreateWidget(kDefaultCaretBounds, kDefaultCursorPoint,
+                               kDefaultFocusedWindowBounds, &delegate);
+  widget->Show();
+
+  PickerView* picker_view = GetPickerViewFromWidget(*widget);
+  views::View* category_item_view = GetCategoryItemView(picker_view);
+  ViewDrawnWaiter().Wait(category_item_view);
+  LeftClickOn(category_item_view);
+
+  EXPECT_THAT(picker_view->search_field_view_for_testing()
+                  .textfield_for_testing()
+                  .GetPlaceholderText(),
+              Eq(l10n_util::GetStringUTF16(
+                  IDS_PICKER_EMOJIS_CATEGORY_SEARCH_FIELD_PLACEHOLDER_TEXT)));
+}
+
 TEST_F(PickerViewTest, SearchingWithCategorySwitchesToSearchResultsView) {
   FakePickerViewDelegate delegate;
-  auto widget = PickerView::CreateWidget(&delegate);
+  auto widget =
+      PickerView::CreateWidget(kDefaultCaretBounds, kDefaultCursorPoint,
+                               kDefaultFocusedWindowBounds, &delegate);
   widget->Show();
 
   // Switch to category view.
   PickerView* picker_view = GetPickerViewFromWidget(*widget);
-  PickerItemView* category_item_view = GetCategoryItemView(picker_view);
+  views::View* category_item_view = GetCategoryItemView(picker_view);
   ViewDrawnWaiter().Wait(category_item_view);
   LeftClickOn(category_item_view);
   // Type something into the search field.
@@ -268,12 +315,14 @@ TEST_F(PickerViewTest, SearchingWithCategorySwitchesToSearchResultsView) {
 
 TEST_F(PickerViewTest, EmptySearchFieldSwitchesBackToCategoryView) {
   FakePickerViewDelegate delegate;
-  auto widget = PickerView::CreateWidget(&delegate);
+  auto widget =
+      PickerView::CreateWidget(kDefaultCaretBounds, kDefaultCursorPoint,
+                               kDefaultFocusedWindowBounds, &delegate);
   widget->Show();
 
   // Switch to category view.
   PickerView* picker_view = GetPickerViewFromWidget(*widget);
-  PickerItemView* category_item_view = GetCategoryItemView(picker_view);
+  views::View* category_item_view = GetCategoryItemView(picker_view);
   ViewDrawnWaiter().Wait(category_item_view);
   LeftClickOn(category_item_view);
   // Type something into the search field.
@@ -288,7 +337,9 @@ TEST_F(PickerViewTest, EmptySearchFieldSwitchesBackToCategoryView) {
 
 TEST_F(PickerViewTest, PressingEscClosesPickerWidget) {
   FakePickerViewDelegate delegate;
-  auto widget = PickerView::CreateWidget(&delegate);
+  auto widget =
+      PickerView::CreateWidget(kDefaultCaretBounds, kDefaultCursorPoint,
+                               kDefaultFocusedWindowBounds, &delegate);
   widget->Show();
 
   PressAndReleaseKey(ui::KeyboardCode::VKEY_ESCAPE, ui::EF_NONE);
@@ -298,7 +349,9 @@ TEST_F(PickerViewTest, PressingEscClosesPickerWidget) {
 
 TEST_F(PickerViewTest, ClickingOutsideClosesPickerWidget) {
   FakePickerViewDelegate delegate;
-  auto widget = PickerView::CreateWidget(&delegate);
+  auto widget =
+      PickerView::CreateWidget(kDefaultCaretBounds, kDefaultCursorPoint,
+                               kDefaultFocusedWindowBounds, &delegate);
   widget->Show();
 
   gfx::Point point_outside_widget = widget->GetWindowBoundsInScreen().origin();
@@ -317,13 +370,211 @@ TEST_F(PickerViewTest, RecordsSearchLatencyAfterSearchFinished) {
         task_environment()->FastForwardBy(base::Seconds(1));
         return PickerSearchResults();
       }));
-  auto widget = PickerView::CreateWidget(&delegate);
+  auto widget =
+      PickerView::CreateWidget(kDefaultCaretBounds, kDefaultCursorPoint,
+                               kDefaultFocusedWindowBounds, &delegate);
   widget->Show();
 
   PressAndReleaseKey(ui::KeyboardCode::VKEY_A, ui::EF_NONE);
 
   histogram.ExpectUniqueTimeSample("Ash.Picker.Session.SearchLatency",
                                    base::Seconds(1), 1);
+}
+
+TEST_F(PickerViewTest, BoundsDefaultAlignedWithCaret) {
+  FakePickerViewDelegate delegate;
+  auto widget =
+      PickerView::CreateWidget(kDefaultCaretBounds, kDefaultCursorPoint,
+                               kDefaultFocusedWindowBounds, &delegate);
+  widget->Show();
+
+  PickerView* view = GetPickerViewFromWidget(*widget);
+  // Should be entirely on screen.
+  EXPECT_TRUE(display::Screen::GetScreen()
+                  ->GetDisplayMatching(kDefaultCaretBounds)
+                  .work_area()
+                  .Contains(view->GetBoundsInScreen()));
+  // Should be to the right of the caret.
+  EXPECT_GE(view->GetBoundsInScreen().x(), kDefaultCaretBounds.right());
+  // Center of the search field should be vertically aligned with the caret.
+  EXPECT_EQ(view->search_field_view_for_testing()
+                .GetBoundsInScreen()
+                .CenterPoint()
+                .y(),
+            kDefaultCaretBounds.CenterPoint().y());
+}
+
+TEST_F(PickerViewTest, BoundsAlignedWithCaretNearTopLeftOfScreen) {
+  FakePickerViewDelegate delegate;
+  const gfx::Rect screen_work_area =
+      display::Screen::GetScreen()->GetPrimaryDisplay().work_area();
+  gfx::Rect caret_bounds(screen_work_area.origin(), {0, 10});
+  caret_bounds.Offset(80, 80);
+
+  auto widget = PickerView::CreateWidget(caret_bounds, kDefaultCursorPoint,
+                                         screen_work_area, &delegate);
+  widget->Show();
+
+  PickerView* view = GetPickerViewFromWidget(*widget);
+  // Should be entirely on screen.
+  EXPECT_TRUE(screen_work_area.Contains(view->GetBoundsInScreen()));
+  // Should be to the right of the caret.
+  EXPECT_GE(view->GetBoundsInScreen().x(), caret_bounds.right());
+  // Center of the search field should be vertically aligned with the caret.
+  EXPECT_EQ(view->search_field_view_for_testing()
+                .GetBoundsInScreen()
+                .CenterPoint()
+                .y(),
+            caret_bounds.CenterPoint().y());
+}
+
+TEST_F(PickerViewTest, BoundsAlignedWithCaretNearBottomLeftOfScreen) {
+  FakePickerViewDelegate delegate;
+  const gfx::Rect screen_work_area =
+      display::Screen::GetScreen()->GetPrimaryDisplay().work_area();
+  gfx::Rect caret_bounds(screen_work_area.bottom_left(), {0, 10});
+  caret_bounds.Offset(80, -80);
+
+  auto widget = PickerView::CreateWidget(caret_bounds, kDefaultCursorPoint,
+                                         screen_work_area, &delegate);
+  widget->Show();
+
+  PickerView* view = GetPickerViewFromWidget(*widget);
+  // Should be entirely on screen.
+  EXPECT_TRUE(screen_work_area.Contains(view->GetBoundsInScreen()));
+  // Should be to the right of the caret.
+  EXPECT_GE(view->GetBoundsInScreen().x(), caret_bounds.right());
+  // Center of the search field should be vertically aligned with the caret.
+  EXPECT_EQ(view->search_field_view_for_testing()
+                .GetBoundsInScreen()
+                .CenterPoint()
+                .y(),
+            caret_bounds.CenterPoint().y());
+}
+
+TEST_F(PickerViewTest, BoundsBelowCaretForCaretNearTopRightOfScreen) {
+  FakePickerViewDelegate delegate;
+  const gfx::Rect screen_work_area =
+      display::Screen::GetScreen()->GetPrimaryDisplay().work_area();
+  gfx::Rect caret_bounds(screen_work_area.top_right(), {0, 10});
+  caret_bounds.Offset(-20, 20);
+
+  auto widget = PickerView::CreateWidget(caret_bounds, kDefaultCursorPoint,
+                                         screen_work_area, &delegate);
+  widget->Show();
+
+  const PickerView* view = GetPickerViewFromWidget(*widget);
+  // Should be entirely on screen.
+  EXPECT_TRUE(screen_work_area.Contains(view->GetBoundsInScreen()));
+  // Should be below the caret.
+  EXPECT_GE(view->GetBoundsInScreen().y(), caret_bounds.bottom());
+}
+
+TEST_F(PickerViewTest, BoundsAboveCaretForCaretNearBottomRightOfScreen) {
+  FakePickerViewDelegate delegate;
+  const gfx::Rect screen_work_area =
+      display::Screen::GetScreen()->GetPrimaryDisplay().work_area();
+  gfx::Rect caret_bounds(screen_work_area.bottom_right(), {0, 10});
+  caret_bounds.Offset(-20, -20);
+
+  auto widget = PickerView::CreateWidget(caret_bounds, kDefaultCursorPoint,
+                                         screen_work_area, &delegate);
+  widget->Show();
+
+  const PickerView* view = GetPickerViewFromWidget(*widget);
+  // Should be entirely on screen.
+  EXPECT_TRUE(screen_work_area.Contains(view->GetBoundsInScreen()));
+  // Should be above the caret.
+  EXPECT_LE(view->GetBoundsInScreen().bottom(), caret_bounds.y());
+}
+
+TEST_F(PickerViewTest, BoundsAlignedWithCursorForEmptyCaretBounds) {
+  FakePickerViewDelegate delegate;
+  auto widget = PickerView::CreateWidget(
+      gfx::Rect(), kDefaultCursorPoint, kDefaultFocusedWindowBounds, &delegate);
+  widget->Show();
+
+  PickerView* view = GetPickerViewFromWidget(*widget);
+  // Should be entirely on screen.
+  EXPECT_TRUE(display::Screen::GetScreen()
+                  ->GetDisplayNearestPoint(kDefaultCursorPoint)
+                  .work_area()
+                  .Contains(view->GetBoundsInScreen()));
+  // Should be to the right of the cursor.
+  EXPECT_GE(view->GetBoundsInScreen().x(), kDefaultCursorPoint.x());
+  // Center of the search field should be vertically aligned with the cursor.
+  EXPECT_EQ(view->search_field_view_for_testing()
+                .GetBoundsInScreen()
+                .CenterPoint()
+                .y(),
+            kDefaultCursorPoint.y());
+}
+
+TEST_F(PickerViewTest, BoundsAlignedWithCursorForCaretOutsideFocusedWindow) {
+  FakePickerViewDelegate delegate;
+  auto widget = PickerView::CreateWidget(
+      /*caret_bounds=*/gfx::Rect(10, 10, 0, 10), kDefaultCursorPoint,
+      /*focused_window_bounds=*/gfx::Rect(100, 100, 300, 300), &delegate);
+  widget->Show();
+
+  PickerView* view = GetPickerViewFromWidget(*widget);
+  // Should be entirely on screen.
+  EXPECT_TRUE(display::Screen::GetScreen()
+                  ->GetDisplayNearestPoint(kDefaultCursorPoint)
+                  .work_area()
+                  .Contains(view->GetBoundsInScreen()));
+  // Should be to the right of the cursor.
+  EXPECT_GE(view->GetBoundsInScreen().x(), kDefaultCursorPoint.x());
+  // Center of the search field should be vertically aligned with the cursor.
+  EXPECT_EQ(view->search_field_view_for_testing()
+                .GetBoundsInScreen()
+                .CenterPoint()
+                .y(),
+            kDefaultCursorPoint.y());
+}
+
+TEST_F(PickerViewTest, BoundsOnScreenForEmptyCaretAndEmptyCursor) {
+  FakePickerViewDelegate delegate;
+  auto widget = PickerView::CreateWidget(
+      gfx::Rect(), gfx::Point(), kDefaultFocusedWindowBounds, &delegate);
+  widget->Show();
+
+  const PickerView* view = GetPickerViewFromWidget(*widget);
+  EXPECT_TRUE(
+      display::Screen::GetScreen()->GetPrimaryDisplay().work_area().Contains(
+          view->GetBoundsInScreen()));
+}
+
+TEST_F(PickerViewTest, ResultsBelowSearchFieldNearTopOfScreen) {
+  FakePickerViewDelegate delegate;
+  const gfx::Rect screen_work_area =
+      display::Screen::GetScreen()->GetPrimaryDisplay().work_area();
+  gfx::Rect caret_bounds(screen_work_area.top_center(), {0, 10});
+  caret_bounds.Offset(0, 80);
+
+  auto widget = PickerView::CreateWidget(caret_bounds, kDefaultCursorPoint,
+                                         screen_work_area, &delegate);
+  widget->Show();
+
+  PickerView* view = GetPickerViewFromWidget(*widget);
+  EXPECT_GE(view->zero_state_view_for_testing().GetBoundsInScreen().y(),
+            view->search_field_view_for_testing().GetBoundsInScreen().bottom());
+}
+
+TEST_F(PickerViewTest, ResultsAboveSearchFieldNearBottomOfScreen) {
+  FakePickerViewDelegate delegate;
+  const gfx::Rect screen_work_area =
+      display::Screen::GetScreen()->GetPrimaryDisplay().work_area();
+  gfx::Rect caret_bounds(screen_work_area.bottom_center(), {0, 10});
+  caret_bounds.Offset(0, -80);
+
+  auto widget = PickerView::CreateWidget(caret_bounds, kDefaultCursorPoint,
+                                         screen_work_area, &delegate);
+  widget->Show();
+
+  PickerView* view = GetPickerViewFromWidget(*widget);
+  EXPECT_LE(view->zero_state_view_for_testing().GetBoundsInScreen().bottom(),
+            view->search_field_view_for_testing().GetBoundsInScreen().y());
 }
 
 }  // namespace

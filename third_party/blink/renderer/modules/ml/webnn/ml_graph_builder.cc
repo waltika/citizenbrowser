@@ -411,14 +411,14 @@ bool ValidateClampOptions(const MLClampOptions* options,
   return true;
 }
 
-absl::optional<Vector<uint32_t>> BroadcastShapes(
+std::optional<Vector<uint32_t>> BroadcastShapes(
     const Vector<uint32_t>& dims_lhs,
     const Vector<uint32_t>& dims_rhs,
     bool bidirectional = true) {
   auto output_shape = webnn::BroadcastShapes(
       base::make_span(dims_lhs), base::make_span(dims_rhs), bidirectional);
   if (!output_shape) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   return Vector<uint32_t>(output_shape.value());
 }
@@ -472,7 +472,7 @@ MLOperand* BuildElementWiseBinary(MLGraphBuilder* builder,
         "The input operand data types don't match.");
     return nullptr;
   }
-  absl::optional<Vector<uint32_t>> dims_output =
+  std::optional<Vector<uint32_t>> dims_output =
       BroadcastShapes(a->Dimensions(), b->Dimensions());
   if (!dims_output) {
     exception_state.ThrowDOMException(
@@ -1307,6 +1307,13 @@ MLOperand* MLGraphBuilder::averagePool2d(const MLOperand* input,
                                          ExceptionState& exception_state) {
   return BuildPool2d(this, MLOperator::OperatorKind::kAveragePool2d, input,
                      options, exception_state);
+}
+
+MLOperand* MLGraphBuilder::l2Pool2d(const MLOperand* input,
+                                    const MLPool2dOptions* options,
+                                    ExceptionState& exception_state) {
+  return BuildPool2d(this, MLOperator::OperatorKind::kL2Pool2d, input, options,
+                     exception_state);
 }
 
 MLOperand* MLGraphBuilder::maxPool2d(const MLOperand* input,

@@ -26,6 +26,7 @@ Berikut ialah beberapa perkara yang boleh anda cuba untuk bermula.</translation>
 <translation id="1087110696012418426">Selamat tengah hari <ph name="GIVEN_NAME" />,</translation>
 <translation id="1088231044944504242">Cari <ph name="CATEGORY" />, fail, apl anda dan pelbagai lagi. Gunakan kekunci anak panah untuk menavigasi apl anda.</translation>
 <translation id="1093645050124056515">ctrl + alt + anak panah ke bawah</translation>
+<translation id="1094756674036064790">Matikan Bluetooth?</translation>
 <translation id="109942774857561566">Saya bosan</translation>
 <translation id="1104084341931202936">Tunjukkan tetapan kebolehaksesan</translation>
 <translation id="1104621072296271835">Peranti anda akan berfungsi lebih baik bersama-sama</translation>
@@ -607,9 +608,11 @@ Berikut ialah beberapa perkara yang boleh anda cuba untuk bermula.</translation>
 <translation id="3526440770046466733">Buka pautan dalam tab baharu dan kekal pada tab semasa</translation>
 <translation id="353086728817903341">Disambungkan kepada <ph name="NUM_DEVICES" /> peranti</translation>
 <translation id="3533126039236445965">Apl dalam rak</translation>
+<translation id="3537350467437346467">Anda telah melihat</translation>
 <translation id="3539957339480430241">tempat liputan <ph name="DEVICE_NAME" /></translation>
 <translation id="3540893133818942399">Tolak penyediaan pemaparan foto dan media terbaharu telefon anda</translation>
 <translation id="3542066395059568317">Anda akan melihat pengesyoran supaya anda boleh meneruskan dari tempat anda berhenti. Anda boleh klik kanan untuk mengalih keluar pengesyoran.</translation>
+<translation id="3547318469722231257">Anda telah mengubah suai</translation>
 <translation id="3552189655002856821">Wi-Fi dimatikan</translation>
 <translation id="3554215588514239132">Tunjukkan atau sembunyikan panel Alatan Pembangun</translation>
 <translation id="3554637740840164787"><ph name="ITEM_TITLE" /> telah disemat</translation>
@@ -658,6 +661,7 @@ Sambungkan peranti anda kepada sumber kuasa.</translation>
 <translation id="3660860940251915011">Togol keterlihatan tinggi <ph name="FEATURE_NAME" /></translation>
 <translation id="366222428570480733"><ph name="USER_EMAIL_ADDRESS" /> Pengguna terurus</translation>
 <translation id="3666266999138159418">Leret untuk menyembunyikan tetingkap terapung anda</translation>
+<translation id="3673898235958558034">Apabila anda mematikan Bluetooth, "<ph name="DEVICE_NAME_1" />" dan "<ph name="DEVICE_NAME_2" />" akan diputuskan sambungan daripada Chromebook anda.</translation>
 <translation id="367531336287639526">Pilih ikon pertama pada sebelah kiri bar alamat</translation>
 <translation id="3677931086890821290">Tindakan ini membenarkan semua apl dan laman web dengan kebenaran lokasi dan ChromeOS untuk menggunakan Wi-Fi dan lokasi rangkaian mudah alih.</translation>
 <translation id="3679827876008292680">Akses tab terakhir dalam tetingkap</translation>
@@ -702,6 +706,7 @@ Semua pengguna mesti log keluar untuk meneruskan.</translation>
 <translation id="385300504083504382">Permulaan</translation>
 <translation id="3859364108019690">Tidak dapat menstrim apl</translation>
 <translation id="3861651314799684201">Tekan kekunci enter untuk merakam skrin penuh</translation>
+<translation id="3882323608730650973">Diubah suai</translation>
 <translation id="3886872229787704059">Dibuka hari ini</translation>
 <translation id="3891340733213178823">Tekan Ctrl+Shift+Q dua kali untuk keluar.</translation>
 <translation id="3893630138897523026">ChromeVox (maklum balas dituturkan)</translation>
@@ -894,6 +899,7 @@ Semua pengguna mesti log keluar untuk meneruskan.</translation>
 <translation id="4582666543382004902">Tempat Liputan telah dimatikan untuk menggunakan Wi-Fi. Untuk menggunakan tempat liputan, matikan Wi-Fi.</translation>
 <translation id="4585337515783392668">Berhenti menghantar pada penerima yang tidak diketahui</translation>
 <translation id="4596144739579517758">Tema gelap dimatikan</translation>
+<translation id="4596442969149038771"><ph name="USER" /> telah berkongsi</translation>
 <translation id="4611292653554630842">Log masuk</translation>
 <translation id="462160925400706389"><ph name="NAME" /> disambungkan</translation>
 <translation id="4623167406982293031">Sahkan akaun</translation>
@@ -911,6 +917,7 @@ Semua pengguna mesti log keluar untuk meneruskan.</translation>
 <translation id="4666911709726371538">Lagi apl</translation>
 <translation id="4667099493359681081">Memuat turun <ph name="FILENAME" /></translation>
 <translation id="4672539464599646374">Penjimat Bateri dihidupkan</translation>
+<translation id="4673427585974421255">Biar hidup</translation>
 <translation id="468293128311738995">Apl daripada telefon anda</translation>
 <translation id="4690510401873698237">Rak di bahagian bawah</translation>
 <translation id="4696813013609194136">Buka kunci peranti menggunakan kod ibu bapa</translation>
@@ -1211,6 +1218,7 @@ Sesetengah ciri dihadkan untuk meningkatkan hayat bateri.</translation>
 <translation id="5802516411616338943">Buka Tetapan Pantas</translation>
 <translation id="5804651031882187592">Matikan tetapan "Kunci SIM"</translation>
 <translation id="5805809050170488595">Klik untuk aktifkan <ph name="NETWORK_NAME" /></translation>
+<translation id="5816222150329690597">Apabila anda mematikan Bluetooth, "<ph name="DEVICE_NAME_1" />", "<ph name="DEVICE_NAME_2" />" dan <ph name="DEVICE_COUNT" /> peranti lain akan diputuskan sambungan daripada Chromebook anda.</translation>
 <translation id="5823239091726045201">Google Task pada web</translation>
 <translation id="5825969630400862129">Tetapan peranti yang bersambung</translation>
 <translation id="5837036133683224804">Hentikan <ph name="ROUTE_TITLE" /> pada <ph name="RECEIVER_NAME" /></translation>
@@ -1337,6 +1345,7 @@ Sesetengah ciri dihadkan untuk meningkatkan hayat bateri.</translation>
 <translation id="6298183524022479114">Sesuaikan peranti ini pada apl</translation>
 <translation id="6309219492973062892">Klik atau ketik ikon rak 1-8</translation>
 <translation id="6315170314923504164">Suara</translation>
+<translation id="6319058840130157106">Bergerak ke belakang antara penjuru bawah sebelah kanan, Pelancar, bar alamat, bar penanda halaman, laman web yang terbuka dengan muat turun</translation>
 <translation id="6324916366299863871">Edit pintasan</translation>
 <translation id="6330012934079202188">Memaparkan tetingkap daripada semua meja, tekan kekunci Anak panah ke atas untuk memaparkan tetingkap daripada meja semasa</translation>
 <translation id="6338485349199627913"><ph name="DISPLAY_NAME" /> ialah sesi terurus yang diurus oleh <ph name="MANAGER" /></translation>
@@ -1390,6 +1399,7 @@ Sesetengah ciri dihadkan untuk meningkatkan hayat bateri.</translation>
 <translation id="6539852571005954999">Pengimbasan muat turun <ph name="FILENAME" /></translation>
 <translation id="6542521951477560771">Menghantar ke <ph name="RECEIVER_NAME" /></translation>
 <translation id="6546062506073634094">Carian imej berdasarkan kandungan dan pratonton imej</translation>
+<translation id="6547795021703527064">Apabila anda mematikan Bluetooth, "<ph name="DEVICE_NAME" />" akan diputuskan sambungan daripada Chromebook anda.</translation>
 <translation id="6555373427270923730">Taipkan alamat web dalam bar alamat, kemudian tekan <ph name="MODIFIER" /><ph name="KEY" /></translation>
 <translation id="655633303491376835"><ph name="APP_NAME" />
 Pemasangan baharu</translation>
@@ -1500,6 +1510,7 @@ Pemasangan baharu</translation>
 <translation id="6981291220124935078">Hidupkan akses</translation>
 <translation id="6981982820502123353">Kebolehcapaian</translation>
 <translation id="698231206551913481">Semua fail dan data yang berkaitan dengan pengguna ini akan dipadamkan secara kekal selepas pengguna ini dialih keluar.</translation>
+<translation id="6984028004251196682"><ph name="DISPLAY_NAME" /> tidak menyokong <ph name="SPECIFIED_RESOLUTION" /> (<ph name="SPECIFIED_REFRESH_RATE" /> Hz). Peleraian telah ditukar kepada <ph name="FALLBACK_RESOLUTION" /> (<ph name="FALLBACK_REFRESH_RATE" /> Hz). Klik sahkan untuk menyimpan perubahan. Tetapan terdahulu akan dipulihkan dalam masa <ph name="TIMEOUT_SECONDS" />.</translation>
 <translation id="6989752354829085073">Buat jelajah pantas untuk mengetahui cara menavigasi Chromebook anda. Mulakan penggunaan dengan 6 langkah.</translation>
 <translation id="7004910047186208204">Sambungkan kepada data mudah alih</translation>
 <translation id="7005239792648594238">Buka apl untuk bermula</translation>
@@ -1814,6 +1825,7 @@ Untuk mematikan peranti, tekan dan tahan butang kuasa pada peranti sekali lagi.<
 <translation id="8314772463905284467">Caps Lock dihidupkan</translation>
 <translation id="8315514906653279104">Menghidupkan...</translation>
 <translation id="8331351032546853669">Muat turun belum selesai</translation>
+<translation id="8339706171276328417"><ph name="ACTION_DESCRIPTION" /> · <ph name="TIME" /></translation>
 <translation id="8341451174107936385"><ph name="UNLOCK_MORE_FEATURES" />  <ph name="GET_STARTED" /></translation>
 <translation id="8345019317483336363"><ph name="WINDOW_TITLE" /> tetingkap dipilih</translation>
 <translation id="8349826889576450703">launcher</translation>
@@ -1920,6 +1932,7 @@ Untuk mematikan peranti, tekan dan tahan butang kuasa pada peranti sekali lagi.<
 <translation id="878215960996152260"><ph name="APP_NAME" />, Apl yang Dipasang, Disekat</translation>
 <translation id="8785070478575117577">Sambung kepada <ph name="NETWORK_NAME" /></translation>
 <translation id="8788027118671217603"><ph name="STATE_TEXT" />. <ph name="ENTERPRISE_TEXT" /></translation>
+<translation id="8790632710469941716">Bergerak ke hadapan antara penjuru bawah sebelah kanan, Pelancar, bar alamat, bar penanda halaman, laman web yang terbuka dengan muat turun</translation>
 <translation id="8792626944327216835">mikrofon</translation>
 <translation id="8801802992492329306">5G</translation>
 <translation id="8806053966018712535">Folder <ph name="FOLDER_NAME" /></translation>
@@ -2033,6 +2046,7 @@ Untuk mematikan peranti, tekan dan tahan butang kuasa pada peranti sekali lagi.<
 <translation id="953431725143473984">Matikan peranti?</translation>
 <translation id="954052413789300507">Ruang tidak mencukupi untuk <ph name="FILENAME" />. Kosongkan ruang.</translation>
 <translation id="954520015070501466">30 min</translation>
+<translation id="954786879461589145"><ph name="USER" /> telah mengubah suai</translation>
 <translation id="974545358917229949">Memaparkan <ph name="RESULT_COUNT" /> hasil carian untuk <ph name="QUERY" /></translation>
 <translation id="981011780479609956">Tiada tarikh tamat</translation>
 <translation id="98120814841227350">Pergi ke bahagian hujung dokumen</translation>

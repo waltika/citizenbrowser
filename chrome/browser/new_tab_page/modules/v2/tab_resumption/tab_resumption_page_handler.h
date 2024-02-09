@@ -12,6 +12,8 @@
 #include <utility>
 #include <vector>
 
+#include "base/containers/flat_set.h"
+#include "base/task/cancelable_task_tracker.h"
 #include "chrome/browser/history/profile_based_browsing_history_driver.h"
 #include "chrome/browser/new_tab_page/modules/v2/tab_resumption/tab_resumption.mojom.h"
 #include "components/history/core/browser/history_types.h"
@@ -49,12 +51,32 @@ class TabResumptionPageHandler
 
   std::vector<history::mojom::TabPtr> GetForeignTabs();
 
- protected:
+  // Callback to return annotated visits for a set of url results.
+  void OnQueryURLsComplete(std::vector<history::mojom::TabPtr> tabs,
+                           GetTabsCallback callback,
+                           std::vector<history::QueryURLResult> results);
+
+  // Callback to return the tabs from the associated annotated visits based
+  // on if their visibility scores pass a visibility threshold.
+  void OnAnnotatedVisits(
+      std::vector<history::mojom::TabPtr> tabs,
+      GetTabsCallback callback,
+      const std::vector<history::AnnotatedVisit> annotated_visits);
+
  private:
+  // The task tracker for the HistoryService callbacks.
+  base::CancelableTaskTracker task_tracker_;
+
   raw_ptr<Profile> profile_;
   raw_ptr<content::WebContents> web_contents_;
 
   mojo::Receiver<ntp::tab_resumption::mojom::PageHandler> page_handler_;
+
+  const float visibility_threshold_;
+
+  // The category IDs that a tab must not contain for it to be included.
+  // If `categories_blocklist`is empty, the returned tabs will not be filtered.
+  base::flat_set<std::string> categories_blocklist_;
 
   base::WeakPtrFactory<TabResumptionPageHandler> weak_ptr_factory_{this};
 };

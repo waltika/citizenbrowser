@@ -25,6 +25,17 @@
 
 namespace autofill {
 
+namespace {
+bool IsVirtualCardFeatureEnabled() {
+#if BUILDFLAG(IS_IOS)
+  return base::FeatureList::IsEnabled(features::kAutofillEnableVirtualCards);
+#else
+  return base::FeatureList::IsEnabled(
+      features::kAutofillEnableUpdateVirtualCardEnrollment);
+#endif
+}
+}  // namespace
+
 VirtualCardEnrollmentFields::VirtualCardEnrollmentFields() = default;
 VirtualCardEnrollmentFields::VirtualCardEnrollmentFields(
     const VirtualCardEnrollmentFields&) = default;
@@ -53,9 +64,8 @@ VirtualCardEnrollmentManager::VirtualCardEnrollmentManager(
       payments_network_interface_(payments_network_interface) {
   // |autofill_client_| does not exist on Clank settings page where this flow
   // can also be triggered.
-  if (base::FeatureList::IsEnabled(
-          features::kAutofillEnableUpdateVirtualCardEnrollment) &&
-      autofill_client_ && autofill_client_->GetStrikeDatabase()) {
+  if (IsVirtualCardFeatureEnabled() && autofill_client_ &&
+      autofill_client_->GetStrikeDatabase()) {
     virtual_card_enrollment_strike_database_ =
         std::make_unique<VirtualCardEnrollmentStrikeDatabase>(
             autofill_client_->GetStrikeDatabase());
@@ -75,8 +85,7 @@ void VirtualCardEnrollmentManager::InitVirtualCardEnroll(
     VirtualCardEnrollmentFieldsLoadedCallback
         virtual_card_enrollment_fields_loaded_callback) {
   // If at strike limit, exit enrollment flow.
-  if (base::FeatureList::IsEnabled(
-          features::kAutofillEnableUpdateVirtualCardEnrollment) &&
+  if (IsVirtualCardFeatureEnabled() &&
       ShouldBlockVirtualCardEnrollment(
           base::NumberToString(credit_card.instrument_id()),
           virtual_card_enrollment_source)) {
@@ -112,18 +121,6 @@ void VirtualCardEnrollmentManager::InitVirtualCardEnroll(
           weak_ptr_factory_.GetWeakPtr()));
 }
 
-void VirtualCardEnrollmentManager::OnCardSavedAnimationComplete() {
-  if (state_.virtual_card_enrollment_fields.virtual_card_enrollment_source ==
-      VirtualCardEnrollmentSource::kUpstream) {
-    avatar_animation_complete_ = true;
-
-    if (enroll_response_details_received_) {
-      EnsureCardArtImageIsSetBeforeShowingUI();
-      ShowVirtualCardEnrollBubble();
-    }
-  }
-}
-
 void VirtualCardEnrollmentManager::Enroll(
     std::optional<VirtualCardEnrollmentUpdateResponseCallback>
         virtual_card_enrollment_update_response_callback) {
@@ -151,8 +148,7 @@ void VirtualCardEnrollmentManager::Enroll(
                          OnDidGetUpdateVirtualCardEnrollmentResponse,
                      weak_ptr_factory_.GetWeakPtr(),
                      VirtualCardEnrollmentRequestType::kEnroll));
-  if (base::FeatureList::IsEnabled(
-          features::kAutofillEnableUpdateVirtualCardEnrollment)) {
+  if (IsVirtualCardFeatureEnabled()) {
     RemoveAllStrikesToBlockOfferingVirtualCardEnrollment(base::NumberToString(
         state_.virtual_card_enrollment_fields.credit_card.instrument_id()));
   }
@@ -291,7 +287,6 @@ void VirtualCardEnrollmentManager::Reset() {
   payments_network_interface_->CancelRequest();
   weak_ptr_factory_.InvalidateWeakPtrs();
   state_ = VirtualCardEnrollmentProcessState();
-  avatar_animation_complete_ = false;
   enroll_response_details_received_ = false;
 }
 
@@ -355,8 +350,7 @@ void VirtualCardEnrollmentManager::ShowVirtualCardEnrollBubble() {
 }
 
 void VirtualCardEnrollmentManager::OnVirtualCardEnrollmentBubbleCancelled() {
-  if (base::FeatureList::IsEnabled(
-          features::kAutofillEnableUpdateVirtualCardEnrollment)) {
+  if (IsVirtualCardFeatureEnabled()) {
     AddStrikeToBlockOfferingVirtualCardEnrollment(base::NumberToString(
         state_.virtual_card_enrollment_fields.credit_card.instrument_id()));
   }

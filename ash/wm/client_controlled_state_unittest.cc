@@ -15,6 +15,7 @@
 #include "ash/screen_util.h"
 #include "ash/shell.h"
 #include "ash/test/ash_test_base.h"
+#include "ash/test/test_widget_builder.h"
 #include "ash/wm/desks/desks_util.h"
 #include "ash/wm/float/float_controller.h"
 #include "ash/wm/overview/overview_controller.h"
@@ -299,6 +300,21 @@ class ClientControlledStateTest : public AshTestBase {
           window->GetBoundsInScreen().right_center());
     }
     generator->DragMouseTo(gfx::Point(target_x, 0));
+  }
+  void DragOverviewItemToSnap(aura::Window* window, bool to_left) {
+    auto* const overview_controller = OverviewController::Get();
+    ASSERT_TRUE(overview_controller->InOverviewSession());
+
+    auto* const overview_item = GetOverviewItemForWindow(window);
+    auto* const event_generator = GetEventGenerator();
+    event_generator->set_current_screen_location(
+        gfx::ToRoundedPoint(overview_item->target_bounds().CenterPoint()));
+
+    const gfx::Rect work_area = display::Screen::GetScreen()
+                                    ->GetDisplayNearestWindow(window)
+                                    .work_area();
+    event_generator->DragMouseTo(to_left ? work_area.left_center()
+                                         : work_area.right_center());
   }
 
  private:
@@ -736,9 +752,11 @@ TEST_P(ClientControlledStateTestClamshellAndTablet, SnapMinimizeAndUnminimize) {
   VerifySnappedBounds(window(), expected_snap_ratio);
   EXPECT_EQ(WindowStateType::kPrimarySnapped, window_state()->GetStateType());
 
+  // Minimize.
   widget()->Minimize();
   state()->EnterNextState(window_state(), delegate()->new_state());
 
+  // Unminimize via the `Unminimize` method.
   ::wm::Unminimize(widget()->GetNativeWindow());
 
   // Apply pending requests.
@@ -746,6 +764,60 @@ TEST_P(ClientControlledStateTestClamshellAndTablet, SnapMinimizeAndUnminimize) {
   ApplyPendingRequestedBounds();
   VerifySnappedBounds(window(), expected_snap_ratio);
   EXPECT_EQ(WindowStateType::kPrimarySnapped, delegate()->new_state());
+
+  // Minimize again.
+  widget()->Minimize();
+  state()->EnterNextState(window_state(), delegate()->new_state());
+
+  // Unminimize via drag-to-snap to the opposite side.
+  if (!InTabletMode()) {
+    ToggleOverview();
+  }
+  DragOverviewItemToSnap(window(), /*to_left=*/false);
+
+  // The client may activate the widget before accepting the snap request.
+  widget()->Activate();
+
+  // Apply pending requests.
+  state()->EnterNextState(window_state(), delegate()->new_state());
+  ApplyPendingRequestedBounds();
+  VerifySnappedBounds(window(), chromeos::kDefaultSnapRatio);
+  EXPECT_EQ(WindowStateType::kSecondarySnapped, window_state()->GetStateType());
+
+  // Minimize again.
+  widget()->Minimize();
+  state()->EnterNextState(window_state(), delegate()->new_state());
+
+  // Unminimize via overview mode.
+  if (!InTabletMode()) {
+    ToggleOverview();
+  }
+  ClickOnOverviewItem(window());
+
+  // The client may activate the widget before accepting the snap request.
+  widget()->Activate();
+
+  // Apply pending requests.
+  state()->EnterNextState(window_state(), delegate()->new_state());
+  ApplyPendingRequestedBounds();
+  VerifySnappedBounds(window(), chromeos::kDefaultSnapRatio);
+  EXPECT_EQ(WindowStateType::kSecondarySnapped, window_state()->GetStateType());
+
+  // Minimize again.
+  widget()->Minimize();
+  state()->EnterNextState(window_state(), delegate()->new_state());
+
+  // Unminimize via shelf icon.
+  SimulateUnminimizeViaShelfIcon(widget());
+
+  // The client may activate the widget before accepting the snap request.
+  widget()->Activate();
+
+  // Apply pending requests.
+  state()->EnterNextState(window_state(), delegate()->new_state());
+  ApplyPendingRequestedBounds();
+  VerifySnappedBounds(window(), chromeos::kDefaultSnapRatio);
+  EXPECT_EQ(WindowStateType::kSecondarySnapped, window_state()->GetStateType());
 }
 
 // Tests that auto snapping from maximized/minimized via overview/shelf works
@@ -1542,11 +1614,7 @@ TEST_P(ClientControlledStateTestClamshellAndTablet,
   EXPECT_FALSE(split_view_controller->InSplitViewMode());
 
   // Drag `window()`'s overview item to snap to left.
-  auto* const overview_item = GetOverviewItemForWindow(window());
-  auto* const event_generator = GetEventGenerator();
-  event_generator->set_current_screen_location(
-      gfx::ToRoundedPoint(overview_item->target_bounds().CenterPoint()));
-  event_generator->DragMouseTo(0, 0);
+  DragOverviewItemToSnap(window(), /*to_left=*/true);
 
   // Ensures the window is in a transitional snapped state.
   EXPECT_TRUE(split_view_controller->IsWindowInTransitionalState(window()));
@@ -1575,7 +1643,6 @@ TEST_P(ClientControlledStateTestClamshellAndTablet,
        DragOverviewWindowToSnapBothSide) {
   auto* const overview_controller = OverviewController::Get();
   auto* const split_view_controller = SplitViewController::Get(window());
-  auto* const event_generator = GetEventGenerator();
 
   widget_delegate()->EnableSnap();
 
@@ -1588,22 +1655,11 @@ TEST_P(ClientControlledStateTestClamshellAndTablet,
   EXPECT_TRUE(overview_controller->InOverviewSession());
   EXPECT_FALSE(split_view_controller->InSplitViewMode());
 
-  {
-    // Drag `non_client_controlled_window`'s overview item to snap to left.
-    auto* const overview_item =
-        GetOverviewItemForWindow(non_client_controlled_window.get());
-    event_generator->set_current_screen_location(
-        gfx::ToRoundedPoint(overview_item->target_bounds().CenterPoint()));
-    event_generator->DragMouseTo(0, 0);
-  }
+  // Drag `non_client_controlled_window`'s overview item to snap to left.
+  DragOverviewItemToSnap(non_client_controlled_window.get(), /*to_left=*/true);
 
-  {
-    // Click `window()`'s overview item to snap to right.
-    auto* const overview_item = GetOverviewItemForWindow(window());
-    event_generator->set_current_screen_location(
-        gfx::ToRoundedPoint(overview_item->target_bounds().CenterPoint()));
-    event_generator->ClickLeftButton();
-  }
+  // Click `window()`'s overview item to snap to right.
+  ClickOnOverviewItem(window());
 
   // Ensures the window is in a transitional snapped state.
   EXPECT_TRUE(split_view_controller->IsWindowInTransitionalState(window()));
@@ -1725,6 +1781,60 @@ TEST_P(ClientControlledStateTestClamshellAndTablet, SnapFloatedWindow) {
   ApplyPendingRequestedBounds();
   VerifySnappedBounds(window(), chromeos::kDefaultSnapRatio);
   EXPECT_EQ(WindowStateType::kPrimarySnapped, window_state()->GetStateType());
+}
+
+// Tests that floating a fullscreen window to replace a floated window works
+// properly without any crash. Regression test for b/322374826.
+TEST_P(ClientControlledStateTestClamshellAndTablet,
+       ReplaceFloatedWindowWithFullscreenWindow) {
+  // The AppType must be set to any except `AppType::NON_APP` (default value) to
+  // make it floatable.
+  window()->SetProperty(aura::client::kAppType,
+                        static_cast<int>(AppType::ARC_APP));
+  widget_delegate()->EnableFloat();
+  ASSERT_TRUE(chromeos::wm::CanFloatWindow(window()));
+
+  // Make `window()` fullscreen to hide shelf.
+  const WMEvent enter_fullscreen(WM_EVENT_FULLSCREEN);
+  window_state()->OnWMEvent(&enter_fullscreen);
+  state()->EnterNextState(window_state(), delegate()->new_state());
+  EXPECT_TRUE(widget()->IsFullscreen());
+
+  // Create another client-controlled window.
+  auto widget2 = TestWidgetBuilder()
+                     .SetParent(Shell::GetPrimaryRootWindow()->GetChildById(
+                         desks_util::GetActiveDeskContainerId()))
+                     .SetBounds(kInitialBounds)
+                     .SetTestWidgetDelegate()
+                     .SetWindowProperty(aura::client::kAppType,
+                                        static_cast<int>(AppType::ARC_APP))
+                     .SetShow(false)
+                     .BuildOwnsNativeWidget();
+  auto* const window_state2 = WindowState::Get(widget2->GetNativeWindow());
+  window_state2->set_allow_set_bounds_direct(true);
+  auto delegate2 = std::make_unique<TestClientControlledStateDelegate>();
+  auto* const state_delegate2_ptr = delegate2.get();
+  auto state2 = std::make_unique<ClientControlledState>(std::move(delegate2));
+  auto* state2_ptr = state2.get();
+  window_state2->SetStateObject(std::move(state2));
+  widget2->Show();
+
+  // Float `widget2`.
+  const WindowFloatWMEvent float_event(
+      chromeos::FloatStartLocation::kBottomRight);
+  window_state2->OnWMEvent(&float_event);
+  state2_ptr->EnterNextState(window_state2, state_delegate2_ptr->new_state());
+  ASSERT_TRUE(window_state2->IsFloated());
+
+  // Float `window`.
+  window_state()->OnWMEvent(&float_event);
+  state()->EnterNextState(window_state(), delegate()->new_state());
+  ApplyPendingRequestedBounds();
+  ASSERT_TRUE(window_state()->IsFloated());
+
+  // Floating `window` should result in unfloating `widget2`.
+  state2_ptr->EnterNextState(window_state2, state_delegate2_ptr->new_state());
+  EXPECT_FALSE(window_state2->IsFloated());
 }
 
 }  // namespace ash

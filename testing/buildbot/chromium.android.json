@@ -118,7 +118,7 @@
             {
               "cipd_package": "chromium/android_webview/tools/cts_archive",
               "location": "android_webview/tools/cts_archive",
-              "revision": "dMHDxWyIpkzGNem_Z7ywDRj3Y2lUQKM7h4JT87_ejr8C"
+              "revision": "Tonx5t-WDQ4lYRaMNn3IEzzOeyaIgtQ0d1ZAv0lRlwEC"
             }
           ],
           "dimensions": {
@@ -170,7 +170,7 @@
             {
               "cipd_package": "chromium/android_webview/tools/cts_archive",
               "location": "android_webview/tools/cts_archive",
-              "revision": "dMHDxWyIpkzGNem_Z7ywDRj3Y2lUQKM7h4JT87_ejr8C"
+              "revision": "Tonx5t-WDQ4lYRaMNn3IEzzOeyaIgtQ0d1ZAv0lRlwEC"
             }
           ],
           "dimensions": {
@@ -486,7 +486,7 @@
             {
               "cipd_package": "chromium/android_webview/tools/cts_archive",
               "location": "android_webview/tools/cts_archive",
-              "revision": "dMHDxWyIpkzGNem_Z7ywDRj3Y2lUQKM7h4JT87_ejr8C"
+              "revision": "Tonx5t-WDQ4lYRaMNn3IEzzOeyaIgtQ0d1ZAv0lRlwEC"
             }
           ],
           "dimensions": {
@@ -537,7 +537,7 @@
             {
               "cipd_package": "chromium/android_webview/tools/cts_archive",
               "location": "android_webview/tools/cts_archive",
-              "revision": "dMHDxWyIpkzGNem_Z7ywDRj3Y2lUQKM7h4JT87_ejr8C"
+              "revision": "Tonx5t-WDQ4lYRaMNn3IEzzOeyaIgtQ0d1ZAv0lRlwEC"
             }
           ],
           "dimensions": {
@@ -2213,7 +2213,8 @@
         "args": [
           "--gs-results-bucket=chromium-result-details",
           "--recover-devices",
-          "--avd-config=../../tools/android/avd/proto/android_30_google_apis_x86.textpb"
+          "--avd-config=../../tools/android/avd/proto/android_30_google_apis_x86.textpb",
+          "--git-revision=${got_revision}"
         ],
         "merge": {
           "args": [
@@ -2225,6 +2226,11 @@
           "script": "//build/android/pylib/results/presentation/test_results_presentation.py"
         },
         "name": "blink_platform_unittests",
+        "precommit_args": [
+          "--gerrit-issue=${patch_issue}",
+          "--gerrit-patchset=${patch_set}",
+          "--buildbucket-id=${buildbucket_build_id}"
+        ],
         "resultdb": {
           "enable": true,
           "has_native_resultdb_integration": true
@@ -5302,7 +5308,7 @@
             {
               "cipd_package": "chromium/android_webview/tools/cts_archive",
               "location": "android_webview/tools/cts_archive",
-              "revision": "dMHDxWyIpkzGNem_Z7ywDRj3Y2lUQKM7h4JT87_ejr8C"
+              "revision": "Tonx5t-WDQ4lYRaMNn3IEzzOeyaIgtQ0d1ZAv0lRlwEC"
             }
           ],
           "dimensions": {
@@ -5369,7 +5375,7 @@
             {
               "cipd_package": "chromium/android_webview/tools/cts_archive",
               "location": "android_webview/tools/cts_archive",
-              "revision": "dMHDxWyIpkzGNem_Z7ywDRj3Y2lUQKM7h4JT87_ejr8C"
+              "revision": "Tonx5t-WDQ4lYRaMNn3IEzzOeyaIgtQ0d1ZAv0lRlwEC"
             }
           ],
           "dimensions": {
@@ -6044,7 +6050,8 @@
           "--use-persistent-shell",
           "--gs-results-bucket=chromium-result-details",
           "--recover-devices",
-          "--avd-config=../../tools/android/avd/proto/android_31_google_apis_x64.textpb"
+          "--avd-config=../../tools/android/avd/proto/android_31_google_apis_x64.textpb",
+          "--git-revision=${got_revision}"
         ],
         "description": "Run with android_31_google_apis_x64",
         "isolate_profile_data": true,
@@ -6058,6 +6065,11 @@
           "script": "//build/android/pylib/results/presentation/test_results_presentation.py"
         },
         "name": "blink_platform_unittests",
+        "precommit_args": [
+          "--gerrit-issue=${patch_issue}",
+          "--gerrit-patchset=${patch_set}",
+          "--buildbucket-id=${buildbucket_build_id}"
+        ],
         "resultdb": {
           "enable": true,
           "has_native_resultdb_integration": true
@@ -9482,7 +9494,7 @@
             {
               "cipd_package": "chromium/android_webview/tools/cts_archive",
               "location": "android_webview/tools/cts_archive",
-              "revision": "dMHDxWyIpkzGNem_Z7ywDRj3Y2lUQKM7h4JT87_ejr8C"
+              "revision": "Tonx5t-WDQ4lYRaMNn3IEzzOeyaIgtQ0d1ZAv0lRlwEC"
             }
           ],
           "dimensions": {
@@ -9552,7 +9564,7 @@
             {
               "cipd_package": "chromium/android_webview/tools/cts_archive",
               "location": "android_webview/tools/cts_archive",
-              "revision": "dMHDxWyIpkzGNem_Z7ywDRj3Y2lUQKM7h4JT87_ejr8C"
+              "revision": "Tonx5t-WDQ4lYRaMNn3IEzzOeyaIgtQ0d1ZAv0lRlwEC"
             }
           ],
           "dimensions": {
@@ -9621,7 +9633,7 @@
             {
               "cipd_package": "chromium/android_webview/tools/cts_archive",
               "location": "android_webview/tools/cts_archive",
-              "revision": "dMHDxWyIpkzGNem_Z7ywDRj3Y2lUQKM7h4JT87_ejr8C"
+              "revision": "Tonx5t-WDQ4lYRaMNn3IEzzOeyaIgtQ0d1ZAv0lRlwEC"
             }
           ],
           "dimensions": {
@@ -10371,7 +10383,8 @@
         "args": [
           "--gs-results-bucket=chromium-result-details",
           "--recover-devices",
-          "--avd-config=../../tools/android/avd/proto/android_32_google_apis_x64_foldable.textpb"
+          "--avd-config=../../tools/android/avd/proto/android_32_google_apis_x64_foldable.textpb",
+          "--git-revision=${got_revision}"
         ],
         "merge": {
           "args": [
@@ -10383,6 +10396,11 @@
           "script": "//build/android/pylib/results/presentation/test_results_presentation.py"
         },
         "name": "blink_platform_unittests",
+        "precommit_args": [
+          "--gerrit-issue=${patch_issue}",
+          "--gerrit-patchset=${patch_set}",
+          "--buildbucket-id=${buildbucket_build_id}"
+        ],
         "resultdb": {
           "enable": true,
           "has_native_resultdb_integration": true
@@ -10761,7 +10779,6 @@
           "--git-revision=${got_revision}",
           "--test-launcher-filter-file=../../testing/buildbot/filters/android.emulator_12l.chrome_public_test_apk.filter"
         ],
-        "ci_only": true,
         "merge": {
           "args": [
             "--bucket",
@@ -14036,7 +14053,8 @@
         "args": [
           "--gs-results-bucket=chromium-result-details",
           "--recover-devices",
-          "--avd-config=../../tools/android/avd/proto/android_33_google_apis_x64.textpb"
+          "--avd-config=../../tools/android/avd/proto/android_33_google_apis_x64.textpb",
+          "--git-revision=${got_revision}"
         ],
         "description": "Run with android_33_google_apis_x64",
         "merge": {
@@ -14049,6 +14067,11 @@
           "script": "//build/android/pylib/results/presentation/test_results_presentation.py"
         },
         "name": "blink_platform_unittests",
+        "precommit_args": [
+          "--gerrit-issue=${patch_issue}",
+          "--gerrit-patchset=${patch_set}",
+          "--buildbucket-id=${buildbucket_build_id}"
+        ],
         "resultdb": {
           "enable": true,
           "has_native_resultdb_integration": true
@@ -17230,7 +17253,7 @@
             {
               "cipd_package": "chromium/android_webview/tools/cts_archive",
               "location": "android_webview/tools/cts_archive",
-              "revision": "dMHDxWyIpkzGNem_Z7ywDRj3Y2lUQKM7h4JT87_ejr8C"
+              "revision": "Tonx5t-WDQ4lYRaMNn3IEzzOeyaIgtQ0d1ZAv0lRlwEC"
             }
           ],
           "dimensions": {
@@ -17298,7 +17321,7 @@
             {
               "cipd_package": "chromium/android_webview/tools/cts_archive",
               "location": "android_webview/tools/cts_archive",
-              "revision": "dMHDxWyIpkzGNem_Z7ywDRj3Y2lUQKM7h4JT87_ejr8C"
+              "revision": "Tonx5t-WDQ4lYRaMNn3IEzzOeyaIgtQ0d1ZAv0lRlwEC"
             }
           ],
           "dimensions": {
@@ -17364,7 +17387,7 @@
             {
               "cipd_package": "chromium/android_webview/tools/cts_archive",
               "location": "android_webview/tools/cts_archive",
-              "revision": "dMHDxWyIpkzGNem_Z7ywDRj3Y2lUQKM7h4JT87_ejr8C"
+              "revision": "Tonx5t-WDQ4lYRaMNn3IEzzOeyaIgtQ0d1ZAv0lRlwEC"
             }
           ],
           "dimensions": {
@@ -18012,7 +18035,8 @@
         "args": [
           "--gs-results-bucket=chromium-result-details",
           "--recover-devices",
-          "--avd-config=../../tools/android/avd/proto/android_34_google_apis_x64.textpb"
+          "--avd-config=../../tools/android/avd/proto/android_34_google_apis_x64.textpb",
+          "--git-revision=${got_revision}"
         ],
         "description": "Run with android_34_google_apis_x64",
         "merge": {
@@ -18025,6 +18049,11 @@
           "script": "//build/android/pylib/results/presentation/test_results_presentation.py"
         },
         "name": "blink_platform_unittests",
+        "precommit_args": [
+          "--gerrit-issue=${patch_issue}",
+          "--gerrit-patchset=${patch_set}",
+          "--buildbucket-id=${buildbucket_build_id}"
+        ],
         "resultdb": {
           "enable": true,
           "has_native_resultdb_integration": true
@@ -21197,7 +21226,7 @@
             {
               "cipd_package": "chromium/android_webview/tools/cts_archive",
               "location": "android_webview/tools/cts_archive",
-              "revision": "dMHDxWyIpkzGNem_Z7ywDRj3Y2lUQKM7h4JT87_ejr8C"
+              "revision": "Tonx5t-WDQ4lYRaMNn3IEzzOeyaIgtQ0d1ZAv0lRlwEC"
             }
           ],
           "dimensions": {
@@ -21265,7 +21294,7 @@
             {
               "cipd_package": "chromium/android_webview/tools/cts_archive",
               "location": "android_webview/tools/cts_archive",
-              "revision": "dMHDxWyIpkzGNem_Z7ywDRj3Y2lUQKM7h4JT87_ejr8C"
+              "revision": "Tonx5t-WDQ4lYRaMNn3IEzzOeyaIgtQ0d1ZAv0lRlwEC"
             }
           ],
           "dimensions": {
@@ -21331,7 +21360,7 @@
             {
               "cipd_package": "chromium/android_webview/tools/cts_archive",
               "location": "android_webview/tools/cts_archive",
-              "revision": "dMHDxWyIpkzGNem_Z7ywDRj3Y2lUQKM7h4JT87_ejr8C"
+              "revision": "Tonx5t-WDQ4lYRaMNn3IEzzOeyaIgtQ0d1ZAv0lRlwEC"
             }
           ],
           "dimensions": {
@@ -21869,7 +21898,8 @@
       {
         "args": [
           "--gs-results-bucket=chromium-result-details",
-          "--recover-devices"
+          "--recover-devices",
+          "--git-revision=${got_revision}"
         ],
         "merge": {
           "args": [
@@ -21881,6 +21911,11 @@
           "script": "//build/android/pylib/results/presentation/test_results_presentation.py"
         },
         "name": "blink_platform_unittests",
+        "precommit_args": [
+          "--gerrit-issue=${patch_issue}",
+          "--gerrit-patchset=${patch_set}",
+          "--buildbucket-id=${buildbucket_build_id}"
+        ],
         "resultdb": {
           "enable": true,
           "has_native_resultdb_integration": true
@@ -30762,7 +30797,8 @@
           "--use-persistent-shell",
           "--gs-results-bucket=chromium-result-details",
           "--recover-devices",
-          "--avd-config=../../tools/android/avd/proto/generic_android26.textpb"
+          "--avd-config=../../tools/android/avd/proto/generic_android26.textpb",
+          "--git-revision=${got_revision}"
         ],
         "isolate_profile_data": true,
         "merge": {
@@ -30775,6 +30811,11 @@
           "script": "//build/android/pylib/results/presentation/test_results_presentation.py"
         },
         "name": "blink_platform_unittests",
+        "precommit_args": [
+          "--gerrit-issue=${patch_issue}",
+          "--gerrit-patchset=${patch_set}",
+          "--buildbucket-id=${buildbucket_build_id}"
+        ],
         "resultdb": {
           "enable": true,
           "has_native_resultdb_integration": true
@@ -34076,7 +34117,7 @@
             {
               "cipd_package": "chromium/android_webview/tools/cts_archive",
               "location": "android_webview/tools/cts_archive",
-              "revision": "dMHDxWyIpkzGNem_Z7ywDRj3Y2lUQKM7h4JT87_ejr8C"
+              "revision": "Tonx5t-WDQ4lYRaMNn3IEzzOeyaIgtQ0d1ZAv0lRlwEC"
             }
           ],
           "dimensions": {
@@ -35503,7 +35544,8 @@
         "args": [
           "--use-persistent-shell",
           "--gs-results-bucket=chromium-result-details",
-          "--recover-devices"
+          "--recover-devices",
+          "--git-revision=${got_revision}"
         ],
         "isolate_profile_data": true,
         "merge": {
@@ -35516,6 +35558,11 @@
           "script": "//build/android/pylib/results/presentation/test_results_presentation.py"
         },
         "name": "blink_platform_unittests",
+        "precommit_args": [
+          "--gerrit-issue=${patch_issue}",
+          "--gerrit-patchset=${patch_set}",
+          "--buildbucket-id=${buildbucket_build_id}"
+        ],
         "resultdb": {
           "enable": true,
           "has_native_resultdb_integration": true
@@ -35985,7 +36032,7 @@
             {
               "cipd_package": "chromium/android_webview/tools/cts_archive",
               "location": "android_webview/tools/cts_archive",
-              "revision": "dMHDxWyIpkzGNem_Z7ywDRj3Y2lUQKM7h4JT87_ejr8C"
+              "revision": "Tonx5t-WDQ4lYRaMNn3IEzzOeyaIgtQ0d1ZAv0lRlwEC"
             }
           ],
           "dimensions": {
@@ -36548,7 +36595,8 @@
         "args": [
           "--gs-results-bucket=chromium-result-details",
           "--recover-devices",
-          "--avd-config=../../tools/android/avd/proto/android_28_google_apis_x86.textpb"
+          "--avd-config=../../tools/android/avd/proto/android_28_google_apis_x86.textpb",
+          "--git-revision=${got_revision}"
         ],
         "merge": {
           "args": [
@@ -36560,6 +36608,11 @@
           "script": "//build/android/pylib/results/presentation/test_results_presentation.py"
         },
         "name": "blink_platform_unittests",
+        "precommit_args": [
+          "--gerrit-issue=${patch_issue}",
+          "--gerrit-patchset=${patch_set}",
+          "--buildbucket-id=${buildbucket_build_id}"
+        ],
         "resultdb": {
           "enable": true,
           "has_native_resultdb_integration": true
@@ -39628,7 +39681,7 @@
             {
               "cipd_package": "chromium/android_webview/tools/cts_archive",
               "location": "android_webview/tools/cts_archive",
-              "revision": "dMHDxWyIpkzGNem_Z7ywDRj3Y2lUQKM7h4JT87_ejr8C"
+              "revision": "Tonx5t-WDQ4lYRaMNn3IEzzOeyaIgtQ0d1ZAv0lRlwEC"
             }
           ],
           "dimensions": {
@@ -39930,7 +39983,7 @@
             {
               "cipd_package": "chromium/android_webview/tools/cts_archive",
               "location": "android_webview/tools/cts_archive",
-              "revision": "dMHDxWyIpkzGNem_Z7ywDRj3Y2lUQKM7h4JT87_ejr8C"
+              "revision": "Tonx5t-WDQ4lYRaMNn3IEzzOeyaIgtQ0d1ZAv0lRlwEC"
             }
           ],
           "dimensions": {
@@ -39997,7 +40050,7 @@
             {
               "cipd_package": "chromium/android_webview/tools/cts_archive",
               "location": "android_webview/tools/cts_archive",
-              "revision": "dMHDxWyIpkzGNem_Z7ywDRj3Y2lUQKM7h4JT87_ejr8C"
+              "revision": "Tonx5t-WDQ4lYRaMNn3IEzzOeyaIgtQ0d1ZAv0lRlwEC"
             }
           ],
           "dimensions": {

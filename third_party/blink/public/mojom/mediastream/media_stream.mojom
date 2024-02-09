@@ -124,7 +124,7 @@ struct MediaStreamDevice {
 // See common/mediastream/media_stream_controls.h.
 struct TrackControls {
   MediaStreamType stream_type;
-  string device_id;
+  array<string> device_ids;
 };
 
 // See common/mediastream/media_stream_controls.h.
@@ -315,15 +315,6 @@ interface MediaStreamDispatcherHost {
   SendWheel(mojo_base.mojom.UnguessableToken device_id,
             CapturedWheelAction action) =>
     (CapturedSurfaceControlResult result);
-
-  // Retrieves the zoom level from the captured tab.
-  //
-  // |device_id| identifies the captured tab.
-  // |zoom_level| will contain the zoom level if the request is successful.
-  // |result| reports if the call was successful or what type of error occurred.
-  [EnableIfNot=is_android_or_ios]
-  GetZoomLevel(mojo_base.mojom.UnguessableToken device_id)
-           => (int32? zoom_level, CapturedSurfaceControlResult result);
 
   // Sets the zoom level of the captured tab.
   //

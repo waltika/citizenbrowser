@@ -5,6 +5,7 @@
 #include "chrome/browser/ui/views/profiles/avatar_toolbar_button_delegate.h"
 
 #include "base/check_op.h"
+#include "base/notreached.h"
 #include "base/task/single_thread_task_runner.h"
 #include "build/chromeos_buildflags.h"
 #include "chrome/browser/browser_process.h"
@@ -14,8 +15,11 @@
 #include "chrome/browser/profiles/profile_manager.h"
 #include "chrome/browser/profiles/profiles_state.h"
 #include "chrome/browser/signin/account_consistency_mode_manager.h"
+#include "chrome/browser/signin/dice_web_signin_interceptor.h"
+#include "chrome/browser/signin/dice_web_signin_interceptor_factory.h"
 #include "chrome/browser/signin/identity_manager_factory.h"
 #include "chrome/browser/signin/signin_ui_util.h"
+#include "chrome/browser/signin/web_signin_interceptor.h"
 #include "chrome/browser/sync/sync_service_factory.h"
 #include "chrome/browser/sync/sync_ui_util.h"
 #include "chrome/browser/themes/theme_service_factory.h"
@@ -23,15 +27,16 @@
 #include "chrome/browser/ui/browser_list.h"
 #include "chrome/browser/ui/profiles/profile_colors_util.h"
 #include "chrome/browser/ui/web_applications/app_browser_controller.h"
+#include "chrome/grit/branded_strings.h"
+#include "chrome/grit/generated_resources.h"
 #include "components/signin/public/base/consent_level.h"
 #include "components/sync/service/sync_service.h"
+#include "ui/base/l10n/l10n_util.h"
 #include "ui/base/resource/resource_bundle.h"
 
 namespace {
 
 constexpr base::TimeDelta kIdentityAnimationDuration = base::Seconds(3);
-
-constexpr base::TimeDelta kAvatarHighlightAnimationDuration = base::Seconds(2);
 
 ProfileAttributesStorage& GetProfileAttributesStorage() {
   return g_browser_process->profile_manager()->GetProfileAttributesStorage();
@@ -41,6 +46,31 @@ ProfileAttributesEntry* GetProfileAttributesEntry(Profile* profile) {
   return GetProfileAttributesStorage().GetProfileAttributesWithPath(
       profile->GetPath());
 }
+
+#if BUILDFLAG(ENABLE_DICE_SUPPORT)
+std::u16string InterceptionTypeToIdentityPillText(
+    WebSigninInterceptor::SigninInterceptionType interception_type) {
+  switch (interception_type) {
+    case WebSigninInterceptor::SigninInterceptionType::kProfileSwitch:
+      return l10n_util::GetStringUTF16(
+          IDS_SIGNIN_DICE_WEB_INTERCEPT_AVATAR_BUTTON_SWITCH_PROFILE_TEXT);
+    case WebSigninInterceptor::SigninInterceptionType::kChromeSignin:
+      return l10n_util::GetStringUTF16(
+          IDS_AVATAR_BUTTON_INTERCEPT_BUBBLE_CHROME_SIGNIN_TEXT);
+    case WebSigninInterceptor::SigninInterceptionType::kMultiUser:
+    case WebSigninInterceptor::SigninInterceptionType::kEnterprise:
+      return l10n_util::GetStringUTF16(
+          IDS_SIGNIN_DICE_WEB_INTERCEPT_AVATAR_BUTTON_SEPARATE_BROWSING_TEXT);
+    case WebSigninInterceptor::SigninInterceptionType::kEnterpriseForced:
+    case WebSigninInterceptor::SigninInterceptionType::
+        kEnterpriseAcceptManagement:
+    case WebSigninInterceptor::SigninInterceptionType::kProfileSwitchForced:
+      // These intercept type do not show a bubble and should not need to change
+      // the identity pill text.
+      NOTREACHED_NORETURN();
+  }
+}
+#endif
 
 }  // namespace
 
@@ -53,8 +83,9 @@ AvatarToolbarButtonDelegate::AvatarToolbarButtonDelegate(
       last_avatar_error_(::GetAvatarSyncErrorType(profile_)) {
   profile_observation_.Observe(&GetProfileAttributesStorage());
 
-  if (auto* sync_service = SyncServiceFactory::GetForProfile(profile_))
+  if (auto* sync_service = SyncServiceFactory::GetForProfile(profile_)) {
     sync_service_observation_.Observe(sync_service);
+  }
 
   AvatarToolbarButton::State state = GetState();
   if (state == AvatarToolbarButton::State::kIncognitoProfile ||
@@ -64,8 +95,9 @@ AvatarToolbarButtonDelegate::AvatarToolbarButtonDelegate(
     signin::IdentityManager* identity_manager =
         IdentityManagerFactory::GetForProfile(profile_);
     identity_manager_observation_.Observe(identity_manager);
-    if (identity_manager->AreRefreshTokensLoaded())
+    if (identity_manager->AreRefreshTokensLoaded()) {
       OnRefreshTokensLoaded();
+    }
   }
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)
@@ -167,8 +199,8 @@ AvatarToolbarButton::State AvatarToolbarButtonDelegate::GetState() const {
   if (button_text_state_ == ButtonTextState::kShowingName) {
     return AvatarToolbarButton::State::kAnimatedUserIdentity;
   }
-  if (button_text_state_ == ButtonTextState::kShowingSigninText) {
-    return AvatarToolbarButton::State::kSignInTextShowing;
+  if (button_text_state_ == ButtonTextState::kShowingInterceptText) {
+    return AvatarToolbarButton::State::kInterceptTextShowing;
   }
 
   // Web app has limited toolbar space, thus always show kNormal state.
@@ -200,24 +232,6 @@ AvatarToolbarButtonDelegate::GetAvatarSyncErrorType() const {
 bool AvatarToolbarButtonDelegate::IsSyncFeatureEnabled() const {
   return IdentityManagerFactory::GetForProfile(profile_)->HasPrimaryAccount(
       signin::ConsentLevel::kSync);
-}
-
-void AvatarToolbarButtonDelegate::ShowHighlightAnimation() {
-  signin_ui_util::RecordAvatarIconHighlighted(profile_);
-  highlight_animation_visible_ = true;
-  DCHECK_NE(GetState(), AvatarToolbarButton::State::kIncognitoProfile);
-  DCHECK_NE(GetState(), AvatarToolbarButton::State::kGuestSession);
-  avatar_toolbar_button_->UpdateText();
-
-  base::SingleThreadTaskRunner::GetCurrentDefault()->PostDelayedTask(
-      FROM_HERE,
-      base::BindOnce(&AvatarToolbarButtonDelegate::HideHighlightAnimation,
-                     weak_ptr_factory_.GetWeakPtr()),
-      kAvatarHighlightAnimationDuration);
-}
-
-bool AvatarToolbarButtonDelegate::IsHighlightAnimationVisible() const {
-  return highlight_animation_visible_;
 }
 
 void AvatarToolbarButtonDelegate::MaybeShowIdentityAnimation(
@@ -401,7 +415,7 @@ void AvatarToolbarButtonDelegate::OnIdentityAnimationTimeout() {
   // OnIdentityAnimationTimeout() that will hide it after the proper delay.
   // Also return if the button is showing the signin text rather than the name.
   if (identity_animation_timeout_count_ > 0 ||
-      button_text_state_ == ButtonTextState::kShowingSigninText) {
+      button_text_state_ == ButtonTextState::kShowingInterceptText) {
     return;
   }
 
@@ -430,14 +444,6 @@ void AvatarToolbarButtonDelegate::MaybeHideIdentityAnimation() {
   avatar_toolbar_button_->UpdateText();
 }
 
-void AvatarToolbarButtonDelegate::HideHighlightAnimation() {
-  DCHECK_NE(GetState(), AvatarToolbarButton::State::kIncognitoProfile);
-  DCHECK_NE(GetState(), AvatarToolbarButton::State::kGuestSession);
-  highlight_animation_visible_ = false;
-  avatar_toolbar_button_->UpdateText();
-  avatar_toolbar_button_->NotifyHighlightAnimationFinished();
-}
-
 void AvatarToolbarButtonDelegate::ShowIdentityAnimation() {
   button_text_state_ = ButtonTextState::kShowingName;
   avatar_toolbar_button_->UpdateText();
@@ -451,14 +457,27 @@ void AvatarToolbarButtonDelegate::ShowIdentityAnimation() {
       kIdentityAnimationDuration);
 }
 
-#if !BUILDFLAG(IS_CHROMEOS_LACROS) || BUILDFLAG(IS_CHROMEOS_ASH)
-void AvatarToolbarButtonDelegate::ShowSignInText() {
-  button_text_state_ = ButtonTextState::kShowingSigninText;
+#if BUILDFLAG(ENABLE_DICE_SUPPORT)
+void AvatarToolbarButtonDelegate::ShowInterceptText(
+    WebSigninInterceptor::SigninInterceptionType interception_type) {
+  current_interception_type_ = interception_type;
+  button_text_state_ = ButtonTextState::kShowingInterceptText;
   avatar_toolbar_button_->UpdateText();
 }
 
-void AvatarToolbarButtonDelegate::HideSignInText() {
+void AvatarToolbarButtonDelegate::HideText() {
   button_text_state_ = ButtonTextState::kNotShowing;
+  Reset();
+
   avatar_toolbar_button_->UpdateText();
 }
+
+std::u16string AvatarToolbarButtonDelegate::GetInterceptText() {
+  CHECK(current_interception_type_.has_value());
+  return InterceptionTypeToIdentityPillText(current_interception_type_.value());
+}
 #endif
+
+void AvatarToolbarButtonDelegate::Reset() {
+  current_interception_type_.reset();
+}

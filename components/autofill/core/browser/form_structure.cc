@@ -129,7 +129,8 @@ FormStructure::FormStructure(const FormData& form)
       form_parsed_timestamp_(base::TimeTicks::Now()),
       host_frame_(form.host_frame),
       version_(form.version),
-      unique_renderer_id_(form.unique_renderer_id) {
+      renderer_id_(form.renderer_id),
+      child_frames_(form.child_frames) {
   // Copy the form fields.
   for (const FormFieldData& field : form.fields) {
     if (!IsCheckable(field.check_status)) {
@@ -759,9 +760,10 @@ FormData FormStructure::ToFormData() const {
   data.action = target_url_;
   data.main_frame_origin = main_frame_origin_;
   data.is_form_tag = is_form_tag_;
-  data.unique_renderer_id = unique_renderer_id_;
+  data.renderer_id = renderer_id_;
   data.host_frame = host_frame_;
   data.version = version_;
+  data.child_frames = child_frames_;
 
   for (const auto& field : fields_) {
     data.fields.push_back(*field);
@@ -1163,13 +1165,13 @@ std::ostream& operator<<(std::ostream& buffer, const FormStructure& form) {
     buffer << "\n Field " << i << ": ";
     const AutofillField* field = form.field(i);
     buffer << "\n  Identifiers:"
-           << base::StrCat(
-                  {"renderer id: ",
-                   base::NumberToString(field->unique_renderer_id.value()),
-                   ", host frame: ",
-                   field->renderer_form_id().frame_token.ToString(), " (",
-                   field->origin.Serialize(), "), host form renderer id: ",
-                   base::NumberToString(field->host_form_id.value())});
+           << base::StrCat({"renderer id: ",
+                            base::NumberToString(field->renderer_id.value()),
+                            ", host frame: ",
+                            field->renderer_form_id().frame_token.ToString(),
+                            " (", field->origin.Serialize(),
+                            "), host form renderer id: ",
+                            base::NumberToString(field->host_form_id.value())});
     buffer << "\n  Signature: "
            << base::StrCat(
                   {base::NumberToString(field->GetFieldSignature().value()),
@@ -1238,13 +1240,13 @@ LogBuffer& operator<<(LogBuffer& buffer, const FormStructure& form) {
     buffer << Tag{"td"};
     buffer << Tag{"table"};
     buffer << Tr{} << "Identifiers:"
-           << base::StrCat(
-                  {"renderer id: ",
-                   base::NumberToString(field->unique_renderer_id.value()),
-                   ", host frame: ",
-                   field->renderer_form_id().frame_token.ToString(), " (",
-                   field->origin.Serialize(), "), host form renderer id: ",
-                   base::NumberToString(field->host_form_id.value())});
+           << base::StrCat({"renderer id: ",
+                            base::NumberToString(field->renderer_id.value()),
+                            ", host frame: ",
+                            field->renderer_form_id().frame_token.ToString(),
+                            " (", field->origin.Serialize(),
+                            "), host form renderer id: ",
+                            base::NumberToString(field->host_form_id.value())});
     buffer << Tr{} << "Signature:"
            << base::StrCat(
                   {base::NumberToString(field->GetFieldSignature().value()),
@@ -1303,6 +1305,13 @@ LogBuffer& operator<<(LogBuffer& buffer, const FormStructure& form) {
                   field->rank(), field->rank_in_signature_group(),
                   field->rank_in_host_form(),
                   field->rank_in_host_form_signature_group());
+    if (field->may_use_prefilled_placeholder().has_value()) {
+      buffer << Tr{} << "Pre-filled value:"
+             << base::StrCat(
+                    {"is classified as ",
+                     (*field->may_use_prefilled_placeholder() ? "a placeholder"
+                                                              : "meaningful")});
+    }
     buffer << CTag{"table"};
     buffer << CTag{"td"};
     buffer << CTag{"tr"};

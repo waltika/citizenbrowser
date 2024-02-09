@@ -533,8 +533,9 @@ IN_PROC_BROWSER_TEST_F(ToolbarControllerUiTest,
                                 false));
 }
 
+// TODO(crbug.com/1522194): Flaky on multiple platforms.
 IN_PROC_BROWSER_TEST_F(ToolbarControllerUiTest,
-                       DeactivatedActionItemsOverflow) {
+                       DISABLED_DeactivatedActionItemsOverflow) {
   RunTestSequence(PinBookmarkToToolbar(), SetBrowserSuperWide(), Do([this]() {
                     AddDummyButtonsToToolbarTillElementOverflows(
                         ChromeActionIds::kActionSidePanelShowBookmarks);
@@ -606,8 +607,7 @@ IN_PROC_BROWSER_TEST_F(ToolbarControllerUiTest, ExtensionHasNoAnimationLoop) {
 class ToolbarControllerIphUiTest : public ToolbarControllerUiTest {
  public:
   ToolbarControllerIphUiTest() {
-    iph_feature_list_.InitForDemo(
-        feature_engagement::kIPHDesktopTabGroupsNewGroupFeature);
+    iph_feature_list_.InitForDemo(feature_engagement::kIPHTabSearchFeature);
   }
   ~ToolbarControllerIphUiTest() override = default;
 
@@ -618,7 +618,7 @@ class ToolbarControllerIphUiTest : public ToolbarControllerUiTest {
     return CheckResult(
         [this]() {
           return browser()->window()->MaybeShowFeaturePromo(
-              feature_engagement::kIPHDesktopTabGroupsNewGroupFeature);
+              feature_engagement::kIPHTabSearchFeature);
         },
         expected_result, desc.str());
   }

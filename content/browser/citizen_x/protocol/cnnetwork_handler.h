@@ -6,6 +6,7 @@
 #define CONTENT_BROWSER_CITIZENNOTES_PROTOCOL_NETWORK_HANDLER_H_
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "base/containers/flat_set.h"
@@ -25,7 +26,6 @@
 #include "services/network/public/mojom/http_raw_headers.mojom-forward.h"
 #include "services/network/public/mojom/network_context.mojom.h"
 #include "services/network/public/mojom/url_response_head.mojom.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 #include "third_party/blink/public/mojom/loader/resource_load_info.mojom-shared.h"
 
 #if BUILDFLAG(ENABLE_REPORTING)
@@ -141,6 +141,7 @@ class CNNetworkHandler : public CitizenNotesDomainHandler,
                      Maybe<std::string> url,
                      Maybe<std::string> domain,
                      Maybe<std::string> path,
+                     Maybe<std::string> partition_key,
                      std::unique_ptr<DeleteCookiesCallback> callback) override;
   void SetCookie(const std::string& name,
                  const std::string& value,
@@ -210,19 +211,18 @@ class CNNetworkHandler : public CitizenNotesDomainHandler,
       bool is_download,
       network::mojom::URLLoaderFactoryOverride* intercepting_factory);
 
-  void ApplyOverrides(
-      net::HttpRequestHeaders* headers,
-      bool* skip_service_worker,
-      bool* disable_cache,
-      absl::optional<std::vector<net::SourceStream::SourceType>>*
-          accepted_stream_types);
+  void ApplyOverrides(net::HttpRequestHeaders* headers,
+                      bool* skip_service_worker,
+                      bool* disable_cache,
+                      std::optional<std::vector<net::SourceStream::SourceType>>*
+                          accepted_stream_types);
   void PrefetchRequestWillBeSent(
       const std::string& request_id,
       const network::ResourceRequest& request,
       const GURL& initiator_url,
       Maybe<std::string> frame_token,
       base::TimeTicks timestamp,
-      absl::optional<
+      std::optional<
           std::pair<const GURL&,
                     const network::mojom::URLResponseHeadCitizenNotesInfo&>>
           redirect_info);
@@ -234,7 +234,7 @@ class CNNetworkHandler : public CitizenNotesDomainHandler,
                    const net::HttpRequestHeaders& request_headers,
                    const network::mojom::URLRequestCitizenNotesInfo& request_info,
                    const char* initiator_type,
-                   const absl::optional<GURL>& initiator_url,
+                   const std::optional<GURL>& initiator_url,
                    const std::string& initiator_citizennotes_request_id,
                    base::TimeTicks timestamp);
   void ResponseReceived(const std::string& request_id,
@@ -254,18 +254,18 @@ class CNNetworkHandler : public CitizenNotesDomainHandler,
       const GURL& initiator_url,
       Maybe<std::string> frame_token,
       base::TimeTicks timestamp,
-      absl::optional<
+      std::optional<
           std::pair<const GURL&,
                     const network::mojom::URLResponseHeadCitizenNotesInfo&>>
           redirect_info);
 
   void OnSignedExchangeReceived(
-      absl::optional<const base::UnguessableToken> citizennotes_navigation_token,
+      std::optional<const base::UnguessableToken> citizennotes_navigation_token,
       const GURL& outer_request_url,
       const network::mojom::URLResponseHead& outer_response,
-      const absl::optional<SignedExchangeEnvelope>& header,
+      const std::optional<SignedExchangeEnvelope>& header,
       const scoped_refptr<net::X509Certificate>& certificate,
-      const absl::optional<net::SSLInfo>& ssl_info,
+      const std::optional<net::SSLInfo>& ssl_info,
       const std::vector<SignedExchangeError>& errors);
 
   DispatchResponse GetSecurityIsolationStatus(
@@ -284,10 +284,10 @@ class CNNetworkHandler : public CitizenNotesDomainHandler,
       const std::string& citizennotes_request_id,
       const net::CookieAndLineAccessResultList& response_cookie_list,
       const std::vector<network::mojom::HttpRawHeaderPairPtr>& response_headers,
-      const absl::optional<std::string>& response_headers_text,
+      const std::optional<std::string>& response_headers_text,
       network::mojom::IPAddressSpace resource_address_space,
       int32_t http_status_code,
-      const absl::optional<net::CookiePartitionKey>& cookie_partition_key);
+      const std::optional<net::CookiePartitionKey>& cookie_partition_key);
   void OnTrustTokenOperationDone(
       const std::string& citizennotes_request_id,
       const network::mojom::TrustTokenOperationResult& result);
@@ -299,12 +299,12 @@ class CNNetworkHandler : public CitizenNotesDomainHandler,
   void OnSubresourceWebBundleInnerResponse(
       const std::string& inner_request_citizennotes_id,
       const GURL& url,
-      const absl::optional<std::string>& bundle_request_citizennotes_id);
+      const std::optional<std::string>& bundle_request_citizennotes_id);
   void OnSubresourceWebBundleInnerResponseError(
       const std::string& inner_request_citizennotes_id,
       const GURL& url,
       const std::string& error_message,
-      const absl::optional<std::string>& bundle_request_citizennotes_id);
+      const std::optional<std::string>& bundle_request_citizennotes_id);
 
   bool enabled() const { return enabled_; }
 
@@ -377,8 +377,7 @@ class CNNetworkHandler : public CitizenNotesDomainHandler,
            std::unique_ptr<LoadNetworkResourceCallback>,
            base::UniquePtrComparator>
       loaders_;
-  absl::optional<std::set<net::SourceStream::SourceType>>
-      accepted_stream_types_;
+  std::optional<std::set<net::SourceStream::SourceType>> accepted_stream_types_;
   std::unordered_map<String, std::pair<String, bool>> received_body_data_;
   base::WeakPtrFactory<CNNetworkHandler> weak_factory_{this};
 };

@@ -38,13 +38,16 @@ public interface AccountSelectionComponent {
         void onDismissed(@IdentityRequestDialogDismissReason int dismissReason);
 
         /** Called when the user clicks on the button to sign in to the IDP. */
-        void onLoginToIdP(GURL idpLoginUrl);
+        void onLoginToIdP(GURL idpConfigUrl, GURL idpLoginUrl);
 
         /** Called when the user clicks on the more details button in an error dialog. */
         void onMoreDetails();
 
         /** Called on the opener when a modal dialog that it opened has been closed. */
         void onModalDialogClosed();
+
+        /** Called when the accounts UI is displayed. */
+        void onAccountsDisplayed();
     }
 
     /**

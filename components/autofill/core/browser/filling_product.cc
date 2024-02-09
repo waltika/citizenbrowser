@@ -61,7 +61,6 @@ FillingProduct GetFillingProductFromPopupItemId(PopupItemId popup_item_id) {
     case PopupItemId::kAutocompleteEntry:
       return FillingProduct::kAutocomplete;
     case PopupItemId::kPasswordEntry:
-    case PopupItemId::kUsernameEntry:
     case PopupItemId::kAllSavedPasswordsEntry:
     case PopupItemId::kGeneratePasswordEntry:
     case PopupItemId::kPasswordAccountStorageOptIn:
@@ -101,7 +100,6 @@ FillingProduct GetFillingProductFromFieldTypeGroup(
     case FieldTypeGroup::kCompany:
     case FieldTypeGroup::kAddress:
     case FieldTypeGroup::kPhone:
-    case FieldTypeGroup::kBirthdateField:
       return FillingProduct::kAddress;
     case FieldTypeGroup::kCreditCard:
       return FillingProduct::kCreditCard;

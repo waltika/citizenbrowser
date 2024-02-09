@@ -80,7 +80,6 @@ after discussions on the right group.
       <annotation id="wallpaper_google_photos_albums"/>
       <annotation id="wallpaper_google_photos_enabled"/>
       <annotation id="wallpaper_google_photos_photos"/>
-      <annotation id="wilco_dtc_supportd"/>
       <annotation id="search_and_assistant_enabled_checker"/>
       <annotation id="wallpaper_online_downloader"/>
     </sender>
@@ -291,6 +290,8 @@ after discussions on the right group.
       <annotation id="remoting_report_provisioning_error"/>
       <annotation id="webauthn_rp_id_check"/>
       <annotation id="tasks_integration"/>
+      <annotation id="metrics_report_appkm"/>
+      <annotation id="metrics_report_ukm_and_appkm"/>
       <annotation id="search_engine_adapter"/>
       <annotation id="launcher_manatee"/>
       <annotation id="chromeos_picker_gif_fetcher"/>

@@ -469,6 +469,7 @@ class BrowserView : public BrowserWindow,
   void UpdateTitleBar() override;
   void BookmarkBarStateChanged(
       BookmarkBar::AnimateChangeType change_type) override;
+  void TemporarilyShowBookmarkBar(base::TimeDelta duration) override;
   void UpdateDevTools() override;
   void UpdateCitizenNotes() override;
   void UpdateLoadingAnimations(bool is_visible) override;
@@ -722,7 +723,7 @@ class BrowserView : public BrowserWindow,
   void InfoBarContainerStateChanged(bool is_animating) override;
 
   // views::View:
-  void Layout() override;
+  void Layout(PassKey) override;
   void OnGestureEvent(ui::GestureEvent* event) override;
   void ViewHierarchyChanged(
       const views::ViewHierarchyChangedDetails& details) override;
@@ -1258,6 +1259,8 @@ class BrowserView : public BrowserWindow,
   // starts and used for all consecutive tabs (while any are loading) to keep
   // throbbers in sync.
   base::TimeTicks loading_animation_start_;
+
+  base::OneShotTimer temporary_bookmark_bar_timer_;
 
   views::UnhandledKeyboardEventHandler unhandled_keyboard_event_handler_;
 

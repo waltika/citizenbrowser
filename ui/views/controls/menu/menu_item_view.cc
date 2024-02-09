@@ -24,7 +24,7 @@
 #include "ui/accessibility/ax_action_data.h"
 #include "ui/accessibility/ax_enums.mojom.h"
 #include "ui/accessibility/ax_node_data.h"
-#include "ui/accessibility/platform/ax_platform_node.h"
+#include "ui/accessibility/platform/ax_platform.h"
 #include "ui/base/interaction/element_identifier.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
@@ -708,7 +708,7 @@ void MenuItemView::ChildrenChanged() {
       // as UpdateSubmenuSelection() looks at bounds. This handles the case of
       // the top level window's size remaining the same, resulting in no change
       // to the submenu's size and no layout.
-      submenu_->Layout();
+      submenu_->DeprecatedLayoutImmediately();
       submenu_->SchedulePaint();
       // Update the menu selection after layout.
       controller->UpdateSubmenuSelection(submenu_.get());
@@ -721,7 +721,7 @@ void MenuItemView::ChildrenChanged() {
   removed_items_.clear();
 }
 
-void MenuItemView::Layout() {
+void MenuItemView::Layout(PassKey) {
   if (children().empty())
     return;
 
@@ -823,8 +823,8 @@ bool MenuItemView::ShouldShowNewBadge() const {
 }
 
 bool MenuItemView::IsTraversableByKeyboard() const {
-  bool ignore_enabled = ui::AXPlatformNode::GetAccessibilityMode().has_mode(
-      ui::AXMode::kNativeAPIs);
+  bool ignore_enabled =
+      ui::AXPlatform::GetInstance().GetMode().has_mode(ui::AXMode::kNativeAPIs);
   return GetVisible() && (ignore_enabled || GetEnabled());
 }
 

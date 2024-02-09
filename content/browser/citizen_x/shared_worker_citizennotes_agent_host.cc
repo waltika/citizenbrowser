@@ -112,7 +112,8 @@ void SharedWorkerCitizenNotesAgentHost::DetachSession(CitizenNotesSession* sessi
 bool SharedWorkerCitizenNotesAgentHost::Matches(SharedWorkerHost* worker_host) {
   return instance_.Matches(worker_host->instance().url(),
                            worker_host->instance().name(),
-                           worker_host->instance().storage_key());
+                           worker_host->instance().storage_key(),
+                           worker_host->instance().same_site_cookies());
 }
 
 void SharedWorkerCitizenNotesAgentHost::WorkerReadyForInspection(

@@ -23,7 +23,6 @@ import android.view.animation.Interpolator;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.FloatRange;
-import androidx.annotation.IntRange;
 import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -32,21 +31,36 @@ import androidx.core.view.animation.PathInterpolatorCompat;
 import com.google.android.material.color.MaterialColors;
 
 import org.chromium.build.annotations.UsedByReflection;
+import org.chromium.components.browser_ui.styles.SemanticColorUtils;
+import org.chromium.ui.interpolators.Interpolators;
 import org.chromium.ui.util.ColorUtils;
 
 /** The {@link Drawable} that will be used to run animations for Quick Delete. */
 public class QuickDeleteAnimationGradientDrawable extends Drawable {
     private static final String TAG = "QuickDeleteAnimationGradientDrawable";
 
+    /**
+     * This multiplier will be used to calculate the height of the gradient relative to tab grid
+     * height. The tab grid height changes depending on the screen size, orientation, multi-window
+     * mode...
+     */
     @FloatRange(from = 0.0F, to = 1.0F)
-    private static final float QUICK_DELETE_WIPE_GRADIENT_HEIGHT_MULTIPLIER = 0.3F;
+    private static final float QUICK_DELETE_WIPE_GRADIENT_HEIGHT_MULTIPLIER = 0.35F;
 
-    @IntRange(from = 0L, to = 255L)
-    private static final int QUICK_DELETE_WIPE_GRADIENT_ALPHA = 200;
+    /**
+     * This multiplier will be used to calculate the intersection point between the wipe and fade
+     * animation relative to tab grid height. The tab grid height changes depending on the screen
+     * size, orientation, multi-window mode...
+     */
+    @FloatRange(from = 0.0F, to = 1.0F)
+    private static final float QUICK_DELETE_ANIMATION_INTERSECTION_MULTIPLIER = 0.5F;
 
+    private static final int QUICK_DELETE_GRADIENT_EASING_POINTS_NUM = 20;
+    private static final int QUICK_DELETE_GRADIENT_MAX_ALPHA = 255;
     private static final Interpolator QUICK_DELETE_WIPE_ANIMATION_INTERPOLATOR =
             PathInterpolatorCompat.create(0.25F, 0F, 0.15F, 1F);
-    private static final int QUICK_DELETE_WIPE_ANIMATION_TIME_MS = 2100;
+    private static final int QUICK_DELETE_WIPE_ANIMATION_TIME_MS = 1200;
+    private static final int QUICK_DELETE_FADE_ANIMATION_TIME_MS = 230;
     private final @NonNull Paint mPaint;
     private final @NonNull LinearGradient mShader;
 
@@ -63,23 +77,42 @@ public class QuickDeleteAnimationGradientDrawable extends Drawable {
     public static QuickDeleteAnimationGradientDrawable createQuickDeleteWipeAnimationDrawable(
             @NonNull Context context, int tabGridHeight) {
         int gradientColor = MaterialColors.getColor(context, R.attr.colorSecondaryContainer, TAG);
-        int diffuseColor =
-                ColorUtils.setAlphaComponent(gradientColor, QUICK_DELETE_WIPE_GRADIENT_ALPHA / 2);
-        int transparentGradientColor =
-                ColorUtils.setAlphaComponent(gradientColor, QUICK_DELETE_WIPE_GRADIENT_ALPHA);
-        int[] colors =
-                new int[] {
-                    Color.TRANSPARENT,
-                    diffuseColor,
-                    transparentGradientColor,
-                    diffuseColor,
-                    Color.TRANSPARENT
-                };
+
+        int h = QUICK_DELETE_GRADIENT_EASING_POINTS_NUM;
+        int k = QUICK_DELETE_GRADIENT_MAX_ALPHA;
+        int[] colors = new int[h + 1];
+        for (int i = 0; i <= h; ++i) {
+            // Quadratic equation to calculate the alpha value at each easing point to achieve a
+            // smoother transition between the colors of the gradient. This should map to an
+            // inverted parabola where the vertical shift corresponds to the maximum alpha value and
+            // the horizontal shift corresponds to the number of easing points (number of colors) of
+            // the gradient, while maintaining an intersection point at (0,0).
+            float alphaValue = -4F * k / (h * h) * (i - h / 2F) * (i - h / 2F) + k;
+            colors[i] = ColorUtils.setAlphaComponent(gradientColor, Math.round(alphaValue));
+        }
 
         int gradientHeight = (int) (tabGridHeight * QUICK_DELETE_WIPE_GRADIENT_HEIGHT_MULTIPLIER);
 
         return new QuickDeleteAnimationGradientDrawable(
                 context, colors, /* positions= */ null, gradientHeight);
+    }
+
+    /**
+     * Creates a new {@link QuickDeleteAnimationGradientDrawable} for the fade animation.
+     *
+     * @param context The associated {@link Context}.
+     * @param tabHeight The height of the tab in the tab grid. This will be used to determine the
+     *     height of the gradient.
+     */
+    public static QuickDeleteAnimationGradientDrawable createQuickDeleteFadeAnimationDrawable(
+            @NonNull Context context, int tabHeight) {
+        // The color of the background behind the tab.
+        int backgroundColor = SemanticColorUtils.getDefaultBgColor(context);
+
+        int[] colors = new int[] {Color.TRANSPARENT, backgroundColor, backgroundColor};
+
+        return new QuickDeleteAnimationGradientDrawable(
+                context, colors, /* positions= */ null, tabHeight);
     }
 
     /**
@@ -119,11 +152,28 @@ public class QuickDeleteAnimationGradientDrawable extends Drawable {
      * @param parentViewHeight The height of the view that the animation should run on.
      * @return The {@link Animator} that can be used to start the wipe animation.
      */
-    public Animator createWipeAnimator(int parentViewHeight) {
-        Animator animator = createAnimator(parentViewHeight, -parentViewHeight);
+    public ObjectAnimator createWipeAnimator(int parentViewHeight) {
+        ObjectAnimator animator = createAnimator(parentViewHeight, -parentViewHeight);
         animator.setInterpolator(QUICK_DELETE_WIPE_ANIMATION_INTERPOLATOR);
         animator.setDuration(QUICK_DELETE_WIPE_ANIMATION_TIME_MS);
         return animator;
+    }
+
+    /**
+     * @param parentViewHeight The height of the view that the animation should run on.
+     * @return The {@link Animator} that can be used to start the fade animation.
+     */
+    public ObjectAnimator createFadeAnimator(int parentViewHeight) {
+        ObjectAnimator animator = createAnimator(parentViewHeight, -parentViewHeight * 2);
+        animator.setInterpolator(Interpolators.LINEAR_INTERPOLATOR);
+        animator.setDuration(QUICK_DELETE_FADE_ANIMATION_TIME_MS);
+        return animator;
+    }
+
+    public static int getAnimationsIntersectionHeight(int parentViewHeight) {
+        int gradientHeight =
+                (int) (parentViewHeight * QUICK_DELETE_WIPE_GRADIENT_HEIGHT_MULTIPLIER);
+        return (int) (gradientHeight * QUICK_DELETE_ANIMATION_INTERSECTION_MULTIPLIER);
     }
 
     /** Returns the current translationY value of the {@link LinearGradient} shader. */
@@ -169,7 +219,7 @@ public class QuickDeleteAnimationGradientDrawable extends Drawable {
         return PixelFormat.TRANSLUCENT;
     }
 
-    private Animator createAnimator(float startValue, float endValue) {
+    private ObjectAnimator createAnimator(float startValue, float endValue) {
         return ObjectAnimator.ofFloat(this, "translationY", startValue, endValue);
     }
 

@@ -123,7 +123,7 @@ class CORE_EXPORT WebViewImpl final : public WebView,
       mojom::blink::PageVisibilityState visibility,
       bool is_prerendering,
       bool is_inside_portal,
-      absl::optional<blink::FencedFrame::DeprecatedFencedFrameMode>
+      std::optional<blink::FencedFrame::DeprecatedFencedFrameMode>
           fenced_frame_mode,
       bool compositing_enabled,
       bool widgets_never_composited,
@@ -131,7 +131,7 @@ class CORE_EXPORT WebViewImpl final : public WebView,
       mojo::PendingAssociatedReceiver<mojom::blink::PageBroadcast> page_handle,
       scheduler::WebAgentGroupScheduler& agent_group_scheduler,
       const SessionStorageNamespaceId& session_storage_namespace_id,
-      absl::optional<SkColor> page_base_background_color,
+      std::optional<SkColor> page_base_background_color,
       const BrowsingContextGroupInfo& browsing_context_group_info);
 
   // All calls to Create() should be balanced with a call to Close(). This
@@ -182,7 +182,7 @@ class CORE_EXPORT WebViewImpl final : public WebView,
   gfx::PointF VisualViewportOffset() const override;
   gfx::SizeF VisualViewportSize() const override;
   void SetScreenOrientationOverrideForTesting(
-      absl::optional<display::mojom::blink::ScreenOrientation> orientation)
+      std::optional<display::mojom::blink::ScreenOrientation> orientation)
       override;
   void SetWindowRectSynchronouslyForTesting(
       const gfx::Rect& new_window_rect) override;
@@ -235,7 +235,7 @@ class CORE_EXPORT WebViewImpl final : public WebView,
   const web_pref::WebPreferences& GetWebPreferences() override;
   void SetHistoryListFromNavigation(
       int32_t history_offset,
-      absl::optional<int32_t> history_length) override;
+      std::optional<int32_t> history_length) override;
   void IncreaseHistoryListFromNavigation() override;
   int32_t HistoryBackListCount() const override;
   int32_t HistoryForwardListCount() const override;
@@ -272,9 +272,9 @@ class CORE_EXPORT WebViewImpl final : public WebView,
   //
   // Add new methods with clear precedence for new use cases.
   void SetBackgroundColorOverrideForFullscreenController(
-      absl::optional<SkColor>);
+      std::optional<SkColor>);
   void SetBaseBackgroundColorOverrideTransparent(bool override_to_transparent);
-  void SetBaseBackgroundColorOverrideForInspector(absl::optional<SkColor>);
+  void SetBaseBackgroundColorOverrideForInspector(std::optional<SkColor>);
 
   // Resize the WebView. You likely should be using
   // MainFrameWidget()->Resize instead.
@@ -313,10 +313,10 @@ class CORE_EXPORT WebViewImpl final : public WebView,
       const RendererPreferences& preferences) override;
   void SetHistoryOffsetAndLength(int32_t history_offset,
                                  int32_t history_length) override;
-  void SetPageBaseBackgroundColor(absl::optional<SkColor> color) override;
+  void SetPageBaseBackgroundColor(std::optional<SkColor> color) override;
   void CreateRemoteMainFrame(
       const RemoteFrameToken& frame_token,
-      const absl::optional<FrameToken>& opener_frame_token,
+      const std::optional<FrameToken>& opener_frame_token,
       mojom::blink::FrameReplicationStatePtr replicated_state,
       bool is_loading,
       const base::UnguessableToken& devtools_frame_token,
@@ -339,7 +339,7 @@ class CORE_EXPORT WebViewImpl final : public WebView,
   float DefaultMaximumPageScaleFactor() const;
   float ClampPageScaleFactorToLimits(float) const;
   void ResetScaleStateImmediately();
-  absl::optional<display::mojom::blink::ScreenOrientation>
+  std::optional<display::mojom::blink::ScreenOrientation>
   ScreenOrientationOverride();
 
   // This is only for non-composited WebViewPlugin.
@@ -709,7 +709,7 @@ class CORE_EXPORT WebViewImpl final : public WebView,
       mojom::blink::PageVisibilityState visibility,
       bool is_prerendering,
       bool is_inside_portal,
-      absl::optional<blink::FencedFrame::DeprecatedFencedFrameMode>
+      std::optional<blink::FencedFrame::DeprecatedFencedFrameMode>
           fenced_frame_mode,
       bool does_composite,
       bool widgets_never_composite,
@@ -717,7 +717,7 @@ class CORE_EXPORT WebViewImpl final : public WebView,
       mojo::PendingAssociatedReceiver<mojom::blink::PageBroadcast> page_handle,
       scheduler::WebAgentGroupScheduler& agent_group_scheduler,
       const SessionStorageNamespaceId& session_storage_namespace_id,
-      absl::optional<SkColor> page_base_background_color,
+      std::optional<SkColor> page_base_background_color,
       const BrowsingContextGroupInfo& browsing_context_group_info);
   ~WebViewImpl() override;
 
@@ -918,9 +918,9 @@ class CORE_EXPORT WebViewImpl final : public WebView,
 
   std::unique_ptr<FullscreenController> fullscreen_controller_;
 
-  absl::optional<SkColor> background_color_override_for_fullscreen_controller_;
+  std::optional<SkColor> background_color_override_for_fullscreen_controller_;
   bool override_base_background_color_to_transparent_ = false;
-  absl::optional<SkColor> base_background_color_override_for_inspector_;
+  std::optional<SkColor> base_background_color_override_for_inspector_;
   SkColor page_base_background_color_;  // Only applies to main frame.
 
   float zoom_factor_override_ = 0.f;
@@ -973,7 +973,7 @@ class CORE_EXPORT WebViewImpl final : public WebView,
   mojo::AssociatedRemote<mojom::blink::RemoteMainFrameHost>
       remote_main_frame_host_remote_;
 
-  absl::optional<display::mojom::blink::ScreenOrientation>
+  std::optional<display::mojom::blink::ScreenOrientation>
       screen_orientation_override_;
 
   mojo::AssociatedReceiver<mojom::blink::PageBroadcast> receiver_;
@@ -997,9 +997,9 @@ class CORE_EXPORT WebViewImpl final : public WebView,
   scheduler::WebAgentGroupScheduler& web_agent_group_scheduler_;
 
   // TODO(crbug.com/1499519): Remove this temporary debugging.
-  absl::optional<base::debug::StackTrace> close_task_posted_stack_trace_;
-  absl::optional<base::debug::StackTrace> close_called_stack_trace_;
-  absl::optional<base::debug::StackTrace> close_window_called_stack_trace_;
+  std::optional<base::debug::StackTrace> close_task_posted_stack_trace_;
+  std::optional<base::debug::StackTrace> close_called_stack_trace_;
+  std::optional<base::debug::StackTrace> close_window_called_stack_trace_;
 
   // Indicates whether the page supports draggable regions via the app-region
   // CSS property.

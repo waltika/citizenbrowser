@@ -435,7 +435,7 @@ WebViewImpl* WebViewHelper::InitializeWithOpener(
     TestWebFrameClient* web_frame_client,
     WebViewClient* web_view_client,
     void (*update_settings_func)(WebSettings*),
-    absl::optional<blink::FencedFrame::DeprecatedFencedFrameMode>
+    std::optional<blink::FencedFrame::DeprecatedFencedFrameMode>
         fenced_frame_mode) {
   Reset();
 
@@ -540,7 +540,7 @@ WebViewHelper::InitializeRemoteWithOpenerAndAssociatedRemoteAndReceivers(
     mojo::PendingAssociatedReceiver<mojom::blink::RemoteFrame> receiver) {
   Reset();
 
-  InitializeWebView(web_view_client, nullptr, absl::nullopt);
+  InitializeWebView(web_view_client, nullptr, std::nullopt);
 
   if (!security_origin)
     security_origin = SecurityOrigin::CreateUniqueOpaque();
@@ -716,7 +716,7 @@ void WebViewHelper::Resize(const gfx::Size& size) {
 void WebViewHelper::InitializeWebView(
     WebViewClient* web_view_client,
     class WebView* opener,
-    absl::optional<blink::FencedFrame::DeprecatedFencedFrameMode>
+    std::optional<blink::FencedFrame::DeprecatedFencedFrameMode>
         fenced_frame_mode) {
   auto browsing_context_group_info = BrowsingContextGroupInfo::CreateUnique();
   if (opener) {
@@ -736,8 +736,8 @@ void WebViewHelper::InitializeWebView(
                       /*widgets_never_composited=*/false,
                       /*opener=*/opener, mojo::NullAssociatedReceiver(),
                       *agent_group_scheduler_,
-                      /*session_storage_namespace_id=*/base::EmptyString(),
-                      /*page_base_background_color=*/absl::nullopt,
+                      /*session_storage_namespace_id=*/std::string(),
+                      /*page_base_background_color=*/std::nullopt,
                       std::move(browsing_context_group_info)));
   // This property must be set at initialization time, it is not supported to be
   // changed afterward, and does nothing.
@@ -774,12 +774,12 @@ WebViewImpl* WebViewHelper::CreateWebView(WebViewClient* web_view_client,
                       /*is_hidden=*/false,
                       /*is_prerendering=*/false,
                       /*is_inside_portal=*/false,
-                      /*fenced_frame_mode=*/absl::nullopt, compositing_enabled,
+                      /*fenced_frame_mode=*/std::nullopt, compositing_enabled,
                       /*widgets_never_composited=*/false,
                       /*opener=*/nullptr, mojo::NullAssociatedReceiver(),
                       *agent_group_scheduler_,
-                      /*session_storage_namespace_id=*/base::EmptyString(),
-                      /*page_base_background_color=*/absl::nullopt,
+                      /*session_storage_namespace_id=*/std::string(),
+                      /*page_base_background_color=*/std::nullopt,
                       BrowsingContextGroupInfo::CreateUnique()));
 }
 
@@ -946,8 +946,8 @@ WebView* TestWebFrameClient::CreateNewWindow(
     network::mojom::blink::WebSandboxFlags,
     const SessionStorageNamespaceId&,
     bool& consumed_user_gesture,
-    const absl::optional<Impression>&,
-    const absl::optional<WebPictureInPictureWindowOptions>&,
+    const std::optional<Impression>&,
+    const std::optional<WebPictureInPictureWindowOptions>&,
     const WebURL&) {
   auto webview_helper = std::make_unique<WebViewHelper>();
   WebView* result = webview_helper->InitializeWithOpener(frame_);
@@ -1124,8 +1124,8 @@ void TestWidgetInputHandlerHost::ImeCancelComposition() {}
 
 void TestWidgetInputHandlerHost::ImeCompositionRangeChanged(
     const gfx::Range& range,
-    const absl::optional<WTF::Vector<gfx::Rect>>& character_bounds,
-    const absl::optional<WTF::Vector<gfx::Rect>>& line_bounds) {}
+    const std::optional<WTF::Vector<gfx::Rect>>& character_bounds,
+    const std::optional<WTF::Vector<gfx::Rect>>& line_bounds) {}
 
 void TestWidgetInputHandlerHost::SetMouseCapture(bool capture) {}
 

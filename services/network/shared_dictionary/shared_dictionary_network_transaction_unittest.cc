@@ -123,23 +123,30 @@ class DummySharedDictionaryStorage : public SharedDictionaryStorage {
 
   // SharedDictionaryStorage
   std::unique_ptr<SharedDictionary> GetDictionarySync(
-      const GURL& url) override {
+      const GURL& url,
+      mojom::RequestDestination destination) override {
     return std::move(dictionary_);
   }
   void GetDictionary(const GURL& url,
+                     mojom::RequestDestination destination,
                      base::OnceCallback<void(std::unique_ptr<SharedDictionary>)>
                          callback) override {}
   scoped_refptr<SharedDictionaryWriter> CreateWriter(
       const GURL& url,
       base::Time response_time,
       base::TimeDelta expiration,
-      const std::string& match) override {
+      const std::string& match,
+      const std::set<mojom::RequestDestination>& match_dest,
+      const std::string& id) override {
     return nullptr;
   }
-  bool IsAlreadyRegistered(const GURL& url,
-                           base::Time response_time,
-                           base::TimeDelta expiration,
-                           const std::string& match) override {
+  bool IsAlreadyRegistered(
+      const GURL& url,
+      base::Time response_time,
+      base::TimeDelta expiration,
+      const std::string& match,
+      const std::set<mojom::RequestDestination>& match_dest,
+      const std::string& id) override {
     return false;
   }
 
@@ -266,7 +273,7 @@ const net::MockTransaction kBrotliDictionaryTestTransactionV1 = {
     .url = "https://test.example/test",
     .method = "GET",
     .request_time = base::Time(),
-    .request_headers = "",
+    .request_headers = "sec-fetch-dest: document\r\n",
     .load_flags = net::LOAD_CAN_USE_SHARED_DICTIONARY,
     .transport_info = TestSpdyTransportInfo(),
     .status = "HTTP/1.1 200 OK",
@@ -276,8 +283,8 @@ const net::MockTransaction kBrotliDictionaryTestTransactionV1 = {
     .response_time = base::Time(),
     .data = "",  // We set the body in the `handler` function.
     .dns_aliases = {},
-    .fps_cache_filter = absl::nullopt,
-    .browser_run_id = absl::nullopt,
+    .fps_cache_filter = std::nullopt,
+    .browser_run_id = std::nullopt,
     .test_mode = net::TEST_MODE_NORMAL,
     .handler = base::BindRepeating(&BrotliTestTransactionHandler),
     .read_handler = net::MockTransactionReadHandler(),
@@ -292,7 +299,7 @@ const net::MockTransaction kBrotliDictionaryTestTransactionV2 = {
     .url = "https://test.example/test",
     .method = "GET",
     .request_time = base::Time(),
-    .request_headers = "",
+    .request_headers = "sec-fetch-dest: document\r\n",
     .load_flags = net::LOAD_CAN_USE_SHARED_DICTIONARY,
     .transport_info = TestSpdyTransportInfo(),
     .status = "HTTP/1.1 200 OK",
@@ -302,8 +309,8 @@ const net::MockTransaction kBrotliDictionaryTestTransactionV2 = {
     .response_time = base::Time(),
     .data = "",  // We set the body in the `handler` function.
     .dns_aliases = {},
-    .fps_cache_filter = absl::nullopt,
-    .browser_run_id = absl::nullopt,
+    .fps_cache_filter = std::nullopt,
+    .browser_run_id = std::nullopt,
     .test_mode = net::TEST_MODE_NORMAL,
     .handler = base::BindRepeating(&BrotliTestTransactionHandler),
     .read_handler = net::MockTransactionReadHandler(),
@@ -318,7 +325,7 @@ const net::MockTransaction kZstdDictionaryTestTransaction = {
     .url = "https://test.example/test",
     .method = "GET",
     .request_time = base::Time(),
-    .request_headers = "",
+    .request_headers = "sec-fetch-dest: document\r\n",
     .load_flags = net::LOAD_CAN_USE_SHARED_DICTIONARY,
     .transport_info = TestSpdyTransportInfo(),
     .status = "HTTP/1.1 200 OK",
@@ -328,8 +335,8 @@ const net::MockTransaction kZstdDictionaryTestTransaction = {
     .response_time = base::Time(),
     .data = "",  // We set the body in the `handler` function.
     .dns_aliases = {},
-    .fps_cache_filter = absl::nullopt,
-    .browser_run_id = absl::nullopt,
+    .fps_cache_filter = std::nullopt,
+    .browser_run_id = std::nullopt,
     .test_mode = net::TEST_MODE_NORMAL,
     .handler = base::BindRepeating(&ZstdTestTransactionHandler),
     .read_handler = net::MockTransactionReadHandler(),

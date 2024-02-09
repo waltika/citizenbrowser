@@ -169,8 +169,9 @@ class TestDialogController
       bool show_auto_reauthn_checkbox,
       IdentityRequestDialogController::AccountSelectionCallback on_selected,
       IdentityRequestDialogController::LoginToIdPCallback on_add_account,
-      IdentityRequestDialogController::DismissCallback dismiss_callback)
-      override {
+      IdentityRequestDialogController::DismissCallback dismiss_callback,
+      IdentityRequestDialogController::AccountsDisplayedCallback
+          accounts_displayed_callback) override {
     state_->did_show_accounts_dialog = true;
     state_->top_frame_for_display = top_frame_for_display;
     state_->iframe_for_display = iframe_for_display;
@@ -225,7 +226,7 @@ class FederatedAuthRequestImplMultipleFramesTest
         std::make_unique<TestFederatedIdentityModalDialogViewDelegate>();
     mock_identity_registry_ = std::make_unique<NiceMock<MockIdentityRegistry>>(
         web_contents(), test_modal_dialog_view_delegate_->GetWeakPtr(),
-        url::Origin::Create(GURL(kIdpUrl)));
+        GURL(kIdpUrl));
 
     static_cast<TestWebContents*>(web_contents())
         ->NavigateAndCommit(GURL(kTopFrameUrl), ui::PAGE_TRANSITION_LINK);

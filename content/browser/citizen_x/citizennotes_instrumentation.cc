@@ -58,7 +58,7 @@
 #include "services/network/public/cpp/url_loader_factory_builder.h"
 #include "services/network/public/mojom/citizennotes_observer.mojom.h"
 #include "services/network/public/mojom/network_context.mojom.h"
-#include "third_party/blink/public/mojom/devtools/inspector_issue.mojom.h"
+//#include "third_party/blink/public/mojom/citizennotes/cninspector_issue.mojom.h"
 #include "third_party/blink/public/mojom/navigation/navigation_params.mojom.h"
 
 namespace content {
@@ -68,8 +68,6 @@ namespace {
 
 namespace AttributionReportingIssueTypeEnum =
     protocol::Audits::AttributionReportingIssueTypeEnum;
-
-const char kPrivacySandboxExtensionsAPI[] = "PrivacySandboxExtensionsAPI";
 
 template <typename Handler, typename... MethodArgs, typename... Args>
 void DispatchToAgents(CitizenNotesAgentHostImpl* host,
@@ -117,430 +115,6 @@ void DispatchToAgents(WebContents* web_contents,
             content::CitizenNotesAgentHost::GetOrCreateFor(web_contents).get()),
         method, std::forward<Args>(args)...);
   }
-}
-
-std::unique_ptr<protocol::Audits::InspectorIssue> BuildHeavyAdIssue(
-    const blink::mojom::HeavyAdIssueDetailsPtr& issue_details) {
-  protocol::String status =
-      (issue_details->resolution ==
-       blink::mojom::HeavyAdResolutionStatus::kHeavyAdBlocked)
-          ? protocol::Audits::HeavyAdResolutionStatusEnum::HeavyAdBlocked
-          : protocol::Audits::HeavyAdResolutionStatusEnum::HeavyAdWarning;
-  protocol::String reason_string;
-  switch (issue_details->reason) {
-    case blink::mojom::HeavyAdReason::kNetworkTotalLimit:
-      reason_string = protocol::Audits::HeavyAdReasonEnum::NetworkTotalLimit;
-      break;
-    case blink::mojom::HeavyAdReason::kCpuTotalLimit:
-      reason_string = protocol::Audits::HeavyAdReasonEnum::CpuTotalLimit;
-      break;
-    case blink::mojom::HeavyAdReason::kCpuPeakLimit:
-      reason_string = protocol::Audits::HeavyAdReasonEnum::CpuPeakLimit;
-      break;
-  }
-  auto heavy_ad_details =
-      protocol::Audits::HeavyAdIssueDetails::Create()
-          .SetReason(reason_string)
-          .SetResolution(status)
-          .SetFrame(protocol::Audits::AffectedFrame::Create()
-                        .SetFrameId(issue_details->frame->frame_id)
-                        .Build())
-          .Build();
-
-  auto protocol_issue_details =
-      protocol::Audits::InspectorIssueDetails::Create()
-          .SetHeavyAdIssueDetails(std::move(heavy_ad_details))
-          .Build();
-  auto issue =
-      protocol::Audits::InspectorIssue::Create()
-          .SetCode(protocol::Audits::InspectorIssueCodeEnum::HeavyAdIssue)
-          .SetDetails(std::move(protocol_issue_details))
-          .Build();
-  return issue;
-}
-
-protocol::Audits::AttributionReportingIssueType
-BuildAttributionReportingIssueViolationType(
-    blink::mojom::AttributionReportingIssueType type) {
-  switch (type) {
-    case blink::mojom::AttributionReportingIssueType::kPermissionPolicyDisabled:
-      return AttributionReportingIssueTypeEnum::PermissionPolicyDisabled;
-    case blink::mojom::AttributionReportingIssueType::
-        kUntrustworthyReportingOrigin:
-      return AttributionReportingIssueTypeEnum::UntrustworthyReportingOrigin;
-    case blink::mojom::AttributionReportingIssueType::kInsecureContext:
-      return AttributionReportingIssueTypeEnum::InsecureContext;
-    case blink::mojom::AttributionReportingIssueType::
-        kInvalidRegisterSourceHeader:
-      return AttributionReportingIssueTypeEnum::InvalidHeader;
-    case blink::mojom::AttributionReportingIssueType::
-        kInvalidRegisterTriggerHeader:
-      return AttributionReportingIssueTypeEnum::InvalidRegisterTriggerHeader;
-    case blink::mojom::AttributionReportingIssueType::kSourceAndTriggerHeaders:
-      return AttributionReportingIssueTypeEnum::SourceAndTriggerHeaders;
-    case blink::mojom::AttributionReportingIssueType::kSourceIgnored:
-      return AttributionReportingIssueTypeEnum::SourceIgnored;
-    case blink::mojom::AttributionReportingIssueType::kTriggerIgnored:
-      return AttributionReportingIssueTypeEnum::TriggerIgnored;
-    case blink::mojom::AttributionReportingIssueType::kOsSourceIgnored:
-      return AttributionReportingIssueTypeEnum::OsSourceIgnored;
-    case blink::mojom::AttributionReportingIssueType::kOsTriggerIgnored:
-      return AttributionReportingIssueTypeEnum::OsTriggerIgnored;
-    case blink::mojom::AttributionReportingIssueType::
-        kInvalidRegisterOsSourceHeader:
-      return AttributionReportingIssueTypeEnum::InvalidRegisterOsSourceHeader;
-    case blink::mojom::AttributionReportingIssueType::
-        kInvalidRegisterOsTriggerHeader:
-      return AttributionReportingIssueTypeEnum::InvalidRegisterOsTriggerHeader;
-    case blink::mojom::AttributionReportingIssueType::kWebAndOsHeaders:
-      return AttributionReportingIssueTypeEnum::WebAndOsHeaders;
-    case blink::mojom::AttributionReportingIssueType::kNoWebOrOsSupport:
-      return AttributionReportingIssueTypeEnum::NoWebOrOsSupport;
-  }
-}
-
-std::unique_ptr<protocol::Audits::InspectorIssue>
-BuildAttributionReportingIssue(
-    const blink::mojom::AttributionReportingIssueDetailsPtr& issue_details) {
-  protocol::String violation_type = BuildAttributionReportingIssueViolationType(
-      issue_details->violation_type);
-
-  CHECK(issue_details->request->url.has_value());
-  auto request = protocol::Audits::AffectedRequest::Create()
-                     .SetRequestId(issue_details->request->request_id)
-                     .SetUrl(issue_details->request->url.value())
-                     .Build();
-  auto attribution_reporting_issue_details =
-      protocol::Audits::AttributionReportingIssueDetails::Create()
-          .SetViolationType(violation_type)
-          .SetRequest(std::move(request))
-          .Build();
-  if (issue_details->invalid_parameter.has_value()) {
-    attribution_reporting_issue_details->SetInvalidParameter(
-        issue_details->invalid_parameter.value());
-  }
-
-  auto protocol_issue_details =
-      protocol::Audits::InspectorIssueDetails::Create()
-          .SetAttributionReportingIssueDetails(
-              std::move(attribution_reporting_issue_details))
-          .Build();
-
-  auto issue = protocol::Audits::InspectorIssue::Create()
-                   .SetCode(protocol::Audits::InspectorIssueCodeEnum::
-                                AttributionReportingIssue)
-                   .SetDetails(std::move(protocol_issue_details))
-                   .Build();
-  return issue;
-}
-
-protocol::Audits::FederatedAuthRequestIssueReason
-FederatedAuthRequestResultToProtocol(
-    blink::mojom::FederatedAuthRequestResult result) {
-  using blink::mojom::FederatedAuthRequestResult;
-  namespace FederatedAuthRequestIssueReasonEnum =
-      protocol::Audits::FederatedAuthRequestIssueReasonEnum;
-  switch (result) {
-    case FederatedAuthRequestResult::kShouldEmbargo: {
-      return FederatedAuthRequestIssueReasonEnum::ShouldEmbargo;
-    }
-    case FederatedAuthRequestResult::kErrorDisabledInSettings: {
-      return FederatedAuthRequestIssueReasonEnum::DisabledInSettings;
-    }
-    case FederatedAuthRequestResult::kErrorTooManyRequests: {
-      return FederatedAuthRequestIssueReasonEnum::TooManyRequests;
-    }
-    case FederatedAuthRequestResult::kErrorFetchingWellKnownHttpNotFound: {
-      return FederatedAuthRequestIssueReasonEnum::WellKnownHttpNotFound;
-    }
-    case FederatedAuthRequestResult::kErrorFetchingWellKnownNoResponse: {
-      return FederatedAuthRequestIssueReasonEnum::WellKnownNoResponse;
-    }
-    case FederatedAuthRequestResult::kErrorFetchingWellKnownInvalidResponse: {
-      return FederatedAuthRequestIssueReasonEnum::WellKnownInvalidResponse;
-    }
-    case FederatedAuthRequestResult::kErrorFetchingWellKnownListEmpty: {
-      return FederatedAuthRequestIssueReasonEnum::WellKnownListEmpty;
-    }
-    case FederatedAuthRequestResult::
-        kErrorFetchingWellKnownInvalidContentType: {
-      return FederatedAuthRequestIssueReasonEnum::WellKnownInvalidContentType;
-    }
-    case FederatedAuthRequestResult::kErrorConfigNotInWellKnown: {
-      return FederatedAuthRequestIssueReasonEnum::ConfigNotInWellKnown;
-    }
-    case FederatedAuthRequestResult::kErrorWellKnownTooBig: {
-      return FederatedAuthRequestIssueReasonEnum::WellKnownTooBig;
-    }
-    case FederatedAuthRequestResult::kErrorFetchingConfigHttpNotFound: {
-      return FederatedAuthRequestIssueReasonEnum::ConfigHttpNotFound;
-    }
-    case FederatedAuthRequestResult::kErrorFetchingConfigNoResponse: {
-      return FederatedAuthRequestIssueReasonEnum::ConfigNoResponse;
-    }
-    case FederatedAuthRequestResult::kErrorFetchingConfigInvalidResponse: {
-      return FederatedAuthRequestIssueReasonEnum::ConfigInvalidResponse;
-    }
-    case FederatedAuthRequestResult::kErrorFetchingConfigInvalidContentType: {
-      return FederatedAuthRequestIssueReasonEnum::ConfigInvalidContentType;
-    }
-    case FederatedAuthRequestResult::kErrorFetchingClientMetadataHttpNotFound: {
-      return FederatedAuthRequestIssueReasonEnum::ClientMetadataHttpNotFound;
-    }
-    case FederatedAuthRequestResult::kErrorFetchingClientMetadataNoResponse: {
-      return FederatedAuthRequestIssueReasonEnum::ClientMetadataNoResponse;
-    }
-    case FederatedAuthRequestResult::
-        kErrorFetchingClientMetadataInvalidResponse: {
-      return FederatedAuthRequestIssueReasonEnum::ClientMetadataInvalidResponse;
-    }
-    case FederatedAuthRequestResult::
-        kErrorFetchingClientMetadataInvalidContentType: {
-      return FederatedAuthRequestIssueReasonEnum::
-          ClientMetadataInvalidContentType;
-    }
-    case FederatedAuthRequestResult::kErrorFetchingAccountsHttpNotFound: {
-      return FederatedAuthRequestIssueReasonEnum::AccountsHttpNotFound;
-    }
-    case FederatedAuthRequestResult::kErrorFetchingAccountsNoResponse: {
-      return FederatedAuthRequestIssueReasonEnum::AccountsNoResponse;
-    }
-    case FederatedAuthRequestResult::kErrorFetchingAccountsInvalidResponse: {
-      return FederatedAuthRequestIssueReasonEnum::AccountsInvalidResponse;
-    }
-    case FederatedAuthRequestResult::kErrorFetchingAccountsListEmpty: {
-      return FederatedAuthRequestIssueReasonEnum::AccountsListEmpty;
-    }
-    case FederatedAuthRequestResult::kErrorFetchingAccountsInvalidContentType: {
-      return FederatedAuthRequestIssueReasonEnum::AccountsInvalidContentType;
-    }
-    case FederatedAuthRequestResult::kErrorFetchingIdTokenHttpNotFound: {
-      return FederatedAuthRequestIssueReasonEnum::IdTokenHttpNotFound;
-    }
-    case FederatedAuthRequestResult::kErrorFetchingIdTokenNoResponse: {
-      return FederatedAuthRequestIssueReasonEnum::IdTokenNoResponse;
-    }
-    case FederatedAuthRequestResult::kErrorFetchingIdTokenInvalidResponse: {
-      return FederatedAuthRequestIssueReasonEnum::IdTokenInvalidResponse;
-    }
-    case FederatedAuthRequestResult::kErrorFetchingIdTokenIdpErrorResponse: {
-      return FederatedAuthRequestIssueReasonEnum::IdTokenIdpErrorResponse;
-    }
-    case FederatedAuthRequestResult::
-        kErrorFetchingIdTokenCrossSiteIdpErrorResponse: {
-      return FederatedAuthRequestIssueReasonEnum::
-          IdTokenCrossSiteIdpErrorResponse;
-    }
-    case FederatedAuthRequestResult::kErrorFetchingIdTokenInvalidContentType: {
-      return FederatedAuthRequestIssueReasonEnum::IdTokenInvalidContentType;
-    }
-    case FederatedAuthRequestResult::kErrorCanceled: {
-      return FederatedAuthRequestIssueReasonEnum::Canceled;
-    }
-    case FederatedAuthRequestResult::kErrorRpPageNotVisible:
-      return FederatedAuthRequestIssueReasonEnum::RpPageNotVisible;
-    case FederatedAuthRequestResult::kError: {
-      return FederatedAuthRequestIssueReasonEnum::ErrorIdToken;
-    }
-    case FederatedAuthRequestResult::kErrorSilentMediationFailure: {
-      return FederatedAuthRequestIssueReasonEnum::SilentMediationFailure;
-    }
-    case FederatedAuthRequestResult::kErrorThirdPartyCookiesBlocked: {
-      return FederatedAuthRequestIssueReasonEnum::ThirdPartyCookiesBlocked;
-    }
-    case FederatedAuthRequestResult::kErrorNotSignedInWithIdp: {
-      return FederatedAuthRequestIssueReasonEnum::NotSignedInWithIdp;
-    }
-    case FederatedAuthRequestResult::kSuccess: {
-      NOTREACHED_NORETURN();
-    }
-  }
-}
-
-std::unique_ptr<protocol::Audits::InspectorIssue>
-BuildFederatedAuthRequestIssue(
-    const blink::mojom::FederatedAuthRequestIssueDetailsPtr& issue_details) {
-  auto federated_auth_request_details =
-      protocol::Audits::FederatedAuthRequestIssueDetails::Create()
-          .SetFederatedAuthRequestIssueReason(
-              FederatedAuthRequestResultToProtocol(issue_details->status))
-          .Build();
-
-  auto protocol_issue_details =
-      protocol::Audits::InspectorIssueDetails::Create()
-          .SetFederatedAuthRequestIssueDetails(
-              std::move(federated_auth_request_details))
-          .Build();
-
-  auto issue = protocol::Audits::InspectorIssue::Create()
-                   .SetCode(protocol::Audits::InspectorIssueCodeEnum::
-                                FederatedAuthRequestIssue)
-                   .SetDetails(std::move(protocol_issue_details))
-                   .Build();
-  return issue;
-}
-
-protocol::Audits::FederatedAuthUserInfoRequestIssueReason
-FederatedAuthUserInfoRequestResultToProtocol(
-    blink::mojom::FederatedAuthUserInfoRequestResult result) {
-  using blink::mojom::FederatedAuthUserInfoRequestResult;
-  namespace FederatedAuthUserInfoRequestIssueReasonEnum =
-      protocol::Audits::FederatedAuthUserInfoRequestIssueReasonEnum;
-  switch (result) {
-    case FederatedAuthUserInfoRequestResult::kNotSameOrigin: {
-      return FederatedAuthUserInfoRequestIssueReasonEnum::NotSameOrigin;
-    }
-    case FederatedAuthUserInfoRequestResult::kNotIframe: {
-      return FederatedAuthUserInfoRequestIssueReasonEnum::NotIframe;
-    }
-    case FederatedAuthUserInfoRequestResult::kNotPotentiallyTrustworthy: {
-      return FederatedAuthUserInfoRequestIssueReasonEnum::
-          NotPotentiallyTrustworthy;
-    }
-    case FederatedAuthUserInfoRequestResult::kNoApiPermission: {
-      return FederatedAuthUserInfoRequestIssueReasonEnum::NoApiPermission;
-    }
-    case FederatedAuthUserInfoRequestResult::kNotSignedInWithIdp: {
-      return FederatedAuthUserInfoRequestIssueReasonEnum::NotSignedInWithIdp;
-    }
-    case FederatedAuthUserInfoRequestResult::kNoAccountSharingPermission: {
-      return FederatedAuthUserInfoRequestIssueReasonEnum::
-          NoAccountSharingPermission;
-    }
-    case FederatedAuthUserInfoRequestResult::kInvalidConfigOrWellKnown: {
-      return FederatedAuthUserInfoRequestIssueReasonEnum::
-          InvalidConfigOrWellKnown;
-    }
-    case FederatedAuthUserInfoRequestResult::kInvalidAccountsResponse: {
-      return FederatedAuthUserInfoRequestIssueReasonEnum::
-          InvalidAccountsResponse;
-    }
-    case FederatedAuthUserInfoRequestResult::
-        kNoReturningUserFromFetchedAccounts: {
-      return FederatedAuthUserInfoRequestIssueReasonEnum::
-          NoReturningUserFromFetchedAccounts;
-    }
-    case FederatedAuthUserInfoRequestResult::kSuccess:
-    case FederatedAuthUserInfoRequestResult::kUnhandledRequest: {
-      NOTREACHED_NORETURN();
-    }
-  }
-}
-
-std::unique_ptr<protocol::Audits::InspectorIssue>
-BuildFederatedAuthUserInfoRequestIssue(
-    const blink::mojom::FederatedAuthUserInfoRequestIssueDetailsPtr&
-        issue_details) {
-  auto federated_auth_user_info_request_details =
-      protocol::Audits::FederatedAuthUserInfoRequestIssueDetails::Create()
-          .SetFederatedAuthUserInfoRequestIssueReason(
-              FederatedAuthUserInfoRequestResultToProtocol(
-                  issue_details->status))
-          .Build();
-
-  auto protocol_issue_details =
-      protocol::Audits::InspectorIssueDetails::Create()
-          .SetFederatedAuthUserInfoRequestIssueDetails(
-              std::move(federated_auth_user_info_request_details))
-          .Build();
-
-  auto issue = protocol::Audits::InspectorIssue::Create()
-                   .SetCode(protocol::Audits::InspectorIssueCodeEnum::
-                                FederatedAuthUserInfoRequestIssue)
-                   .SetDetails(std::move(protocol_issue_details))
-                   .Build();
-  return issue;
-}
-
-const char* DeprecationIssueTypeToProtocol(
-    blink::mojom::DeprecationIssueType error_type) {
-  switch (error_type) {
-    case blink::mojom::DeprecationIssueType::kPrivacySandboxExtensionsAPI:
-      return kPrivacySandboxExtensionsAPI;
-  }
-}
-
-std::unique_ptr<protocol::Audits::InspectorIssue> BuildDeprecationIssue(
-    const blink::mojom::DeprecationIssueDetailsPtr& issue_details) {
-  std::unique_ptr<protocol::Audits::SourceCodeLocation> source_code_location =
-      protocol::Audits::SourceCodeLocation::Create()
-          .SetUrl(issue_details->affected_location->url.value())
-          .SetLineNumber(issue_details->affected_location->line)
-          .SetColumnNumber(issue_details->affected_location->column)
-          .Build();
-
-  if (issue_details->affected_location->script_id.has_value()) {
-    source_code_location->SetScriptId(
-        issue_details->affected_location->script_id.value());
-  }
-
-  auto deprecation_issue_details =
-      protocol::Audits::DeprecationIssueDetails::Create()
-          .SetSourceCodeLocation(std::move(source_code_location))
-          .SetType(DeprecationIssueTypeToProtocol(issue_details->type))
-          .Build();
-
-  auto protocol_issue_details =
-      protocol::Audits::InspectorIssueDetails::Create()
-          .SetDeprecationIssueDetails(std::move(deprecation_issue_details))
-          .Build();
-
-  auto deprecation_issue =
-      protocol::Audits::InspectorIssue::Create()
-          .SetCode(protocol::Audits::InspectorIssueCodeEnum::DeprecationIssue)
-          .SetDetails(std::move(protocol_issue_details))
-          .Build();
-
-  return deprecation_issue;
-}
-
-std::unique_ptr<protocol::Audits::InspectorIssue> BuildBounceTrackingIssue(
-    const blink::mojom::BounceTrackingIssueDetailsPtr& issue_details) {
-  auto bounce_tracking_issue_details =
-      protocol::Audits::BounceTrackingIssueDetails::Create()
-          .SetTrackingSites(std::make_unique<protocol::Array<protocol::String>>(
-              issue_details->tracking_sites))
-          .Build();
-
-  auto protocol_issue_details =
-      protocol::Audits::InspectorIssueDetails::Create()
-          .SetBounceTrackingIssueDetails(
-              std::move(bounce_tracking_issue_details))
-          .Build();
-
-  auto issue =
-      protocol::Audits::InspectorIssue::Create()
-          .SetCode(
-              protocol::Audits::InspectorIssueCodeEnum::BounceTrackingIssue)
-          .SetDetails(std::move(protocol_issue_details))
-          .Build();
-
-  return issue;
-}
-
-std::unique_ptr<protocol::Audits::InspectorIssue>
-BuildCookieDeprecationMetadataIssue(
-    const blink::mojom::CookieDeprecationMetadataIssueDetailsPtr&
-        issue_details) {
-  auto metadata_issue_details =
-      protocol::Audits::CookieDeprecationMetadataIssueDetails::Create()
-          .SetAllowedSites(std::make_unique<protocol::Array<protocol::String>>(
-              issue_details->allowed_sites))
-          .Build();
-
-  auto protocol_issue_details =
-      protocol::Audits::InspectorIssueDetails::Create()
-          .SetCookieDeprecationMetadataIssueDetails(
-              std::move(metadata_issue_details))
-          .Build();
-
-  auto issue = protocol::Audits::InspectorIssue::Create()
-                   .SetCode(protocol::Audits::InspectorIssueCodeEnum::
-                                CookieDeprecationMetadataIssue)
-                   .SetDetails(std::move(protocol_issue_details))
-                   .Build();
-
-  return issue;
 }
 
 void UpdateChildFrameTrees(FrameTreeNode* ftn, bool update_target_info) {
@@ -1228,46 +802,21 @@ bool MaybeCreateProxyForInterception(
   bool had_interceptors = false;
   const auto& handlers = HandlerType::ForAgentHost(agent_host);
   for (const auto& handler : base::Reversed(handlers)) {
-    had_interceptors = handler->MaybeCreateProxyForInterception(
-                           process_id, storage_partition, frame_token,
-                           is_navigation, is_download, agent_override) ||
-                       had_interceptors;
+    had_interceptors |= handler->MaybeCreateProxyForInterception(
+        process_id, storage_partition, frame_token, is_navigation, is_download,
+        agent_override);
   }
   return had_interceptors;
 }
 
 }  // namespace
 
-bool WillCreateURLLoaderFactory(
-    RenderFrameHostImpl* rfh,
+bool WillCreateURLLoaderFactoryParams::Run(
     bool is_navigation,
     bool is_download,
     network::URLLoaderFactoryBuilder& factory_builder,
     network::mojom::URLLoaderFactoryOverridePtr* factory_override) {
-  DCHECK(!is_download || is_navigation);
-
-  RenderProcessHost* rph = rfh->GetProcess();
-  DCHECK(rph);
-
-  CitizenNotesAgentHostImpl* frame_agent_host =
-      RenderFrameCitizenNotesAgentHost::GetFor(rfh);
-
-  return WillCreateURLLoaderFactoryInternal(
-      frame_agent_host, rfh->GetCitizenNotesFrameToken(), rph->GetID(),
-      rph->GetStoragePartition(), is_navigation, is_download, &factory_builder,
-      factory_override);
-}
-
-bool WillCreateURLLoaderFactoryInternal(
-    CitizenNotesAgentHostImpl* agent_host,
-    const base::UnguessableToken& citizennotes_token,
-    int process_id,
-    StoragePartition* storage_partition,
-    bool is_navigation,
-    bool is_download,
-    network::URLLoaderFactoryBuilder* factory_builder,
-    network::mojom::URLLoaderFactoryOverridePtr* factory_override) {
-  DCHECK(!is_download || is_navigation);
+  CHECK(!is_download || is_navigation);
 
   network::mojom::URLLoaderFactoryOverride citizennotes_override;
   // If caller passed some existing overrides, use those.
@@ -1283,31 +832,27 @@ bool WillCreateURLLoaderFactoryInternal(
   // Within the target, the agents added earlier are closer to network.
   bool had_interceptors =
       MaybeCreateProxyForInterception<protocol::CNNetworkHandler>(
-          agent_host, process_id, storage_partition, citizennotes_token,
+          agent_host_, process_id_, storage_partition_, citizennotes_token_,
           is_navigation, is_download, handler_override);
 
-  had_interceptors =
-      MaybeCreateProxyForInterception<protocol::CNFetchHandler>(
-          agent_host, process_id, storage_partition, citizennotes_token,
-          is_navigation, is_download, handler_override) ||
-      had_interceptors;
+  had_interceptors |= MaybeCreateProxyForInterception<protocol::CNFetchHandler>(
+      agent_host_, process_id_, storage_partition_, citizennotes_token_,
+      is_navigation, is_download, handler_override);
 
   // TODO(caseq): assure deterministic order of browser agents (or sessions).
   for (auto* browser_agent_host : BrowserCitizenNotesAgentHost::Instances()) {
-    had_interceptors =
-        MaybeCreateProxyForInterception<protocol::CNFetchHandler>(
-            browser_agent_host, process_id, storage_partition, citizennotes_token,
-            is_navigation, is_download, handler_override) ||
-        had_interceptors;
+    had_interceptors |= MaybeCreateProxyForInterception<protocol::CNFetchHandler>(
+        browser_agent_host, process_id_, storage_partition_, citizennotes_token_,
+        is_navigation, is_download, handler_override);
   }
   if (!had_interceptors) {
     return false;
   }
-  DCHECK(handler_override->overriding_factory);
-  DCHECK(handler_override->overridden_factory_receiver);
+  CHECK(handler_override->overriding_factory);
+  CHECK(handler_override->overridden_factory_receiver);
   if (!factory_override) {
     // Not a subresource navigation, so just override the target receiver.
-    auto [receiver, remote] = factory_builder->Append();
+    auto [receiver, remote] = factory_builder.Append();
     mojo::FusePipes(std::move(receiver),
                     std::move(citizennotes_override.overriding_factory));
     mojo::FusePipes(std::move(citizennotes_override.overridden_factory_receiver),
@@ -1316,82 +861,88 @@ bool WillCreateURLLoaderFactoryInternal(
     // No other overrides, so just returns ours as is.
     *factory_override = network::mojom::URLLoaderFactoryOverride::New(
         std::move(citizennotes_override.overriding_factory),
-        std::move(citizennotes_override.overridden_factory_receiver), false);
+        std::move(citizennotes_override.overridden_factory_receiver),
+        /*skip_cors_enabled_scheme_check=*/false);
   }
   // ... else things are already taken care of, as handler_override was pointing
   // to factory override and we've done all magic in-place.
-  DCHECK(!citizennotes_override.overriding_factory);
-  DCHECK(!citizennotes_override.overridden_factory_receiver);
+  CHECK(!citizennotes_override.overriding_factory);
+  CHECK(!citizennotes_override.overridden_factory_receiver);
 
   return true;
 }
 
-bool WillCreateURLLoaderFactoryForServiceWorker(
-    RenderProcessHost* rph,
-    int routing_id,
-    network::mojom::URLLoaderFactoryOverridePtr* factory_override) {
-  DCHECK(rph);
-  DCHECK(factory_override);
+WillCreateURLLoaderFactoryParams::WillCreateURLLoaderFactoryParams(
+    CitizenNotesAgentHostImpl* agent_host,
+    const base::UnguessableToken& citizennotes_token,
+    int process_id,
+    StoragePartition* storage_partition)
+    : agent_host_(agent_host),
+      citizennotes_token_(citizennotes_token),
+      process_id_(process_id),
+      storage_partition_(storage_partition) {}
 
-  ServiceWorkerCitizenNotesAgentHost* worker_agent_host =
-      ServiceWorkerCitizenNotesManager::GetInstance()
-          ->GetCitizenNotesAgentHostForWorker(rph->GetID(), routing_id);
-  DCHECK(worker_agent_host);
-
-  return WillCreateURLLoaderFactoryInternal(
-      worker_agent_host, worker_agent_host->citizennotes_worker_token(),
-      rph->GetID(), rph->GetStoragePartition(),
-      /*is_navigation=*/false, /*is_download=*/false,
-      /*factory_builder=*/nullptr, factory_override);
+WillCreateURLLoaderFactoryParams WillCreateURLLoaderFactoryParams::ForFrame(
+    RenderFrameHostImpl* rfh) {
+  return WillCreateURLLoaderFactoryParams(
+      RenderFrameCitizenNotesAgentHost::GetFor(rfh), rfh->GetCitizenNotesFrameToken(),
+      rfh->GetProcess()->GetID(), rfh->GetProcess()->GetStoragePartition());
 }
 
-bool WillCreateURLLoaderFactoryForServiceWorkerMainScript(
+WillCreateURLLoaderFactoryParams
+WillCreateURLLoaderFactoryParams::ForServiceWorker(RenderProcessHost& rph,
+                                                   int routing_id) {
+  ServiceWorkerCitizenNotesAgentHost* agent_host =
+      ServiceWorkerCitizenNotesManager::GetInstance()
+          ->GetCitizenNotesAgentHostForWorker(rph.GetID(), routing_id);
+  CHECK(agent_host);
+  return WillCreateURLLoaderFactoryParams(
+      agent_host, agent_host->citizennotes_worker_token(), rph.GetID(),
+      rph.GetStoragePartition());
+}
+
+std::optional<WillCreateURLLoaderFactoryParams>
+WillCreateURLLoaderFactoryParams::ForServiceWorkerMainScript(
     const ServiceWorkerContextWrapper* context_wrapper,
-    int64_t version_id,
-    network::URLLoaderFactoryBuilder& factory_builder) {
-  ServiceWorkerCitizenNotesAgentHost* worker_agent_host =
-      ServiceWorkerCitizenNotesManager::GetInstance()
-          ->GetCitizenNotesAgentHostForNewInstallingWorker(context_wrapper,
-                                                       version_id);
-  DCHECK(worker_agent_host);
-
-  return WillCreateURLLoaderFactoryInternal(
-      worker_agent_host, worker_agent_host->citizennotes_worker_token(),
-      ChildProcessHost::kInvalidUniqueID, context_wrapper->storage_partition(),
-      /*is_navigation=*/true,
-      /*is_download=*/false, &factory_builder,
-      /*factory_override=*/nullptr);
-}
-
-bool WillCreateURLLoaderFactoryForSharedWorker(
-    SharedWorkerHost* host,
-    network::mojom::URLLoaderFactoryOverridePtr* factory_override) {
-  auto* worker_agent_host = SharedWorkerCitizenNotesAgentHost::GetFor(host);
-  if (!worker_agent_host) {
-    return false;
+    std::optional<int64_t> version_id) {
+  if (!version_id.has_value()) {
+    return std::nullopt;
   }
 
-  RenderProcessHost* rph = worker_agent_host->GetProcessHost();
-  DCHECK(rph);
-
-  return WillCreateURLLoaderFactoryInternal(
-      worker_agent_host, worker_agent_host->citizennotes_worker_token(),
-      rph->GetID(), rph->GetStoragePartition(),
-      /*is_navigation=*/false, /*is_download=*/false,
-      /*factory_builder=*/nullptr, factory_override);
+  // If we have a version_id, we are fetching a worker main script. We have a
+  // CitizennotesAgentHost ready for the worker and we can add the citizennotes override
+  // before instantiating the URLFactoryLoader.
+  ServiceWorkerCitizenNotesAgentHost* agent_host =
+      ServiceWorkerCitizenNotesManager::GetInstance()
+          ->GetCitizenNotesAgentHostForNewInstallingWorker(context_wrapper,
+                                                       *version_id);
+  CHECK(agent_host);
+  return WillCreateURLLoaderFactoryParams(
+      agent_host, agent_host->citizennotes_worker_token(),
+      ChildProcessHost::kInvalidUniqueID, context_wrapper->storage_partition());
 }
 
-bool WillCreateURLLoaderFactoryForWorkerMainScript(
-    CitizenNotesAgentHostImpl* host,
-    const base::UnguessableToken& worker_token,
-    network::mojom::URLLoaderFactoryOverridePtr* factory_override) {
-  RenderProcessHost* rph = host->GetProcessHost();
-  DCHECK(rph);
+std::optional<WillCreateURLLoaderFactoryParams>
+WillCreateURLLoaderFactoryParams::ForSharedWorker(SharedWorkerHost* host) {
+  auto* agent_host = SharedWorkerCitizenNotesAgentHost::GetFor(host);
+  if (!agent_host) {
+    return std::nullopt;
+  }
+  RenderProcessHost* rph = agent_host->GetProcessHost();
+  CHECK(rph);
+  return WillCreateURLLoaderFactoryParams(
+      agent_host, agent_host->citizennotes_worker_token(), rph->GetID(),
+      rph->GetStoragePartition());
+}
 
-  return WillCreateURLLoaderFactoryInternal(
-      host, worker_token, rph->GetID(), rph->GetStoragePartition(),
-      /*is_navigation=*/false, /*is_download=*/false,
-      /*factory_builder=*/nullptr, factory_override);
+WillCreateURLLoaderFactoryParams
+WillCreateURLLoaderFactoryParams::ForWorkerMainScript(
+    CitizenNotesAgentHostImpl* agent_host,
+    const base::UnguessableToken& worker_token) {
+  RenderProcessHost* rph = agent_host->GetProcessHost();
+  CHECK(rph);
+  return WillCreateURLLoaderFactoryParams(
+      agent_host, worker_token, rph->GetID(), rph->GetStoragePartition());
 }
 
 void OnPrefetchRequestWillBeSent(
@@ -1887,36 +1438,7 @@ void ReportBrowserInitiatedIssue(RenderFrameHostImpl* frame,
 void BuildAndReportBrowserInitiatedIssue(
     RenderFrameHostImpl* frame,
     blink::mojom::InspectorIssueInfoPtr info) {
-  std::unique_ptr<protocol::Audits::InspectorIssue> issue;
-  if (info->code == blink::mojom::InspectorIssueCode::kHeavyAdIssue) {
-    issue = BuildHeavyAdIssue(info->details->heavy_ad_issue_details);
-  } else if (info->code ==
-             blink::mojom::InspectorIssueCode::kFederatedAuthRequestIssue) {
-    issue = BuildFederatedAuthRequestIssue(
-        info->details->federated_auth_request_details);
-  } else if (info->code ==
-             blink::mojom::InspectorIssueCode::kDeprecationIssue) {
-    issue = BuildDeprecationIssue(info->details->deprecation_issue_details);
-  } else if (info->code ==
-             blink::mojom::InspectorIssueCode::kBounceTrackingIssue) {
-    issue =
-        BuildBounceTrackingIssue(info->details->bounce_tracking_issue_details);
-  } else if (info->code == blink::mojom::InspectorIssueCode::
-                               kCookieDeprecationMetadataIssue) {
-    issue = BuildCookieDeprecationMetadataIssue(
-        info->details->cookie_deprecation_metadata_issue_details);
-  } else if (info->code == blink::mojom::InspectorIssueCode::
-                               kFederatedAuthUserInfoRequestIssue) {
-    issue = BuildFederatedAuthUserInfoRequestIssue(
-        info->details->federated_auth_user_info_request_details);
-  } else if (info->code ==
-             blink::mojom::InspectorIssueCode::kAttributionReportingIssue) {
-    issue = BuildAttributionReportingIssue(
-        info->details->attribution_reporting_issue_details);
-  } else {
-    NOTREACHED() << "Unsupported type of browser-initiated issue";
-  }
-  ReportBrowserInitiatedIssue(frame, issue.get());
+  NOTREACHED_NORETURN();
 }
 
 void OnWebTransportHandshakeFailed(

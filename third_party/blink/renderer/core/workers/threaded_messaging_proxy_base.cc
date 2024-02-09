@@ -69,8 +69,8 @@ void ThreadedMessagingProxyBase::Trace(Visitor* visitor) const {
 
 void ThreadedMessagingProxyBase::InitializeWorkerThread(
     std::unique_ptr<GlobalScopeCreationParams> global_scope_creation_params,
-    const absl::optional<WorkerBackingThreadStartupData>& thread_startup_data,
-    const absl::optional<const blink::DedicatedWorkerToken>& token,
+    const std::optional<WorkerBackingThreadStartupData>& thread_startup_data,
+    const std::optional<const blink::DedicatedWorkerToken>& token,
     std::unique_ptr<WorkerDevToolsParams> client_provided_devtools_params,
     std::unique_ptr<WorkerCitizenNotesParams> client_provided_citizennotes_params) {
   DCHECK(IsParentContextThread());

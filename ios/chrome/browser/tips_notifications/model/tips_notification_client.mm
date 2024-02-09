@@ -4,8 +4,14 @@
 
 #import "ios/chrome/browser/tips_notifications/model/tips_notification_client.h"
 
+#import "base/task/bind_post_task.h"
 #import "base/time/time.h"
+#import "components/feature_engagement/public/tracker.h"
+#import "components/prefs/pref_registry_simple.h"
+#import "components/prefs/pref_service.h"
+#import "components/sync/base/features.h"
 #import "ios/chrome/browser/default_browser/model/utils.h"
+#import "ios/chrome/browser/feature_engagement/model/tracker_factory.h"
 #import "ios/chrome/browser/shared/coordinator/scene/scene_state.h"
 #import "ios/chrome/browser/shared/model/application_context/application_context.h"
 #import "ios/chrome/browser/shared/model/browser/browser.h"
@@ -16,10 +22,43 @@
 #import "ios/chrome/browser/shared/public/commands/browser_coordinator_commands.h"
 #import "ios/chrome/browser/shared/public/commands/command_dispatcher.h"
 #import "ios/chrome/browser/shared/public/commands/promos_manager_commands.h"
+#import "ios/chrome/browser/shared/public/commands/show_signin_command.h"
+#import "ios/chrome/browser/signin/model/authentication_service.h"
+#import "ios/chrome/browser/signin/model/authentication_service_factory.h"
+#import "ios/chrome/browser/signin/model/chrome_account_manager_service.h"
+#import "ios/chrome/browser/signin/model/chrome_account_manager_service_factory.h"
 #import "ios/chrome/browser/tips_notifications/model/utils.h"
+#import "ios/chrome/browser/ui/authentication/signin_presenter.h"
 
-using tips_notifications::IsTipsNotification;
-using tips_notifications::NotificationType;
+namespace {
+
+// Returns the first notification from `requests` whose identifier matches
+// `identifier`.
+UNNotificationRequest* NotificationWithIdentifier(
+    NSString* identifier,
+    NSArray<UNNotificationRequest*>* requests) {
+  for (UNNotificationRequest* request in requests) {
+    if ([request.identifier isEqualToString:identifier]) {
+      return request;
+    }
+  }
+  return nil;
+}
+
+// Returns true if signin is allowed / enabled.
+bool IsSigninEnabled(AuthenticationService* auth_service) {
+  switch (auth_service->GetServiceStatus()) {
+    case AuthenticationService::ServiceStatus::SigninForcedByPolicy:
+    case AuthenticationService::ServiceStatus::SigninAllowed:
+      return true;
+    case AuthenticationService::ServiceStatus::SigninDisabledByUser:
+    case AuthenticationService::ServiceStatus::SigninDisabledByPolicy:
+    case AuthenticationService::ServiceStatus::SigninDisabledByInternal:
+      return false;
+  }
+}
+
+}  // namespace
 
 TipsNotificationClient::TipsNotificationClient()
     : PushNotificationClient(PushNotificationClientId::kTips) {}
@@ -32,12 +71,12 @@ void TipsNotificationClient::HandleNotificationInteraction(
     return;
   }
 
-  interacted_type_ =
-      tips_notifications::ParseType(response.notification.request);
+  interacted_type_ = ParseTipsNotificationType(response.notification.request);
   if (!interacted_type_.has_value()) {
     // TODO(crbug.com/1519157): Add logging for this error condition.
     return;
   }
+
   // If the app is not yet foreground active, store the notification type and
   // handle it later when the app becomes foreground active.
   if (IsSceneLevelForegroundActive()) {
@@ -47,16 +86,16 @@ void TipsNotificationClient::HandleNotificationInteraction(
 }
 
 void TipsNotificationClient::HandleNotificationInteraction(
-    NotificationType type) {
+    TipsNotificationType type) {
   switch (type) {
-    case NotificationType::kDefaultBrowser:
+    case TipsNotificationType::kDefaultBrowser:
       ShowDefaultBrowserPromo();
       break;
-    case NotificationType::kWhatsNew:
+    case TipsNotificationType::kWhatsNew:
       ShowWhatsNew();
       break;
-    case NotificationType::kSignin:
-      // TODO(crbug.com/1517912) implement Signin interaction.
+    case TipsNotificationType::kSignin:
+      ShowSignin();
       break;
   }
 }
@@ -72,20 +111,59 @@ TipsNotificationClient::RegisterActionableNotifications() {
 }
 
 void TipsNotificationClient::OnSceneActiveForegroundBrowserReady() {
+  OnSceneActiveForegroundBrowserReady(base::DoNothing());
+}
+
+void TipsNotificationClient::OnSceneActiveForegroundBrowserReady(
+    base::OnceClosure closure) {
   if (interacted_type_.has_value()) {
     HandleNotificationInteraction(interacted_type_.value());
     interacted_type_ = std::nullopt;
   }
-  ClearNotification();
-  MaybeRequestNotification();
+  ClearNotification(
+      base::BindOnce(&TipsNotificationClient::MaybeRequestNotification,
+                     weak_ptr_factory_.GetWeakPtr())
+          .Then(std::move(closure)));
 }
 
-void TipsNotificationClient::ClearNotification() {
-  UNUserNotificationCenter* notificationCenter =
-      [UNUserNotificationCenter currentNotificationCenter];
-  [notificationCenter removePendingNotificationRequestsWithIdentifiers:@[
-    tips_notifications::kIdentifier
-  ]];
+// static
+void TipsNotificationClient::RegisterLocalStatePrefs(
+    PrefRegistrySimple* registry) {
+  registry->RegisterIntegerPref(kTipsNotificationsSentPref, 0);
+}
+
+void TipsNotificationClient::GetPendingRequest(
+    GetPendingRequestCallback callback) {
+  auto completion = base::CallbackToBlock(base::BindPostTask(
+      base::SequencedTaskRunner::GetCurrentDefault(),
+      base::BindOnce(&NotificationWithIdentifier, kTipsNotificationId)
+          .Then(std::move(callback))));
+
+  [UNUserNotificationCenter.currentNotificationCenter
+      getPendingNotificationRequestsWithCompletionHandler:completion];
+}
+
+void TipsNotificationClient::ClearNotification(base::OnceClosure callback) {
+  GetPendingRequest(
+      base::BindOnce(&TipsNotificationClient::OnNotificationCleared,
+                     weak_ptr_factory_.GetWeakPtr())
+          .Then(std::move(callback)));
+}
+
+void TipsNotificationClient::OnNotificationCleared(
+    UNNotificationRequest* request) {
+  if (!request) {
+    return;
+  }
+
+  std::optional<TipsNotificationType> type = ParseTipsNotificationType(request);
+  if (type.has_value()) {
+    MarkNotificationTypeNotSent(type.value());
+  }
+  [UNUserNotificationCenter.currentNotificationCenter
+      removePendingNotificationRequestsWithIdentifiers:@[
+        kTipsNotificationId
+      ]];
 }
 
 void TipsNotificationClient::MaybeRequestNotification() {
@@ -93,15 +171,22 @@ void TipsNotificationClient::MaybeRequestNotification() {
     return;
   }
 
+  PrefService* local_state = GetApplicationContext()->GetLocalState();
+  int sent_bitfield = local_state->GetInteger(kTipsNotificationsSentPref);
+
   // The types of notifications that could be sent will be evaluated in the
   // order they appear in this array.
-  static const NotificationType kTypes[] = {
-      NotificationType::kDefaultBrowser,
-      NotificationType::kWhatsNew,
-      NotificationType::kSignin,
+  static const TipsNotificationType kTypes[] = {
+      TipsNotificationType::kDefaultBrowser,
+      TipsNotificationType::kWhatsNew,
+      TipsNotificationType::kSignin,
   };
 
-  for (NotificationType type : kTypes) {
+  for (TipsNotificationType type : kTypes) {
+    if (sent_bitfield & (1 << int(type))) {
+      // This type of notification has already been sent.
+      continue;
+    }
     if (ShouldSendNotification(type)) {
       RequestNotification(type);
       break;
@@ -109,44 +194,56 @@ void TipsNotificationClient::MaybeRequestNotification() {
   }
 }
 
-void TipsNotificationClient::RequestNotification(NotificationType type) {
-  UNUserNotificationCenter* notificationCenter =
-      [UNUserNotificationCenter currentNotificationCenter];
-  UNNotificationRequest* request = tips_notifications::Request(type);
-  [notificationCenter
+void TipsNotificationClient::RequestNotification(TipsNotificationType type) {
+  UNNotificationRequest* request = TipsNotificationRequest(type);
+
+  auto completion = base::CallbackToBlock(base::BindPostTask(
+      base::SequencedTaskRunner::GetCurrentDefault(),
+      base::BindOnce(&TipsNotificationClient::OnNotificationRequested,
+                     weak_ptr_factory_.GetWeakPtr(), type)));
+
+  [UNUserNotificationCenter.currentNotificationCenter
       addNotificationRequest:request
-       withCompletionHandler:^(NSError* error){
-           // TODO(crbug.com/1519157): Add logging if there is an
-           // error.
-       }];
+       withCompletionHandler:completion];
 }
 
-bool TipsNotificationClient::ShouldSendNotification(NotificationType type) {
+void TipsNotificationClient::OnNotificationRequested(TipsNotificationType type,
+                                                     NSError* error) {
+  if (!error) {
+    MarkNotificationTypeSent(type);
+  }
+  // TODO(crbug.com/1519157): Add logging if there is an
+  // error.
+}
+
+bool TipsNotificationClient::ShouldSendNotification(TipsNotificationType type) {
   switch (type) {
-    case NotificationType::kDefaultBrowser:
+    case TipsNotificationType::kDefaultBrowser:
       return !IsChromeLikelyDefaultBrowser();
-    case NotificationType::kWhatsNew:
-      return true;
-    case NotificationType::kSignin:
-      return true;
+    case TipsNotificationType::kWhatsNew:
+      return ShouldSendWhatsNew();
+    case TipsNotificationType::kSignin:
+      return ShouldSendSignin();
   }
 }
 
-Browser* TipsNotificationClient::GetSceneLevelForegroundActiveBrowser() {
-  ChromeBrowserState* browser_state = GetApplicationContext()
-                                          ->GetChromeBrowserStateManager()
-                                          ->GetLastUsedBrowserState();
-  BrowserList* browser_list =
-      BrowserListFactory::GetForBrowserState(browser_state);
-  for (Browser* browser : browser_list->AllRegularBrowsers()) {
-    if (!browser->IsInactive()) {
-      if (browser->GetSceneState().activationLevel ==
-          SceneActivationLevelForegroundActive) {
-        return browser;
-      }
-    }
-  }
-  return nullptr;
+bool TipsNotificationClient::ShouldSendWhatsNew() {
+  Browser* browser = GetSceneLevelForegroundActiveBrowser();
+  feature_engagement::Tracker* tracker =
+      feature_engagement::TrackerFactory::GetForBrowserState(
+          browser->GetBrowserState());
+  return !tracker->HasEverTriggered(
+      feature_engagement::kIPHWhatsNewUpdatedFeature, true);
+}
+
+bool TipsNotificationClient::ShouldSendSignin() {
+  Browser* browser = GetSceneLevelForegroundActiveBrowser();
+  ChromeBrowserState* browser_state = browser->GetBrowserState();
+  AuthenticationService* auth_service =
+      AuthenticationServiceFactory::GetForBrowserState(browser_state);
+
+  return IsSigninEnabled(auth_service) &&
+         !auth_service->HasPrimaryIdentity(signin::ConsentLevel::kSignin);
 }
 
 bool TipsNotificationClient::IsSceneLevelForegroundActive() {
@@ -154,7 +251,7 @@ bool TipsNotificationClient::IsSceneLevelForegroundActive() {
 }
 
 void TipsNotificationClient::ShowDefaultBrowserPromo() {
-  raw_ptr<Browser> browser = GetSceneLevelForegroundActiveBrowser();
+  Browser* browser = GetSceneLevelForegroundActiveBrowser();
   [HandlerForProtocol(browser->GetCommandDispatcher(), PromosManagerCommands)
       maybeDisplayDefaultBrowserPromo];
 }
@@ -163,4 +260,46 @@ void TipsNotificationClient::ShowWhatsNew() {
   raw_ptr<Browser> browser = GetSceneLevelForegroundActiveBrowser();
   [HandlerForProtocol(browser->GetCommandDispatcher(),
                       BrowserCoordinatorCommands) showWhatsNew];
+}
+
+void TipsNotificationClient::ShowSignin() {
+  Browser* browser = GetSceneLevelForegroundActiveBrowser();
+  AuthenticationOperation operation = AuthenticationOperation::kSigninAndSync;
+  if (base::FeatureList::IsEnabled(
+          syncer::kReplaceSyncPromosWithSignInPromos)) {
+    // If there are identities, kInstantSignin requires less taps.
+    ChromeBrowserState* browser_state = browser->GetBrowserState();
+    operation =
+        ChromeAccountManagerServiceFactory::GetForBrowserState(browser_state)
+                ->HasIdentities()
+            ? AuthenticationOperation::kSigninOnly
+            : AuthenticationOperation::kInstantSignin;
+  }
+  ShowSigninCommand* command = [[ShowSigninCommand alloc]
+      initWithOperation:operation
+               identity:nil
+            accessPoint:signin_metrics::AccessPoint::
+                            ACCESS_POINT_TIPS_NOTIFICATION
+            promoAction:signin_metrics::PromoAction::
+                            PROMO_ACTION_NO_SIGNIN_PROMO
+               callback:nil];
+
+  [HandlerForProtocol(browser->GetCommandDispatcher(), SigninPresenter)
+      showSignin:command];
+}
+
+void TipsNotificationClient::MarkNotificationTypeSent(
+    TipsNotificationType type) {
+  PrefService* local_state = GetApplicationContext()->GetLocalState();
+  int sent_bitfield = local_state->GetInteger(kTipsNotificationsSentPref);
+  sent_bitfield |= 1 << int(type);
+  local_state->SetInteger(kTipsNotificationsSentPref, sent_bitfield);
+}
+
+void TipsNotificationClient::MarkNotificationTypeNotSent(
+    TipsNotificationType type) {
+  PrefService* local_state = GetApplicationContext()->GetLocalState();
+  int sent_bitfield = local_state->GetInteger(kTipsNotificationsSentPref);
+  sent_bitfield &= ~(1 << int(type));
+  local_state->SetInteger(kTipsNotificationsSentPref, sent_bitfield);
 }

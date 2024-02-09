@@ -86,6 +86,10 @@ namespace media {
 
 namespace {
 
+BASE_FEATURE(kAddSharedImageRasterUsageWithNonOOPR,
+             "AddSharedImageRasterUsageWithNonOOPR",
+             base::FEATURE_ENABLED_BY_DEFAULT);
+
 // Return the full-range RGB component of the color space of this frame's
 // content. This will replace several color spaces (Rec601, Rec709, and
 // Apple's Rec709) with sRGB, for compatibility with existing behavior.
@@ -1189,16 +1193,10 @@ void PaintCanvasVideoRenderer::Paint(
   // Make sure to flush so we can remove the videoframe from the generator.
   canvas->flush();
 
-  if (video_frame->HasTextures()) {
-    // Synchronize |video_frame| with the read operations in UpdateLastImage(),
-    // which are triggered by canvas->flush().
-    SynchronizeVideoFrameRead(std::move(video_frame),
-                              raster_context_provider->RasterInterface(),
-                              raster_context_provider->ContextSupport());
-  }
   // Because we are not retaining a reference to the VideoFrame, it would be
   // invalid for the texture_backing to directly wrap its texture(s), as they
-  // will be recycled.
+  // will be recycled. For this reason, we also do not need to synchronize video
+  // frame read here since it's already taken care of in UpdateLastImage().
   DCHECK(!CacheBackingWrapsTexture());
 }
 
@@ -1849,11 +1847,17 @@ bool PaintCanvasVideoRenderer::CopyVideoFrameYUVDataToGLTexture(
     // intermediate SI over the raster interface - the usage bits depend on
     // whether OOP-Raster is enabled.
     if (raster_context_provider->ContextCapabilities().gpu_rasterization) {
-      usage |= gpu::SHARED_IMAGE_USAGE_RASTER_READ |
-               gpu::SHARED_IMAGE_USAGE_RASTER_WRITE |
+      usage |= gpu::SHARED_IMAGE_USAGE_RASTER_WRITE |
                gpu::SHARED_IMAGE_USAGE_OOP_RASTERIZATION;
     } else {
       usage |= gpu::SHARED_IMAGE_USAGE_GLES2_WRITE;
+      // RASTER_WRITE usage should be included as these SharedImages are written
+      // via raster, but historically this usage was included only for OOP-R.
+      // Currently in the process of adding with a killswitch.
+      // TODO(crbug.com/1524353): Remove this killswitch post-safe rollout.
+      if (base::FeatureList::IsEnabled(kAddSharedImageRasterUsageWithNonOOPR)) {
+        usage = usage | gpu::SHARED_IMAGE_USAGE_RASTER_WRITE;
+      }
     }
 
     yuv_cache_.shared_image = sii->CreateSharedImage(
@@ -2083,8 +2087,7 @@ bool PaintCanvasVideoRenderer::UpdateLastImage(
         // We copy the contents of the source VideoFrame *into* the
         // cached SI over the raster interface - the usage bits depend on
         // whether OOP-Raster is enabled.
-        flags |= gpu::SHARED_IMAGE_USAGE_RASTER_READ |
-                 gpu::SHARED_IMAGE_USAGE_RASTER_WRITE;
+        flags |= gpu::SHARED_IMAGE_USAGE_RASTER_WRITE;
         if (gpu_rasterization) {
           flags |= gpu::SHARED_IMAGE_USAGE_OOP_RASTERIZATION;
         } else {

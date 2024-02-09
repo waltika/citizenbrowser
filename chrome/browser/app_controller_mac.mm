@@ -31,7 +31,6 @@
 #include "base/threading/thread_restrictions.h"
 #include "build/branding_buildflags.h"
 #include "chrome/app/chrome_command_ids.h"
-#include "chrome/app/notification_metrics.h"
 #include "chrome/browser/apps/app_shim/app_shim_termination_manager.h"
 #include "chrome/browser/apps/platform_apps/app_window_registry_util.h"
 #include "chrome/browser/browser_features.h"
@@ -77,7 +76,6 @@
 #import "chrome/browser/ui/cocoa/confirm_quit_panel_controller.h"
 #include "chrome/browser/ui/cocoa/handoff_observer.h"
 #import "chrome/browser/ui/cocoa/history_menu_bridge.h"
-#include "chrome/browser/ui/cocoa/last_active_browser_cocoa.h"
 #import "chrome/browser/ui/cocoa/profiles/profile_menu_controller.h"
 #import "chrome/browser/ui/cocoa/share_menu_controller.h"
 #import "chrome/browser/ui/cocoa/tab_menu_bridge.h"
@@ -219,7 +217,7 @@ Browser* CreateBrowser(Profile* profile) {
     chrome::NewEmptyWindow(profile);
   }
 
-  Browser* browser = chrome::GetLastActiveBrowser();
+  Browser* browser = chrome::FindLastActive();
   CHECK(browser);
   return browser;
 }
@@ -1032,10 +1030,6 @@ class AppControllerNativeThemeObserver : public ui::NativeThemeObserver {
 // This is called after profiles have been loaded and preferences registered.
 // It is safe to access the default profile here.
 - (void)applicationDidFinishLaunching:(NSNotification*)notify {
-  // Check if Chrome got launched by clicking on a notification.
-  if ([notify userInfo][NSApplicationLaunchUserNotificationKey])
-    LogLaunchedViaNotificationAction(NotificationActionSource::kBrowser);
-
   if (g_browser_process->browser_policy_connector()
           ->chrome_browser_cloud_management_controller()
           ->IsEnterpriseStartupDialogShowing()) {
@@ -1277,7 +1271,7 @@ class AppControllerNativeThemeObserver : public ui::NativeThemeObserver {
   if ([NSApp modalWindow])
     return YES;
 
-  Browser* browser = chrome::GetLastActiveBrowser();
+  Browser* browser = chrome::FindLastActive();
   return browser && [[browser->window()->GetNativeWindow().GetNativeNSWindow()
                             attachedSheet] isKindOfClass:[NSWindow class]];
 }
@@ -1951,13 +1945,10 @@ class AppControllerNativeThemeObserver : public ui::NativeThemeObserver {
 }
 
 - (const ui::ColorProvider&)lastActiveColorProvider {
-  // In rare situation the last active color provider is not properly tracked,
-  // probably because -windowDidBecomeMain: is not fired.
-  // TODO(crbug.com/1364279): DCHECK(_lastActiveColorProvider). If this is not
-  // possible, investigate if we should make a GetDefaultColorProvider(), or
-  // GetColorProviderForProfile().
+  // During the browser startup the creation of Browser and AppController is
+  // a race condition. The color provider will be missing if the browser is
+  // created later than the AppController.
   if (!_lastActiveColorProvider) {
-    base::debug::DumpWithoutCrashing();
     return *ui::ColorProviderManager::Get().GetColorProviderFor(
         ui::NativeTheme::GetInstanceForNativeUi()->GetColorProviderKey(
             nullptr));

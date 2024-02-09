@@ -7775,8 +7775,8 @@ TEST_P(HttpNetworkTransactionTest, HttpsProxySpdyGetWithSessionRace) {
 
   // Race a session to the proxy, which completes first.
   session_deps_.host_resolver->set_ondemand_mode(false);
-  SpdySessionKey key(HostPortPair("proxy", 70), ProxyChain::Direct(),
-                     PRIVACY_MODE_DISABLED, SessionUsage::kProxy, SocketTag(),
+  SpdySessionKey key(HostPortPair("proxy", 70), PRIVACY_MODE_DISABLED,
+                     ProxyChain::Direct(), SessionUsage::kProxy, SocketTag(),
                      NetworkAnonymizationKey(), SecureDnsPolicy::kAllow);
   base::WeakPtr<SpdySession> spdy_session =
       CreateSpdySession(session.get(), key, net_log_with_source);
@@ -11805,26 +11805,16 @@ TEST_P(HttpNetworkTransactionTest, NTLMOverHttp2WithWebsockets) {
                        MockRead(SYNCHRONOUS, ERR_IO_PENDING, 6)};
 
   // Generate the NTLM messages based on known test data.
-  std::string negotiate_msg;
-  std::string challenge_msg;
-  std::string authenticate_msg;
-  base::Base64Encode(
-      base::StringPiece(
-          reinterpret_cast<const char*>(ntlm::test::kExpectedNegotiateMsg),
-          std::size(ntlm::test::kExpectedNegotiateMsg)),
-      &negotiate_msg);
-  base::Base64Encode(
-      base::StringPiece(
-          reinterpret_cast<const char*>(ntlm::test::kChallengeMsgFromSpecV2),
-          std::size(ntlm::test::kChallengeMsgFromSpecV2)),
-      &challenge_msg);
-  base::Base64Encode(
-      base::StringPiece(
-          reinterpret_cast<const char*>(
-              ntlm::test::kExpectedAuthenticateMsgEmptyChannelBindingsV2),
-          std::size(
-              ntlm::test::kExpectedAuthenticateMsgEmptyChannelBindingsV2)),
-      &authenticate_msg);
+  std::string negotiate_msg = base::Base64Encode(base::StringPiece(
+      reinterpret_cast<const char*>(ntlm::test::kExpectedNegotiateMsg),
+      std::size(ntlm::test::kExpectedNegotiateMsg)));
+  std::string challenge_msg = base::Base64Encode(base::StringPiece(
+      reinterpret_cast<const char*>(ntlm::test::kChallengeMsgFromSpecV2),
+      std::size(ntlm::test::kChallengeMsgFromSpecV2)));
+  std::string authenticate_msg = base::Base64Encode(base::StringPiece(
+      reinterpret_cast<const char*>(
+          ntlm::test::kExpectedAuthenticateMsgEmptyChannelBindingsV2),
+      std::size(ntlm::test::kExpectedAuthenticateMsgEmptyChannelBindingsV2)));
 
   // Retry yet again using HTTP/1.1.
   MockWrite writes1[] = {
@@ -17522,8 +17512,8 @@ TEST_P(HttpNetworkTransactionTest,
 
   // Set up an initial SpdySession in the pool to reuse.
   HostPortPair host_port_pair("www.example.org", 443);
-  SpdySessionKey key(host_port_pair, ProxyChain::Direct(),
-                     PRIVACY_MODE_DISABLED, SessionUsage::kDestination,
+  SpdySessionKey key(host_port_pair, PRIVACY_MODE_DISABLED,
+                     ProxyChain::Direct(), SessionUsage::kDestination,
                      SocketTag(), NetworkAnonymizationKey(),
                      SecureDnsPolicy::kAllow);
   base::WeakPtr<SpdySession> spdy_session =
@@ -18958,7 +18948,7 @@ TEST_P(HttpNetworkTransactionTest, ProxyGet) {
   EXPECT_EQ(200, response->headers->response_code());
   EXPECT_EQ(100, response->headers->GetContentLength());
   EXPECT_TRUE(response->was_fetched_via_proxy);
-  EXPECT_FALSE(response->was_ip_protected);
+  EXPECT_FALSE(response->proxy_chain.is_for_ip_protection());
   EXPECT_EQ(ProxyChain(ProxyServer::SCHEME_HTTP,
                        HostPortPair::FromString("myproxy:70")),
             response->proxy_chain);
@@ -19222,8 +19212,8 @@ TEST_P(HttpNetworkTransactionTest, PreconnectWithExistingSpdySession) {
 
   // Set up an initial SpdySession in the pool to reuse.
   HostPortPair host_port_pair("www.example.org", 443);
-  SpdySessionKey key(host_port_pair, ProxyChain::Direct(),
-                     PRIVACY_MODE_DISABLED, SessionUsage::kDestination,
+  SpdySessionKey key(host_port_pair, PRIVACY_MODE_DISABLED,
+                     ProxyChain::Direct(), SessionUsage::kDestination,
                      SocketTag(), NetworkAnonymizationKey(),
                      SecureDnsPolicy::kAllow);
   base::WeakPtr<SpdySession> spdy_session =
@@ -21750,7 +21740,7 @@ TEST_P(HttpNetworkTransactionTest, CloseIdleSpdySessionToOpenNewOne) {
 
   HostPortPair host_port_pair_a("www.a.com", 443);
   SpdySessionKey spdy_session_key_a(
-      host_port_pair_a, ProxyChain::Direct(), PRIVACY_MODE_DISABLED,
+      host_port_pair_a, PRIVACY_MODE_DISABLED, ProxyChain::Direct(),
       SessionUsage::kDestination, SocketTag(), NetworkAnonymizationKey(),
       SecureDnsPolicy::kAllow);
   EXPECT_FALSE(
@@ -21785,7 +21775,7 @@ TEST_P(HttpNetworkTransactionTest, CloseIdleSpdySessionToOpenNewOne) {
 
   HostPortPair host_port_pair_b("www.b.com", 443);
   SpdySessionKey spdy_session_key_b(
-      host_port_pair_b, ProxyChain::Direct(), PRIVACY_MODE_DISABLED,
+      host_port_pair_b, PRIVACY_MODE_DISABLED, ProxyChain::Direct(),
       SessionUsage::kDestination, SocketTag(), NetworkAnonymizationKey(),
       SecureDnsPolicy::kAllow);
   EXPECT_FALSE(
@@ -21817,7 +21807,7 @@ TEST_P(HttpNetworkTransactionTest, CloseIdleSpdySessionToOpenNewOne) {
 
   HostPortPair host_port_pair_a1("www.a.com", 80);
   SpdySessionKey spdy_session_key_a1(
-      host_port_pair_a1, ProxyChain::Direct(), PRIVACY_MODE_DISABLED,
+      host_port_pair_a1, PRIVACY_MODE_DISABLED, ProxyChain::Direct(),
       SessionUsage::kDestination, SocketTag(), NetworkAnonymizationKey(),
       SecureDnsPolicy::kAllow);
   EXPECT_FALSE(
@@ -27229,7 +27219,7 @@ TEST_P(HttpNetworkTransactionTest, SetProxyInfoInResponse_Direct) {
   HttpResponseInfo response_info;
   HttpNetworkTransaction::SetProxyInfoInResponse(proxy_info, &response_info);
   EXPECT_EQ(response_info.was_fetched_via_proxy, false);
-  EXPECT_EQ(response_info.was_ip_protected, false);
+  EXPECT_EQ(response_info.proxy_chain.is_for_ip_protection(), false);
   EXPECT_EQ(response_info.proxy_chain, ProxyChain::Direct());
 }
 
@@ -27242,7 +27232,7 @@ TEST_P(HttpNetworkTransactionTest, SetProxyInfoInResponse_Proxied) {
   HttpResponseInfo response_info;
   HttpNetworkTransaction::SetProxyInfoInResponse(proxy_info, &response_info);
   EXPECT_EQ(response_info.was_fetched_via_proxy, true);
-  EXPECT_EQ(response_info.was_ip_protected, false);
+  EXPECT_EQ(response_info.proxy_chain.is_for_ip_protection(), false);
   EXPECT_EQ(response_info.proxy_chain, proxy_chain);
 }
 
@@ -27253,7 +27243,7 @@ TEST_P(HttpNetworkTransactionTest, SetProxyInfoInResponse_Empty) {
   HttpNetworkTransaction::SetProxyInfoInResponse(empty_proxy_info,
                                                  &response_info);
   EXPECT_EQ(response_info.was_fetched_via_proxy, true);
-  EXPECT_EQ(response_info.was_ip_protected, false);
+  EXPECT_EQ(response_info.proxy_chain.is_for_ip_protection(), false);
   EXPECT_FALSE(response_info.proxy_chain.IsValid());
 }
 
@@ -27262,13 +27252,13 @@ TEST_P(HttpNetworkTransactionTest, SetProxyInfoInResponse_Empty) {
 TEST_P(HttpNetworkTransactionTest, SetProxyInfoInResponse_IpProtection) {
   ProxyInfo proxy_info;
   ProxyChain ip_protection_proxy_chain =
-      ProxyChain::FromSchemeHostAndPort(ProxyServer::SCHEME_HTTPS, "prx", 443)
-          .ForIpProtection();
+      ProxyChain::ForIpProtection({ProxyServer::FromSchemeHostAndPort(
+          ProxyServer::SCHEME_HTTPS, "prx", 443)});
   proxy_info.UseProxyChain(ip_protection_proxy_chain);
   HttpResponseInfo response_info;
   HttpNetworkTransaction::SetProxyInfoInResponse(proxy_info, &response_info);
   EXPECT_EQ(response_info.was_fetched_via_proxy, true);
-  EXPECT_EQ(response_info.was_ip_protected, true);
+  EXPECT_EQ(response_info.proxy_chain.is_for_ip_protection(), true);
   EXPECT_EQ(response_info.proxy_chain, ip_protection_proxy_chain);
 }
 
@@ -27322,8 +27312,8 @@ TEST_P(HttpNetworkTransactionTest,
                                   HostPortPair("proxy1.test", 70)};
   const ProxyServer kProxyServer2{ProxyServer::SCHEME_HTTPS,
                                   HostPortPair("proxy2.test", 71)};
-  ProxyChain kNestedProxyChain{{kProxyServer1, kProxyServer2}};
-  kNestedProxyChain = std::move(kNestedProxyChain).ForIpProtection();
+  ProxyChain kNestedProxyChain =
+      ProxyChain::ForIpProtection({kProxyServer1, kProxyServer2});
 
   session_deps_.proxy_resolution_service =
       ConfiguredProxyResolutionService::CreateFixedForTest(
@@ -27416,7 +27406,8 @@ TEST_P(HttpNetworkTransactionTest,
   request.traffic_annotation =
       net::MutableNetworkTrafficAnnotationTag(TRAFFIC_ANNOTATION_FOR_TESTS);
 
-  auto kIpProtectionDirectChain = ProxyChain::Direct().ForIpProtection();
+  auto kIpProtectionDirectChain =
+      ProxyChain::ForIpProtection(std::vector<ProxyServer>());
 
   session_deps_.proxy_resolution_service =
       ConfiguredProxyResolutionService::CreateFixedForTest(
@@ -27482,8 +27473,8 @@ TEST_P(HttpNetworkTransactionTest,
                                   HostPortPair("proxy1.test", 70)};
   const ProxyServer kProxyServer2{ProxyServer::SCHEME_HTTPS,
                                   HostPortPair("proxy2.test", 71)};
-  ProxyChain kNestedProxyChain{{kProxyServer1, kProxyServer2}};
-  kNestedProxyChain = std::move(kNestedProxyChain).ForIpProtection();
+  ProxyChain kNestedProxyChain =
+      ProxyChain::ForIpProtection({kProxyServer1, kProxyServer2});
 
   session_deps_.proxy_resolution_service =
       ConfiguredProxyResolutionService::CreateFixedForTest(
@@ -27577,8 +27568,8 @@ TEST_P(HttpNetworkTransactionTest,
                                   HostPortPair("proxy1.test", 70)};
   const ProxyServer kProxyServer2{ProxyServer::SCHEME_HTTPS,
                                   HostPortPair("proxy2.test", 71)};
-  ProxyChain kNestedProxyChain{{kProxyServer1, kProxyServer2}};
-  kNestedProxyChain = std::move(kNestedProxyChain).ForIpProtection();
+  ProxyChain kNestedProxyChain =
+      ProxyChain::ForIpProtection({kProxyServer1, kProxyServer2});
 
   session_deps_.proxy_resolution_service =
       ConfiguredProxyResolutionService::CreateFixedForTest(

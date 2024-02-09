@@ -88,6 +88,23 @@ inline constexpr base::FeatureParam<bool>
         &kSyncEnableContactInfoDataTypeForDasherUsers,
         "enable_for_google_accounts", false};
 
+// For users who support separate "profile" and "account" password stores -
+// see password_manager::features_util::CanCreateAccountStore() - and have
+// sync-the-feature on, enabling this flag means:
+// - New passwords are saved to the account store if the passwords data type is
+//   "selected", and to the profile store otherwise. When the flag is disabled,
+//   saves always happen to the profile store.
+// - The account store is synced. When the flag is disabled, the profile one is.
+BASE_DECLARE_FEATURE(kEnablePasswordsAccountStorageForSyncingUsers);
+// For users who support separate "profile" and "account" password stores -
+// see password_manager::features_util::CanCreateAccountStore() - and have
+// sync-the-transport on, enabling this flag means:
+// - New passwords are saved to the account store if the passwords data type is
+//   "selected", and to the profile store otherwise. When the flag is disabled,
+//   saves always happen to the profile store.
+// - The account store is synced. When the flag is disabled, no store is.
+BASE_DECLARE_FEATURE(kEnablePasswordsAccountStorageForNonSyncingUsers);
+
 // Enables a separate account-scoped storage for preferences, for syncing users.
 // (Note that opposed to other "account storage" features, this one does not
 // have any effect for signed-in non-syncing users!)
@@ -100,6 +117,7 @@ BASE_DECLARE_FEATURE(kSyncPollImmediatelyOnEveryStartup);
 
 #if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
 // Enables syncing the WEBAUTHN_CREDENTIAL data type.
+// Enabled by default on M123. Remove on or after M126.
 BASE_DECLARE_FEATURE(kSyncWebauthnCredentials);
 #endif  // !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
 
@@ -138,6 +156,9 @@ constexpr bool IsReadingListAccountStorageEnabled() {
   return true;
 }
 #endif  // !BUILDFLAG(IS_IOS)
+
+// Flag to allow SHARED_TAB_GROUP_DATA to run in transport mode.
+BASE_DECLARE_FEATURE(kSyncSharedTabGroupDataInTransportMode);
 
 // Flags to allow AUTOFILL_WALLET_METADATA and AUTOFILL_WALLET_OFFER,
 // respectively, to run in transport mode.
@@ -211,6 +232,11 @@ BASE_DECLARE_FEATURE(kSyncShowIdentityErrorsForSignedInUsers);
 // If enabled, custom passphrase will be remembered after sign-out. Otherwise,
 // it is cleared on sign-out.
 BASE_DECLARE_FEATURE(kSyncRememberCustomPassphraseAfterSignout);
+
+#if BUILDFLAG(IS_ANDROID)
+// If enabled, WebAPK data will be synced for Backup&Restore purposes.
+BASE_DECLARE_FEATURE(kWebApkBackupAndRestoreBackend);
+#endif  // BUILDFLAG(IS_ANDROID)
 
 }  // namespace syncer
 

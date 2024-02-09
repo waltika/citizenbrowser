@@ -135,7 +135,7 @@ enum NonConfigurableActions {
   kAmbientDisplayHiddenFiles,
   kAmbientOpenRightClickMenu,
   kAmbientCaretBrowsing,
-  kAmbientSwitchFocus,
+  kAmbientSwitchFocus,  // DEPRECATED
   kAmbientCopy,
   kAmbientCut,
   kAmbientPaste,
@@ -155,6 +155,8 @@ enum NonConfigurableActions {
   kAmbientGoToEndOfLine,
   kAmbientMoveStartOfPreviousWord,
   kAmbientMoveToEndOfWord,
+  kAmbientSwitchFocusForwards,
+  kAmbientSwitchFocusBackwards,
 };
 
 // Contains details for UI styling of an accelerator.
@@ -482,7 +484,8 @@ inline constexpr uint32_t kAcceleratorLayouts[] = {
     AcceleratorAction::kMagnifierZoomOut,
 
     // Accessibility > Accessbility navigation
-    NonConfigurableActions::kAmbientSwitchFocus,
+    NonConfigurableActions::kAmbientSwitchFocusForwards,
+    NonConfigurableActions::kAmbientSwitchFocusBackwards,
     NonConfigurableActions::kAmbientCaretBrowsing,
     AcceleratorAction::kFocusShelf,
     NonConfigurableActions::kAmbientHighlightNextItemOnShelf,

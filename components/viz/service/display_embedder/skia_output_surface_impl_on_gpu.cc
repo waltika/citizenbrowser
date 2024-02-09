@@ -262,8 +262,8 @@ std::unique_ptr<SkiaOutputSurfaceImplOnGpu> SkiaOutputSurfaceImplOnGpu::Create(
     BufferPresentedCallback buffer_presented_callback,
     ContextLostCallback context_lost_callback,
     ScheduleGpuTaskCallback schedule_gpu_task,
-    GpuVSyncCallback gpu_vsync_callback,
-    AddChildWindowToBrowserCallback add_child_window_to_browser_callback) {
+    AddChildWindowToBrowserCallback add_child_window_to_browser_callback,
+    SkiaOutputDevice::ReleaseOverlaysCallback release_overlays_callback) {
   TRACE_EVENT0("viz", "SkiaOutputSurfaceImplOnGpu::Create");
 
   auto context_state = deps->GetSharedContextState();
@@ -286,8 +286,9 @@ std::unique_ptr<SkiaOutputSurfaceImplOnGpu> SkiaOutputSurfaceImplOnGpu::Create(
       context_state->feature_info(), renderer_settings, sequence_id,
       shared_gpu_deps, std::move(did_swap_buffer_complete_callback),
       std::move(buffer_presented_callback), std::move(context_lost_callback),
-      std::move(schedule_gpu_task), std::move(gpu_vsync_callback),
-      std::move(add_child_window_to_browser_callback));
+      std::move(schedule_gpu_task),
+      std::move(add_child_window_to_browser_callback),
+      std::move(release_overlays_callback));
   if (!impl_on_gpu->Initialize()) {
     return nullptr;
   }
@@ -306,8 +307,8 @@ SkiaOutputSurfaceImplOnGpu::SkiaOutputSurfaceImplOnGpu(
     BufferPresentedCallback buffer_presented_callback,
     ContextLostCallback context_lost_callback,
     ScheduleGpuTaskCallback schedule_gpu_task,
-    GpuVSyncCallback gpu_vsync_callback,
-    AddChildWindowToBrowserCallback add_child_window_to_browser_callback)
+    AddChildWindowToBrowserCallback add_child_window_to_browser_callback,
+    SkiaOutputDevice::ReleaseOverlaysCallback release_overlays_callback)
     : dependency_(std::move(deps)),
       shared_gpu_deps_(shared_gpu_deps),
       feature_info_(std::move(feature_info)),
@@ -329,9 +330,9 @@ SkiaOutputSurfaceImplOnGpu::SkiaOutputSurfaceImplOnGpu(
           std::move(did_swap_buffer_complete_callback)),
       context_lost_callback_(std::move(context_lost_callback)),
       schedule_gpu_task_(std::move(schedule_gpu_task)),
-      gpu_vsync_callback_(std::move(gpu_vsync_callback)),
       add_child_window_to_browser_callback_(
           std::move(add_child_window_to_browser_callback)),
+      release_overlays_callback_(release_overlays_callback),
       gpu_preferences_(dependency_->GetGpuPreferences()),
       async_read_result_lock_(base::MakeRefCounted<AsyncReadResultLock>()) {
   DCHECK_CALLED_ON_VALID_THREAD(thread_checker_);
@@ -1892,10 +1893,6 @@ void SkiaOutputSurfaceImplOnGpu::SetEnableDCLayers(bool enable) {
   output_device_->SetEnableDCLayers(enable);
 }
 
-void SkiaOutputSurfaceImplOnGpu::SetGpuVSyncEnabled(bool enabled) {
-  output_device_->SetGpuVSyncEnabled(enabled);
-}
-
 void SkiaOutputSurfaceImplOnGpu::SetVSyncDisplayID(int64_t display_id) {
   output_device_->SetVSyncDisplayID(display_id);
 }
@@ -2013,9 +2010,9 @@ bool SkiaOutputSurfaceImplOnGpu::InitializeForGL() {
                 shared_image_representation_factory_.get()),
             dependency_, shared_image_representation_factory_.get(),
             shared_gpu_deps_->memory_tracker(),
-            GetDidSwapBuffersCompleteCallback());
+            GetDidSwapBuffersCompleteCallback(), GetReleaseOverlaysCallback());
 #else   // !BUILDFLAG(IS_WIN)
-        output_device_ = std::make_unique<SkiaOutputDeviceDCompPresenter>(
+        output_device_ = std::make_unique<SkiaOutputDeviceDComp>(
             shared_image_representation_factory_.get(), context_state_.get(),
             presenter_, feature_info_, shared_gpu_deps_->memory_tracker(),
             GetDidSwapBuffersCompleteCallback());
@@ -2027,23 +2024,11 @@ bool SkiaOutputSurfaceImplOnGpu::InitializeForGL() {
               shared_gpu_deps_->memory_tracker(),
               GetDidSwapBuffersCompleteCallback());
         } else {
-#if BUILDFLAG(IS_WIN)
-          if (gl_surface_->SupportsDCLayers()) {
-            output_device_ = std::make_unique<SkiaOutputDeviceDCompGLSurface>(
-                shared_image_representation_factory_.get(),
-                context_state_.get(), gl_surface_, feature_info_,
-                shared_gpu_deps_->memory_tracker(),
-                GetDidSwapBuffersCompleteCallback());
-          }
-#endif
-          if (!output_device_) {
-            // Used by Android, Linux, and Windows (when there is no DComp
-            // support, e.g. Win7)
-            output_device_ = std::make_unique<SkiaOutputDeviceGL>(
-                context_state_.get(), gl_surface_, feature_info_,
-                shared_gpu_deps_->memory_tracker(),
-                GetDidSwapBuffersCompleteCallback());
-          }
+          // Used by Android, Linux, and Windows (when DComp has been disabled).
+          output_device_ = std::make_unique<SkiaOutputDeviceGL>(
+              context_state_.get(), gl_surface_, feature_info_,
+              shared_gpu_deps_->memory_tracker(),
+              GetDidSwapBuffersCompleteCallback());
         }
       }
     } else {
@@ -2108,8 +2093,8 @@ bool SkiaOutputSurfaceImplOnGpu::InitializeForVulkan() {
     output_device_ = std::make_unique<SkiaOutputDeviceBufferQueue>(
         std::move(output_presenter), dependency_,
         shared_image_representation_factory_.get(),
-        shared_gpu_deps_->memory_tracker(),
-        GetDidSwapBuffersCompleteCallback());
+        shared_gpu_deps_->memory_tracker(), GetDidSwapBuffersCompleteCallback(),
+        GetReleaseOverlaysCallback());
     return true;
   }
 #endif  // !BUILDFLAG(IS_WIN)
@@ -2180,7 +2165,7 @@ bool SkiaOutputSurfaceImplOnGpu::InitializeForDawn() {
 #elif BUILDFLAG(IS_WIN)
   presenter_ = dependency_->CreatePresenter(weak_ptr_factory_.GetWeakPtr());
   if (presenter_) {
-    output_device_ = std::make_unique<SkiaOutputDeviceDCompPresenter>(
+    output_device_ = std::make_unique<SkiaOutputDeviceDComp>(
         shared_image_representation_factory_.get(), context_state_.get(),
         presenter_, feature_info_, shared_gpu_deps_->memory_tracker(),
         GetDidSwapBuffersCompleteCallback());
@@ -2219,7 +2204,8 @@ bool SkiaOutputSurfaceImplOnGpu::InitializeForDawn() {
           presenter_, dependency_, shared_image_factory_.get(),
           shared_image_representation_factory_.get()),
       dependency_, shared_image_representation_factory_.get(),
-      shared_gpu_deps_->memory_tracker(), GetDidSwapBuffersCompleteCallback());
+      shared_gpu_deps_->memory_tracker(), GetDidSwapBuffersCompleteCallback(),
+      GetReleaseOverlaysCallback());
   return true;
 
 #endif  // BUILDFLAG(IS_APPLE) || BUILDFLAG(IS_ANDROID)
@@ -2251,8 +2237,8 @@ bool SkiaOutputSurfaceImplOnGpu::InitializeForMetal() {
             presenter_, dependency_, shared_image_factory_.get(),
             shared_image_representation_factory_.get()),
         dependency_, shared_image_representation_factory_.get(),
-        shared_gpu_deps_->memory_tracker(),
-        GetDidSwapBuffersCompleteCallback());
+        shared_gpu_deps_->memory_tracker(), GetDidSwapBuffersCompleteCallback(),
+        GetReleaseOverlaysCallback());
   }
 
   return true;
@@ -2489,10 +2475,6 @@ const gpu::GpuPreferences& SkiaOutputSurfaceImplOnGpu::GetGpuPreferences()
   return gpu_preferences_;
 }
 
-GpuVSyncCallback SkiaOutputSurfaceImplOnGpu::GetGpuVSyncCallback() {
-  return gpu_vsync_callback_;
-}
-
 void SkiaOutputSurfaceImplOnGpu::DidSwapBuffersCompleteInternal(
     gpu::SwapBuffersCompleteParams params,
     const gfx::Size& pixel_size,
@@ -2521,10 +2503,22 @@ void SkiaOutputSurfaceImplOnGpu::DidSwapBuffersCompleteInternal(
                                         std::move(release_fence)));
 }
 
+void SkiaOutputSurfaceImplOnGpu::ReleaseOverlays(
+    const std::vector<gpu::Mailbox> released_overlays) {
+  PostTaskToClientThread(
+      base::BindOnce(release_overlays_callback_, released_overlays));
+}
+
 SkiaOutputSurfaceImplOnGpu::DidSwapBufferCompleteCallback
 SkiaOutputSurfaceImplOnGpu::GetDidSwapBuffersCompleteCallback() {
   return base::BindRepeating(
       &SkiaOutputSurfaceImplOnGpu::DidSwapBuffersCompleteInternal, weak_ptr_);
+}
+
+SkiaOutputDevice::ReleaseOverlaysCallback
+SkiaOutputSurfaceImplOnGpu::GetReleaseOverlaysCallback() {
+  return base::BindRepeating(&SkiaOutputSurfaceImplOnGpu::ReleaseOverlays,
+                             weak_ptr_);
 }
 
 void SkiaOutputSurfaceImplOnGpu::OnContextLost() {

@@ -11,9 +11,10 @@ import '//resources/polymer/v3_0/iron-icon/iron-icon.js';
 import '../../components/oobe_icons.html.js';
 import '../../components/common_styles/oobe_common_styles.css.js';
 import '../../components/common_styles/oobe_dialog_host_styles.css.js';
-import '../../components/dialogs/oobe_adaptive_dialog.js';
+import {OobeAdaptiveDialog} from '../../components/dialogs/oobe_adaptive_dialog.js';
 import '../../components/buttons/oobe_text_button.js';
 
+import {assert} from '//resources/js/assert.js';
 import {PolymerElementProperties} from '//resources/polymer/v3_0/polymer/interfaces.js';
 import {mixinBehaviors, PolymerElement} from '//resources/polymer/v3_0/polymer/polymer_bundled.min.js';
 
@@ -81,6 +82,12 @@ export class FactorSetupSuccessScreen extends FactorSetupSuccessBase {
       },
       /**
        */
+      buttonsEnabled: {
+        type: Boolean,
+        value: false,
+      },
+      /**
+       */
       factors: {
         type: String,
         value: ModifiedFactors.ONLINE_PASSWORD,
@@ -95,6 +102,7 @@ export class FactorSetupSuccessScreen extends FactorSetupSuccessBase {
   }
 
   private hasNextStep: boolean;
+  private buttonsEnabled: boolean;
   private factors: ModifiedFactors;
   private changeMode: ChangeMode;
 
@@ -109,6 +117,13 @@ export class FactorSetupSuccessScreen extends FactorSetupSuccessBase {
     return OOBE_UI_STATE.BLOCKING;
   }
 
+  /** Returns a control which should receive an initial focus. */
+  override get defaultControl(): HTMLElement {
+    const dialog =  this.shadowRoot?.querySelector('#factorSetupSuccessDialog');
+    assert(dialog instanceof OobeAdaptiveDialog);
+    return dialog;
+  }
+
   /**
    * Invoked just before being shown. Contains all the data for the screen.
    */
@@ -116,6 +131,7 @@ export class FactorSetupSuccessScreen extends FactorSetupSuccessBase {
     this.factors = data['modifiedFactors'];
     this.changeMode = data['changeMode'];
     this.hasNextStep = this.changeMode === ChangeMode.INITIAL_SETUP;
+    this.buttonsEnabled = true;
   }
 
   private getTitle(
@@ -148,6 +164,10 @@ export class FactorSetupSuccessScreen extends FactorSetupSuccessBase {
   }
 
   private onProceed(): void {
+    if (!this.buttonsEnabled) {
+      return;
+    }
+    this.buttonsEnabled = false;
     this.userActed(ACTION_PROCEED);
   }
 }

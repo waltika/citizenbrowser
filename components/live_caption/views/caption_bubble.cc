@@ -80,7 +80,6 @@
 #if defined(NEED_FOCUS_FOR_ACCESSIBILITY)
 #include "base/scoped_observation.h"
 #include "ui/accessibility/platform/ax_platform.h"
-#include "ui/accessibility/platform/ax_platform_node.h"
 #endif
 
 namespace {
@@ -396,12 +395,10 @@ class CaptionBubbleLabel : public views::Label {
   // document navigation. Making the CaptionBubbleLabel focusable means it gets
   // a tabstop, so it should only be focusable for screen reader users.
   void SetFocusBehaviorForAccessibility() {
-    if (ui::AXPlatformNode::GetAccessibilityMode().has_mode(
-            ui::AXMode::kScreenReader)) {
-      SetFocusBehavior(FocusBehavior::ALWAYS);
-    } else {
-      SetFocusBehavior(FocusBehavior::NEVER);
-    }
+    SetFocusBehavior(ui::AXPlatform::GetInstance().GetMode().has_mode(
+                         ui::AXMode::kScreenReader)
+                         ? FocusBehavior::ALWAYS
+                         : FocusBehavior::NEVER);
   }
 #endif
 
@@ -480,12 +477,13 @@ class LanguageLabelButton : public views::LabelButton {
   }
 
   void SetTranslateIconVisible(bool visible) {
-    image()->SetVisible(visible);
+    image_container_view()->SetVisible(visible);
 
     if (visible) {
-      image()->SetPreferredSize(gfx::Size(kButtonDip, kButtonDip));
+      image_container_view()->SetPreferredSize(
+          gfx::Size(kButtonDip, kButtonDip));
     } else {
-      image()->SetPreferredSize(gfx::Size(0, 0));
+      image_container_view()->SetPreferredSize(gfx::Size(0, 0));
     }
   }
 

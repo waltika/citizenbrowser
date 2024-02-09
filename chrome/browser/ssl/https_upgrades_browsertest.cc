@@ -247,8 +247,9 @@ class HttpsUpgradesBrowserTest
     mock_cert_verifier_.mock_cert_verifier()->set_default_result(net::OK);
     host_resolver()->AddRule("*", "127.0.0.1");
 
-    // Set up "bad-https.com" and "nonunique-hostname-bad-https" as hostnames
-    // with an SSL error. HTTPS upgrades to this host will fail.
+    // Set up "bad-https.com", "bad-https2.com" and
+    // "nonunique-hostname-bad-https" as hostnames with an SSL error. HTTPS
+    // upgrades to these hosts will fail.
     scoped_refptr<net::X509Certificate> cert(https_server_.GetCertificate());
     net::CertVerifyResult verify_result;
     verify_result.is_issued_by_known_root = false;
@@ -259,6 +260,9 @@ class HttpsUpgradesBrowserTest
         net::ERR_CERT_COMMON_NAME_INVALID);
     mock_cert_verifier_.mock_cert_verifier()->AddResultForCertAndHost(
         cert, "www.bad-https.com", verify_result,
+        net::ERR_CERT_COMMON_NAME_INVALID);
+    mock_cert_verifier_.mock_cert_verifier()->AddResultForCertAndHost(
+        cert, "bad-https2.com", verify_result,
         net::ERR_CERT_COMMON_NAME_INVALID);
     mock_cert_verifier_.mock_cert_verifier()->AddResultForCertAndHost(
         cert, "nonunique-hostname-bad-https", verify_result,
@@ -1261,8 +1265,10 @@ IN_PROC_BROWSER_TEST_P(
   hfm_service->CheckUserIsTypicallySecureAndMaybeEnableHttpsFirstMode();
   size_t initial_navigation_count = hfm_service->GetRecentNavigationCount();
 
-  GURL http_url = http_server()->GetURL("bad-https.com", "/simple.html");
-  GURL https_url = https_server()->GetURL("bad-https.com", "/simple.html");
+  // Use a different hostname than the PRE_ test so that we don't hit the
+  // allowlist.
+  GURL http_url = http_server()->GetURL("bad-https2.com", "/simple.html");
+  GURL https_url = https_server()->GetURL("bad-https2.com", "/simple.html");
   NavigateAndWaitForFallback(contents, http_url);
   EXPECT_EQ(http_url, contents->GetLastCommittedURL());
   EXPECT_EQ(initial_navigation_count + 1u,
@@ -2342,9 +2348,9 @@ IN_PROC_BROWSER_TEST_P(HttpsUpgradesBrowserTest, AllowlistEntryExpires) {
         contents->GetPrimaryMainFrame()->GetStoragePartition()));
   }
 
-  // Simulate the clock advancing by eight days, which is past the expiration
+  // Simulate the clock advancing by 16 days, which is past the expiration
   // point.
-  clock_ptr->Advance(base::Days(8));
+  clock_ptr->Advance(base::Days(16));
 
   // The host should no longer be allowlisted, and the interstitial should
   // trigger again.
@@ -2404,17 +2410,17 @@ IN_PROC_BROWSER_TEST_P(HttpsUpgradesBrowserTest, RevisitingBumpsExpiration) {
   EXPECT_TRUE(state->IsHttpAllowedForHost(
       http_url.host(), contents->GetPrimaryMainFrame()->GetStoragePartition()));
 
-  // Simulate the clock advancing by five days.
-  clock_ptr->Advance(base::Days(5));
+  // Simulate the clock advancing by ten days.
+  clock_ptr->Advance(base::Days(10));
 
   // Navigate to the host again; this will reset the allowlist expiration to
   // now + 7 days.
   EXPECT_TRUE(content::NavigateToURL(contents, http_url));
 
-  // Simulate the clock advancing another five days. This will be _after_ the
+  // Simulate the clock advancing another ten days. This will be _after_ the
   // initial expiration date of the allowlist entry, but _before_ the bumped
   // expiration date from the second navigation.
-  clock_ptr->Advance(base::Days(5));
+  clock_ptr->Advance(base::Days(10));
   EXPECT_TRUE(state->IsHttpAllowedForHost(
       http_url.host(), contents->GetPrimaryMainFrame()->GetStoragePartition()));
   EXPECT_TRUE(content::NavigateToURL(contents, http_url));
