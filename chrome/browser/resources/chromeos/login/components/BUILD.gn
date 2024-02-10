@@ -35,20 +35,14 @@ group("closure_compile") {
   deps = [
     "behaviors:closure_compile",
     "common_styles:closure_compile",
-    "dialogs:closure_compile",
     "oobe_vars:closure_compile",
 
     # Local targets
     ":api_keys_notice",
     ":display_manager_types",
     ":hd_iron_icon",
-    ":keyboard_utils",
-    ":keyboard_utils_oobe",
-    ":long_touch_detector",
-    ":notification_card",
     ":oobe_a11y_option",
     ":oobe_carousel",
-    ":oobe_cr_lottie",
     ":oobe_display_size_selector",
     ":oobe_i18n_dropdown",
     ":oobe_icons.html",
@@ -58,8 +52,6 @@ group("closure_compile") {
     ":oobe_select",
     ":oobe_slide",
     ":oobe_types",
-    ":progress_list_item",
-    ":web_view_loader",
   ]
 }
 
@@ -85,25 +77,6 @@ js_library("hd_iron_icon") {
   deps = [
     "//third_party/polymer/v3_0/components-chromium/polymer:polymer_bundled",
   ]
-  extra_deps = [ ":web_components" ]
-}
-
-js_library("keyboard_utils") {
-  externs_list = [ "$externs_path/chrome_send.js" ]
-}
-
-js_library("keyboard_utils_oobe") {
-}
-
-js_library("long_touch_detector") {
-  sources = [ "$root_gen_dir/chrome/browser/resources/chromeos/login/components/long_touch_detector.js" ]
-  deps = []
-  extra_deps = [ ":copy_js" ]
-}
-
-js_library("notification_card") {
-  sources = [ "$root_gen_dir/chrome/browser/resources/chromeos/login/components/notification_card.js" ]
-  deps = []
   extra_deps = [ ":web_components" ]
 }
 
@@ -139,18 +112,6 @@ js_library("oobe_carousel") {
   deps = [
     "//ash/webui/common/resources:load_time_data.m",
     "//third_party/polymer/v3_0/components-chromium/polymer:polymer_bundled",
-  ]
-  extra_deps = [ ":web_components" ]
-}
-
-js_library("oobe_cr_lottie") {
-  sources = [ "$root_gen_dir/chrome/browser/resources/chromeos/login/components/oobe_cr_lottie.js" ]
-  deps = [
-    "behaviors:oobe_i18n_behavior",
-    "//third_party/polymer/v3_0/components-chromium/polymer:polymer_bundled",
-  ]
-  externs_list = [
-    "//third_party/cros-components/externs/cros_lottie_renderer_externs.js",
   ]
   extra_deps = [ ":web_components" ]
 }
@@ -199,30 +160,12 @@ js_library("oobe_types") {
   extra_deps = [ ":copy_js" ]
 }
 
-js_library("progress_list_item") {
-  sources = [ "$root_gen_dir/chrome/browser/resources/chromeos/login/components/progress_list_item.js" ]
-  deps = [
-    "./behaviors:oobe_i18n_behavior",
-    "//third_party/polymer/v3_0/components-chromium/polymer:polymer_bundled",
-  ]
-  extra_deps = [ ":web_components" ]
-}
-
-js_library("web_view_loader") {
-  sources = [ "$root_gen_dir/chrome/browser/resources/chromeos/login/components/web_view_loader.js" ]
-  deps = []
-  extra_deps = [ ":copy_js" ]
-}
-
 # Copy existing files to output directory for closure compilation.
 copy("copy_js") {
   sources = [
     "display_manager_types.js",
-    "keyboard_utils.js",
-    "long_touch_detector.js",
     "oobe_select.js",
     "oobe_types.js",
-    "web_view_loader.js",
   ]
   outputs = [ "$target_gen_dir/{{source_file_part}}" ]
 }
@@ -240,14 +183,11 @@ html_to_js("web_components_local") {
   js_files = [
     "api_keys_notice.js",
     "hd_iron_icon.js",
-    "notification_card.js",
     "oobe_a11y_option.js",
     "oobe_carousel.js",
-    "oobe_cr_lottie.js",
     "oobe_display_size_selector.js",
     "oobe_i18n_dropdown.js",
     "oobe_screens_list.js",
     "oobe_slide.js",
-    "progress_list_item.js",
   ]
 }

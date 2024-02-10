@@ -1579,13 +1579,6 @@ void URLLoader::OnCertificateRequested(net::URLRequest* unused,
                                        net::SSLCertRequestInfo* cert_info) {
   DCHECK(!client_cert_responder_receiver_.is_bound());
 
-  if (base::CommandLine::ForCurrentProcess()->HasSwitch(
-          switches::kIgnoreUrlFetcherCertRequests) &&
-      factory_params_->is_trusted) {
-    ContinueWithoutCertificate();
-    return;
-  }
-
   if (!url_loader_network_observer_) {
     CancelRequest();
     return;
@@ -2143,12 +2136,25 @@ uint32_t URLLoader::GetResourceType() const {
   return resource_type_;
 }
 
-bool URLLoader::AllowCookies(
+bool URLLoader::CookiesDisabled() const {
+  return options_ & mojom::kURLLoadOptionBlockAllCookies;
+}
+
+bool URLLoader::AllowCookie(const net::CanonicalCookie& cookie,
+                            const GURL& url,
+                            const net::SiteForCookies& site_for_cookies) const {
+  if (cookie.IsPartitioned() && !CookiesDisabled()) {
+    return true;
+  }
+  return AllowFullCookies(url, site_for_cookies);
+}
+
+bool URLLoader::AllowFullCookies(
     const GURL& url,
     const net::SiteForCookies& site_for_cookies) const {
   net::StaticCookiePolicy::Type policy =
       net::StaticCookiePolicy::ALLOW_ALL_COOKIES;
-  if (options_ & mojom::kURLLoadOptionBlockAllCookies) {
+  if (CookiesDisabled()) {
     policy = net::StaticCookiePolicy::BLOCK_ALL_COOKIES;
   } else if (options_ & mojom::kURLLoadOptionBlockThirdPartyCookies) {
     policy = net::StaticCookiePolicy::BLOCK_ALL_THIRD_PARTY_COOKIES;

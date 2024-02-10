@@ -3308,6 +3308,7 @@ You can manage this account’s settings by installing the Family Link app on yo
 <translation id="3497560059572256875">Share Doodle</translation>
 <translation id="3497915391670770295">Send to Your &amp;Devices</translation>
 <translation id="3500417806337761827">Error mounting share. Too many SMB shares are already mounted.</translation>
+<translation id="3500764001796099683">Enable isolated web apps</translation>
 <translation id="350397915809787283">If you don't have an account, select the first option to create one.</translation>
 <translation id="3503995387997205657">You can restore your previous apps</translation>
 <translation id="3505100368357440862">Shopping suggestions</translation>
@@ -4016,7 +4017,6 @@ This can include information about installed software, files, your browser and t
 <translation id="4031179711345676612">Microphone allowed</translation>
 <translation id="4031527940632463547">Sensors blocked</translation>
 <translation id="4033471457476425443">Add new folder</translation>
-<translation id="4033711848170683365">This will permanently delete browsing data from this device. The Google Accounts in this profile may be used by other apps on your <ph name="DEVICE_TYPE" />. You can remove these accounts in <ph name="BEGIN_LINK" /><ph name="SETTING_SECTION" /> &gt; <ph name="ACCOUNTS_SECTION" /><ph name="END_LINK" />.</translation>
 <translation id="4033963223187371752">Secure sites might embed content like images or web frames that aren't secure</translation>
 <translation id="4034706080855851454">To use your device with your organisation profile, your organisation needs information about the device.
 
@@ -5884,7 +5884,6 @@ Permissions that you've already given to websites and apps may apply to this acc
 <translation id="5514315914873062345">Tab</translation>
 <translation id="5517304475148761050">This app requires access to the Play Store</translation>
 <translation id="5517412723934627386"><ph name="NETWORK_TYPE" /> – <ph name="NETWORK_DISPLAY_NAME" /></translation>
-<translation id="5518949581554491184">Set up with Android phone</translation>
 <translation id="5519053700692355541">You can open most side panel features through the Chrome menu at the top right</translation>
 <translation id="5519195206574732858">LTE</translation>
 <translation id="5519900055135507385">Keep this account more secure with a strong password. It will be saved to <ph name="GOOGLE_PASSWORD_MANAGER" /> for <ph name="EMAIL" />.</translation>
@@ -7184,6 +7183,7 @@ Permissions that you've already given to websites and apps may apply to this acc
 <translation id="6551508934388063976">Command unavailable. Press control-N to open a new window.</translation>
 <translation id="6551606359270386381">Ellipse tool</translation>
 <translation id="6551612971599078809">Site is using USB</translation>
+<translation id="6551620030439692385">Blocked. Time zone is currently set to <ph name="TIMEZONE" /> and can only be updated manually.</translation>
 <translation id="6551739526055143276">Managed by Family Link</translation>
 <translation id="655384502888039633"><ph name="USER_COUNT" /> users</translation>
 <translation id="6555432686520421228">Remove all user accounts and reset your <ph name="IDS_SHORT_PRODUCT_NAME" /> device to be just like new.</translation>
@@ -7252,6 +7252,7 @@ You have # more compromised passwords. Google Password Manager recommends checki
 <translation id="6608773371844092260">To set up fingerprint, have your child touch the fingerprint sensor at the right hand side of this <ph name="DEVICE_TYPE" />. Your child's fingerprint data is stored securely and never leaves this <ph name="DEVICE_TYPE" />.</translation>
 <translation id="6609478180749378879">Sign-in data will be stored on this device after you exit Incognito mode. You'll be able to sign in to this website with your device again later.</translation>
 <translation id="6610002944194042868">Translate Options</translation>
+<translation id="6610064275805055636">Manage isolated web apps</translation>
 <translation id="6611972847767394631">Find your tabs here</translation>
 <translation id="661266467055912436">Improves security for you and everyone on the web.</translation>
 <translation id="6613267708691765962">Scanning for malware...</translation>
@@ -8616,6 +8617,7 @@ You have # more compromised passwords. Google Password Manager recommends checki
 <translation id="7671472752213333268">'<ph name="EXTENSION_NAME" />' wants to scan from '<ph name="SCANNER_NAME" />'.</translation>
 <translation id="7672504401554182757">Choose which device has the passkey for <ph name="APP_NAME" /></translation>
 <translation id="7672520070349703697"><ph name="HUNG_IFRAME_URL" />, in <ph name="PAGE_TITLE" />.</translation>
+<translation id="7672726198839739113">Blocked. Schedule is currently set to <ph name="SUNRISE_TIME" /> – <ph name="SUNSET_TIME" /> and can only be updated manually.</translation>
 <translation id="7673313156293624327">ChromeOS Shill (Connection Manager) Logs</translation>
 <translation id="7674416868315480713">Deactivate all ports being forwarded in Linux</translation>
 <translation id="7674537509496907005"><ph name="APP_COUNT" /> apps</translation>
@@ -9549,6 +9551,7 @@ Keep your key file in a safe place. You will need it to create new versions of y
 <translation id="8376384591331888629">Including third-party cookies on this site</translation>
 <translation id="8376451933628734023">If this web app is trying to trick you into thinking it's a different app, uninstall it.</translation>
 <translation id="8376532149031784008">Reloading <ph name="DOMAIN" />...</translation>
+<translation id="8376610503048439696">Extensions installed by your administrator can still read and change this site</translation>
 <translation id="8376752431516546391">Google Search side panel</translation>
 <translation id="8377625247046155446">This passkey will only be saved on this device. It will remain on this device after you close all incognito windows.</translation>
 <translation id="8378714024927312812">Managed by your organisation</translation>
@@ -9688,6 +9691,7 @@ Keep your key file in a safe place. You will need it to create new versions of y
     <ph name="BEGIN_PARAGRAPH2" />You can start or stop allowing these reports at any time in your child's ChromeOS device settings. If you're a domain administrator, you can change this setting in the Admin console.<ph name="END_PARAGRAPH2" />
     <ph name="BEGIN_PARAGRAPH4" />If the Web &amp; App Activity setting is turned on for your child's Google Account, your child's data may be saved to their Google Account. Learn more about these settings and how to adjust them at families.google.com.<ph name="END_PARAGRAPH4" /></translation>
 <translation id="8476630458761527665">Enter the file's password</translation>
+<translation id="8476942730579767658">Windows and desks</translation>
 <translation id="8477178913400731244">Delete data</translation>
 <translation id="8477241577829954800">Superseded</translation>
 <translation id="8477384620836102176">&amp;General</translation>

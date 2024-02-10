@@ -6,22 +6,27 @@
 #include "base/feature_list.h"
 #include "base/memory/raw_ptr.h"
 #include "base/test/bind.h"
+#include "base/test/metrics/histogram_tester.h"
 #include "build/build_config.h"
 #include "build/chromeos_buildflags.h"
 #include "chrome/browser/content_settings/host_content_settings_map_factory.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_commands.h"
+#include "chrome/browser/ui/browser_finder.h"
 #include "chrome/browser/ui/browser_list.h"
 #include "chrome/browser/ui/browser_window.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_context.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_test.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
+#include "chrome/browser/ui/web_applications/test/isolated_web_app_test_utils.h"
+#include "chrome/common/chrome_features.h"
 #include "chrome/test/base/interactive_test_utils.h"
 #include "chrome/test/base/ui_test_utils.h"
 #include "components/blocked_content/popup_blocker_tab_helper.h"
 #include "components/content_settings/core/browser/host_content_settings_map.h"
+#include "components/metrics/content/subprocess_metrics_provider.h"
 #include "components/permissions/permission_request_manager.h"
 #include "content/public/browser/render_view_host.h"
 #include "content/public/browser/render_widget_host.h"
@@ -35,8 +40,10 @@
 #include "third_party/blink/public/common/features.h"
 #include "third_party/blink/public/common/switches.h"
 #include "third_party/blink/public/mojom/frame/fullscreen.mojom.h"
+#include "third_party/blink/public/mojom/use_counter/metrics/web_feature.mojom.h"
 #include "ui/display/screen_base.h"
 #include "ui/display/test/test_screen.h"
+#include "ui/display/test/virtual_display_util.h"
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)
 #include "ash/shell.h"
@@ -50,8 +57,12 @@
 
 #if BUILDFLAG(IS_MAC)
 #include "ui/base/cocoa/nswindow_test_util.h"
-#include "ui/display/mac/test/virtual_display_mac_util.h"
 #endif  // BUILDFLAG(IS_MAC)
+
+#if BUILDFLAG(IS_WIN)
+#include "base/base_paths_win.h"
+#include "base/test/scoped_path_override.h"
+#endif  // BUILDFLAG(IS_WIN)
 
 #if defined(USE_AURA)
 #include "ui/aura/window.h"
@@ -339,9 +350,9 @@ IN_PROC_BROWSER_TEST_F(
   ASSERT_FALSE(IsWindowFullscreenForTabOrPending());
 }
 
-// TODO(crbug.com/1230771) Flaky on Linux-ozone and Lacros
+// TODO(crbug.com/1230771) Flaky on Linux-ozone, Lacros and MacOS.
 #if (BUILDFLAG(IS_LINUX) && BUILDFLAG(IS_OZONE)) || \
-    BUILDFLAG(IS_CHROMEOS_LACROS)
+    BUILDFLAG(IS_CHROMEOS_LACROS) || BUILDFLAG(IS_MAC)
 #define MAYBE_TabEntersPresentationModeFromWindowed \
   DISABLED_TabEntersPresentationModeFromWindowed
 #else
@@ -758,6 +769,86 @@ IN_PROC_BROWSER_TEST_F(FullscreenControllerInteractiveTest,
   capture_closure.RunAndReset();
 }
 
+// Tests the automatic fullscreen content setting in IWA and non-IWA contexts.
+class AutomaticFullscreenTest : public FullscreenControllerInteractiveTest,
+                                public testing::WithParamInterface<bool> {
+ public:
+  AutomaticFullscreenTest() {
+    feature_list_.InitWithFeatures(
+        {features::kIsolatedWebApps, features::kIsolatedWebAppDevMode,
+         features::kAutomaticFullscreenContentSetting},
+        {});
+  }
+
+  void SetUpOnMainThread() override {
+    auto allow_automatic_fullscreen = [&](const GURL& url) {
+      HostContentSettingsMapFactory::GetForProfile(browser()->profile())
+          ->SetContentSettingDefaultScope(
+              url, url, ContentSettingsType::AUTOMATIC_FULLSCREEN,
+              CONTENT_SETTING_ALLOW);
+    };
+    if (GetParam()) {
+      auto dev_server = web_app::CreateAndStartDevServer(
+          FILE_PATH_LITERAL("web_apps/simple_isolated_app"));
+      auto url_info = web_app::InstallDevModeProxyIsolatedWebApp(
+          browser()->profile(), dev_server->GetOrigin());
+      allow_automatic_fullscreen(url_info.origin().GetURL());
+      auto* frame =
+          web_app::OpenIsolatedWebApp(browser()->profile(), url_info.app_id());
+      web_contents_ = content::WebContents::FromRenderFrameHost(frame);
+    } else {
+      ASSERT_TRUE(embedded_test_server()->Start());
+      const GURL url = embedded_test_server()->GetURL("/simple.html");
+      allow_automatic_fullscreen(url);
+      ASSERT_TRUE(AddTabAtIndex(0, url, PAGE_TRANSITION_TYPED));
+      web_contents_ = browser()->tab_strip_model()->GetActiveWebContents();
+    }
+  }
+
+  void TearDownOnMainThread() override { web_contents_ = nullptr; }
+
+ protected:
+  raw_ptr<content::WebContents> web_contents_ = nullptr;
+
+ private:
+  base::test::ScopedFeatureList feature_list_;
+#if BUILDFLAG(IS_WIN)
+  // Avoid test failures adding an IWA OS shortcut in the start menu.
+  base::ScopedPathOverride override_start_menu_dir_{base::DIR_START_MENU};
+#endif  // BUILDFLAG(IS_WIN)
+};
+
+IN_PROC_BROWSER_TEST_P(AutomaticFullscreenTest,
+                       FullscreenWithoutTransientActivation) {
+  base::HistogramTester histograms;
+  Browser* browser = chrome::FindBrowserWithTab(web_contents_);
+  ui_test_utils::FullscreenWaiter waiter(browser, {.tab_fullscreen = true});
+  const std::string script = R"JS(
+      (async () => {
+        if (navigator.userActivation.isActive)
+          return false;
+        await document.body.requestFullscreen();
+        return !!document.fullscreenElement;
+      })();
+  )JS";
+  EXPECT_TRUE(
+      EvalJs(web_contents_, script, content::EXECUTE_SCRIPT_NO_USER_GESTURE)
+          .ExtractBool());
+  waiter.Wait();
+  EXPECT_TRUE(browser->window()->IsFullscreen());
+
+  // Navigate away in order to flush use counters.
+  EXPECT_TRUE(ui_test_utils::NavigateToURL(browser, GURL(url::kAboutBlankURL)));
+  metrics::SubprocessMetricsProvider::MergeHistogramDeltasForTesting();
+  if (!GetParam()) {  // TODO(crbug.com/1524113): Test use counter in IWA too.
+    histograms.ExpectBucketCount(
+        "Blink.UseCounter.Features",
+        blink::mojom::WebFeature::kFullscreenAllowedByContentSetting, 1);
+  }
+}
+
+INSTANTIATE_TEST_SUITE_P(, AutomaticFullscreenTest, ::testing::Bool());
+
 // Configures a two-display screen environment for testing of multi-screen
 // fullscreen behavior.
 class TestScreenEnvironment {
@@ -799,10 +890,13 @@ class TestScreenEnvironment {
     secondary_display_id_ =
         ash::Shell::Get()->display_manager()->GetConnectedDisplayIdList()[1];
 #elif BUILDFLAG(IS_MAC)
-    virtual_display_mac_util_ =
-        std::make_unique<display::test::VirtualDisplayMacUtil>();
-    secondary_display_id_ = virtual_display_mac_util_->AddDisplay(
-        1, display::test::VirtualDisplayMacUtil::k1680x1050);
+    if ((virtual_display_util_ = display::test::VirtualDisplayUtil::TryCreate(
+             display::Screen::GetScreen()))) {
+      secondary_display_id_ = virtual_display_util_->AddDisplay(
+          1, display::test::VirtualDisplayUtil::k1920x1080);
+    } else {
+      GTEST_SKIP() << "Skipping test; unavailable multi-screen support.";
+    }
 #else
     screen_.display_list().AddDisplay({2, gfx::Rect(901, 0, 802, 803)},
                                       display::DisplayList::Type::NOT_PRIMARY);
@@ -815,7 +909,7 @@ class TestScreenEnvironment {
   // down.
   void TearDown() {
 #if BUILDFLAG(IS_MAC)
-    virtual_display_mac_util_.reset();
+    virtual_display_util_.reset();
 #endif  // BUILDFLAG(IS_MAC)
   }
 
@@ -824,7 +918,7 @@ class TestScreenEnvironment {
     display::test::DisplayManagerTestApi(ash::Shell::Get()->display_manager())
         .UpdateDisplay("100+100-801x802");
 #elif BUILDFLAG(IS_MAC)
-    virtual_display_mac_util_->RemoveDisplay(secondary_display_id_);
+    virtual_display_util_->RemoveDisplay(secondary_display_id_);
 #else
     screen_.display_list().RemoveDisplay(2);
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
@@ -836,8 +930,7 @@ class TestScreenEnvironment {
   int64_t secondary_display_id_ = display::kInvalidDisplayId;
 #if BUILDFLAG(IS_MAC)
   bool ns_window_faked_for_testing_ = false;
-  std::unique_ptr<display::test::VirtualDisplayMacUtil>
-      virtual_display_mac_util_;
+  std::unique_ptr<display::test::VirtualDisplayUtil> virtual_display_util_;
 #elif !BUILDFLAG(IS_CHROMEOS_ASH)
   display::ScreenBase screen_;
 #endif  // BUILDFLAG(IS_MAC)
@@ -859,11 +952,6 @@ class MAYBE_MultiScreenFullscreenControllerInteractiveTest
     : public FullscreenControllerInteractiveTest {
  public:
   void SetUp() override {
-#if BUILDFLAG(IS_MAC)
-    if (!display::test::VirtualDisplayMacUtil::IsAPIAvailable()) {
-      GTEST_SKIP() << "Skipping test for unsupported MacOS version.";
-    }
-#endif  // BUILDFLAG(IS_MAC)
     // Set a test Screen instance before the browser `SetUp`.
     test_screen_environment_ = std::make_unique<TestScreenEnvironment>();
     FullscreenControllerInteractiveTest::SetUp();

@@ -9,6 +9,7 @@
 #include <string>
 #include <utility>
 
+#include "base/check_is_test.h"
 #include "base/containers/flat_set.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback_helpers.h"
@@ -114,6 +115,20 @@ bool IsEligibleForRaceNetworkRequest(
     case features::ServiceWorkerBypassFetchHandlerStrategy::kAllowList:
       return HasRaceNetworkRequestEligibleScript(version);
   }
+}
+
+std::string GetContainerHostClientId(int frame_tree_node_id) {
+  std::string client_uuid;
+  auto* frame_tree_node = FrameTreeNode::GloballyFindByID(frame_tree_node_id);
+  if (frame_tree_node) {
+    base::WeakPtr<ServiceWorkerContainerHost> container_host =
+        frame_tree_node->current_frame_host()
+            ->GetLastCommittedServiceWorkerHost();
+    if (container_host) {
+      client_uuid = container_host->client_uuid();
+    }
+  }
+  return client_uuid;
 }
 
 }  // namespace
@@ -336,7 +351,7 @@ void ServiceWorkerMainResourceLoader::StartRequest(
                     head_update_params.router_info = std::move(router_info);
                     std::move(fallback_callback)
                         .Run(false /* reset_subresource_loader_params */,
-                             head_update_params);
+                             std::move(head_update_params));
                     if (active_worker->running_status() !=
                             blink::EmbeddedWorkerStatus::kRunning &&
                         base::FeatureList::IsEnabled(
@@ -389,11 +404,30 @@ void ServiceWorkerMainResourceLoader::StartRequest(
     }
   }
 
+  std::string client_uuid;
+  // frame_tree_node_id_ can be empty for:
+  // - PlzSharedWorker (destination == sharedworker)
+  // - PlzDedicatedWorker (destination == worker)
+  // Otherwise frame_tree_node_id_ should be set, except for tests.
+  if (resource_request_.destination ==
+          network::mojom::RequestDestination::kSharedWorker ||
+      (resource_request_.destination ==
+           network::mojom::RequestDestination::kWorker &&
+       base::FeatureList::IsEnabled(blink::features::kPlzDedicatedWorker))) {
+    // TODO(crbug.com/324456508): client_id would be set for sharedworker.
+    client_uuid = worker_parent_client_uuid_;
+  } else if (frame_tree_node_id_ != FrameTreeNode::kFrameTreeNodeInvalidId) {
+    client_uuid = GetContainerHostClientId(frame_tree_node_id_);
+  } else {
+    // Unit tests may not set ids.
+    CHECK_IS_TEST();
+  }
+
   // Dispatch the fetch event.
   fetch_dispatcher_ = std::make_unique<ServiceWorkerFetchDispatcher>(
       blink::mojom::FetchAPIRequest::From(resource_request_),
-      resource_request_.destination, container_host_->client_uuid(),
-      active_worker,
+      resource_request_.destination, client_uuid,
+      container_host_->client_uuid(), active_worker,
       base::BindOnce(&ServiceWorkerMainResourceLoader::DidPrepareFetchEvent,
                      weak_factory_.GetWeakPtr(), active_worker,
                      active_worker->running_status()),
@@ -896,7 +930,8 @@ void ServiceWorkerMainResourceLoader::DidDispatchFetchEvent(
       ResponseHeadUpdateParams head_update_params;
       head_update_params.load_timing_info = response_head_->load_timing;
       std::move(fallback_callback_)
-          .Run(false /* reset_subresource_loader_params */, head_update_params);
+          .Run(false /* reset_subresource_loader_params */,
+               std::move(head_update_params));
     }
     return;
   }

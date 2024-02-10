@@ -48,6 +48,7 @@
 #include "ash/wm/desks/legacy_desk_bar_view.h"
 #include "ash/wm/desks/templates/saved_desk_save_desk_button.h"
 #include "ash/wm/desks/templates/saved_desk_util.h"
+#include "ash/wm/float/float_controller.h"
 #include "ash/wm/gestures/back_gesture/back_gesture_event_handler.h"
 #include "ash/wm/gestures/wm_gesture_handler.h"
 #include "ash/wm/mru_window_tracker.h"
@@ -3212,7 +3213,7 @@ TEST_P(OverviewSessionTest, AccessibilityFocusAnnotator) {
   // flip for Save & Recall has truly landed, remove the `NoSavedDesks` variant
   // of this test below and remove the Save & Recall feature check at the start
   // of this test.
-  if (GetParam() || !saved_desk_util::IsSavedDesksEnabled()) {
+  if (GetParam() || !saved_desk_util::ShouldShowSavedDesksButtons()) {
     return;
   }
 
@@ -3265,7 +3266,7 @@ TEST_P(OverviewSessionTest, AccessibilityFocusAnnotator) {
 TEST_P(OverviewSessionTest, AccessibilityFocusAnnotatorNoSavedDesks) {
   // If saved desk is enabled, the a11y order changes. This is tested in
   // the saved desk test suite.
-  if (GetParam() || saved_desk_util::IsSavedDesksEnabled()) {
+  if (GetParam() || saved_desk_util::ShouldShowSavedDesksButtons()) {
     return;
   }
 
@@ -6944,6 +6945,31 @@ TEST_F(SplitViewOverviewSessionTest, DragOverviewWindowToSnap) {
   EXPECT_FALSE(GetOverviewController()->InOverviewSession());
 }
 
+// Regression test for http://b/323136574, where a floated window should not
+// have an unclipped size when it's in a partial overview session.
+TEST_F(SplitViewOverviewSessionTest, FloatedWindowsHaveNoUnclippedSize) {
+  std::unique_ptr<aura::Window> window1 = CreateAppWindow();
+  std::unique_ptr<aura::Window> window2 = CreateAppWindow();
+
+  // Float `window1` and then snap `window2`. A partial overview session should
+  // start.
+  Shell::Get()->float_controller()->ToggleFloat(window1.get());
+  EXPECT_TRUE(WindowState::Get(window1.get())->IsFloated());
+
+  const WindowSnapWMEvent event(
+      WM_EVENT_CYCLE_SNAP_SECONDARY,
+      WindowSnapActionSource::kKeyboardShortcutToSnap);
+  auto* window2_state = WindowState::Get(window2.get());
+  window2_state->OnWMEvent(&event);
+  EXPECT_TRUE(window2_state->IsSnapped());
+
+  ASSERT_TRUE(GetOverviewController()->InOverviewSession());
+  auto* window1_item = GetOverviewItemForWindow(window1.get());
+  ASSERT_TRUE(window1_item);
+
+  EXPECT_FALSE(window1_item->unclipped_size_for_testing());
+}
+
 // Verify the correct behavior when dragging windows in overview mode.
 TEST_F(SplitViewOverviewSessionTest, OverviewDragControllerBehavior) {
   ui::GestureConfiguration* gesture_config =
@@ -7819,7 +7845,18 @@ TEST_F(SplitViewOverviewSessionTest, SelectUnsnappableWindowInSplitView) {
 
 // Verify that when in overview mode, the selector items unsnappable indicator
 // shows up when expected.
-TEST_F(SplitViewOverviewSessionTest, OverviewUnsnappableIndicatorVisibility) {
+// TODO(crbug.com/324024580): Re-enable this test. Causes build failures on
+// MSAN/ASAN on CrOS.
+#if BUILDFLAG(IS_CHROMEOS) && \
+    (defined(MEMORY_SANITIZER) || defined(ADDRESS_SANITIZER))
+#define MAYBE_OverviewUnsnappableIndicatorVisibility \
+  DISABLED_OverviewUnsnappableIndicatorVisibility
+#else
+#define MAYBE_OverviewUnsnappableIndicatorVisibility \
+  OverviewUnsnappableIndicatorVisibility
+#endif
+TEST_F(SplitViewOverviewSessionTest,
+       MAYBE_OverviewUnsnappableIndicatorVisibility) {
   // Create three windows; two normal and one unsnappable, so that when after
   // snapping |window1| to enter split view we can test the state of each normal
   // and unsnappable windows.
@@ -8268,8 +8305,18 @@ TEST_F(SplitViewOverviewSessionTest, SnappedWindowBoundsWithMinimumSizeTest) {
 // Verify that if the split view divider is dragged all the way to the edge, the
 // window being dragged gets returned to the overview list, if overview mode is
 // still active.
+// TODO(crbug.com/324024580): Re-enable this test. Causes build failures on
+// MSAN/ASAN on CrOS.
+#if BUILDFLAG(IS_CHROMEOS) && \
+    (defined(MEMORY_SANITIZER) || defined(ADDRESS_SANITIZER))
+#define MAYBE_DividerDraggedToEdgeReturnsWindowToOverviewList \
+  DISABLED_DividerDraggedToEdgeReturnsWindowToOverviewList
+#else
+#define MAYBE_DividerDraggedToEdgeReturnsWindowToOverviewList \
+  DividerDraggedToEdgeReturnsWindowToOverviewList
+#endif
 TEST_F(SplitViewOverviewSessionTest,
-       DividerDraggedToEdgeReturnsWindowToOverviewList) {
+       MAYBE_DividerDraggedToEdgeReturnsWindowToOverviewList) {
   const gfx::Rect bounds(400, 400);
   std::unique_ptr<aura::Window> window1(CreateWindow(bounds));
   std::unique_ptr<aura::Window> window2(CreateWindow(bounds));
@@ -8314,9 +8361,19 @@ TEST_F(SplitViewOverviewSessionTest,
 // all the way to the opposite edge, then the split view window is reinserted
 // into the overview grid at the correct position according to MRU order, and
 // the stacking order is also correct.
+// TODO(crbug.com/324024580): Re-enable this test. Causes build failures on
+// MSAN/ASAN on CrOS.
+#if BUILDFLAG(IS_CHROMEOS) && \
+    (defined(MEMORY_SANITIZER) || defined(ADDRESS_SANITIZER))
+#define MAYBE_SplitViewWindowReinsertedToOverviewAtCorrectPositionWhenSplitViewIsEnded \
+  DISABLED_SplitViewWindowReinsertedToOverviewAtCorrectPositionWhenSplitViewIsEnded
+#else
+#define MAYBE_SplitViewWindowReinsertedToOverviewAtCorrectPositionWhenSplitViewIsEnded \
+  SplitViewWindowReinsertedToOverviewAtCorrectPositionWhenSplitViewIsEnded
+#endif
 TEST_F(
     SplitViewOverviewSessionTest,
-    SplitViewWindowReinsertedToOverviewAtCorrectPositionWhenSplitViewIsEnded) {
+    MAYBE_SplitViewWindowReinsertedToOverviewAtCorrectPositionWhenSplitViewIsEnded) {
   const gfx::Rect bounds(400, 400);
   std::unique_ptr<aura::Window> window1(CreateWindow(bounds));
   std::unique_ptr<aura::Window> window2(CreateWindow(bounds));

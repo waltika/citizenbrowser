@@ -24,8 +24,6 @@
 #include "ash/shell_delegate.h"
 #include "ash/strings/grit/ash_strings.h"
 #include "ash/style/ash_color_id.h"
-#include "ash/style/icon_button.h"
-#include "ash/style/system_toast_style.h"
 #include "ash/system/toast/toast_manager_impl.h"
 #include "ash/wallpaper/wallpaper_controller_impl.h"
 #include "ash/wm/desks/default_desk_button.h"
@@ -61,6 +59,7 @@
 #include "ash/wm/overview/overview_utils.h"
 #include "ash/wm/overview/overview_window_drag_controller.h"
 #include "ash/wm/overview/scoped_overview_animation_settings.h"
+#include "ash/wm/splitview/faster_split_view.h"
 #include "ash/wm/splitview/split_view_constants.h"
 #include "ash/wm/splitview/split_view_controller.h"
 #include "ash/wm/splitview/split_view_divider.h"
@@ -121,10 +120,6 @@ constexpr int kSaveDeskAsTemplateOverviewItemSpacingDp = 45;
 // Distance from the bottom of the last overview item to the top of the faster
 // splitscreen toast widget.
 constexpr int kFasterSplitScreenToastSpacingDp = 40;
-
-// Distance from the right of the faster splitscreen toast to the left of the
-// settings button.
-constexpr int kSettingsButtonSpacingDp = 8;
 
 // Windows are not allowed to get taller than this.
 constexpr int kMaxHeight = 512;
@@ -815,6 +810,8 @@ void OverviewGrid::PositionWindows(
   }
 
   UpdateSaveDeskButtons();
+  // Needed to include the toast when we init the grid.
+  UpdateFasterSplitViewWidget();
 
   // This is a no-op if the feature ContinuousOverviewScrollAnimation is not
   // enabled. Once windows are placed at their final positions, clear transforms
@@ -1665,7 +1662,9 @@ bool OverviewGrid::MaybeDropItemOnDeskMiniViewOrNewDeskButton(
   if (chromeos::features::IsDeskProfilesEnabled() && windows.size() == 1) {
     if (auto lacros_profile_id = windows[0]->GetProperty(ash::kLacrosProfileId);
         lacros_profile_id != 0) {
-      target_desk->SetLacrosProfileId(lacros_profile_id);
+      target_desk->SetLacrosProfileId(
+          lacros_profile_id,
+          DeskProfilesSelectProfileSource::kNewDeskButtonDrop);
     }
   }
 
@@ -1823,9 +1822,12 @@ int OverviewGrid::CalculateWidthAndMaybeSetUnclippedBounds(
   // Get the bounds of the item if there is a snapped window or a window
   // about to be snapped. If the height is less than that of the header, there
   // is nothing from the original window to be shown and nothing to be clipped.
+  // Floated windows doesn't need this special handling (see b/323136574).
+  auto* window = item->GetWindow();
+  const bool is_floated = WindowState::Get(window)->IsFloated();
   std::optional<gfx::RectF> split_view_bounds =
       GetSplitviewBoundsMaintainingAspectRatio();
-  if (!split_view_bounds ||
+  if (is_floated || !split_view_bounds ||
       split_view_bounds->height() < kWindowMiniViewHeaderHeight) {
     item->set_unclipped_size(std::nullopt);
     return width;
@@ -1835,10 +1837,10 @@ int OverviewGrid::CalculateWidthAndMaybeSetUnclippedBounds(
   // split view bounds aspect ratio, and vertical clipping otherwise.
   const float aspect_ratio =
       target_size.width() /
-      (target_size.height() -
-       item->GetWindow()->GetProperty(aura::client::kTopViewInset));
+      (target_size.height() - window->GetProperty(aura::client::kTopViewInset));
   const float target_aspect_ratio =
-      split_view_bounds->width() / split_view_bounds->height();
+      static_cast<float>(split_view_bounds->width()) /
+      split_view_bounds->height();
   const bool clip_horizontally = aspect_ratio > target_aspect_ratio;
   const int window_height = height - kWindowMiniViewHeaderHeight;
   gfx::Size unclipped_size;
@@ -1854,8 +1856,9 @@ int OverviewGrid::CalculateWidthAndMaybeSetUnclippedBounds(
 
     // Find the width so that it matches height and matches the aspect ratio of
     // |split_view_bounds|.
-    width = split_view_bounds->width() * window_height /
-            split_view_bounds->height();
+    // TODO(sammiequon): Check to see if we can unify this with the `width`
+    // calculation in the above branch where we do the clamp and the max.
+    width = target_aspect_ratio * window_height;
     // The unclipped height is the height which matches |width| but keeps the
     // aspect ratio of |target_bounds|. Clipping takes the overview header into
     // account, so add that back in.
@@ -2098,8 +2101,9 @@ void OverviewGrid::UpdateSaveDeskButtons() {
   // overview grid changes, i.e. switches between active desks and/or the
   // saved desk grid. This will be needed when we make it so that switching
   // desks keeps us in overview mode.
-  if (!saved_desk_util::IsSavedDesksEnabled())
+  if (!saved_desk_util::ShouldShowSavedDesksButtons()) {
     return;
+  }
 
   // If there is only one item and it is animating to close, hide the widget as
   // the closing window cannot be saved as part of a template.
@@ -2303,6 +2307,13 @@ OverviewGrid::GetSaveDeskButtonContainer() const {
   return save_desk_button_container_widget_
              ? views::AsViewClass<SavedDeskSaveDeskButtonContainer>(
                    save_desk_button_container_widget_->GetContentsView())
+             : nullptr;
+}
+
+FasterSplitView* OverviewGrid::GetFasterSplitView() {
+  return faster_splitview_widget_
+             ? views::AsViewClass<FasterSplitView>(
+                   faster_splitview_widget_->GetContentsView())
              : nullptr;
 }
 
@@ -2824,8 +2835,9 @@ void OverviewGrid::OnSaveDeskButtonContainerFadedOut() {
 void OverviewGrid::UpdateNumSavedDeskUnsupportedWindows(
     const std::vector<raw_ptr<aura::Window, VectorExperimental>>& windows,
     bool increment) {
-  if (!saved_desk_util::IsSavedDesksEnabled())
+  if (!saved_desk_util::ShouldShowSavedDesksButtons()) {
     return;
+  }
 
   int addend = increment ? 1 : -1;
 
@@ -2926,33 +2938,12 @@ void OverviewGrid::UpdateFasterSplitViewWidget() {
     params.init_properties_container.SetProperty(kOverviewUiKey, true);
     faster_splitview_widget_ =
         std::make_unique<views::Widget>(std::move(params));
-    auto* box_layout_view = faster_splitview_widget_->SetContentsView(
-        std::make_unique<views::BoxLayoutView>());
-    box_layout_view->SetOrientation(views::BoxLayout::Orientation::kHorizontal);
-    box_layout_view->SetBetweenChildSpacing(kSettingsButtonSpacingDp);
-
-    box_layout_view->AddChildView(std::make_unique<SystemToastStyle>(
+    faster_splitview_widget_->GetLayer()->SetFillsBoundsOpaquely(false);
+    faster_splitview_widget_->SetContentsView(std::make_unique<FasterSplitView>(
         base::BindRepeating(&OverviewGrid::OnSkipButtonPressed,
                             weak_ptr_factory_.GetWeakPtr()),
-        l10n_util::GetStringUTF16(IDS_ASH_OVERVIEW_FASTER_SPLITSCREEN_TOAST),
-        l10n_util::GetStringUTF16(
-            IDS_ASH_OVERVIEW_FASTER_SPLITSCREEN_TOAST_SKIP)));
-
-    auto* settings_button =
-        box_layout_view->AddChildView(std::make_unique<IconButton>(
-            base::BindRepeating(&OverviewGrid::OnSettingsButtonPressed,
-                                weak_ptr_factory_.GetWeakPtr()),
-            IconButton::Type::kLarge, &kOverviewSettingsIcon,
-            IDS_ASH_OVERVIEW_SETTINGS_BUTTON_LABEL));
-
-    // TODO(b/323199185): Consider refactoring this from `SystemToastStyle`.
-    const int toast_height = settings_button->GetPreferredSize().height();
-    const float toast_corner_radius = toast_height / 2.0f;
-    settings_button->SetBorder(std::make_unique<views::HighlightBorder>(
-        toast_corner_radius,
-        views::HighlightBorder::Type::kHighlightBorderOnShadow));
-    settings_button->SetBackgroundColor(kColorAshShieldAndBase80);
-
+        base::BindRepeating(&OverviewGrid::OnSettingsButtonPressed,
+                            weak_ptr_factory_.GetWeakPtr())));
     faster_splitview_widget_->Show();
   }
 
@@ -2977,7 +2968,7 @@ void OverviewGrid::UpdateFasterSplitViewWidget() {
                         kFasterSplitScreenToastSpacingDp);
   faster_splitview_widget_->SetBounds(centered_bounds);
 
-  // TODO(b/323409897): Add a11y focus traversal and Chromevox support.
+  overview_session_->UpdateAccessibilityFocus();
 }
 
 }  // namespace ash

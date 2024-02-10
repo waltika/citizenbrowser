@@ -26,6 +26,7 @@
 <translation id="1087110696012418426">Доброго дня, <ph name="GIVEN_NAME" />!</translation>
 <translation id="1088231044944504242">Шукайте <ph name="CATEGORY" />, файли, додатки тощо. Натискайте клавіші зі стрілками, щоб переходити між додатками.</translation>
 <translation id="1093645050124056515">ctrl + alt + стрілка вниз</translation>
+<translation id="1094756674036064790">Вимкнути Bluetooth?</translation>
 <translation id="109942774857561566">Мені нудно</translation>
 <translation id="1104084341931202936">Показати налаштування функцій доступності</translation>
 <translation id="1104621072296271835">Ваші пристрої працюватимуть разом ще краще</translation>
@@ -159,7 +160,6 @@
 <translation id="1586324912145647027">Перейти до 1 з 8 робочих столів</translation>
 <translation id="158838227375272121">Веб-сайт у Google Класі</translation>
 <translation id="1589090746204042747">мати доступ до всіх ваших дій у цьому сеансі</translation>
-<translation id="1592682369233288537">Наступний робочий стіл: <ph name="NEXT_DESK_NAME" />. Щоб активувати його, натисніть клавішу пошуку й пробіл.</translation>
 <translation id="1602874809115667351"><ph name="LAUNCHER_KEY_NAME" /> + стрілка вниз</translation>
 <translation id="1604857178818051494">Призупинити відтворення медіаконтенту</translation>
 <translation id="1607312127821884567">Відхилити налаштування перегляду додатків на телефоні</translation>
@@ -660,6 +660,7 @@
 <translation id="3660860940251915011">Перемикач режиму високої видимості для функції "<ph name="FEATURE_NAME" />"</translation>
 <translation id="366222428570480733"><ph name="USER_EMAIL_ADDRESS" /> – керований користувач</translation>
 <translation id="3666266999138159418">Проведіть пальцем, щоб сховати плаваюче вікно</translation>
+<translation id="3673898235958558034">Якщо ви вимкнете Bluetooth, пристрої <ph name="DEVICE_NAME_1" /> і <ph name="DEVICE_NAME_2" /> від’єднаються від Chromebook.</translation>
 <translation id="367531336287639526">Вибрати значок ліворуч від адресного рядка</translation>
 <translation id="3677931086890821290">Усі додатки й веб-сайти, які мають дозвіл на доступ до геоданих, і ChromeOS зможуть використовувати Wi-Fi і мобільні мережі для геолокації.</translation>
 <translation id="3679827876008292680">Перейти на останню вкладку у вікні</translation>
@@ -872,7 +873,6 @@
 <translation id="4491109536499578614">Зображення</translation>
 <translation id="450584155212756404">Версія для розробників</translation>
 <translation id="4513946894732546136">Відгуки</translation>
-<translation id="4516212064498225455">Поточний робочий стіл: <ph name="CURRENT_DESK_NAME" />. Щоб відкрити меню всіх робочих столів, натисніть клавішу пошуку й пробіл.</translation>
 <translation id="4518404433291145981">Щоб розблокувати Chromebook, спершу розблокуйте телефон.</translation>
 <translation id="4527045527269911712">Пристрою Bluetooth "<ph name="DEVICE_NAME" />" потрібен дозвіл на підключення.</translation>
 <translation id="4533343294786968049">Щоб подовжити час роботи акумулятора, пристрій тимчасово утримує заряд на рівні 80%. Акумулятор зарядиться повністю до <ph name="FULLY_CHARGE_TIME" />.</translation>
@@ -915,6 +915,7 @@
 <translation id="4666911709726371538">Більше додатків</translation>
 <translation id="4667099493359681081">Завантажується файл <ph name="FILENAME" /></translation>
 <translation id="4672539464599646374">Режим енергозбереження ввімкнено</translation>
+<translation id="4673427585974421255">Не вимикати</translation>
 <translation id="468293128311738995">Додатки з вашого телефона</translation>
 <translation id="4690510401873698237">Полицю розміщено внизу</translation>
 <translation id="4696813013609194136">Введіть код доступу батьків</translation>
@@ -1053,7 +1054,6 @@
 <translation id="5207949376430453814">Підсвічувати місце введення тексту</translation>
 <translation id="5208059991603368177">Увімкнено</translation>
 <translation id="5216991270656129561">Вимкнено до <ph name="TIME" /></translation>
-<translation id="5217646019792206018">Наступний робочий стіл: <ph name="NEXT_DESK_NAME" />. Щоб активувати його, натисніть клавішу пошуку й пробіл або комбінацію клавіш Shift + клавіша пошуку + <ph name="NEXT_DESK_INDEX" />.</translation>
 <translation id="5218064144558110424">Позначити як невиконане</translation>
 <translation id="5222676887888702881">Вийти</translation>
 <translation id="5229343007215035173">Увімкнути або вимкнути екран конфіденційності</translation>
@@ -1215,6 +1215,7 @@
 <translation id="5802516411616338943">Відкрити Швидкі налаштування</translation>
 <translation id="5804651031882187592">Вимкніть налаштування блокування SIM-карти</translation>
 <translation id="5805809050170488595">Натисніть, щоб активувати мережу <ph name="NETWORK_NAME" /></translation>
+<translation id="5816222150329690597">Якщо ви вимкнете Bluetooth, пристрої <ph name="DEVICE_NAME_1" />, <ph name="DEVICE_NAME_2" /> і ще <ph name="DEVICE_COUNT" /> від’єднаються від Chromebook.</translation>
 <translation id="5823239091726045201">Google Завдання у веб-переглядачі</translation>
 <translation id="5825969630400862129">Налаштування підключених пристроїв</translation>
 <translation id="5837036133683224804">Зупинити трансляцію <ph name="ROUTE_TITLE" /> на пристрій "<ph name="RECEIVER_NAME" />"</translation>
@@ -1395,6 +1396,7 @@
 <translation id="6539852571005954999">Сканування завантаженого файлу "<ph name="FILENAME" />"</translation>
 <translation id="6542521951477560771">Трансляція на пристрій "<ph name="RECEIVER_NAME" />"</translation>
 <translation id="6546062506073634094">Пошук зображень за вмістом і попереднім переглядом</translation>
+<translation id="6547795021703527064">Якщо ви вимкнете Bluetooth, пристрій <ph name="DEVICE_NAME" /> від’єднається від Chromebook.</translation>
 <translation id="6555373427270923730">Введіть веб-адресу в адресному рядку й натисніть <ph name="MODIFIER" /><ph name="KEY" /></translation>
 <translation id="655633303491376835"><ph name="APP_NAME" />
 Нове встановлення</translation>
@@ -1869,7 +1871,6 @@
 <translation id="8517041960877371778">Пристрій <ph name="DEVICE_TYPE" /> може не заряджатися, коли він увімкнений.</translation>
 <translation id="852060496139946719">{NUM_APPS,plural, =1{Входом мікрофона керує додаток <ph name="APP_NAME" />}one{Входом мікрофона керує # додаток}few{Входом мікрофона керують # додатки}many{Входом мікрофона керують # додатків}other{Входом мікрофона керують # додатка}}</translation>
 <translation id="8535393432370007982">Скасувати сортування за кольором</translation>
-<translation id="853768060447955562">Попередній робочий стіл: <ph name="PREVIOUS_DESK_NAME" />. Щоб активувати його, натисніть клавішу пошуку й пробіл або комбінацію клавіш Shift + клавіша пошуку + <ph name="PREVIOUS_DESK_INDEX" />.</translation>
 <translation id="8541078764854166027">Слідкування</translation>
 <translation id="8542053257095774575">Немає збережених робочих столів або шаблонів</translation>
 <translation id="8546059259582788728">Сортування скасовано</translation>
@@ -2034,7 +2035,6 @@
 <translation id="925832987464884575">Вимкнути попередній перегляд</translation>
 <translation id="937214777182567951"><ph name="MANAGER" /> вимагає, щоб ви оновили пристрій <ph name="DEVICE_TYPE" /></translation>
 <translation id="938963181863597773">Які події заплановано?</translation>
-<translation id="943067377221312471">Попередній робочий стіл: <ph name="PREVIOUS_DESK_NAME" />. Щоб активувати його, натисніть клавішу пошуку й пробіл.</translation>
 <translation id="945383118875625837">Перетягнути посилання на панель закладок</translation>
 <translation id="945522503751344254">Надіслати відгук</translation>
 <translation id="951991426597076286">Відхилити</translation>

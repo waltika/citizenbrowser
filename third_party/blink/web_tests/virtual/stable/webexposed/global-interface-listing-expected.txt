@@ -5513,14 +5513,12 @@ interface MessageEvent : Event
     method initMessageEvent
 interface MessagePort : EventTarget
     attribute @@toStringTag
-    getter onclose
     getter onmessage
     getter onmessageerror
     method close
     method constructor
     method postMessage
     method start
-    setter onclose
     setter onmessage
     setter onmessageerror
 interface MimeType
@@ -6050,6 +6048,9 @@ interface OscillatorNode : AudioScheduledSourceNode
 interface OverconstrainedError : DOMException
     attribute @@toStringTag
     getter constraint
+    method constructor
+interface PageRevealEvent : Event
+    attribute @@toStringTag
     method constructor
 interface PageTransitionEvent : Event
     attribute @@toStringTag
@@ -11405,6 +11406,7 @@ namespace console
     getter onoffline
     getter ononline
     getter onpagehide
+    getter onpagereveal
     getter onpageshow
     getter onpause
     getter onplay
@@ -11620,6 +11622,7 @@ namespace console
     setter onoffline
     setter ononline
     setter onpagehide
+    setter onpagereveal
     setter onpageshow
     setter onpause
     setter onplay

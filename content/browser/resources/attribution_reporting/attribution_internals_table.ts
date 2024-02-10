@@ -5,7 +5,7 @@
 import {CustomElement} from 'chrome://resources/js/custom_element.js';
 
 import {getTemplate} from './attribution_internals_table.html.js';
-import {TableModel} from './table_model.js';
+import type {TableModel} from './table_model.js';
 
 /**
  * Helper function for setting sort attributes on |th|.
@@ -23,8 +23,8 @@ function setSortAttrs(th: HTMLElement, sortDesc: boolean|null): void {
     nextDir = 'descending';
   }
 
-  th.title = `Sort by ${th.innerText} ${nextDir}`;
-  th.ariaLabel = th.title;
+  const button = th.querySelector('button')!;
+  button.title = `Sort by ${button.innerText} ${nextDir}`;
 }
 
 /**
@@ -45,16 +45,19 @@ export class AttributionInternalsTableElement<T> extends CustomElement {
     this.model_ = model;
     this.sortDesc_ = false;
 
-    const tr = this.$<HTMLElement>('tr')!;
+    const tr = this.$<HTMLElement>('thead > tr')!;
     model.cols.forEach((col, idx) => {
       const th = document.createElement('th');
       th.scope = 'col';
-      col.renderHeader(th);
 
       if (col.compare) {
-        th.setAttribute('role', 'button');
+        const button = document.createElement('button');
+        col.renderHeader(button);
+        th.append(button);
         setSortAttrs(th, idx === model.sortIdx ? this.sortDesc_ : null);
-        th.addEventListener('click', () => this.changeSortHeader_(idx));
+        button.addEventListener('click', () => this.changeSortHeader_(idx));
+      } else {
+        col.renderHeader(th);
       }
 
       tr.append(th);
@@ -75,7 +78,7 @@ export class AttributionInternalsTableElement<T> extends CustomElement {
   }
 
   private changeSortHeader_(idx: number): void {
-    const ths = this.$all<HTMLElement>('thead th');
+    const ths = this.$all<HTMLElement>('thead > tr > th');
 
     if (idx === this.model_!.sortIdx) {
       this.sortDesc_ = !this.sortDesc_;
@@ -97,9 +100,8 @@ export class AttributionInternalsTableElement<T> extends CustomElement {
     }
 
     const multiplier = this.sortDesc_ ? -1 : 1;
-    rows.sort(
-        (a, b) => this.model_!.cols[this.model_!.sortIdx]!.compare!(a, b) *
-            multiplier);
+    const sortCol = this.model_!.cols[this.model_!.sortIdx]!;
+    rows.sort((a, b) => multiplier * sortCol.compare!(a, b));
   }
 
   private updateTbody_(): void {
@@ -114,16 +116,16 @@ export class AttributionInternalsTableElement<T> extends CustomElement {
 
     this.sort_(rows);
 
-    rows.forEach((row) => {
+    for (const row of rows) {
       const tr = document.createElement('tr');
-      this.model_!.cols.forEach((col) => {
+      for (const col of this.model_!.cols) {
         const td = document.createElement('td');
         col.render(td, row);
         tr.append(td);
-      });
+      }
       this.model_!.styleRow(tr, row);
       tbody.append(tr);
-    });
+    }
   }
 }
 

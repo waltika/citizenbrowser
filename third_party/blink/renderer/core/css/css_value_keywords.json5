@@ -1465,6 +1465,12 @@
     "max",
     "clamp",
 
+    // proposed math function
+    // https://github.com/w3c/csswg-drafts/issues/626
+    "calc-size",
+    // value that goes within calc-size()
+    "any",
+
     // Trigonometic functions
     "sin",
     "cos",
@@ -1792,5 +1798,11 @@
     "most-height",
     "most-block-size",
     "most-inline-size",
+
+    // position-try-options
+    // none
+    "flip-block",
+    "flip-inline",
+    "flip-start",
   ],
 }

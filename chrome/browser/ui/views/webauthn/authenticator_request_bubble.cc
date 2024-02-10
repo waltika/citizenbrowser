@@ -25,6 +25,10 @@
 #include "ui/views/style/typography.h"
 #include "ui/views/view_class_properties.h"
 
+#if BUILDFLAG(IS_MAC)
+#include "chrome/browser/ui/views/webauthn/mac_authentication_view.h"
+#endif  // BUILDFLAG(IS_MAC)
+
 namespace {
 
 struct BubbleContents {
@@ -37,6 +41,13 @@ struct BubbleContents {
   void (AuthenticatorRequestDialogModel::*on_ok)();
   void (AuthenticatorRequestDialogModel::*on_cancel)() =
       &AuthenticatorRequestDialogModel::StartOver;
+};
+
+constexpr BubbleContents kGPMTouchID = {
+    .title = u"Touch ID to proceed (UNTRANSLATED)",
+    .body = nullptr,
+    .show_footer = false,
+    .on_ok = &AuthenticatorRequestDialogModel::OnGPMCreate,
 };
 
 constexpr BubbleContents kGPMCreateContents = {
@@ -58,6 +69,18 @@ constexpr BubbleContents kTrustThisComputerContents = {
         u"options. (UNTRANSLATED)",
     .show_footer = false,
     .on_ok = &AuthenticatorRequestDialogModel::OnTrustThisComputer,
+};
+
+constexpr BubbleContents kGPMOnboardingContents = {
+    .illustration_light_id = IDR_WEBAUTHN_GPM_FINGERPRINT_LIGHT,
+    .title =
+        u"Start using passkeys with your Google Password Manager "
+        u"(UNTRANSLATED)",
+    .body =
+        u"We'll create a passkey for you to sign in to example.com "
+        u"(UNTRANSLATED)",
+    .show_footer = true,
+    .on_ok = &AuthenticatorRequestDialogModel::OnGPMOnboardingAccepted,
 };
 
 class AuthenticatorRequestBubbleDelegate
@@ -110,6 +133,10 @@ class AuthenticatorRequestBubbleDelegate
         return &kGPMCreateContents;
       case AuthenticatorRequestDialogModel::Step::kTrustThisComputer:
         return &kTrustThisComputerContents;
+      case AuthenticatorRequestDialogModel::Step::kGPMTouchID:
+        return &kGPMTouchID;
+      case AuthenticatorRequestDialogModel::Step::kGPMOnboarding:
+        return &kGPMOnboardingContents;
       default:
         NOTREACHED();
         return nullptr;
@@ -178,6 +205,14 @@ class AuthenticatorRequestBubbleDelegate
     std::unique_ptr<views::View> view =
         CreateViewForContents(*bubble_contents_);
     primary_view_->AddChildView(std::move(view));
+#if BUILDFLAG(IS_MAC)
+    if (step == AuthenticatorRequestDialogModel::Step::kGPMTouchID) {
+      if (__builtin_available(macos 12, *)) {
+        primary_view_->AddChildView(
+            std::make_unique<MacAuthenticationView>(base::DoNothing()));
+      }
+    }
+#endif  // BUILDFLAG(IS_MAC)
   }
 
   bool OnOk() {

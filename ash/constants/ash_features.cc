@@ -370,7 +370,7 @@ BASE_FEATURE(kBorealisWebUIInstaller,
 
 BASE_FEATURE(kBorealisZinkGlDriver,
              "BorealisZinkGlDriver",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 const base::FeatureParam<BorealisZinkGlDriverParam>::Option
     borealis_zink_gl_driver_options[] = {
@@ -389,12 +389,6 @@ const base::FeatureParam<BorealisZinkGlDriverParam> kBorealisZinkGlDriverParam{
 BASE_FEATURE(kCameraEffectsSupportedByHardware,
              "CameraEffectsSupportedByHardware",
              base::FEATURE_DISABLED_BY_DEFAULT);
-
-// Controls whether the camera privacy switch toasts and notification should be
-// displayed.
-BASE_FEATURE(kCameraPrivacySwitchNotifications,
-             "CameraPrivacySwitchNotifications",
-             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Enables the feature to parameterize glyph for "Campbell" feature.
 BASE_FEATURE(kCampbellGlyph,
@@ -471,12 +465,6 @@ BASE_FEATURE(kClipboardHistoryUrlTitles,
              "ClipboardHistoryUrlTitles",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-// If enabled, clipboard history explicitly pastes into `content::WebContents`
-// instead of using synthetic key events.
-BASE_FEATURE(kClipboardHistoryWebContentsPaste,
-             "ClipboardHistoryWebContentsPaste",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 // If enabled and account falls under the new deal, will be allowed to toggle
 // auto updates.
 BASE_FEATURE(kConsumerAutoUpdateToggleAllowed,
@@ -511,11 +499,6 @@ BASE_FEATURE(kCrosPrivacyHubV0,
 BASE_FEATURE(kCryptauthAttestationSyncing,
              "CryptauthAttestationSyncing",
              base::FEATURE_DISABLED_BY_DEFAULT);
-
-// Enables contextual nudges for gesture education.
-BASE_FEATURE(kContextualNudges,
-             "ContextualNudges",
-             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Enables or disables Crostini GPU support.
 // Note that this feature can be overridden by login_manager based on
@@ -1154,12 +1137,6 @@ BASE_FEATURE(kFilesTrashDrive,
              "FilesTrashDrive",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-// If enabled, the jelly colors will be used in the firmware update app.
-// Requires jelly-colors flag to also be enabled.
-BASE_FEATURE(kFirmwareUpdateJelly,
-             "FirmwareUpdateJelly",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 // Enables the v2 version of the Firmware Updates app.
 BASE_FEATURE(kFirmwareUpdateUIV2,
              "FirmwareUpdateUIV2",
@@ -1427,17 +1404,10 @@ BASE_FEATURE(kHiddenNetworkWarning,
              "HiddenNetworkWarning",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-// Enables hiding of ARC media notifications. If this is enabled, all ARC
-// notifications that are of the media type will not be shown. This
-// is because they will be replaced by native media session notifications.
-// TODO(beccahughes): Remove after launch. (https://crbug.com/897836)
-BASE_FEATURE(kHideArcMediaNotifications,
-             "HideArcMediaNotifications",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 // When enabled, shelf navigation controls and the overview tray item will be
 // removed from the shelf in tablet mode (unless otherwise specified by user
-// preferences, or policy).
+// preferences, or policy). This feature also enables "contextual nudges" for
+// gesture education.
 BASE_FEATURE(kHideShelfControlsInTabletMode,
              "HideShelfControlsInTabletMode",
              base::FEATURE_ENABLED_BY_DEFAULT);
@@ -1613,12 +1583,6 @@ BASE_FEATURE(kImeStylusHandwriting,
              "StylusHandwriting",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-// Controls whether to hide voice button in IME tray if accessibility mic icon
-// is already shown in the shelf.
-BASE_FEATURE(kImeTrayHideVoiceButton,
-             "ImeTrayHideVoiceButton",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 // Enables debug info UI for Korean input method's internal-mode switch.
 BASE_FEATURE(kImeKoreanModeSwitchDebug,
              "ImeKoreanModeSwitchDebug",
@@ -1715,6 +1679,12 @@ BASE_FEATURE(kLacrosProfileBackwardMigration,
              "LacrosProfileBackwardMigration",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
+// Enables automatic downloading and installing fonts via language packs, based
+// on the user's preferences.
+BASE_FEATURE(kLanguagePacksFonts,
+             "LanguagePacksFonts",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
 // If enabled, the Language Pack corresponding to the application locale is
 // downloaded and installed during OOBE. This pre-fetching is aimed at improving
 // user experience so that they have language resources available as early as
@@ -1773,7 +1743,7 @@ BASE_FEATURE(kLinkCrossDeviceInternals,
 // (This feature is only available for consumer users)
 BASE_FEATURE(kLocalPasswordForConsumers,
              "LocalPasswordForConsumers",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Supports the feature to hide sensitive content in notifications on the lock
 // screen. This option is effective when |kLockScreenNotification| is enabled.
@@ -1807,12 +1777,6 @@ BASE_FEATURE(kMacAddressRandomization,
 BASE_FEATURE(kMediaAppPdfA11yOcr,
              "MediaAppPdfA11yOcr",
              base::FEATURE_DISABLED_BY_DEFAULT);
-
-// Enables notification of when a microphone-using app is launched while the
-// microphone is muted.
-BASE_FEATURE(kMicMuteNotifications,
-             "MicMuteNotifications",
-             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Controls whether to enable the requirement of a minimum chrome version on the
 // device through the policy DeviceMinimumVersion. If the requirement is
@@ -2082,6 +2046,12 @@ BASE_FEATURE(kOsSettingsAppBadgingToggle,
              "OsSettingsAppBadgingToggle",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
+// Whether the DNS dialog in should be deprecated in Security and Privacy
+// Settings page when the user toggles off the DNS button.
+BASE_FEATURE(kOsSettingsDeprecateDnsDialog,
+             "OsSettingsDeprecateDnsDialog",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
 // Whether the metrics toggle in settings user sync options page should be
 // deprecated.
 BASE_FEATURE(kOsSettingsDeprecateSyncMetricsToggle,
@@ -2260,11 +2230,12 @@ BASE_FEATURE(kPreferConstantFrameRate,
              "PreferConstantFrameRate",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-// If enabled, the jelly colors will be used in the print management app.
-// Requires jelly-colors flag to also be enabled.
-BASE_FEATURE(kPrintManagementJelly,
-             "PrintManagementJelly",
-             base::FEATURE_ENABLED_BY_DEFAULT);
+// If enabled, ChromeOS print preview app is available. Enabling does not
+// replace the existing Chrome print preview UI, and will require an additional
+// flag and pref configured to facilitate. See b/323421684 for more information.
+BASE_FEATURE(kPrintPreviewCrosApp,
+             "PrintPreviewCrosApp",
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 // If enabled, improved messaging for printer setup displayed in print
 // management app.
@@ -2410,11 +2381,6 @@ BASE_FEATURE(kQuickUnlockPinAutosubmitBackfill,
 BASE_FEATURE(kReleaseNotesNotificationAllChannels,
              "ReleaseNotesNotificationAllChannels",
              base::FEATURE_DISABLED_BY_DEFAULT);
-
-// Enables or disables Release Notes suggestion chip on ChromeOS.
-BASE_FEATURE(kReleaseNotesSuggestionChip,
-             "ReleaseNotesSuggestionChip",
-             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Enables rendering ARC notifications using ChromeOS notification framework
 BASE_FEATURE(kRenderArcNotificationsByChrome,
@@ -2619,11 +2585,6 @@ BASE_FEATURE(kDemoModeGMSCoreWindowCloser,
              "DemoModeGMSCoreWindowCloser",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
-// Enables the shutdown confirmation bubble from the login shelf view.
-BASE_FEATURE(kShutdownConfirmationBubble,
-             "ShutdownConfirmationBubble",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 // Moves toasts to the bottom-side corner where the status area is instead of
 // the center when enabled.
 BASE_FEATURE(kSideAlignedToasts,
@@ -2649,11 +2610,6 @@ BASE_FEATURE(kSmdsSupport, "SmdsSupport", base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Controls whether the snap group feature is enabled or not.
 BASE_FEATURE(kSnapGroup, "SnapGroup", base::FEATURE_DISABLED_BY_DEFAULT);
-
-// Enables battery indicator for styluses in the palette tray
-BASE_FEATURE(kStylusBatteryStatus,
-             "StylusBatteryStatus",
-             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Enables or disables using the system input engine for physical typing in
 // Japanese.
@@ -2758,12 +2714,6 @@ BASE_FEATURE(kUpstreamTrustedReportsFirmware,
 BASE_FEATURE(kUseAndroidStagingSmds,
              "UseAndroidStagingSmds",
              base::FEATURE_DISABLED_BY_DEFAULT);
-
-// When enabled, the login shelf view is placed in its own widget instead of
-// sharing the shelf widget with other components.
-BASE_FEATURE(kUseLoginShelfWidget,
-             "UseLoginShelfWidget",
-             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Use the staging URL as part of the "Messages" feature under "Connected
 // Devices" settings.
@@ -3041,13 +2991,6 @@ BASE_FEATURE(kEnableMappableSIForFastInkHost,
 
 ////////////////////////////////////////////////////////////////////////////////
 
-bool AreContextualNudgesEnabled() {
-  if (!IsHideShelfControlsInTabletModeEnabled()) {
-    return false;
-  }
-  return base::FeatureList::IsEnabled(kContextualNudges);
-}
-
 bool AreDesksTemplatesEnabled() {
   return base::FeatureList::IsEnabled(kDesksTemplates);
 }
@@ -3234,10 +3177,6 @@ bool IsClipboardHistoryLongpressEnabled() {
 bool IsClipboardHistoryUrlTitlesEnabled() {
   return base::FeatureList::IsEnabled(kClipboardHistoryUrlTitles) &&
          chromeos::features::IsClipboardHistoryRefreshEnabled();
-}
-
-bool IsClipboardHistoryWebContentsPasteEnabled() {
-  return base::FeatureList::IsEnabled(kClipboardHistoryWebContentsPaste);
 }
 
 bool IsContinuousOverviewScrollAnimationEnabled() {
@@ -3591,10 +3530,6 @@ bool IsHibernateEnabled() {
   return base::FeatureList::IsEnabled(kHibernate);
 }
 
-bool IsHideArcMediaNotificationsEnabled() {
-  return base::FeatureList::IsEnabled(kHideArcMediaNotifications);
-}
-
 bool IsHideShelfControlsInTabletModeEnabled() {
   return base::FeatureList::IsEnabled(kHideShelfControlsInTabletMode);
 }
@@ -3684,10 +3619,6 @@ bool IsStartAssistantAudioDecoderOnDemandEnabled() {
   return base::FeatureList::IsEnabled(kStartAssistantAudioDecoderOnDemand);
 }
 
-bool IsImeTrayHideVoiceButtonEnabled() {
-  return base::FeatureList::IsEnabled(kImeTrayHideVoiceButton);
-}
-
 bool IsInstantTetheringBackgroundAdvertisingSupported() {
   return base::FeatureList::IsEnabled(
       kInstantTetheringBackgroundAdvertisementSupport);
@@ -3732,19 +3663,9 @@ bool IsJellyEnabledForDiagnosticsApp() {
          base::FeatureList::IsEnabled(kDiagnosticsAppJelly);
 }
 
-bool IsJellyEnabledForFirmwareUpdate() {
-  return chromeos::features::IsJellyEnabled() &&
-         base::FeatureList::IsEnabled(kFirmwareUpdateJelly);
-}
-
 bool IsJellyEnabledForOsFeedback() {
   return chromeos::features::IsJellyEnabled() &&
          base::FeatureList::IsEnabled(kOsFeedbackJelly);
-}
-
-bool IsJellyEnabledForPrintManagement() {
-  return chromeos::features::IsJellyEnabled() &&
-         base::FeatureList::IsEnabled(kPrintManagementJelly);
 }
 
 bool IsJellyEnabledForScanningApp() {
@@ -3844,10 +3765,6 @@ bool IsProductivityLauncherImageSearchEnabled() {
 
 bool IsMacAddressRandomizationEnabled() {
   return base::FeatureList::IsEnabled(kMacAddressRandomization);
-}
-
-bool IsMicMuteNotificationsEnabled() {
-  return base::FeatureList::IsEnabled(kMicMuteNotifications);
 }
 
 bool IsMinimumChromeVersionEnabled() {
@@ -4152,6 +4069,10 @@ bool IsPrinterSettingsRevampEnabled() {
   return base::FeatureList::IsEnabled(kPrinterSettingsRevamp);
 }
 
+bool IsPrinterPreviewCrosAppEnabled() {
+  return base::FeatureList::IsEnabled(kPrintPreviewCrosApp);
+}
+
 bool IsPrintPreviewDiscoveredPrintersEnabled() {
   return base::FeatureList::IsEnabled(kPrintPreviewDiscoveredPrinters);
 }
@@ -4352,10 +4273,6 @@ bool IsSystemTrayShadowEnabled() {
   return base::FeatureList::IsEnabled(kSystemTrayShadow);
 }
 
-bool IsStylusBatteryStatusEnabled() {
-  return base::FeatureList::IsEnabled(kStylusBatteryStatus);
-}
-
 bool IsTetheringExperimentalFunctionalityEnabled() {
   return base::FeatureList::IsEnabled(kTetheringExperimentalFunctionality);
 }
@@ -4408,10 +4325,6 @@ bool IsTrilinearFilteringEnabled() {
 bool IsUnmanagedDeviceDeviceTrustConnectorFeatureEnabled() {
   return base::FeatureList::IsEnabled(
       kUnmanagedDeviceDeviceTrustConnectorEnabled);
-}
-
-bool IsUseLoginShelfWidgetEnabled() {
-  return base::FeatureList::IsEnabled(kUseLoginShelfWidget);
 }
 
 bool ShouldUseAndroidStagingSmds() {

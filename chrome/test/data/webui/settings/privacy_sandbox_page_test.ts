@@ -1066,13 +1066,13 @@ suite('TopicsSubpageWithProactiveTopicsBlockingEnabled', function() {
     // When the parent topic was blocked, the child topic does not get moved
     // to the blocked items list which is why we only have 3 blocked topics
     assertEquals(3, blockedItems.length);
-    const allowButton = blockedItems[0]!.shadowRoot!.querySelector('cr-button');
-    assert(allowButton);
-    assertEquals(page.i18n('unblockTopicButtonTextV2'), allowButton.innerText);
+    const unblockButton =
+        blockedItems[0]!.shadowRoot!.querySelector('cr-button');
+    assert(unblockButton);
+    assertEquals('Unblock', unblockButton.innerText);
     assertEquals(
-        page.i18n('topicsPageAllowTopicA11yLabel', 'test-topic-1'),
-        allowButton.getAttribute('aria-label'));
-    allowButton.click();
+        'Unblock test-topic-1', unblockButton.getAttribute('aria-label'));
+    unblockButton.click();
     await testPrivacySandboxBrowserProxy.whenCalled('setTopicAllowed');
     assertEquals(
         'Settings.PrivacySandbox.Topics.TopicAdded',
@@ -1264,14 +1264,15 @@ suite('ManageTopics', function() {
         '#explanationText a[href]');
     assertEquals(
         links.length, 1, 'Explanation text should have one Learn more link');
-    links.forEach(
-        link => assertEquals(
-            link.getAttribute('aria-description'),
-            loadTimeData.getString('opensInNewTab'),
-            'the link should indicate that it will be opened in a new tab'));
-    const hrefs = Array.from(links).map(link => link.href);
-    const expectedLinks = ['https://support.google.com/chrome?p=ad_privacy'];
-    assertDeepEquals(expectedLinks, hrefs);
+    assertEquals(
+        links[0]!.getAttribute('aria-description'),
+        loadTimeData.getString('opensInNewTab'),
+        'the link should indicate that it will be opened in a new tab');
+    assertEquals(
+        links[0]!.getAttribute('aria-label'),
+        'Learn more about managing your ad privacy in Chrome.');
+    assertEquals(
+        'https://support.google.com/chrome?p=ad_privacy', links[0]!.href);
   });
 
   test('ManageTopicsPageTestLabelsAndSubLabels', async function() {
@@ -1291,6 +1292,14 @@ suite('ManageTopics', function() {
   test('ManageTopicsPageTestToggles', async function() {
     const toggles = page.shadowRoot!.querySelectorAll('cr-toggle');
     assertEquals(2, toggles.length);
+    const toggleAriaLabels =
+        Array.from(toggles).map(toggle => toggle.getAttribute('aria-label'));
+    assertDeepEquals(['test-topic-1', 'test-topic-4'], toggleAriaLabels);
+    const toggleAriaDescriptions = Array.from(toggles).map(
+        toggle => toggle.getAttribute('aria-description'));
+    assertDeepEquals(
+        ['test-topic-1-description', 'test-topic-4-description'],
+        toggleAriaDescriptions);
     const toggleIds = Array.from(toggles).map(topicToggle => topicToggle.id);
     assertDeepEquals(['toggle-1', 'toggle-4'], toggleIds);
     // Toggle 1 (topic 1) is also blocked so it is toggled OFF.

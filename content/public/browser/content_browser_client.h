@@ -2724,6 +2724,11 @@ class CONTENT_EXPORT ContentBrowserClient {
   virtual bool IsTransientActivationRequiredForShowFileOrDirectoryPicker(
       WebContents* web_contents);
 
+  // Return whether entering fullscreen requires transient activation.
+  // The embedder may waive that requirement for user settings or tests.
+  virtual bool IsTransientActivationRequiredForHtmlFullscreen(
+      content::RenderFrameHost* render_frame_host);
+
   // Checks if `origin` should always receive a first-party StorageKey
   // in RenderFrameHostImpl. Currently in Chrome, this is true for all
   // extension origins.
@@ -2809,6 +2814,15 @@ class CONTENT_EXPORT ContentBrowserClient {
   // subresources if possible.
   virtual void MaybePrewarmHttpDiskCache(BrowserContext& browser_context,
                                          const GURL& navigation_url);
+
+  enum class MultiCaptureChanged { kStarted, kStopped };
+
+  // Notifies embedders that a the `state` of a multi capture with `label`
+  // changed for a certain `capturer_rfh_id`.
+  virtual void NotifyMultiCaptureStateChanged(
+      GlobalRenderFrameHostId capturer_rfh_id,
+      const std::string& label,
+      MultiCaptureChanged state);
 };
 
 }  // namespace content

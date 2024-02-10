@@ -53,7 +53,6 @@
 <translation id="1074497978438210769">സുരക്ഷിതമല്ല</translation>
 <translation id="1075079914415273530">കൃഷിയും വനപരിപാലനവും</translation>
 <translation id="1075364221219156102">ഒരു പാസ്‌കീ ഉപയോഗിക്കുക</translation>
-<translation id="1078033282564106222">കെട്ടിട നമ്പർ ഓപ്‌ഷൻ തിരഞ്ഞെടുത്തു</translation>
 <translation id="1080116354587839789">അനുയോജ്യമായ വീതിയിലാക്കുക</translation>
 <translation id="1081061862829655580">ട്രേ 19</translation>
 <translation id="1082026381988252344">പങ്കിട്ട ടാബിലെ ഉള്ളടക്കം സ്ക്രോൾ ചെയ്യുക, സൂം ചെയ്യുക</translation>
@@ -613,7 +612,6 @@
 <translation id="2126374524350484896">PDF പ്രൊഡ്യൂസർ:</translation>
 <translation id="2130448033692577677">DnsOverHttpsMode നയം സജ്ജീകരിക്കാത്തതിനാൽ നിങ്ങൾ വ്യക്തമാക്കിയ ടെംപ്ലേറ്റുകൾ ബാധകമാക്കാനായേക്കില്ല.</translation>
 <translation id="2130699163006053678">A3x7</translation>
-<translation id="2131200882015008178"><ph name="LANGUAGE" /> ഭാഷാ പായ്ക്ക് ഡൗൺലോഡ് ചെയ്യുന്നു..<ph name="PERCENT" />%</translation>
 <translation id="2135799067377889518">പുരുഷൻമാർക്കുള്ള വസ്‌ത്രങ്ങൾ</translation>
 <translation id="2137891579555018930">അനുമതിക്കായി കാത്തിരിക്കുന്നു...</translation>
 <translation id="213826338245044447">മൊബൈൽ ബുക്ക്‌മാർക്കുകൾ</translation>
@@ -1386,7 +1384,6 @@
 <translation id="3681007416295224113">സര്‍‌ട്ടിഫിക്കറ്റ് വിവരങ്ങള്‍‌</translation>
 <translation id="3681421644246505351">നിങ്ങളുടെ അടുത്തിടെയുള്ള ബ്രൗസിംഗ് ചരിത്രം അടിസ്ഥാനമാക്കി നിങ്ങൾക്ക് താൽപ്പര്യമുള്ള വിഷയങ്ങൾ Chrome രേഖപ്പെടുത്തുന്നു.</translation>
 <translation id="3682094733650754138">വിലാസം പൂരിപ്പിക്കുക ഓപ്‌ഷൻ തിരഞ്ഞെടുത്തു</translation>
-<translation id="3689867156802445220">കെട്ടിട നമ്പർ</translation>
 <translation id="3693327506115126094">ഇത് നിങ്ങൾ തന്നെയാണെന്ന് എങ്ങനെ പരിശോധിച്ചുറപ്പിക്കുമെന്ന് തിരഞ്ഞെടുക്കുക</translation>
 <translation id="3698629142018988477">'സൈറ്റ് സൃഷ്ടിക്കുക' ബട്ടൺ, Google Sites-ൽ വേഗത്തിൽ പുതിയൊരു സൈറ്റ് സൃഷ്ടിക്കാൻ സജീവമാക്കുക</translation>
 <translation id="3701325639446035885">ഇവന്‍റ് ടിക്കറ്റ് വിൽപ്പന</translation>
@@ -1575,6 +1572,7 @@
 <translation id="4089152113577680600">ട്രേ 14</translation>
 <translation id="4092349052316400070">വിലാസം പൂരിപ്പിക്കുക</translation>
 <translation id="4096237801206588987">11 x 15 ഇഞ്ച്</translation>
+<translation id="4098306082496067348">ചെക്ക്ഔട്ടിലേക്ക് ചേർക്കാൻ വെച്വൽ കാർഡ് വിശദാംശങ്ങൾ ടാപ്പ് ചെയ്യുക.</translation>
 <translation id="4098354747657067197">വഞ്ചനാപരമായ സൈറ്റ് ഉണ്ട്</translation>
 <translation id="4099048595830172239">രഹസ്യാത്മകമായ ഉള്ളടക്കം ദൃശ്യമാകുമ്പോൾ, <ph name="APPLICATION_TITLE" /> എന്നതുമായി നിങ്ങളുടെ സ്ക്രീൻ പങ്കിടാൻ അഡ്മിൻ നയം നിർദ്ദേശിക്കുന്നില്ല:</translation>
 <translation id="4099391883283080991"><ph name="CUSTOMIZE_CHROME_FONTS_FOCUSED_FRIENDLY_MATCH_TEXT" />, Chrome-ൽ ഫോണ്ട് വലുപ്പങ്ങളും ടൈപ്പ്ഫേസുകളും ഇഷ്ടാനുസൃതമാക്കാൻ Tab അമർത്തുക, തുടർന്ന് Enter അമർത്തുക</translation>

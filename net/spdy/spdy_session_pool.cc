@@ -85,7 +85,7 @@ SpdySessionPool::SpdySessionPool(
     int session_max_queued_capped_frames,
     const spdy::SettingsMap& initial_settings,
     bool enable_http2_settings_grease,
-    const absl::optional<GreasedHttp2Frame>& greased_http2_frame,
+    const std::optional<GreasedHttp2Frame>& greased_http2_frame,
     bool http2_end_stream_with_data_frame,
     bool enable_priority_update,
     bool go_away_on_ip_change,
@@ -620,7 +620,7 @@ void SpdySessionPool::MapKeyToAvailableSession(
     std::set<std::string> dns_aliases) {
   DCHECK(base::Contains(sessions_, session.get()));
   std::pair<AvailableSessionMap::iterator, bool> result =
-      available_sessions_.insert(std::make_pair(key, session));
+      available_sessions_.emplace(key, session);
   CHECK(result.second);
 
   dns_aliases_by_session_key_[key] = std::move(dns_aliases);
@@ -655,7 +655,7 @@ void SpdySessionPool::RemoveAliases(const SpdySessionKey& key) {
 
 SpdySessionPool::WeakSessionList SpdySessionPool::GetCurrentSessions() const {
   WeakSessionList current_sessions;
-  for (auto* session : sessions_) {
+  for (SpdySession* session : sessions_) {
     current_sessions.push_back(session->GetWeakPtr());
   }
   return current_sessions;

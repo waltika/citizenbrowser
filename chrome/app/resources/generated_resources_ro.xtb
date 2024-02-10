@@ -3294,6 +3294,7 @@ Mesaj de la server: <ph name="SERVER_MSG" /></translation>
 <translation id="3497560059572256875">Trimite doodle-ul</translation>
 <translation id="3497915391670770295">Trimite pe &amp;dispozitivele tale</translation>
 <translation id="3500417806337761827">Eroare la montarea dispozitivului de stocare în rețea. Au fost conectate deja prea multe dispozitive de stocare în rețea SMB.</translation>
+<translation id="3500764001796099683">Activează aplicațiile web izolate</translation>
 <translation id="350397915809787283">Dacă nu ai un cont, selectează prima opțiune pentru a crea unul.</translation>
 <translation id="3503995387997205657">Poți restabili aplicațiile anterioare</translation>
 <translation id="3505100368357440862">Sugestii pentru cumpărături</translation>
@@ -4002,7 +4003,6 @@ Aici pot fi incluse informații despre software-ul instalat, fișiere, browser �
 <translation id="4031179711345676612">Microfonul este permis</translation>
 <translation id="4031527940632463547">Senzorii sunt blocați</translation>
 <translation id="4033471457476425443">Adaugă un dosar nou</translation>
-<translation id="4033711848170683365">Astfel, vor fi șterse definitiv datele de navigare de pe acest dispozitiv. Conturile Google din acest profil pot fi folosite de alte aplicații de pe <ph name="DEVICE_TYPE" />. Poți elimina conturile din <ph name="BEGIN_LINK" /><ph name="SETTING_SECTION" /> &gt; <ph name="ACCOUNTS_SECTION" /><ph name="END_LINK" />.</translation>
 <translation id="4033963223187371752">Site-urile securizate pot încorpora conținut precum imagini sau cadre web nesigure</translation>
 <translation id="4034706080855851454">Ca să folosești dispozitivul cu profilul organizației, organizația are nevoie de informații despre dispozitiv.
 
@@ -5869,7 +5869,6 @@ Permisiunile pe care le-ai acordat deja site-urilor și aplicațiilor se pot apl
 <translation id="5514315914873062345">Tab</translation>
 <translation id="5517304475148761050">Aplicația necesită acces la Magazinul Play</translation>
 <translation id="5517412723934627386"><ph name="NETWORK_TYPE" /> – <ph name="NETWORK_DISPLAY_NAME" /></translation>
-<translation id="5518949581554491184">Configurează cu un telefon Android</translation>
 <translation id="5519053700692355541">Poți deschide majoritatea funcțiilor panoului lateral din meniul Chrome din dreapta sus</translation>
 <translation id="5519195206574732858">LTE</translation>
 <translation id="5519900055135507385">Protejează-ți mai bine contul cu o parolă puternică. Ea se va salva în <ph name="GOOGLE_PASSWORD_MANAGER" /> pentru <ph name="EMAIL" />.</translation>
@@ -7169,6 +7168,7 @@ Permisiunile pe care le-ai acordat deja site-urilor și aplicațiilor se pot apl
 <translation id="6551508934388063976">Comanda nu este disponibilă. Pentru a deschide o fereastră nouă, apăsați pe Ctrl+N.</translation>
 <translation id="6551606359270386381">Instrument pentru elipsă</translation>
 <translation id="6551612971599078809">Site-ul folosește USB</translation>
+<translation id="6551620030439692385">Blocat. Fusul orar este setat la <ph name="TIMEZONE" /> și poate fi actualizat numai manual.</translation>
 <translation id="6551739526055143276">Gestionate prin Family Link</translation>
 <translation id="655384502888039633"><ph name="USER_COUNT" /> (de) utilizatori</translation>
 <translation id="6555432686520421228">Eliminați toate conturile de utilizator și resetați gadgetul <ph name="IDS_SHORT_PRODUCT_NAME" /> la valorile din fabrică.</translation>
@@ -7239,6 +7239,7 @@ Mai ai # de parole compromise. Managerul de parole Google recomandă să verific
 <translation id="6608773371844092260">Pentru a configura amprenta, solicită-i copilului tău să atingă senzorul de amprentă în partea dreaptă a acestui <ph name="DEVICE_TYPE" />. Datele privind amprentele copilului sunt stocate în siguranță și nu părăsesc niciodată dispozitivul <ph name="DEVICE_TYPE" />.</translation>
 <translation id="6609478180749378879">Datele de conectare vor fi stocate pe acest dispozitiv după ce ieși din modul incognito. Vei putea să te reconectezi la site folosind dispozitivul.</translation>
 <translation id="6610002944194042868">Opțiuni de traducere</translation>
+<translation id="6610064275805055636">Gestionează aplicațiile web izolate</translation>
 <translation id="6611972847767394631">Regăsește filele aici</translation>
 <translation id="661266467055912436">Îmbunătățește securitatea pe web pentru tine și toți ceilalți.</translation>
 <translation id="6613267708691765962">Se caută programe malware...</translation>
@@ -8603,6 +8604,7 @@ Mai ai # de parole compromise. Managerul de parole Google recomandă să verific
 <translation id="7671472752213333268"><ph name="EXTENSION_NAME" /> solicită permisiunea să scaneze de la <ph name="SCANNER_NAME" />.</translation>
 <translation id="7672504401554182757">Alege dispozitivul care are cheia de acces pentru <ph name="APP_NAME" /></translation>
 <translation id="7672520070349703697"><ph name="HUNG_IFRAME_URL" />, în <ph name="PAGE_TITLE" />.</translation>
+<translation id="7672726198839739113">Blocat. Programul este setat la <ph name="SUNRISE_TIME" /> – <ph name="SUNSET_TIME" /> și poate fi actualizat numai manual.</translation>
 <translation id="7673313156293624327">Jurnale Shill (Connection Manager) din ChromeOS</translation>
 <translation id="7674416868315480713">Dezactivează toate porturile care se redirecționează în Linux</translation>
 <translation id="7674537509496907005"><ph name="APP_COUNT" /> aplicații</translation>
@@ -9536,6 +9538,7 @@ Păstrează fișierul cu cheia într-un loc sigur. Acesta va fi necesar la crear
 <translation id="8376384591331888629">Inclusiv cookie-urile terță parte de pe acest site</translation>
 <translation id="8376451933628734023">Dacă aplicația web încearcă să te facă să crezi că este o altă aplicație, dezinstaleaz-o.</translation>
 <translation id="8376532149031784008">Se reîncarcă <ph name="DOMAIN" />...</translation>
+<translation id="8376610503048439696">Extensiile instalate de administrator pot în continuare să citească și să modifice acest site</translation>
 <translation id="8376752431516546391">Panoul lateral Căutare Google</translation>
 <translation id="8377625247046155446">Cheia de acces va fi salvată numai pe acest dispozitiv. Va rămâne pe acest dispozitiv după ce închizi toate ferestrele incognito.</translation>
 <translation id="8378714024927312812">Gestionat de organizația ta</translation>
@@ -9675,6 +9678,7 @@ Păstrează fișierul cu cheia într-un loc sigur. Acesta va fi necesar la crear
     <ph name="BEGIN_PARAGRAPH2" />Poți să acorzi sau să anulezi oricând permisiunea pentru aceste rapoarte în setările dispozitivului cu sistem de operare Chrome al copilului. Dacă ești administratorul unui domeniu, poți să modifici această setare în consola de administrare.<ph name="END_PARAGRAPH2" />
     <ph name="BEGIN_PARAGRAPH4" />Dacă ai activat setarea Activitatea de pe web și din aplicații pentru Contul Google al copilului tău, datele copilului pot fi salvate în Contul său Google. Află mai multe despre aceste setări și cum să le modifici la families.google.com.<ph name="END_PARAGRAPH4" /></translation>
 <translation id="8476630458761527665">Introdu parola fișierului</translation>
+<translation id="8476942730579767658">Ferestre și desktopuri</translation>
 <translation id="8477178913400731244">Șterge datele</translation>
 <translation id="8477241577829954800">Depășit</translation>
 <translation id="8477384620836102176">&amp;General</translation>

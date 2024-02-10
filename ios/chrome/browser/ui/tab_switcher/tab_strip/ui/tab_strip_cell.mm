@@ -13,6 +13,8 @@
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
 #import "ios/chrome/common/ui/elements/gradient_view.h"
 #import "ios/chrome/common/ui/util/constraints_ui_util.h"
+#import "ios/chrome/grit/ios_strings.h"
+#import "ui/base/l10n/l10n_util.h"
 
 namespace {
 
@@ -33,6 +35,7 @@ const CGFloat kSeparatorCornerRadius = 1;
 const CGFloat kSeparatorHeight = 18;
 const CGFloat kSeparatorHorizontalInset = 2;
 const CGFloat kSeparatorGradientWidth = 4;
+const CGFloat kSeparatorBackgroundAlpha = 0.3;
 
 // Content view constants.
 const CGFloat kFaviconLeadingMargin = 10;
@@ -96,18 +99,28 @@ UIImage* DefaultFavicon() {
   // Separator height constraints.
   NSArray<NSLayoutConstraint*>* _separatorHeightConstraints;
   CGFloat _separatorHeight;
+
+  // whether the view is hovered.
+  BOOL _hovered;
 }
 
 - (instancetype)initWithFrame:(CGRect)frame {
   if ((self = [super initWithFrame:frame])) {
     self.layer.masksToBounds = NO;
     _decorationLayersUpdated = NO;
+    _hovered = NO;
     _separatorHeight = 0;
+
+    [self addInteraction:[[UIPointerInteraction alloc] initWithDelegate:self]];
 
     UIView* contentView = self.contentView;
     contentView.layer.masksToBounds = YES;
     contentView.layer.cornerRadius = kCornerSize;
     contentView.translatesAutoresizingMaskIntoConstraints = NO;
+
+    // Needed for the drop animation.
+    self.layer.cornerRadius = kCornerSize;
+    self.backgroundColor = [UIColor colorNamed:kTabStripBackgroundColor];
 
     _faviconView = [self createFaviconView];
     [contentView addSubview:_faviconView];
@@ -159,8 +172,9 @@ UIImage* DefaultFavicon() {
 }
 
 - (void)setTitle:(NSString*)title {
-  NSTextAlignment titleTextAligment = DetermineBestAlignmentForText(title);
+  self.accessibilityLabel = title;
 
+  NSTextAlignment titleTextAligment = DetermineBestAlignmentForText(title);
   _titleLabel.text = [title copy];
   _titleLabel.textAlignment = titleTextAligment;
   [self updateTitleGradientViewConstraints];
@@ -243,6 +257,9 @@ UIImage* DefaultFavicon() {
 - (void)setSelected:(BOOL)selected {
   [super setSelected:selected];
 
+  self.accessibilityTraits =
+      selected ? UIAccessibilityTraitSelected : UIAccessibilityTraitNone;
+
   if (selected) {
     /// The cell attributes is updated just after the cell selection.
     /// Hide separtors to avoid an animation glitch when selecting/inserting.
@@ -299,10 +316,68 @@ UIImage* DefaultFavicon() {
   [self setFaviconImage:nil];
 }
 
+- (void)setHighlighted:(BOOL)highlighted {
+  [super setHighlighted:highlighted];
+  [self updateColors];
+}
+
+- (void)dragStateDidChange:(UICollectionViewCellDragState)dragState {
+  [super dragStateDidChange:dragState];
+  [self updateColors];
+}
+
 #pragma mark - UITraitEnvironment
 
 - (void)traitCollectionDidChange:(UITraitCollection*)previousTraitCollection {
   [super traitCollectionDidChange:previousTraitCollection];
+  [self updateColors];
+}
+
+#pragma mark - UIAccessibility
+
+- (BOOL)isAccessibilityElement {
+  // This makes the whole cell tappable in VoiceOver rather than the individual
+  // title and close button.
+  return YES;
+}
+
+- (NSArray*)accessibilityCustomActions {
+  return @[ [[UIAccessibilityCustomAction alloc]
+      initWithName:l10n_util::GetNSString(IDS_IOS_TAB_SWITCHER_CLOSE_TAB)
+            target:self
+          selector:@selector(closeButtonTapped:)] ];
+}
+
+#pragma mark - UIPointerInteractionDelegate
+
+- (UIPointerRegion*)pointerInteraction:(UIPointerInteraction*)interaction
+                      regionForRequest:(UIPointerRegionRequest*)request
+                         defaultRegion:(UIPointerRegion*)defaultRegion {
+  return defaultRegion;
+}
+
+- (UIPointerStyle*)pointerInteraction:(UIPointerInteraction*)interaction
+                       styleForRegion:(UIPointerRegion*)region {
+  UIPointerHoverEffect* effect = [UIPointerHoverEffect
+      effectWithPreview:[[UITargetedPreview alloc]
+                            initWithView:self.contentView
+                              parameters:[self dragPreviewParameters]]];
+  effect.prefersScaledContent = NO;
+  effect.prefersShadow = NO;
+  return [UIPointerStyle styleWithEffect:effect shape:nil];
+}
+
+- (void)pointerInteraction:(UIPointerInteraction*)interaction
+           willEnterRegion:(UIPointerRegion*)region
+                  animator:(id<UIPointerInteractionAnimating>)animator {
+  _hovered = YES;
+  [self updateColors];
+}
+
+- (void)pointerInteraction:(UIPointerInteraction*)interaction
+            willExitRegion:(UIPointerRegion*)region
+                  animator:(id<UIPointerInteractionAnimating>)animator {
+  _hovered = NO;
   [self updateColors];
 }
 
@@ -348,9 +423,21 @@ UIImage* DefaultFavicon() {
 
 // Updates view colors.
 - (void)updateColors {
-  UIColor* backgroundColor = self.selected
-                                 ? [UIColor colorNamed:kPrimaryBackgroundColor]
-                                 : [UIColor colorNamed:kGrey200Color];
+  UIColor* backgroundColor;
+  if (self.isHighlighted || self.configurationState.cellDragState !=
+                                UICellConfigurationDragStateNone) {
+    // Before a cell is dragged, it is highlighted.
+    // The cell's background color must be updated at this moment, otherwise it
+    // will not be applied correctly.
+    backgroundColor = [UIColor colorNamed:kGroupedSecondaryBackgroundColor];
+  } else if (_hovered) {
+    backgroundColor = [UIColor colorNamed:kTertiaryBackgroundColor];
+  } else {
+    backgroundColor =
+        self.isSelected ? [UIColor colorNamed:kGroupedSecondaryBackgroundColor]
+                        : [UIColor colorNamed:kTabStripBackgroundColor];
+  }
+
   // Needed to correctly update the `_titleGradientView` colors in incognito.
   backgroundColor =
       [backgroundColor resolvedColorWithTraitCollection:self.traitCollection];
@@ -621,6 +708,7 @@ UIImage* DefaultFavicon() {
   [closeButton addTarget:self
                   action:@selector(closeButtonTapped:)
         forControlEvents:UIControlEventTouchUpInside];
+  closeButton.pointerInteractionEnabled = YES;
   return closeButton;
 }
 
@@ -639,9 +727,9 @@ UIImage* DefaultFavicon() {
 // Returns a new gradient view.
 - (GradientView*)createGradientView {
   GradientView* gradientView = [[GradientView alloc]
-      initWithStartColor:[[UIColor colorNamed:kGrey200Color]
+      initWithStartColor:[[UIColor colorNamed:kTabStripBackgroundColor]
                              colorWithAlphaComponent:0]
-                endColor:[UIColor colorNamed:kGrey200Color]
+                endColor:[UIColor colorNamed:kTabStripBackgroundColor]
               startPoint:CGPointMake(0.0f, 0.5f)
                 endPoint:CGPointMake(1.0f, 0.5f)];
   gradientView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -674,7 +762,8 @@ UIImage* DefaultFavicon() {
 // Returns a new decoration view.
 - (UIView*)createDecorationView {
   UIView* tailView = [[UIView alloc] init];
-  tailView.backgroundColor = [UIColor colorNamed:kPrimaryBackgroundColor];
+  tailView.backgroundColor =
+      [UIColor colorNamed:kGroupedSecondaryBackgroundColor];
   tailView.translatesAutoresizingMaskIntoConstraints = NO;
   tailView.clipsToBounds = NO;
   tailView.hidden = YES;
@@ -684,16 +773,24 @@ UIImage* DefaultFavicon() {
 // Returns a new separator view.
 - (UIView*)createSeparatorView {
   UIView* separatorView = [[UIView alloc] init];
-  separatorView.backgroundColor = [UIColor colorNamed:kGrey400Color];
+  separatorView.backgroundColor = [UIColor colorNamed:kTabStripBackgroundColor];
   separatorView.translatesAutoresizingMaskIntoConstraints = NO;
   separatorView.layer.cornerRadius = kSeparatorCornerRadius;
+
+  UIView* backgroundView = [[UIView alloc] init];
+  backgroundView.autoresizingMask =
+      UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+  backgroundView.backgroundColor = [[UIColor colorNamed:kTextSecondaryColor]
+      colorWithAlphaComponent:kSeparatorBackgroundAlpha];
+  [separatorView addSubview:backgroundView];
   return separatorView;
 }
 
 // Returns a new selected border background view.
 - (UIView*)createSelectedBorderBackgroundView {
   UIView* backgroundView = [[UIView alloc] init];
-  backgroundView.backgroundColor = [UIColor colorNamed:kGrey200Color];
+  backgroundView.backgroundColor =
+      [UIColor colorNamed:kTabStripBackgroundColor];
   backgroundView.translatesAutoresizingMaskIntoConstraints = NO;
   backgroundView.hidden = YES;
   return backgroundView;

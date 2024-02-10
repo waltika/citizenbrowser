@@ -23,21 +23,14 @@
 #import "components/feed/core/v2/public/ios/pref_names.h"
 #import "components/history/core/browser/features.h"
 #import "components/ntp_tiles/most_visited_sites.h"
-#import "components/password_manager/core/browser/ui/credential_ui_entry.h"
 #import "components/pref_registry/pref_registry_syncable.h"
-#import "components/prefs/ios/pref_observer_bridge.h"
 #import "components/search_engines/search_terms_data.h"
 #import "components/search_engines/template_url.h"
 #import "components/segmentation_platform/public/constants.h"
 #import "components/segmentation_platform/public/features.h"
 #import "components/segmentation_platform/public/segmentation_platform_service.h"
-#import "components/signin/public/identity_manager/identity_manager.h"
-#import "components/signin/public/identity_manager/objc/identity_manager_observer_bridge.h"
 #import "components/strings/grit/components_strings.h"
-#import "components/sync/base/user_selectable_type.h"
-#import "components/sync/service/sync_user_settings.h"
 #import "components/url_formatter/elide_url.h"
-#import "ios/chrome/browser/feature_engagement/model/tracker_factory.h"
 #import "ios/chrome/browser/intents/intents_donation_helper.h"
 #import "ios/chrome/browser/net/model/crurl.h"
 #import "ios/chrome/browser/ntp/model/new_tab_page_tab_helper.h"
@@ -59,9 +52,6 @@
 #import "ios/chrome/browser/shared/ui/util/uikit_ui_util.h"
 #import "ios/chrome/browser/signin/model/authentication_service.h"
 #import "ios/chrome/browser/signin/model/authentication_service_factory.h"
-#import "ios/chrome/browser/sync/model/session_sync_service_factory.h"
-#import "ios/chrome/browser/sync/model/sync_observer_bridge.h"
-#import "ios/chrome/browser/synced_sessions/model/synced_sessions_bridge.h"
 #import "ios/chrome/browser/ui/content_suggestions/cells/content_suggestions_most_visited_action_item.h"
 #import "ios/chrome/browser/ui/content_suggestions/cells/content_suggestions_most_visited_item.h"
 #import "ios/chrome/browser/ui/content_suggestions/cells/content_suggestions_most_visited_tile_view.h"
@@ -85,8 +75,9 @@
 #import "ios/chrome/browser/ui/content_suggestions/set_up_list/set_up_list_mediator.h"
 #import "ios/chrome/browser/ui/content_suggestions/set_up_list/utils.h"
 #import "ios/chrome/browser/ui/content_suggestions/start_suggest_service_factory.h"
-#import "ios/chrome/browser/ui/content_suggestions/tab_resumption/tab_resumption_helper.h"
+#import "ios/chrome/browser/ui/content_suggestions/tab_resumption/tab_resumption_helper_delegate.h"
 #import "ios/chrome/browser/ui/content_suggestions/tab_resumption/tab_resumption_item.h"
+#import "ios/chrome/browser/ui/content_suggestions/tab_resumption/tab_resumption_mediator.h"
 #import "ios/chrome/browser/ui/favicon/favicon_attributes_provider.h"
 #import "ios/chrome/browser/ui/ntp/metrics/home_metrics.h"
 #import "ios/chrome/browser/ui/ntp/new_tab_page_feature.h"
@@ -95,7 +86,6 @@
 #import "ios/chrome/browser/ui/start_surface/start_surface_util.h"
 #import "ios/chrome/browser/ui/whats_new/whats_new_util.h"
 #import "ios/chrome/browser/url_loading/model/url_loading_browser_agent.h"
-#import "ios/chrome/browser/url_loading/model/url_loading_params.h"
 #import "ios/chrome/grit/ios_strings.h"
 #import "ui/base/l10n/l10n_util_mac.h"
 
@@ -106,14 +96,8 @@ using RequestSource = SearchTermsData::RequestSource;
 
 }  // namespace
 
-@interface ContentSuggestionsMediator () <IdentityManagerObserverBridgeDelegate,
-                                          MostVisitedTilesMediatorDelegate,
-                                          SyncObserverModelBridge,
-                                          PrefObserverDelegate,
-                                          SyncedSessionsObserver> {
-  std::unique_ptr<synced_sessions::SyncedSessionsObserverBridge>
-      _syncedSessionsObserver;
-}
+@interface ContentSuggestionsMediator () <MostVisitedTilesMediatorDelegate,
+                                          TabResumptionHelperDelegate>
 
 // Whether the contents section should be hidden completely.
 // Don't use PrefBackedBoolean or PrefMember as this value needs to be checked
@@ -146,21 +130,8 @@ using RequestSource = SearchTermsData::RequestSource;
 @end
 
 @implementation ContentSuggestionsMediator {
-  // Registrar for pref changes notifications.
-  PrefChangeRegistrar _prefChangeRegistrar;
   // Local State prefs.
   raw_ptr<PrefService> _localState;
-  // Used by SetUpList to get the sync status.
-  raw_ptr<syncer::SyncService> _syncService;
-  // Observes changes to signed-in status.
-  std::unique_ptr<signin::IdentityManagerObserverBridge>
-      _identityObserverBridge;
-  // Observer for sync service status changes.
-  std::unique_ptr<SyncObserverBridge> _syncObserverBridge;
-  // Helper class for the tab resumption tile.
-  std::unique_ptr<TabResumptionHelper> _tabResumptionHelper;
-  // Item displayed in the tab resumption tile.
-  TabResumptionItem* _tabResumptionItem;
   // The latest module ranking returned from the SegmentationService.
   NSArray<NSNumber*>* _magicStackOrderFromSegmentation;
   // YES if the module ranking has been received from the SegmentationService.
@@ -172,6 +143,7 @@ using RequestSource = SearchTermsData::RequestSource;
   NSArray<NSNumber*>* _latestMagicStackOrder;
   MostVisitedTilesMediator* _mostVisitedTilesMediator;
   SetUpListMediator* _setUpListMediator;
+  TabResumptionMediator* _tabResumptionMediator;
 }
 
 #pragma mark - Public
@@ -189,6 +161,7 @@ using RequestSource = SearchTermsData::RequestSource;
                           browser:(Browser*)browser {
   self = [super init];
   if (self) {
+    _browser = browser;
     _localState = GetApplicationContext()->GetLocalState();
     _articleForYouEnabled =
         prefService->FindPreference(prefs::kArticlesForYouEnabled);
@@ -202,20 +175,9 @@ using RequestSource = SearchTermsData::RequestSource;
                  largeIconCache:largeIconCache
          URLLoadingBrowserAgent:UrlLoadingBrowserAgent::FromBrowser(browser)];
     _mostVisitedTilesMediator.delegate = self;
-    _mostVisitedTilesMediator.contentSuggestionsDelegate = self.delegate;
     _mostVisitedTilesMediator.actionFactory = actionFactory;
 
-    _syncService = syncService;
-
     BOOL isSetupListEnabled = set_up_list_utils::IsSetUpListActive(_localState);
-    if (IsTabResumptionEnabled() || isSetupListEnabled) {
-      _syncObserverBridge =
-          std::make_unique<SyncObserverBridge>(self, _syncService);
-      _identityObserverBridge =
-          std::make_unique<signin::IdentityManagerObserverBridge>(
-              identityManager, self);
-    }
-
     if (isSetupListEnabled) {
       _setUpListMediator = [[SetUpListMediator alloc]
             initWithPrefService:prefService
@@ -225,22 +187,14 @@ using RequestSource = SearchTermsData::RequestSource;
                      sceneState:browser->GetSceneState()];
     }
 
-    if (IsTabResumptionEnabled() &&
-        !tab_resumption_prefs::IsTabResumptionDisabled(_localState)) {
-      if (!IsTabResumptionEnabledForMostRecentTabOnly()) {
-        sync_sessions::SessionSyncService* sessionSyncService =
-            SessionSyncServiceFactory::GetForBrowserState(
-                browser->GetBrowserState());
-        _syncedSessionsObserver =
-            std::make_unique<synced_sessions::SyncedSessionsObserverBridge>(
-                self, sessionSyncService);
-      }
-
-      _tabResumptionHelper = std::make_unique<TabResumptionHelper>(browser);
+    if (IsTabResumptionEnabled()) {
+      _tabResumptionMediator =
+          [[TabResumptionMediator alloc] initWithLocalState:_localState
+                                                prefService:prefService
+                                            identityManager:identityManager
+                                                    browser:_browser];
+      _tabResumptionMediator.delegate = self;
     }
-
-    _browser = browser;
-
   }
 
   return self;
@@ -256,21 +210,14 @@ using RequestSource = SearchTermsData::RequestSource;
   _setUpListMediator = nil;
   [_mostVisitedTilesMediator disconnect];
   _mostVisitedTilesMediator = nil;
-  _syncObserverBridge.reset();
-  _identityObserverBridge.reset();
-  _syncedSessionsObserver.reset();
+  [_tabResumptionMediator disconnect];
+  _tabResumptionMediator = nil;
   _localState = nullptr;
 }
 
 - (void)refreshMostVisitedTiles {
   // Refresh in case there are new MVT to show.
   [_mostVisitedTilesMediator refreshMostVisitedTiles];
-}
-
-- (void)setConsumer:(id<ContentSuggestionsConsumer>)consumer {
-  _consumer = consumer;
-  _mostVisitedTilesMediator.consumer = consumer;
-  [self configureConsumer];
 }
 
 - (void)configureMostRecentTabItemWithWebState:(web::WebState*)webState
@@ -326,7 +273,7 @@ using RequestSource = SearchTermsData::RequestSource;
 
 - (void)disableTabResumption {
   tab_resumption_prefs::DisableTabResumption(_localState);
-  [self hideTabResumption];
+  [self removeTabResumptionModule];
 }
 
 - (void)disableSafetyCheck:(ContentSuggestionsModuleType)type {
@@ -344,25 +291,6 @@ using RequestSource = SearchTermsData::RequestSource;
       recordMagicStackModuleEngagementForType:type
                                       atIndex:
                                           [self indexForMagicStackModule:type]];
-}
-
-#pragma mark - IdentityManagerObserverBridgeDelegate
-
-// Called when a user changes the syncing state.
-- (void)onPrimaryAccountChanged:
-    (const signin::PrimaryAccountChangeEvent&)event {
-  switch (event.GetEventTypeFor(signin::ConsentLevel::kSignin)) {
-    case signin::PrimaryAccountChangeEvent::Type::kCleared: {
-      if (IsTabResumptionEnabled()) {
-        // If the user is signed out, remove the tab resumption tile.
-        [self hideTabResumption];
-      }
-      break;
-    }
-    case signin::PrimaryAccountChangeEvent::Type::kSet:
-    case signin::PrimaryAccountChangeEvent::Type::kNone:
-      break;
-  }
 }
 
 #pragma mark - ContentSuggestionsCommands
@@ -383,31 +311,6 @@ using RequestSource = SearchTermsData::RequestSource;
   webStateList->ActivateWebStateAt(index);
 }
 
-- (void)openTabResumptionItem {
-  [self.contentSuggestionsMetricsRecorder recordTabResumptionTabOpened];
-  tab_resumption_prefs::SetTabResumptionLastOpenedTabURL(
-      _tabResumptionItem.tabURL, self.browser->GetBrowserState()->GetPrefs());
-  [self logMagicStackEngagementForType:ContentSuggestionsModuleType::
-                                           kTabResumption];
-
-  switch (_tabResumptionItem.itemType) {
-    case TabResumptionItemType::kLastSyncedTab:
-      [self.NTPMetricsDelegate distantTabResumptionOpened];
-      _tabResumptionHelper->OpenDistantTab();
-      break;
-    case TabResumptionItemType::kMostRecentTab: {
-      [self.NTPMetricsDelegate recentTabTileOpened];
-      web::NavigationManager::WebLoadParams webLoadParams =
-          web::NavigationManager::WebLoadParams(_tabResumptionItem.tabURL);
-      UrlLoadParams params = UrlLoadParams::SwitchToTab(webLoadParams);
-      params.web_params.transition_type = ui::PAGE_TRANSITION_AUTO_BOOKMARK;
-      UrlLoadingBrowserAgent::FromBrowser(self.browser)->Load(params);
-      break;
-    }
-  }
-  [self hideTabResumption];
-}
-
 #pragma mark - ParcelTrackingMediatorDelegate
 
 - (void)newParcelsAvailable {
@@ -419,8 +322,7 @@ using RequestSource = SearchTermsData::RequestSource;
   for (NSUInteger index = 0; index < [_latestMagicStackOrder count]; index++) {
     ContentSuggestionsModuleType type =
         (ContentSuggestionsModuleType)[_latestMagicStackOrder[index] intValue];
-    if (type == ContentSuggestionsModuleType::kParcelTracking ||
-        type == ContentSuggestionsModuleType::kParcelTrackingSeeMore) {
+    if (type == ContentSuggestionsModuleType::kParcelTracking) {
       MagicStackOrderChange change{MagicStackOrderChange::Type::kInsert};
       change.new_module = type;
       change.index = index;
@@ -436,8 +338,7 @@ using RequestSource = SearchTermsData::RequestSource;
   for (NSUInteger i = 0; i < [_latestMagicStackOrder count]; i++) {
     ContentSuggestionsModuleType type =
         (ContentSuggestionsModuleType)[_latestMagicStackOrder[i] intValue];
-    if (type == ContentSuggestionsModuleType::kParcelTracking ||
-        type == ContentSuggestionsModuleType::kParcelTrackingSeeMore) {
+    if (type == ContentSuggestionsModuleType::kParcelTracking) {
       MagicStackOrderChange change{MagicStackOrderChange::Type::kRemove};
       change.old_module = type;
       change.index = [self indexForMagicStackModule:type];
@@ -450,9 +351,7 @@ using RequestSource = SearchTermsData::RequestSource;
 #pragma mark - StartSurfaceRecentTabObserving
 
 - (void)mostRecentTabWasRemoved:(web::WebState*)webState {
-  if (IsTabResumptionEnabled() && _tabResumptionItem) {
-    [self hideTabResumption];
-  } else {
+  if (!IsTabResumptionEnabled()) {
     [self hideRecentTabTile];
   }
 }
@@ -482,11 +381,20 @@ using RequestSource = SearchTermsData::RequestSource;
   }
 }
 
-#pragma mark - SyncedSessionsObserver
+#pragma mark - TabResumptionHelperDelegate
 
-- (void)onForeignSessionsChanged {
-  DCHECK(!IsTabResumptionEnabledForMostRecentTabOnly());
-  [self showTabResumptionTile];
+- (void)tabResumptionHelperDidReceiveItem {
+  CHECK(IsTabResumptionEnabled());
+  if (!self.consumer ||
+      tab_resumption_prefs::IsTabResumptionDisabled(_localState)) {
+    return;
+  }
+
+  [self showTabResumptionWithItem:_tabResumptionMediator.itemConfig];
+}
+
+- (void)removeTabResumptionModule {
+  [self.consumer hideTabResumption];
 }
 
 #pragma mark - Private
@@ -508,8 +416,9 @@ using RequestSource = SearchTermsData::RequestSource;
       _latestMagicStackOrder = [self magicStackOrder];
       [self.consumer setMagicStackOrder:_latestMagicStackOrder];
     }
-    if (IsTabResumptionEnabled()) {
-      [self showTabResumptionTile];
+    if (IsTabResumptionEnabled() && _tabResumptionMediator.itemConfig) {
+      [self.consumer
+          showTabResumptionWithItem:_tabResumptionMediator.itemConfig];
     }
   }
   if (self.returnToRecentTabItem) {
@@ -536,7 +445,8 @@ using RequestSource = SearchTermsData::RequestSource;
       !safety_check_prefs::IsSafetyCheckInMagicStackDisabled(_localState) &&
       self.safetyCheckMediator.safetyCheckState.runningState ==
           RunningSafetyCheckState::kDefault) {
-    //    _safetyCheckState.commandhandler = self.presentationDelegate;
+    self.safetyCheckMediator.safetyCheckState.commandhandler =
+        self.presentationDelegate;
     [self.consumer showSafetyCheck:self.safetyCheckMediator.safetyCheckState];
   }
   if (IsIOSParcelTrackingEnabled() &&
@@ -569,7 +479,9 @@ using RequestSource = SearchTermsData::RequestSource;
 // Magic Stack.
 - (NSArray<NSNumber*>*)magicStackOrder {
   NSMutableArray* magicStackModules = [NSMutableArray array];
-  if (IsTabResumptionEnabled() && _tabResumptionItem) {
+  if (IsTabResumptionEnabled() &&
+      !tab_resumption_prefs::IsTabResumptionDisabled(_localState) &&
+      _tabResumptionMediator.itemConfig) {
     [magicStackModules
         addObject:@(int(ContentSuggestionsModuleType::kTabResumption))];
   }
@@ -590,18 +502,12 @@ using RequestSource = SearchTermsData::RequestSource;
 
   if (IsIOSParcelTrackingEnabled() &&
       !IsParcelTrackingDisabled(GetApplicationContext()->GetLocalState())) {
-    if ([[self parcelTrackingItems] firstObject].shouldShowSeeMore) {
-      [magicStackModules
-          addObject:@(int(
-                        ContentSuggestionsModuleType::kParcelTrackingSeeMore))];
-    } else {
       for (NSUInteger i = 0; i < [[self parcelTrackingItems] count]; i++) {
         // Magic Stack will show up to two modules to match the number of
         // parcels tracked.
         [magicStackModules
             addObject:@(int(ContentSuggestionsModuleType::kParcelTracking))];
       }
-    }
   }
 
   return magicStackModules;
@@ -629,7 +535,7 @@ using RequestSource = SearchTermsData::RequestSource;
       case ContentSuggestionsModuleType::kTabResumption:
         if (!IsTabResumptionEnabled() ||
             tab_resumption_prefs::IsTabResumptionDisabled(_localState) ||
-            !_tabResumptionItem) {
+            !_tabResumptionMediator.itemConfig) {
           break;
         }
         // If ShouldHideIrrelevantModules() is enabled and it is not ranked as
@@ -640,8 +546,6 @@ using RequestSource = SearchTermsData::RequestSource;
         [magicStackOrder addObject:moduleNumber];
         break;
       case ContentSuggestionsModuleType::kSafetyCheck:
-      case ContentSuggestionsModuleType::kSafetyCheckMultiRow:
-      case ContentSuggestionsModuleType::kSafetyCheckMultiRowOverflow:
         if (!IsSafetyCheckMagicStackEnabled() ||
             safety_check_prefs::IsSafetyCheckInMagicStackDisabled(
                 _localState)) {
@@ -660,17 +564,12 @@ using RequestSource = SearchTermsData::RequestSource;
         if (IsIOSParcelTrackingEnabled() &&
             !IsParcelTrackingDisabled(
                 GetApplicationContext()->GetLocalState())) {
-          if ([[self parcelTrackingItems] firstObject].shouldShowSeeMore) {
-            [magicStackOrder addObject:@(int(ContentSuggestionsModuleType::
-                                                 kParcelTrackingSeeMore))];
-          } else {
             for (NSUInteger i = 0; i < [[self parcelTrackingItems] count];
                  i++) {
               // Magic Stack will show up to two modules to match the number of
               // parcels tracked.
               [magicStackOrder addObject:moduleNumber];
             }
-          }
         }
         break;
       default:
@@ -779,18 +678,7 @@ using RequestSource = SearchTermsData::RequestSource;
 - (void)addSafetyCheckToMagicStackOrder:(NSMutableArray*)order {
   CHECK(IsSafetyCheckMagicStackEnabled());
 
-  int checkIssuesCount =
-      CheckIssuesCount(self.safetyCheckMediator.safetyCheckState);
-
-  if (checkIssuesCount > 2) {
-    [order addObject:@(int(ContentSuggestionsModuleType::
-                               kSafetyCheckMultiRowOverflow))];
-  } else if (checkIssuesCount > 1) {
-    [order
-        addObject:@(int(ContentSuggestionsModuleType::kSafetyCheckMultiRow))];
-  } else {
     [order addObject:@(int(ContentSuggestionsModuleType::kSafetyCheck))];
-  }
 }
 
 // Returns YES if the conditions are right to display the Set Up List.
@@ -821,33 +709,6 @@ using RequestSource = SearchTermsData::RequestSource;
   [_setUpListMediator showSetUpList];
 }
 
-// Shows the tab resumption tile if there is a `_tabResumptionItem` to present.
-- (void)showTabResumptionTile {
-  if (!self.webState) {
-    return;
-  }
-
-  CHECK(IsTabResumptionEnabled());
-  if (!self.consumer ||
-      tab_resumption_prefs::IsTabResumptionDisabled(_localState)) {
-    return;
-  }
-
-  if (_tabResumptionItem) {
-    [self.consumer showTabResumptionWithItem:_tabResumptionItem];
-    return;
-  }
-
-  _tabResumptionHelper->SetCanSHowMostRecentItem(
-      NewTabPageTabHelper::FromWebState(self.webState)
-          ->ShouldShowStartSurface());
-
-  __weak __typeof(self) weakSelf = self;
-  _tabResumptionHelper->LastTabResumptionItem(^(TabResumptionItem* item) {
-    [weakSelf showTabResumptionWithItem:item];
-  });
-}
-
 // Shows the tab resumption tile with the given `item` configuration.
 - (void)showTabResumptionWithItem:(TabResumptionItem*)item {
   if (tab_resumption_prefs::IsLastOpenedURL(
@@ -855,8 +716,6 @@ using RequestSource = SearchTermsData::RequestSource;
     return;
   }
 
-  _tabResumptionItem = item;
-  _tabResumptionItem.commandHandler = self;
   _latestMagicStackOrder =
       base::FeatureList::IsEnabled(
           segmentation_platform::features::kSegmentationPlatformIosModuleRanker)
@@ -878,13 +737,7 @@ using RequestSource = SearchTermsData::RequestSource;
     change.index = insertionIndex;
     [self.consumer updateMagicStackOrder:change];
   }
-  [self.consumer showTabResumptionWithItem:_tabResumptionItem];
-}
-
-// Hides the tab resumption tile.
-- (void)hideTabResumption {
-  [self.consumer hideTabResumption];
-  _tabResumptionItem = nil;
+  [self.consumer showTabResumptionWithItem:item];
 }
 
 // Returns the index rank of `moduleType`.
@@ -934,39 +787,30 @@ using RequestSource = SearchTermsData::RequestSource;
 - (void)setNTPMetricsDelegate:(id<NewTabPageMetricsDelegate>)delegate {
   _NTPMetricsDelegate = delegate;
   _mostVisitedTilesMediator.NTPMetricsDelegate = delegate;
+  _tabResumptionMediator.NTPMetricsDelegate = delegate;
 }
 
 - (void)setContentSuggestionsMetricsRecorder:
     (ContentSuggestionsMetricsRecorder*)contentSuggestionsMetricsRecorder {
   _contentSuggestionsMetricsRecorder = contentSuggestionsMetricsRecorder;
+  _tabResumptionMediator.contentSuggestionsMetricsRecorder =
+      contentSuggestionsMetricsRecorder;
+}
+
+- (void)setConsumer:(id<ContentSuggestionsConsumer>)consumer {
+  _consumer = consumer;
+  _mostVisitedTilesMediator.consumer = consumer;
+  [self configureConsumer];
+}
+
+- (void)setDelegate:(id<ContentSuggestionsDelegate>)delegate {
+  _delegate = delegate;
+  _mostVisitedTilesMediator.contentSuggestionsDelegate = delegate;
 }
 
 - (BOOL)contentSuggestionsEnabled {
   return self.articleForYouEnabled->GetValue()->GetBool() &&
          self.contentSuggestionsPolicyEnabled->GetValue()->GetBool();
-}
-
-#pragma mark - PrefObserverDelegate
-
-- (void)onPreferenceChanged:(const std::string&)preferenceName {
-  if (IsTabResumptionEnabled()) {
-    if (_tabResumptionItem &&
-        tab_resumption_prefs::IsTabResumptionDisabled(_localState)) {
-      [self hideTabResumption];
-    }
-  }
-}
-
-#pragma mark - SyncObserverModelBridge
-
-- (void)onSyncStateChanged {
-  if (IsTabResumptionEnabled()) {
-    // If tabs are not synced, hide the tab resumption tile.
-    if (!_syncService->GetUserSettings()->GetSelectedTypes().Has(
-            syncer::UserSelectableType::kTabs)) {
-      [self hideTabResumption];
-    }
-  }
 }
 
 @end

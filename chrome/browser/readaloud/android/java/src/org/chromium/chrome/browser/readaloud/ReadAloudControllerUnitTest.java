@@ -312,6 +312,41 @@ public class ReadAloudControllerUnitTest {
     }
 
     @Test
+    public void testOnActivityAttachmentChanged() {
+        // change tab attachment before any playback starts - tests null checks
+        mController
+                .getTabModelTabObserverforTests()
+                .onActivityAttachmentChanged(mTab, /* window= */ null);
+
+        verify(mPlayerCoordinator, never()).dismissPlayers();
+        verify(mPlayback, never()).release();
+
+        // now start playing a tab
+        mController.playTab(mTab);
+        verify(mPlaybackHooks, times(1))
+                .createPlayback(Mockito.any(), mPlaybackCallbackCaptor.capture());
+        onPlaybackSuccess(mPlayback);
+
+        // change attachement of some other tab, playback should keep going
+        MockTab newTab = mTabModelSelector.addMockTab();
+        newTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Alphabet_Inc."));
+        mController
+                .getTabModelTabObserverforTests()
+                .onActivityAttachmentChanged(newTab, /* window= */ null);
+
+        verify(mPlayerCoordinator, never()).dismissPlayers();
+        verify(mPlayback, never()).release();
+
+        // now detach the playing tab
+        mController
+                .getTabModelTabObserverforTests()
+                .onActivityAttachmentChanged(mTab, /* window= */ null);
+
+        verify(mPlayerCoordinator).dismissPlayers();
+        verify(mPlayback).release();
+    }
+
+    @Test
     public void testReloadPage_errorUiDismissed() {
         // start a playback with an error
         mController.playTab(mTab);
@@ -1577,6 +1612,18 @@ public class ReadAloudControllerUnitTest {
         // Page is not readable so do not activate the trial.
         mCallbackCaptor.getValue().onSuccess(sTestGURL.getSpec(), false, false);
         verify(mReadAloudFeaturesNatives, never()).activateSyntheticTrial(anyLong());
+    }
+
+    @Test
+    @DisableFeatures(ChromeFeatureList.READALOUD_PLAYBACK)
+    public void testKnownReadableTrialCanActivateWithoutPlaybackFlag() {
+        mController.maybeCheckReadability(sTestGURL);
+        verify(mHooksImpl, times(1))
+                .isPageReadable(eq(sTestGURL.getSpec()), mCallbackCaptor.capture());
+        // Page is readable so activate the trial.
+        mCallbackCaptor.getValue().onSuccess(sTestGURL.getSpec(), true, false);
+        verify(mReadAloudFeaturesNatives, times(1))
+                .activateSyntheticTrial(eq(KNOWN_READABLE_TRIAL_PTR));
     }
 
     @Test

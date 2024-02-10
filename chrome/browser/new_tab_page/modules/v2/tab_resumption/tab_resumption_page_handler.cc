@@ -46,6 +46,8 @@ constexpr std::array<std::string_view, kCategoryBlockListCount>
 namespace {
 // Maximum number of sessions we're going to display on the NTP
 const size_t kMaxSessionsToShow = 10;
+// Name of preference to track list of dismissed tabs.
+const char kDismissedTabsPrefName[] = "NewTabPage.TabResumption.DismissedTabs";
 
 std::u16string FormatRelativeTime(const base::Time& time) {
   // Return a time like "1 hour ago", "2 days ago", etc.
@@ -134,7 +136,11 @@ TabResumptionPageHandler::TabResumptionPageHandler(
               /*Default value for visibility threshold*/ 0.5))),
       categories_blocklist_(GetTabResumptionCategories(
           ntp_features::kNtpTabResumptionModuleCategoriesBlocklistParam,
-          {kCategoryBlockList.begin(), kCategoryBlockListCount})) {
+          {kCategoryBlockList.begin(), kCategoryBlockListCount})),
+      time_limit_(base::GetFieldTrialParamByFeatureAsInt(
+          ntp_features::kNtpTabResumptionModuleTimeLimit,
+          ntp_features::kNtpTabResumptionModuleTimeLimitParam,
+          /*Default value for time limit*/ 24)) {
   DCHECK(profile_);
   DCHECK(web_contents_);
 }
@@ -147,8 +153,10 @@ void TabResumptionPageHandler::OnQueryURLsComplete(
     std::vector<history::QueryURLResult> results) {
   history::VisitVector visit_rows;
   for (auto result : results) {
-    for (auto visit : result.visits) {
-      visit_rows.push_back(visit);
+    if ((base::Time::Now() - result.row.last_visit()).InHours() < time_limit_) {
+      for (auto visit : result.visits) {
+        visit_rows.push_back(visit);
+      }
     }
   }
   auto* history_service = HistoryServiceFactory::GetForProfile(
@@ -187,9 +195,22 @@ void TabResumptionPageHandler::OnAnnotatedVisits(
     }
   }
 
-  for (auto i : scored_tab_indices) {
-    scored_tabs.push_back(std::move(tabs[i]));
+  bool new_url_found = false;
+  for (auto index : scored_tab_indices) {
+    if (IsNewURL(tabs[index]->url)) {
+      new_url_found = true;
+    }
+    scored_tabs.push_back(std::move(tabs[index]));
   }
+
+  // Bail if module is still dismissed.
+  if (profile_->GetPrefs()->GetList(kDismissedTabsPrefName).size() > 0 &&
+      !new_url_found) {
+    std::move(callback).Run(std::vector<history::mojom::TabPtr>());
+    return;
+  }
+
+  std::sort(scored_tabs.begin(), scored_tabs.end(), CompareTabsByTime);
 
   std::move(callback).Run(std::move(scored_tabs));
 }
@@ -218,8 +239,16 @@ void TabResumptionPageHandler::GetTabs(GetTabsCallback callback) {
   auto tabs_mojom = GetForeignTabs();
   std::vector<GURL> urls;
   for (const auto& tab : tabs_mojom) {
-    urls.push_back(tab->url);
+    if (tab->url.is_valid()) {
+      urls.push_back(tab->url);
+    }
   }
+
+  if (urls.empty()) {
+    std::move(callback).Run({});
+    return;
+  }
+
   auto* history_service = HistoryServiceFactory::GetForProfile(
       profile_, ServiceAccessType::EXPLICIT_ACCESS);
   history_service->QueryURLs(
@@ -228,6 +257,12 @@ void TabResumptionPageHandler::GetTabs(GetTabsCallback callback) {
                      weak_ptr_factory_.GetWeakPtr(), std::move(tabs_mojom),
                      std::move(callback)),
       &task_tracker_);
+}
+
+// static
+void TabResumptionPageHandler::RegisterProfilePrefs(
+    PrefRegistrySimple* registry) {
+  registry->RegisterListPref(kDismissedTabsPrefName, base::Value::List());
 }
 
 // static
@@ -269,4 +304,29 @@ std::vector<history::mojom::TabPtr> TabResumptionPageHandler::GetForeignTabs() {
     }
   }
   return tabs_mojom;
+}
+
+void TabResumptionPageHandler::DismissModule(const std::vector<GURL>& urls) {
+  base::Value::List url_list;
+  for (const auto& url : urls) {
+    url_list.Append(url.spec());
+  }
+  profile_->GetPrefs()->SetList(kDismissedTabsPrefName, std::move(url_list));
+}
+
+void TabResumptionPageHandler::RestoreModule() {
+  profile_->GetPrefs()->SetList(kDismissedTabsPrefName, base::Value::List());
+}
+
+bool TabResumptionPageHandler::IsNewURL(GURL url) {
+  const base::Value::List& cached_urls =
+      profile_->GetPrefs()->GetList(kDismissedTabsPrefName);
+  auto it = std::find_if(cached_urls.begin(), cached_urls.end(),
+                         [url](const base::Value& cached_url) {
+                           return cached_url.GetString() == url.spec();
+                         });
+  if (it == cached_urls.end()) {
+    return true;
+  }
+  return false;
 }

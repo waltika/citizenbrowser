@@ -170,6 +170,7 @@
 #include "third_party/blink/public/mojom/webaudio/audio_context_manager.mojom-forward.h"
 #include "third_party/blink/public/mojom/webauthn/authenticator.mojom-forward.h"
 #include "third_party/blink/public/mojom/webauthn/virtual_authenticator.mojom-forward.h"
+#include "third_party/blink/public/mojom/webid/digital_identity_request.mojom-forward.h"
 #include "third_party/blink/public/mojom/webid/federated_auth_request.mojom-forward.h"
 #include "third_party/blink/public/mojom/websockets/websocket_connector.mojom-forward.h"
 #include "third_party/blink/public/mojom/webtransport/web_transport_connector.mojom-forward.h"
@@ -1505,7 +1506,7 @@ class CONTENT_EXPORT RenderFrameHostImpl
       network::mojom::URLResponseHeadPtr response_head,
       mojo::ScopedDataPipeConsumerHandle response_body,
       network::mojom::URLLoaderClientEndpointsPtr url_loader_client_endpoints,
-      std::optional<SubresourceLoaderParams> subresource_loader_params,
+      SubresourceLoaderParams subresource_loader_params,
       std::optional<std::vector<blink::mojom::TransferrableURLLoaderPtr>>
           subresource_overrides,
       blink::mojom::ServiceWorkerContainerInfoForClientPtr container_info,
@@ -2066,6 +2067,9 @@ class CONTENT_EXPORT RenderFrameHostImpl
 
   void BindWebOTPServiceReceiver(
       mojo::PendingReceiver<blink::mojom::WebOTPService> receiver);
+
+  void BindDigitalIdentityRequestReceiver(
+      mojo::PendingReceiver<blink::mojom::DigitalIdentityRequest> receiver);
 
   void BindFederatedAuthRequestReceiver(
       mojo::PendingReceiver<blink::mojom::FederatedAuthRequest> receiver);
@@ -3476,10 +3480,6 @@ class CONTENT_EXPORT RenderFrameHostImpl
 
   void UpdatePermissionsForNavigation(NavigationRequest* request);
 
-  // Returns true if there is an active transient fullscreen allowance for the
-  // Window Management feature (i.e. on screen configuration changes).
-  bool WindowManagementAllowsFullscreen();
-
   // Returns the latest NavigationRequest that has resulted in sending a Commit
   // IPC to the renderer process that hasn't yet been acked by the DidCommit IPC
   // from the renderer process.  Returns null if no such NavigationRequest
@@ -4421,7 +4421,8 @@ class CONTENT_EXPORT RenderFrameHostImpl
   // TODO(alexmos): For now, this always includes the navigating frame.  Make
   // this include the navigating frame only if it has a beforeunload handler
   // defined.
-  std::set<RenderFrameHostImpl*> beforeunload_pending_replies_;
+  std::set<raw_ptr<RenderFrameHostImpl, SetExperimental>>
+      beforeunload_pending_replies_;
 
   // During beforeunload, keeps track whether a dialog has already been shown.
   // Used to enforce at most one dialog per navigation.  This is tracked on the

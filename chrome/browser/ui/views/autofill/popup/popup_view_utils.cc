@@ -198,16 +198,13 @@ void CalculatePopupYAndHeight(int popup_preferred_height,
   popup_bounds->set_height(popup_preferred_height);
   popup_bounds->set_y(top_growth_end);
 
-  if (bottom_available >= popup_preferred_height ||
-      bottom_available >= top_available) {
-    popup_bounds->AdjustToFit(
-        gfx::Rect(popup_bounds->x(), element_bounds.bottom(),
-                  popup_bounds->width(), bottom_available));
-  } else {
-    popup_bounds->AdjustToFit(gfx::Rect(popup_bounds->x(),
-                                        content_area_bounds.y(),
-                                        popup_bounds->width(), top_available));
-  }
+  int y_adjustment = (bottom_available >= popup_preferred_height ||
+                      bottom_available >= top_available)
+                         ? element_bounds.bottom()
+                         : content_area_bounds.y();
+  popup_bounds->AdjustToFit(gfx::Rect(popup_bounds->x(), y_adjustment,
+                                      popup_bounds->width(),
+                                      content_area_bounds.height()));
 }
 
 gfx::Rect CalculatePopupBounds(const gfx::Size& desired_size,
@@ -554,7 +551,6 @@ bool IsFooterPopupItemId(PopupItemId popup_item_id) {
     case PopupItemId::kDeleteAddressProfile:
       return true;
     case PopupItemId::kAccountStoragePasswordEntry:
-    case PopupItemId::kAccountStorageUsernameEntry:
     case PopupItemId::kAddressEntry:
     case PopupItemId::kAddressFieldByFieldFilling:
     case PopupItemId::kAutocompleteEntry:
@@ -597,7 +593,6 @@ bool IsExpandablePopupItemId(PopupItemId popup_item_id) {
     case PopupItemId::kCreditCardEntry:
       return true;
     case PopupItemId::kAccountStoragePasswordEntry:
-    case PopupItemId::kAccountStorageUsernameEntry:
     case PopupItemId::kAllSavedPasswordsEntry:
     case PopupItemId::kAutocompleteEntry:
     case PopupItemId::kAutofillOptions:

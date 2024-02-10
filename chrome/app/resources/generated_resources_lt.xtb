@@ -1735,6 +1735,7 @@ Jei nenorite, dabar atsijunkite, kad šios paskyros pakeitimai būtų matomi ši
 <translation id="2285109769884538519">{COUNT,plural, =0{Atidaryti viską &amp;naujoje skirtukų grupėje}=1{Atidaryti &amp;naujoje skirtukų grupėje}one{Atidaryti viską ({COUNT}) &amp;naujoje skirtukų grupėj}few{Atidaryti viską ({COUNT}) &amp;naujoje skirtukų grupėje}many{Atidaryti viską ({COUNT}) &amp;naujoje skirtukų grupėje}other{Atidaryti viską ({COUNT}) &amp;naujoje skirtukų grupėje}}</translation>
 <translation id="2285942871162473373">Kontrolinio kodo atpažinti nepavyko. Bandykite dar kartą.</translation>
 <translation id="2287617382468007324">Spausdinimo IPP adresas</translation>
+<translation id="2287704681286152065">{NUM_SITES,plural, =1{Siekiant apsaugoti jūsų duomenis, leidimai buvo pašalinti iš svetainės, kurioje pastaruoju metu nesilankėte}one{Siekiant apsaugoti jūsų duomenis, leidimai buvo pašalinti iš svetainių, kuriose pastaruoju metu nesilankėte}few{Siekiant apsaugoti jūsų duomenis, leidimai buvo pašalinti iš svetainių, kuriose pastaruoju metu nesilankėte}many{Siekiant apsaugoti jūsų duomenis, leidimai buvo pašalinti iš svetainių, kuriose pastaruoju metu nesilankėte}other{Siekiant apsaugoti jūsų duomenis, leidimai buvo pašalinti iš svetainių, kuriose pastaruoju metu nesilankėte}}</translation>
 <translation id="2287944065963043964">Prisijungimo ekranas</translation>
 <translation id="2290615375132886363">Planšetinio kompiuterio naršymo mygtukai</translation>
 <translation id="2291452790265535215">Pabandykite naudoti šoninį skydelį, kad matytumėte žymes, naudotojo atliekamus veiksmus ir kt.</translation>
@@ -3311,6 +3312,7 @@ Jei nenorite, dabar atsijunkite, kad šios paskyros pakeitimai būtų matomi ši
 <translation id="3497560059572256875">Bendrinti papuoštą logotipą</translation>
 <translation id="3497915391670770295">Siųsti į įrenginius</translation>
 <translation id="3500417806337761827">Montuojant bendrinimą įvyko klaida. Jau sumontuota per daug mažų ir vidutinių įmonių bendrinimų.</translation>
+<translation id="3500764001796099683">Įgalinti izoliuotas žiniatinklio programas</translation>
 <translation id="350397915809787283">Jei neturite paskyros, pasirinkite pirmąją parinktį, kad ją sukurtumėte.</translation>
 <translation id="3503995387997205657">Galite atkurti ankstesnes programas</translation>
 <translation id="3505100368357440862">Apsipirkimo pasiūlymai</translation>
@@ -4019,7 +4021,6 @@ Ar norite paleisti „<ph name="CONTROL_PANEL_APPLET_NAME" />“?</translation>
 <translation id="4031179711345676612">Mikrofonas leidžiamas</translation>
 <translation id="4031527940632463547">Jutikliai užblokuoti</translation>
 <translation id="4033471457476425443">Pridėti naują aplanką</translation>
-<translation id="4033711848170683365">Atlikus šį veiksmą bus visam laikui ištrinti naršymo duomenys iš šio įrenginio. Šiame profilyje esančias „Google“ paskyras gali naudoti kitos „<ph name="DEVICE_TYPE" />“ įdiegtos programos. Šias paskyras galite pašalinti apsilankę skiltyje <ph name="BEGIN_LINK" />„<ph name="SETTING_SECTION" />“ &gt; „<ph name="ACCOUNTS_SECTION" />“<ph name="END_LINK" />.</translation>
 <translation id="4033963223187371752">Saugiose svetainėse gali būti nesaugaus turinio, pvz., vaizdų ar žiniatinklio rėmelių</translation>
 <translation id="4034706080855851454">Kad galėtumėte naudoti įrenginį su organizacijos profiliu, organizacijai reikia informacijos apie įrenginį.
 
@@ -4319,6 +4320,7 @@ Tai gali būti informacija apie įdiegtą programinę įrangą, failus, naršykl
 <translation id="4275788652681621337">Uždaryti šoninį skydelį</translation>
 <translation id="4275830172053184480">Iš naujo paleisti įrenginį</translation>
 <translation id="4277434192562187284">XML konfigūracijos šaltinis</translation>
+<translation id="4278348589087554892">{NUM_SITES,plural, =1{Leidimai pašalinti iš vienos svetainės}one{Leidimai pašalinti iš {NUM_SITES} svetainės}few{Leidimai pašalinti iš {NUM_SITES} svetainių}many{Leidimai pašalinti iš {NUM_SITES} svetainės}other{Leidimai pašalinti iš {NUM_SITES} svetainių}}</translation>
 <translation id="4278390842282768270">Leidžiama</translation>
 <translation id="4278498748067682896">Naudosite viešojo terminalo ir ženklų naujovinimą, kurį naudojant įrenginį galima paleisti tik viešojo terminalo arba ženklų režimu. Jei norite, kad naudotojai prisijungtų prie įrenginio, grįžkite ir užsiregistruokite naudoti „Chrome Enterprise“ naujovinimą.</translation>
 <translation id="4278779213160967034">Šis procesas gali užtrukti kelias minutes. Atsisiunčiami failai.</translation>
@@ -5887,7 +5889,6 @@ Leidimai, kuriuos jau esate suteikę svetainėms ir programoms, gali būti taiko
 <translation id="5514315914873062345">Tab</translation>
 <translation id="5517304475148761050">Šiai programai būtina prieiga prie „Play“ parduotuvės</translation>
 <translation id="5517412723934627386"><ph name="NETWORK_TYPE" /> – „<ph name="NETWORK_DISPLAY_NAME" />“</translation>
-<translation id="5518949581554491184">Nustatyti naudojant „Android“ telefoną</translation>
 <translation id="5519053700692355541">Daugumą šoninio skydelio funkcijų galite atidaryti naudodami „Chrome“ meniu viršuje dešinėje</translation>
 <translation id="5519195206574732858">LTE</translation>
 <translation id="5519900055135507385">Apsaugokite šią paskyrą naudodami sudėtingą slaptažodį. Jį išsaugos <ph name="GOOGLE_PASSWORD_MANAGER" /> kaip priskirtą el. pašto adresui <ph name="EMAIL" />.</translation>
@@ -7188,6 +7189,7 @@ Leidimai, kuriuos jau esate suteikę svetainėms ir programoms, gali būti taiko
 <translation id="6551508934388063976">Komanda negalima. Paspauskite „Control“ – N, kad atidarytumėte naują langą.</translation>
 <translation id="6551606359270386381">Elipsės įrankis</translation>
 <translation id="6551612971599078809">Svetainėje naudojamas USB</translation>
+<translation id="6551620030439692385">Užblokuota. Šiuo metu laiko juosta nustatyta į <ph name="TIMEZONE" /> ir ją galima atnaujinti tik neautomatiškai.</translation>
 <translation id="6551739526055143276">Tvarkoma naudojant „Family Link“</translation>
 <translation id="655384502888039633">Naudotojų: <ph name="USER_COUNT" /></translation>
 <translation id="6555432686520421228">Pašalinamos visos naudotojų paskyros ir „<ph name="IDS_SHORT_PRODUCT_NAME" />“ įrenginys nustatomas iš naujo, kad būtų kaip naujas.</translation>
@@ -7262,6 +7264,7 @@ Turite dar # pažeistų slaptažodžių. „Google“ slaptažodžių tvarkyklė
 <translation id="6608773371844092260">Jei norite nustatyti piršto atspaudą, paprašykite, kad vaikas paliestų piršto atspaudo jutiklį dešinėje šio „<ph name="DEVICE_TYPE" />“ pusėje. Vaiko piršto atspaudo duomenys patikimai saugomi ir niekada nepatenka už „<ph name="DEVICE_TYPE" />“ ribų.</translation>
 <translation id="6609478180749378879">Prisijungimo duomenys bus saugomi šiame įrenginyje, kai išjungsite inkognito režimą. Vėl galėsite prisijungti prie šios svetainės naudodami savo įrenginį vėliau.</translation>
 <translation id="6610002944194042868">Vertimo parinktys</translation>
+<translation id="6610064275805055636">Tvarkyti izoliuotas žiniatinklio programas</translation>
 <translation id="6611972847767394631">Čia rasite savo skirtukus</translation>
 <translation id="661266467055912436">Sustiprina jūsų ir visų žiniatinklio naudotojų saugą.</translation>
 <translation id="6613267708691765962">Nuskaitoma, ar nėra kenkėjiškų programų...</translation>
@@ -8626,6 +8629,7 @@ Turite dar # pažeistų slaptažodžių. „Google“ slaptažodžių tvarkyklė
 <translation id="7671472752213333268">Plėtinys „<ph name="EXTENSION_NAME" />“ nori nuskaityti iš „<ph name="SCANNER_NAME" />“.</translation>
 <translation id="7672504401554182757">Pasirinkite, kuriame įrenginyje bus „passkey“, skirtas „<ph name="APP_NAME" />“</translation>
 <translation id="7672520070349703697"><ph name="HUNG_IFRAME_URL" />, puslapyje „<ph name="PAGE_TITLE" />“.</translation>
+<translation id="7672726198839739113">Užblokuota. Šiuo metu tvarkaraštis nustatytas į <ph name="SUNRISE_TIME" />–<ph name="SUNSET_TIME" /> ir jį galima atnaujinti tik neautomatiškai.</translation>
 <translation id="7673313156293624327">„ChromeOS“ „Shill“ (ryšio valdytojo) žurnalai</translation>
 <translation id="7674416868315480713">Išaktyvinti visus sistemoje „Linux“ persiunčiamus prievadus</translation>
 <translation id="7674537509496907005">Programų: <ph name="APP_COUNT" /></translation>
@@ -9559,6 +9563,7 @@ Rakto failą laikykite saugioje vietoje. Jo reikės, kai norėsite sukurti nauja
 <translation id="8376384591331888629">Įskaitant trečiosios šalies slapukus jūsų svetainėje</translation>
 <translation id="8376451933628734023">Jei ši žiniatinklio programa bando apsimesti kita programa, ją pašalinkite.</translation>
 <translation id="8376532149031784008"><ph name="DOMAIN" /> įkeliama iš naujo...</translation>
+<translation id="8376610503048439696">Administratoriaus įdiegti plėtiniai vis tiek galės skaityti ir keisti šią svetainę</translation>
 <translation id="8376752431516546391">„Google“ paieškos šoninis skydelis</translation>
 <translation id="8377625247046155446">Šis „passkey“ bus išsaugotas tik šiame įrenginyje. Jis liks šiame įrenginyje, kai uždarysite visus inkognito langus.</translation>
 <translation id="8378714024927312812">Tvarko jūsų organizacija</translation>
@@ -9698,6 +9703,7 @@ Rakto failą laikykite saugioje vietoje. Jo reikės, kai norėsite sukurti nauja
     <ph name="BEGIN_PARAGRAPH2" />Galite bet kada įjungti arba išjungti šias ataskaitas vaiko „ChromeOS“ įrenginio nustatymuose. Jei esate domeno administratorius, šį nustatymą galite pakeisti administratoriaus pulte.<ph name="END_PARAGRAPH2" />
     <ph name="BEGIN_PARAGRAPH4" />Jei Žiniatinklio ir programų veiklos nustatymas įjungtas vaiko „Google“ paskyroje, vaiko duomenys gali būti išsaugoti jo „Google“ paskyroje. Sužinokite daugiau apie šiuos nustatymus ir jų koregavimą adresu families.google.com.<ph name="END_PARAGRAPH4" /></translation>
 <translation id="8476630458761527665">Įveskite failo slaptažodį</translation>
+<translation id="8476942730579767658">Langai ir darbalaukiai</translation>
 <translation id="8477178913400731244">Ištrinti duomenis</translation>
 <translation id="8477241577829954800">Pakeista</translation>
 <translation id="8477384620836102176">Bendra</translation>

@@ -1718,6 +1718,7 @@
 <translation id="2285109769884538519">{COUNT,plural, =0{سبھی کو &amp;نئے ٹیب گروپ میں کھولیں}=1{&amp;نئے ٹیب گروپ میں کھولیں}other{سبھی ({COUNT}) کو &amp;نئے ٹیب گروپ میں کھولیں}}</translation>
 <translation id="2285942871162473373">آپ کی فنگرپرنٹ کی شناخت نہیں ہو سکی۔ پھر آزمائيں۔</translation>
 <translation id="2287617382468007324">‏پرنٹنگ IPP پتہ</translation>
+<translation id="2287704681286152065">{NUM_SITES,plural, =1{آپ حال ہی میں جس سائٹ پر نہیں گئے ہیں اس پر سے اجازتوں کو آپ کے ڈیٹا کے تحفظ کیلئے ہٹا دیا گیا}other{آپ حال ہی میں جن سائٹس پر نہیں گئے ہیں ان پر سے اجازتوں کو آپ کے ڈیٹا کے تحفظ کیلئے ہٹا دیا گیا}}</translation>
 <translation id="2287944065963043964">لاگ ان اسکرین</translation>
 <translation id="2290615375132886363">ٹیبلیٹ کے نیویگیشن بٹنز</translation>
 <translation id="2291452790265535215">بُک مارکس، صارف کے تجربے وغیرہ کیلئے سائیڈ پینل استعمال کرنے کی کوشش کریں</translation>
@@ -3295,6 +3296,7 @@
 <translation id="3497560059572256875">‏Doodle کا اشتراک کریں</translation>
 <translation id="3497915391670770295">اپنے آلات پر بھیجیں</translation>
 <translation id="3500417806337761827">‏اشتراک کو ماؤنٹ کرنے میں خرابی۔ بہت سارے SMB اشتراکات پہلے ہی ماؤنٹ کیے گئے ہیں۔</translation>
+<translation id="3500764001796099683">عیلحدہ کردہ ویب ایپس کو فعال کریں</translation>
 <translation id="350397915809787283">اگر آپ کے پاس اکاؤنٹ نہیں ہے تو اسے تخلیق کرنے کے لیے پہلا اختیار منتخب کریں۔</translation>
 <translation id="3503995387997205657">آپ اپنی گزشتہ ایپس کو بحالی کر سکتے ہیں</translation>
 <translation id="3505100368357440862">خریداری کی تجاویز</translation>
@@ -4003,7 +4005,6 @@
 <translation id="4031179711345676612">مائیکروفون اجازت یافتہ ہے</translation>
 <translation id="4031527940632463547">سینسرز مسدود ہیں</translation>
 <translation id="4033471457476425443">نیا فولڈر شامل کریں</translation>
-<translation id="4033711848170683365">‏یہ اس آلے سے براؤزنگ ڈیٹا کو مستقل طور پر حذف کر دے گا۔ اس پروفائل میں موجود Google اکاؤنٹس کا استعمال آپ کے <ph name="DEVICE_TYPE" /> پر دیگر ایپس کے ذریعے کیا جا سکتا ہے۔ آپ <ph name="BEGIN_LINK" /><ph name="SETTING_SECTION" /> &gt; <ph name="ACCOUNTS_SECTION" /><ph name="END_LINK" /> میں ان اکاؤنٹس کو ہٹا سکتے ہیں۔</translation>
 <translation id="4033963223187371752">محفوظ سائٹس غیر محفوظ تصاویر یا ویب فریمز جیسے مواد سرایت کر سکتی ہیں</translation>
 <translation id="4034706080855851454">اپنی تنظیم کی پروفائل کے ساتھ اپنے آلے کا استعمال کرنے کے لیے، آپ کی تنظیم کو آلے کے بارے میں معلومات کی ضرورت ہے۔
 
@@ -4303,6 +4304,7 @@
 <translation id="4275788652681621337">سائیڈ پینل بند کریں</translation>
 <translation id="4275830172053184480">اپنا آلہ دوبارہ شروع کریں</translation>
 <translation id="4277434192562187284">‏XML کنفیگریشن کا ماخذ</translation>
+<translation id="4278348589087554892">{NUM_SITES,plural, =1{1 سائٹ سے اجازتیں ہٹائی گئیں}other{{NUM_SITES} سائٹس سے اجازتیں ہٹا دی گئیں}}</translation>
 <translation id="4278390842282768270">اجازت یافتہ</translation>
 <translation id="4278498748067682896">‏آپ کیوسک اور سائنیج اپ گریڈ استعمال کریں گے جو صرف آلہ کو کیوسک یا سائنیج موڈ میں چلنے دیتا ہے۔ اگر آپ چاہتے ہیں کہ صارفین آلے میں سائن ان کریں تو براہ کرم واپس جائیں اور Chrome انٹرپرائز اپ گریڈ کا استعمال کر کے اندراج کریں۔</translation>
 <translation id="4278779213160967034">اس کاروائی میں کچھ منٹ لگ سکتے ہیں۔ فائلز ڈاؤن لوڈ ہو رہی ہیں۔</translation>
@@ -5869,7 +5871,6 @@
 <translation id="5514315914873062345">ٹیب</translation>
 <translation id="5517304475148761050">‏اس ایپ کو Play اسٹور تک رسائی درکار ہے</translation>
 <translation id="5517412723934627386"><ph name="NETWORK_TYPE" /> - <ph name="NETWORK_DISPLAY_NAME" /></translation>
-<translation id="5518949581554491184">‏Android فون کے ساتھ سیٹ اپ کریں</translation>
 <translation id="5519053700692355541">‏آپ سب سے اوپر بائیں جانب Chrome مینیو کے ذریعے سائیڈ پینل کی زیادہ تر خصوصیات کھول سکتے ہیں</translation>
 <translation id="5519195206574732858">LTE</translation>
 <translation id="5519900055135507385">اس اکاؤنٹ کو کسی مضبوط پاس ورڈ کے ذریعے مزید محفوظ رکھیں۔ اسے <ph name="EMAIL" /> کے لیے <ph name="GOOGLE_PASSWORD_MANAGER" /> میں محفوظ کیا جائے گا۔</translation>
@@ -7169,6 +7170,7 @@
 <translation id="6551508934388063976">‏کمانڈ دستیاب نہیں ہے۔ ایک نئی ونڈو کھولنے کیلئے control-N دبائیں۔</translation>
 <translation id="6551606359270386381">بیضوی ٹول</translation>
 <translation id="6551612971599078809">‏سائٹ USB کا استعمال کر رہی ہے</translation>
+<translation id="6551620030439692385">مسدود ہے۔ ٹائم زون فی الحال <ph name="TIMEZONE" /> پر سیٹ ہے اور اسے صرف دستی طور پر اپ ڈیٹ کیا جا سکتا ہے۔</translation>
 <translation id="6551739526055143276">‏Family Link کے زیر انتظام ہے</translation>
 <translation id="655384502888039633"><ph name="USER_COUNT" /> صارفین</translation>
 <translation id="6555432686520421228">بالکل نئے کی طرح ہونے کیلئے صارف کے سبھی اکاؤنٹس ہٹائیں اور اپنا <ph name="IDS_SHORT_PRODUCT_NAME" /> دوبارہ ترتیب دیں۔</translation>
@@ -7237,6 +7239,7 @@
 <translation id="6608773371844092260">فنگر پرنٹ سیٹ اپ کرنے کے لیے، اپنے بچے سے اس <ph name="DEVICE_TYPE" /> کے دائیں ہاتھ کی طرف موجود فنگر پرنٹ سینسر کو ٹچ کرنے کو کہیں۔ آپ کے بچے کے فنگر پرنٹ ڈیٹا کو محفوظ طریقے سے اسٹور کیا جاتا ہے اور یہ کبھی بھی اس <ph name="DEVICE_TYPE" /> سے باہر نہیں جاتا۔</translation>
 <translation id="6609478180749378879">آپ کے پوشیدگی وضع سے باہر نکلنے کے بعد، سائن ان ڈیٹا اس آلے پر اسٹور کیا جائے گا۔ بعد میں، آپ اپنے آلے کی مدد سے اس ویب سائٹ پر دوبارہ سائن ان کر سکیں گے۔</translation>
 <translation id="6610002944194042868">ترجمہ کے اختیارات</translation>
+<translation id="6610064275805055636">عیلحدہ کردہ ویب ایپس کا نظم کریں</translation>
 <translation id="6611972847767394631">یہاں اپنے ٹیبز تلاش کریں</translation>
 <translation id="661266467055912436">آپ کے لیے اور ویب پر ہر کسی کے لیے سیکیورٹی کو بہتر بناتا ہے۔</translation>
 <translation id="6613267708691765962">میلوئیر کے لیے اسکین کیا جا رہا ہے...</translation>
@@ -8600,6 +8603,7 @@
 <translation id="7671472752213333268">"<ph name="EXTENSION_NAME" />" "<ph name="SCANNER_NAME" />" سے اسکین کرنا چاہتے ہیں۔</translation>
 <translation id="7672504401554182757">منتخب کریں کہ کس آلہ میں <ph name="APP_NAME" /> کے لئے پاس کی ہو</translation>
 <translation id="7672520070349703697"><ph name="HUNG_IFRAME_URL" />، <ph name="PAGE_TITLE" /> میں۔</translation>
+<translation id="7672726198839739113">مسدود ہے۔ ٹائم زون فی الحال <ph name="SUNRISE_TIME" /> - <ph name="SUNSET_TIME" /> پر سیٹ ہے اور اسے صرف دستی طور پر اپ ڈیٹ کیا جا سکتا ہے۔</translation>
 <translation id="7673313156293624327">‏ChromeOS Shill (کنکشن مینیجر) لاگز</translation>
 <translation id="7674416868315480713">‏Linux میں فارورڈ کی جا رہی سبھی پورٹس کو غیر فعال کریں</translation>
 <translation id="7674537509496907005"><ph name="APP_COUNT" /> ایپس</translation>
@@ -9532,6 +9536,7 @@
 <translation id="8376384591331888629">اس سائٹ میں فریق ثالث کوکیز سمیت</translation>
 <translation id="8376451933628734023">اگر یہ ویب ایپ آپ کو سوچنے پر مجبور کر رہی ہو کہ یہ ایک مختلف ایپ ہے تو اسے اَن انسٹال کریں۔</translation>
 <translation id="8376532149031784008"><ph name="DOMAIN" /> کو دوبارہ لوڈ کیا جا رہا ہے...</translation>
+<translation id="8376610503048439696">آپ کے منتظم کے ذریعے انسٹال کردہ ایکسٹینشنز اب بھی اس سائٹ کو پڑھ اور تبدیل کر سکتی ہیں</translation>
 <translation id="8376752431516546391">‏Google تلاش کا سائیڈ پینل</translation>
 <translation id="8377625247046155446">یہ پاس کی صرف اس آلہ میں محفوظ ہوگی۔ آپ کے تمام پوشیدگی ونڈوز بند کرنے بعد یہ اس آلہ پر باقی رہے گی۔</translation>
 <translation id="8378714024927312812">آپ کی تنظیم کے زیر نظم</translation>
@@ -9671,6 +9676,7 @@
     <ph name="BEGIN_PARAGRAPH2" />آپ اپنے بچے کے ChromeOS آلے کی ترتیبات میں کسی بھی وقت ان رپورٹس کی اجازت کو شروع یا بند کر سکتے ہیں۔ اگر آپ ڈومین کے منتظم ہیں تو آپ منتظم کونسول میں اس ترتیب کو تبدیل کر سکتے ہیں۔<ph name="END_PARAGRAPH2" />
     <ph name="BEGIN_PARAGRAPH4" />اگر آپ کے بچے کے Google اکاؤنٹ کے لیے ویب اور ایپ کی سرگرمی کی ترتیب آن ہے تو آپ کے بچے کا ڈیٹا اس کے Google اکاؤنٹ میں محفوظ کیا جا سکتا ہے۔ families.google.com پر ان ترتیبات اور ان کو ایڈجسٹ کرنے کے طریقے کے بارے میں مزید جانيں۔<ph name="END_PARAGRAPH4" /></translation>
 <translation id="8476630458761527665">فائل کا پاس ورڈ درج کریں</translation>
+<translation id="8476942730579767658">ونڈوز اور ڈیسکس</translation>
 <translation id="8477178913400731244">ڈیٹا حذف کریں</translation>
 <translation id="8477241577829954800">جگہ لی ہوئی</translation>
 <translation id="8477384620836102176">&amp;عمومی</translation>

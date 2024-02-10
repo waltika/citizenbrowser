@@ -929,6 +929,8 @@ BASE_FEATURE(kFilteringScrollPrediction,
              base::FEATURE_DISABLED_BY_DEFAULT
 #endif
 );
+const base::FeatureParam<std::string> kFilteringScrollPredictionFilterParam{
+    &kFilteringScrollPrediction, "filter", "one_euro_filter"};
 
 BASE_FEATURE(kFixGestureScrollQueuingBug,
              "FixGestureScrollQueuingBug",
@@ -1186,7 +1188,7 @@ BASE_FEATURE(kKeepAliveInBrowserMigration,
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 BASE_FEATURE(kAttributionReportingInBrowserMigration,
-             "kAttributionReportingInBrowserMigration",
+             "AttributionReportingInBrowserMigration",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 BASE_FEATURE(kLCPCriticalPathPredictor,
@@ -1874,6 +1876,10 @@ BASE_FEATURE(kPausePagesPerBrowsingContextGroup,
              "PausePagesPerBrowsingContextGroup",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
+BASE_FEATURE(kShowHudDisplayForPausedPages,
+             "ShowHudDisplayForPausedPages",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
 // Controls script streaming.
 BASE_FEATURE(kScriptStreaming,
              "ScriptStreaming",
@@ -1989,6 +1995,14 @@ BASE_FEATURE(kSharedStorageWorkletSharedBackingThreadImplementation,
 BASE_FEATURE(kSharedStorageAPIM118,
              "SharedStorageAPIM118",
              base::FEATURE_ENABLED_BY_DEFAULT);
+
+BASE_FEATURE(kSharedStorageAPIM123,
+             "SharedStorageAPIM123",
+             base::FEATURE_ENABLED_BY_DEFAULT);
+
+BASE_FEATURE(kSharedStorageAPIEnableWALForDatabase,
+             "SharedStorageAPIEnableWALForDatabase",
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 BASE_FEATURE(kSimulateClickOnAXFocus,
              "SimulateClickOnAXFocus",
@@ -2341,11 +2355,6 @@ BASE_FEATURE(kWebRtcH264WithOpenH264FFmpeg,
              base::FEATURE_ENABLED_BY_DEFAULT);
 #endif  // BUILDFLAG(RTC_USE_H264) && BUILDFLAG(ENABLE_FFMPEG_VIDEO_DECODERS)
 
-// Exposes non-standard stats in the WebRTC getStats() API.
-BASE_FEATURE(kWebRtcExposeNonStandardStats,
-             "WebRtc-ExposeNonStandardStats",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
 // Causes WebRTC to replace host ICE candidate IP addresses with generated
 // names ending in ".local" and resolve them using mDNS.
 // http://crbug.com/878465
@@ -2492,6 +2501,10 @@ const base::FeatureParam<int> kPixelDistanceToExpand(&kExpandCompositedCullRect,
 BASE_FEATURE(kTreatHTTPExpiresHeaderValueZeroAsExpiredInBlink,
              "TreatHTTPExpiresHeaderValueZeroAsExpiredInBlink",
              base::FEATURE_ENABLED_BY_DEFAULT);
+
+BASE_FEATURE(kSimplifyLoadingTransparentPlaceholderImage,
+             "SimplifyLoadingTransparentPlaceholderImage",
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 }  // namespace features
 }  // namespace blink

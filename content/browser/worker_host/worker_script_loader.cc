@@ -6,6 +6,7 @@
 
 #include "base/functional/bind.h"
 #include "content/browser/loader/navigation_loader_interceptor.h"
+#include "content/browser/loader/response_head_update_params.h"
 #include "content/browser/service_worker/service_worker_main_resource_handle.h"
 #include "content/browser/service_worker/service_worker_main_resource_loader_interceptor.h"
 #include "content/public/browser/browser_task_traits.h"
@@ -93,7 +94,7 @@ void WorkerScriptLoader::Start() {
         base::BindOnce(
             [](base::WeakPtr<WorkerScriptLoader> self,
                bool /*reset_subresource_loader_params*/,
-               const ResponseHeadUpdateParams&) {
+               ResponseHeadUpdateParams) {
               if (self) {
                 self->LoadFromNetwork();
               }
@@ -121,7 +122,7 @@ void WorkerScriptLoader::MaybeStartLoader(
   subresource_loader_params_ =
       interceptor_result
           ? std::move(interceptor_result->subresource_loader_params)
-          : std::nullopt;
+          : SubresourceLoaderParams();
 
   if (interceptor_result && interceptor_result->single_request_factory) {
     // The interceptor elected to handle the request. Use it.

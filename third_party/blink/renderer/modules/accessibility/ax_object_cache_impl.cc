@@ -783,12 +783,7 @@ AXObjectCacheImpl::AXObjectCacheImpl(Document& document,
       permission_service_(document.GetExecutionContext()),
       permission_observer_receiver_(this, document.GetExecutionContext()),
       render_accessibility_host_(document.GetExecutionContext()),
-      ax_tree_source_(BlinkAXTreeSource::Create(*this)),
-      ax_tree_serializer_(
-          std::make_unique<
-              ui::AXTreeSerializer<AXObject*, HeapVector<Member<AXObject>>>>(
-              ax_tree_source_,
-              /*crash_on_error*/ true)) {
+      ax_tree_source_(BlinkAXTreeSource::Create(*this)) {
   use_ax_menu_list_ = GetSettings()->GetUseAXMenuList();
 }
 
@@ -834,6 +829,15 @@ void AXObjectCacheImpl::EnsureRelationCache() {
   if (!relation_cache_) {
     relation_cache_ = std::make_unique<AXRelationCache>(this);
     relation_cache_->Init();
+  }
+}
+
+void AXObjectCacheImpl::EnsureSerializer() {
+  if (!ax_tree_serializer_) {
+    ax_tree_serializer_ = std::make_unique<
+        ui::AXTreeSerializer<AXObject*, HeapVector<Member<AXObject>>>>(
+        ax_tree_source_,
+        /*crash_on_error*/ true);
   }
 }
 
@@ -1775,8 +1779,16 @@ void AXObjectCacheImpl::Remove(AXID ax_id, bool notify_parent) {
   }
 #endif
 
-  if (notify_parent && !has_been_disposed_) {
-    ChildrenChangedOnAncestorOf(obj);
+  if (!has_been_disposed_) {
+    if (notify_parent) {
+      ChildrenChangedOnAncestorOf(obj);
+    }
+    // TODO(aleventhal) This is for web tests only, in order to record MarkDirty
+    // events. Is there a way to avoid these calls for normal browsing?
+    // Maybe we should use dependency injection from AccessibilityController.
+    if (auto* client = GetWebLocalFrameClient()) {
+      client->HandleAXObjectDetachedForTest(ax_id);
+    }
   }
 
   obj->Detach();
@@ -1838,10 +1850,10 @@ void AXObjectCacheImpl::Remove(LayoutObject* layout_object,
   // If a DOM node is present, it will have been used to back the AXObject, in
   // which case we need to call Remove(node) instead.
   if (Node* node = layout_object->GetNode()) {
-    // Pseudo elements are a special case. They need to be marked dirty so that
-    // their entire subtree is recomputed (it is disappearing or changing).
+    // Pseudo elements are a special case. The entire subtree needs to be marked
+    // dirty so that it is recomputed (it is disappearing or changing).
     if (node->IsPseudoElement()) {
-      DeferTreeUpdate(TreeUpdateReason::kMarkDirtyFromRemove, node);
+      MarkSubtreeDirty(node);
     }
 
     if (IsA<HTMLImageElement>(node)) {
@@ -2586,7 +2598,7 @@ void AXObjectCacheImpl::NodeIsAttached(Node* node) {
                layout_parent->Parent()->IsLayoutInline()) {
           layout_parent = layout_parent->Parent();
         }
-        MarkAXSubtreeDirty(Get(layout_parent));
+        MarkSubtreeDirty(layout_parent->GetNode());
       }
     }
     return;
@@ -3092,6 +3104,10 @@ void AXObjectCacheImpl::ProcessDeferredAccessibilityEvents(Document& document,
   }
 
   DCHECK_EQ(document, GetDocument());
+  if (!GetDocument().IsActive()) {
+    return;
+  }
+
   CheckStyleIsComplete(document);
 
   CHECK(!processing_deferred_events_);
@@ -3179,10 +3195,32 @@ void AXObjectCacheImpl::ProcessDeferredAccessibilityEvents(Document& document,
 
     mark_all_dirty_ = false;
 
+    // All tree updates have been processed.
+    DUMP_WILL_BE_CHECK(!IsMainDocumentDirty());
+    DUMP_WILL_BE_CHECK(!IsPopupDocumentDirty());
+
+    // Clean up any remaining unprocessed aria-owns relations, which can result
+    // from processing deferred tree updates. For example, if an object is
+    // created without a parent, RepairChildrenOfIncludedParent() may be called,
+    // which in some cases can queue multiple aria-owns relations that point to
+    // the same node to be added to the processing queue.
+    // TODO(accessibility) As this is the second call to this method from
+    // the same calling function, it would be nice to find a way to remove it.
+    // One potential fix is to try to only process one valid aria-owns during
+    // the repair, but we need to be careful about infinite loops if we do that.
+    // Another possibility is to continue trying to remove parent repair
+    // scenarios entirely, in which case this should not occur.
+    relation_cache_->ProcessUpdatesWithCleanLayout();
+
     // Build out tree, such that each node has computed its children.
     UpdateTreeIfNeeded();
+
+    // Updating the tree did not add dirty objects.
+    DUMP_WILL_BE_CHECK(!IsDirty());
   }
 
+  // Serialize the current tree changes unless not enough time has passed, or
+  // another serialization is already in flight.
   if (IsSerializationInFlight()) {
     // Another serialization is in flight. When it's finished, a new
     // serialization will be triggered if necessary.
@@ -3230,9 +3268,19 @@ void AXObjectCacheImpl::ProcessDeferredAccessibilityEvents(Document& document,
     // TODO(accessibility) It's a bit confusing that this can be true when the
     // IsDirty() is false, but this is the case for objects marked dirty from
     // RenderAccessibilityImpl, e.g. for the kEndOfTest event.
+    bool did_serialize = false;
     if (HasDirtyObjects()) {
-      if (auto* client = GetWebLocalFrameClient()) {
-        client->AXReadyCallback();
+      // Dirty objects are present, but we cannot serialize until there is an
+      // embedding token, which may not be present when the cache is first
+      // initialized.
+      if (GetDocument().GetFrame()) {
+        const absl::optional<base::UnguessableToken>& embedding_token =
+            GetDocument().GetFrame()->GetEmbeddingToken();
+        if (embedding_token && !embedding_token->is_empty()) {
+          if (auto* client = GetWebLocalFrameClient()) {
+            did_serialize = client->AXReadyCallback();
+          }
+        }
       }
     }
 
@@ -3248,6 +3296,12 @@ void AXObjectCacheImpl::ProcessDeferredAccessibilityEvents(Document& document,
         agent->AXReadyCallback(*GetPopupDocumentIfShowing());
       }
     }
+
+    DUMP_WILL_BE_CHECK(!IsDirty());
+    // TODO(accessibility): in the future, we may break up serialization into
+    // pieces to reduce jank, in which case this assertion will not hold.
+    DUMP_WILL_BE_CHECK(!HasDirtyObjects() || !did_serialize)
+        << "A serialization occurred but dirty objects remained.";
   }
 }
 
@@ -3297,6 +3351,13 @@ bool AXObjectCacheImpl::IsPopupDocumentDirty() const {
 }
 
 bool AXObjectCacheImpl::IsDirty() {
+  if (!GetDocument().IsActive()) {
+    return false;
+  }
+
+  if (mark_all_dirty_) {
+    return true;
+  }
   if (IsMainDocumentDirty() || IsPopupDocumentDirty() || !relation_cache_ ||
       relation_cache_->IsDirty()) {
     return true;
@@ -3612,7 +3673,6 @@ void AXObjectCacheImpl::FireTreeUpdatedEventImmediately(
       break;
     case TreeUpdateReason::kMarkDirtyFromHandleLayout:
     case TreeUpdateReason::kMarkDirtyFromHandleScroll:
-    case TreeUpdateReason::kMarkDirtyFromRemove:
       MarkAXObjectDirtyWithCleanLayout(Get(node));
       break;
     case TreeUpdateReason::kNodeGainedFocus:
@@ -4588,9 +4648,8 @@ void AXObjectCacheImpl::AddEventToSerializationQueue(
 
   pending_events_.push_back(event);
 
-  AddDirtyObjectToSerializationQueue(obj, false, event.event_from,
-                                     event.event_from_action,
-                                     event.event_intents);
+  AddDirtyObjectToSerializationQueue(
+      obj, event.event_from, event.event_from_action, event.event_intents);
 
   if (immediate_serialization) {
     ScheduleImmediateSerialization();
@@ -4675,7 +4734,6 @@ void AXObjectCacheImpl::PostPlatformNotification(
 
 void AXObjectCacheImpl::MarkAXObjectDirtyWithCleanLayoutHelper(
     AXObject* obj,
-    bool subtree,
     ax::mojom::blink::EventFrom event_from,
     ax::mojom::blink::Action event_from_action) {
   CHECK(!IsFrozen());
@@ -4713,22 +4771,18 @@ void AXObjectCacheImpl::MarkAXObjectDirtyWithCleanLayoutHelper(
   }
 
   std::vector<ui::AXEventIntent> event_intents;
-  AddDirtyObjectToSerializationQueue(obj, subtree, event_from,
-                                     event_from_action, event_intents);
+  AddDirtyObjectToSerializationQueue(obj, event_from, event_from_action,
+                                     event_intents);
 
   obj->UpdateCachedAttributeValuesIfNeeded(true);
-  for (auto agent : agents_)
-    agent->AXObjectModified(obj, subtree);
 }
 
 void AXObjectCacheImpl::MarkAXObjectDirtyWithCleanLayout(AXObject* obj) {
-  MarkAXObjectDirtyWithCleanLayoutHelper(obj, false, active_event_from_,
+  MarkAXObjectDirtyWithCleanLayoutHelper(obj, active_event_from_,
                                          active_event_from_action_);
-}
-
-void AXObjectCacheImpl::MarkAXSubtreeDirtyWithCleanLayout(AXObject* obj) {
-  MarkAXObjectDirtyWithCleanLayoutHelper(obj, true, active_event_from_,
-                                         active_event_from_action_);
+  for (auto agent : agents_) {
+    agent->AXObjectModified(obj, /*subtree*/ false);
+  }
 }
 
 void AXObjectCacheImpl::MarkAXObjectDirty(AXObject* obj) {
@@ -4741,11 +4795,38 @@ void AXObjectCacheImpl::MarkAXObjectDirty(AXObject* obj) {
   DeferTreeUpdate(TreeUpdateReason::kMarkAXObjectDirty, obj);
 }
 
+void AXObjectCacheImpl::NotifySubtreeDirty(AXObject* obj) {
+  // Note: if there is no serializer yet, then there is nothing to mark dirty
+  // for serialization purposes yet -- effectively everything starts out dirty
+  // in a new serializer.
+  if (ax_tree_serializer_) {
+    ax_tree_serializer_->MarkSubtreeDirty(obj->AXObjectID());
+  }
+  for (auto agent : agents_) {
+    agent->AXObjectModified(obj, /*subtree*/ true);
+  }
+}
+
+void AXObjectCacheImpl::MarkAXSubtreeDirtyWithCleanLayout(AXObject* obj) {
+  MarkAXObjectDirtyWithCleanLayoutHelper(obj, active_event_from_,
+                                         active_event_from_action_);
+  NotifySubtreeDirty(obj);
+}
+
 void AXObjectCacheImpl::MarkAXSubtreeDirty(AXObject* obj) {
   if (!obj)
     return;
 
   DeferTreeUpdate(TreeUpdateReason::kMarkAXSubtreeDirty, obj);
+}
+
+void AXObjectCacheImpl::MarkSubtreeDirty(Node* node) {
+  if (AXObject* obj = Get(node)) {
+    MarkAXSubtreeDirty(obj);
+  } else {
+    // There is no AXObject, so there is no subtree to mark dirty.
+    MarkElementDirty(node);
+  }
 }
 
 void AXObjectCacheImpl::MarkDocumentDirty() {
@@ -4794,7 +4875,9 @@ void AXObjectCacheImpl::MarkDocumentDirtyWithCleanLayout() {
 }
 
 void AXObjectCacheImpl::ResetSerializer() {
-  ax_tree_serializer_->Reset();
+  if (ax_tree_serializer_) {
+    ax_tree_serializer_->Reset();
+  }
 
   // Clear anything about to be serialized, because everything will be
   // reserialized anyway.
@@ -4954,6 +5037,7 @@ Element* AXObjectCacheImpl::GetActiveAriaModalDialog() const {
 }
 
 void AXObjectCacheImpl::SerializeLocationChanges(uint32_t reset_token) {
+  CHECK(GetDocument().IsActive());
   if (changed_bounds_ids_.empty())
     return;
   Vector<mojom::blink::LocationChangesPtr> changes;
@@ -4994,6 +5078,7 @@ bool AXObjectCacheImpl::SerializeEntireTree(
   CHECK(!IsDirty());
   CHECK(Root());
   CHECK(!Root()->IsDetached());
+  CHECK(GetDocument().IsActive());
 
   // Pass true for truncate_inline_textboxes, as they are just extra noise for
   // consumers of the entire tree (e.g. AXTreeSnapshotter). This avoids passing
@@ -5032,15 +5117,14 @@ bool AXObjectCacheImpl::SerializeEntireTree(
 
 void AXObjectCacheImpl::AddDirtyObjectToSerializationQueue(
     AXObject* obj,
-    bool subtree,
     ax::mojom::blink::EventFrom event_from,
     ax::mojom::blink::Action event_from_action,
     const std::vector<ui::AXEventIntent>& event_intents) {
+  CHECK(!IsFrozen());
+  // Add to object to a queue that will be sent to the serializer in
+  // SerializeDirtyObjectsAndEvents().
   dirty_objects_.push_back(
       AXDirtyObject::Create(obj, event_from, event_from_action, event_intents));
-
-  if (subtree)
-    MarkSerializerSubtreeDirty(*obj);
 }
 
 void AXObjectCacheImpl::SerializeDirtyObjectsAndEvents(
@@ -5050,31 +5134,6 @@ void AXObjectCacheImpl::SerializeDirtyObjectsAndEvents(
     bool& had_end_of_test_event,
     bool& had_load_complete_messages,
     bool& need_to_send_location_changes) {
-  // Make a copy of the events, because it's possible that
-  // actions inside this loop will cause more events to be
-  // queued up.
-  Deque<ui::AXEvent> src_events = pending_events_;
-  pending_events_.clear();
-
-  // Dirty objects can be added as a result of serialization. For example,
-  // as children are iterated during depth first traversal in the serializer,
-  // the children sometimes need to be created. The initialization of these
-  // new children can lead to the discovery of parenting changes via
-  // aria-owns, or name changes on an ancestor that collects its name its from
-  // contents. In some cases this has led to an infinite loop, as the
-  // serialization of new dirty objects keeps adding new dirty objects to
-  // consider. The infinite loop is avoided by tracking the number of dirty
-  // objects that can be serialized from the loop, which is the initial
-  // number of dirty objects + kMaxExtraDirtyObjectsToSerialize.
-  // Allowing kMaxExtraDirtyObjectsToSerialize ensures that most important
-  // additional related changes occur at the same time, and that dump event
-  // tests have consistent results (the results change when dirty objects are
-  // processed in separate batches).
-  constexpr int kMaxExtraDirtyObjectsToSerialize = 100;
-
-  size_t num_remaining_objects_to_serialize =
-      dirty_objects_.size() + kMaxExtraDirtyObjectsToSerialize;
-
   HashSet<int32_t> already_serialized_ids;
   int redundant_serialization_count = 0;
 
@@ -5082,11 +5141,12 @@ void AXObjectCacheImpl::SerializeDirtyObjectsAndEvents(
             DocumentLifecycle::kLayoutClean);
   DCHECK(!popup_document_ || popup_document_->Lifecycle().GetState() >=
                                  DocumentLifecycle::kLayoutClean);
+  DUMP_WILL_BE_CHECK(HasDirtyObjects());
+
+  EnsureSerializer();
 
   ui::AXNodeData::AXNodeDataSize node_data_size;
-  while (!dirty_objects_.empty() && --num_remaining_objects_to_serialize > 0) {
-    AXDirtyObject* current_dirty_object = std::move(dirty_objects_.front());
-    dirty_objects_.pop_front();
+  for (const auto& current_dirty_object : dirty_objects_) {
     AXObject* obj = current_dirty_object->obj;
 
     // Dirty objects can be added using MarkWebAXObjectDirty(obj) from other
@@ -5178,11 +5238,11 @@ void AXObjectCacheImpl::SerializeDirtyObjectsAndEvents(
     // used by tests and as a signal to serialize location data.
     ui::AXEvent layout_complete_event(Root()->AXObjectID(),
                                       ax::mojom::blink::Event::kLayoutComplete);
-    src_events.push_back(layout_complete_event);
+    pending_events_.push_back(layout_complete_event);
   }
 
   // Loop over each event and generate an updated event message.
-  for (ui::AXEvent& event : src_events) {
+  for (ui::AXEvent& event : pending_events_) {
     if (event.event_type == ax::mojom::blink::Event::kEndOfTest) {
       had_end_of_test_event = true;
       continue;
@@ -5214,10 +5274,11 @@ void AXObjectCacheImpl::SerializeDirtyObjectsAndEvents(
             << ObjectFromAXID(event.id);
   }
 
+  dirty_objects_.clear();
+  pending_events_.clear();
+
 #if DCHECK_IS_ON()
-  if (!HasDirtyObjects()) {
-    CheckTreeConsistency(*this, *ax_tree_serializer_);
-  }
+  CheckTreeConsistency(*this, *ax_tree_serializer_);
 
   // Provide the expected node count in the last update, so that
   // AXTree::Unserialize() can check for tree consistency on the browser side.
@@ -5262,16 +5323,6 @@ void AXObjectCacheImpl::GetImagesToAnnotate(
       nodes.push_back(&node);
     }
   }
-}
-
-// TODO(accessibility): This function can go when legacy mode is deleted.
-bool AXObjectCacheImpl::AddPendingEvent(const ui::AXEvent& event,
-                                        bool insert_at_beginning) {
-  if (insert_at_beginning)
-    pending_events_.push_front(event);
-  else
-    pending_events_.push_back(event);
-  return true;
 }
 
 HeapMojoRemote<blink::mojom::blink::RenderAccessibilityHost>&

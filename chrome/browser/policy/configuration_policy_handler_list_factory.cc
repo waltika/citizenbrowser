@@ -39,6 +39,7 @@
 #include "chrome/browser/policy/webhid_device_policy_handler.h"
 #include "chrome/browser/policy/webusb_allow_devices_for_urls_policy_handler.h"
 #include "chrome/browser/prefetch/pref_names.h"
+#include "chrome/browser/profiles/allowed_domains_for_apps_policy_handler.h"
 #include "chrome/browser/profiles/force_safe_search_policy_handler.h"
 #include "chrome/browser/profiles/force_youtube_safety_mode_policy_handler.h"
 #include "chrome/browser/profiles/guest_mode_policy_handler.h"
@@ -183,12 +184,12 @@
 #include "chrome/browser/ash/policy/handlers/configuration_policy_handler_ash.h"
 #include "chrome/browser/ash/policy/handlers/lacros_availability_policy_handler.h"
 #include "chrome/browser/ash/policy/handlers/lacros_selection_policy_handler.h"
+#include "chrome/browser/ash/policy/handlers/screen_capture_location_policy_handler.h"
 #include "chrome/browser/ash/policy/reporting/metrics_reporting/metric_reporting_prefs.h"
 #include "chrome/browser/nearby_sharing/common/nearby_share_prefs.h"
 #include "chrome/browser/policy/default_geolocation_policy_handler.h"
 #include "chrome/browser/policy/device_login_screen_geolocation_access_level_policy_handler.h"
 #include "chrome/browser/policy/os_color_mode_policy_handler.h"
-#include "chrome/browser/policy/screen_capture_location_policy_handler.h"
 #include "chromeos/ash/components/settings/cros_settings_names.h"
 #include "chromeos/ash/services/assistant/public/cpp/assistant_prefs.h"
 #include "chromeos/ash/services/multidevice_setup/public/cpp/prefs.h"
@@ -199,6 +200,7 @@
 #include "components/drive/drive_pref_names.h"  // nogncheck crbug.com/1125897
 #include "components/user_manager/user.h"
 #include "components/user_manager/user_manager.h"
+#include "components/user_manager/user_manager_pref_names.h"
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
 #if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_CHROMEOS)
@@ -247,6 +249,10 @@
 #if BUILDFLAG(IS_CHROMEOS_ASH)
 #include "chrome/browser/ash/wallpaper_handlers/wallpaper_prefs.h"
 #endif
+
+#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC)
+#include "components/enterprise/client_certificates/core/prefs.h"
+#endif  // BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC)
 
 #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX) || \
     BUILDFLAG(IS_CHROMEOS_ASH)
@@ -907,9 +913,6 @@ const PolicyToPreferenceMapEntry kSimplePolicyMap[] = {
   { key::kSSLErrorOverrideAllowedForOrigins,
     prefs::kSSLErrorOverrideAllowedForOrigins,
     base::Value::Type::LIST },
-  { key::kAllowedDomainsForApps,
-    prefs::kAllowedDomainsForApps,
-    base::Value::Type::STRING },
   { key::kEnableMediaRouter,
     prefs::kEnableMediaRouter,
     base::Value::Type::BOOLEAN },
@@ -1197,7 +1200,7 @@ const PolicyToPreferenceMapEntry kSimplePolicyMap[] = {
     prefs::kRebootAfterUpdate,
     base::Value::Type::BOOLEAN },
   { key::kChromeOsMultiProfileUserBehavior,
-    prefs::kMultiProfileUserBehavior,
+    user_manager::prefs::kMultiProfileUserBehaviorPref,
     base::Value::Type::STRING },
   { key::kKeyboardDefaultToFunctionKeys,
     ash::prefs::kSendFunctionKeys,
@@ -1610,6 +1613,9 @@ const PolicyToPreferenceMapEntry kSimplePolicyMap[] = {
 { key::kInsertKeyModifier,
     ash::prefs::kInsertKeyModifier,
     base::Value::Type::INTEGER },
+  {key::kGoogleLocationServicesEnabled,
+    ash::prefs::kUserGeolocationAccessLevel,
+    base::Value::Type::INTEGER},
 #endif // BUILDFLAG(IS_CHROMEOS_ASH)
 
 #if BUILDFLAG(IS_LINUX)
@@ -1992,9 +1998,6 @@ const PolicyToPreferenceMapEntry kSimplePolicyMap[] = {
   { key::kWarnBeforeQuittingEnabled,
     prefs::kConfirmToQuitEnabled,
     base::Value::Type::BOOLEAN },
-  { key::kScreenTimeEnabled,
-    policy_prefs::kScreenTimeEnabled,
-    base::Value::Type::BOOLEAN},
   { key::kCreatePasskeysInICloudKeychain,
     prefs::kCreatePasskeysInICloudKeychain,
     base::Value::Type::BOOLEAN },
@@ -2082,6 +2085,11 @@ const PolicyToPreferenceMapEntry kSimplePolicyMap[] = {
     optimization_guide::model_execution::prefs::kWallpaperSearchEnterprisePolicyAllowed,
     base::Value::Type::INTEGER},
 #endif
+#if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN)
+  { key::kChromeForTestingAllowed,
+    prefs::kChromeForTestingAllowed,
+    base::Value::Type::BOOLEAN },
+#endif
 
 #if BUILDFLAG(CHROME_CERTIFICATE_POLICIES_SUPPORTED)
   { key::kCACertificates,
@@ -2097,6 +2105,12 @@ const PolicyToPreferenceMapEntry kSimplePolicyMap[] = {
     prefs::kCAPlatformIntegrationEnabled,
     base::Value::Type::BOOLEAN },
 #endif // BUILDFLAG(CHROME_CERTIFICATE_POLICIES_SUPPORTED)
+
+#if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC)
+  { key::kProvisionManagedClientCertificateForUser,
+    client_certificates::prefs::kProvisionManagedClientCertificateForUserPrefs,
+    base::Value::Type::INTEGER },
+#endif  //
 };
 // clang-format on
 
@@ -2940,6 +2954,8 @@ std::unique_ptr<ConfigurationPolicyHandlerList> BuildHandlerList(
       std::make_unique<DeviceWeeklyScheduledSuspendPolicyHandler>(
           chrome_schema));
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
+
+  handlers->AddHandler(std::make_unique<AllowedDomainsForAppsPolicyHandler>());
 
   return handlers;
 }

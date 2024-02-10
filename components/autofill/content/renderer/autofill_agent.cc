@@ -659,25 +659,18 @@ void AutofillAgent::ApplyFormAction(mojom::ActionType action_type,
     }
     bool filled_some_fields = !filled_fields.empty();
 
-    UpdateLastInteracted(last_queried_element.Form());
-    if (last_queried_element.Form().IsNull()) {
+    UpdateLastInteracted(form_util::GetFormByRendererId(form.renderer_id));
+    if (!form.renderer_id) {
       formless_elements_were_autofilled_ |= filled_some_fields;
     }
 
-    if (auto* render_frame = unsafe_render_frame()) {
-      WebFormElement updated_form_element =
-          form_util::GetFormByRendererId(form.renderer_id);
-      std::optional<FormData> updated_form_data = form_util::ExtractFormData(
-          render_frame->GetWebFrame()->GetDocument(), updated_form_element,
-          field_data_manager());
-      if (auto* autofill_driver = unsafe_autofill_driver();
-          autofill_driver && updated_form_data) {
-        CHECK_EQ(action_persistence, mojom::ActionPersistence::kFill);
-        autofill_driver->DidFillAutofillFormData(*updated_form_data,
-                                                 base::TimeTicks::Now());
-        autofill_driver->FormsSeen({std::move(*updated_form_data)},
-                                   /*removed_forms=*/{});
-      }
+    if (auto* autofill_driver = unsafe_autofill_driver();
+        autofill_driver && last_interacted_.saved_state) {
+      CHECK_EQ(action_persistence, mojom::ActionPersistence::kFill);
+      autofill_driver->DidFillAutofillFormData(*last_interacted_.saved_state,
+                                               base::TimeTicks::Now());
+      autofill_driver->FormsSeen({*last_interacted_.saved_state},
+                                 /*removed_forms=*/{});
     }
   }
   last_action_type_ = action_type;
@@ -1406,10 +1399,23 @@ void AutofillAgent::AjaxSucceeded() {
   form_tracker_->AjaxSucceeded();
 }
 
-void AutofillAgent::JavaScriptChangedAutofilledValue(
-    const WebFormControlElement& element,
-    const WebString& old_value) {
+void AutofillAgent::JavaScriptChangedValue(const WebFormControlElement& element,
+                                           const WebString& old_value,
+                                           bool was_autofilled) {
   if (old_value == element.Value()) {
+    return;
+  }
+  // The provisionally saved form must be updated on JS changes. However, it
+  // should not be changed, so that only the user can set the tracked form and
+  // not JS. This call here is meant to keep the tracked form up to date with
+  // the form's most recent version, and not switch from one form to another.
+  if (base::FeatureList::IsEnabled(
+          features::kAutofillImproveSubmissionDetection) &&
+      form_util::GetFormRendererId(form_util::GetOwningForm(element)) ==
+          last_interacted_.form_id.GetId()) {
+    UpdateLastInteracted(form_util::GetOwningForm(element));
+  }
+  if (!was_autofilled) {
     return;
   }
   if (std::optional<FormAndField> form_and_field =
@@ -1584,6 +1590,10 @@ void AutofillAgent::UpdateStateForTextChange(
 }
 
 std::optional<FormData> AutofillAgent::GetSubmittedForm() const {
+  if (base::FeatureList::IsEnabled(
+          features::kAutofillImproveSubmissionDetection)) {
+    return last_interacted_.saved_state;
+  }
   content::RenderFrame* render_frame = unsafe_render_frame();
   if (!render_frame) {
     return std::nullopt;

@@ -32,6 +32,7 @@
 #include "net/filter/source_stream.h"
 #include "net/filter/zstd_source_stream.h"
 #include "net/http/http_request_info.h"
+#include "net/http/structured_headers.h"
 #include "net/ssl/ssl_private_key.h"
 #include "services/network/public/cpp/features.h"
 #include "services/network/public/cpp/request_destination.h"
@@ -152,11 +153,9 @@ SharedDictionaryNetworkTransaction::ParseSharedDictionaryEncodingType(
     result = SharedDictionaryEncodingType::kSharedZstd;
   }
 
-  // Check "Content-Dictionary" header if V2 backend is enabled, and the
-  // content encoding indicates that a dictionary is used.
-  if (features::kCompressionDictionaryTransportBackendVersion.Get() !=
-          features::CompressionDictionaryTransportBackendVersion::kV1 &&
-      result != SharedDictionaryEncodingType::kNotUsed) {
+  // Check "Content-Dictionary" header when the content encoding indicates that
+  // a dictionary is used.
+  if (result != SharedDictionaryEncodingType::kNotUsed) {
     CHECK(!dictionary_hash_base64_.empty());
     std::string content_dictionary;
     if (!headers.GetNormalizedHeader(
@@ -261,27 +260,25 @@ void SharedDictionaryNetworkTransaction::ModifyRequestHeaders(
     shared_dictionary_.reset();
     return;
   }
-
-  switch (features::kCompressionDictionaryTransportBackendVersion.Get()) {
-    case features::CompressionDictionaryTransportBackendVersion::kV1:
-      request_headers->SetHeader(
-          network::shared_dictionary::kSecAvailableDictionaryHeaderName,
-          base::ToLowerASCII(base::HexEncode(shared_dictionary_->hash().data)));
-      break;
-    case features::CompressionDictionaryTransportBackendVersion::kV2:
-      dictionary_hash_base64_ = base::StrCat(
-          {":", base::Base64Encode(shared_dictionary_->hash().data), ":"});
-      request_headers->SetHeader(
-          network::shared_dictionary::kAvailableDictionaryHeaderName,
-          dictionary_hash_base64_);
-      break;
-  }
+  dictionary_hash_base64_ = base::StrCat(
+      {":", base::Base64Encode(shared_dictionary_->hash().data), ":"});
+  request_headers->SetHeader(
+      network::shared_dictionary::kAvailableDictionaryHeaderName,
+      dictionary_hash_base64_);
   if (base::FeatureList::IsEnabled(network::features::kSharedZstd)) {
     AddAcceptEncoding(request_headers,
                       base::StrCat({GetSharedBrotliContentEncodingName(), ", ",
                                     GetSharedZstdContentEncodingName()}));
   } else {
     AddAcceptEncoding(request_headers, GetSharedBrotliContentEncodingName());
+  }
+
+  if (!shared_dictionary_->id().empty()) {
+    absl::optional<std::string> serialized_id =
+        net::structured_headers::SerializeItem(shared_dictionary_->id());
+    if (serialized_id) {
+      request_headers->SetHeader("Dictionary-ID", *serialized_id);
+    }
   }
 
   if (dictionary_status_ == DictionaryStatus::kNoDictionary) {

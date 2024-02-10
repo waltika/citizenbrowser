@@ -687,7 +687,8 @@ class BLINK_EXPORT WebLocalFrameClient {
   virtual void PostAccessibilityEvent(const ui::AXEvent& event) {}
 
   // Called when accessibility is ready to serialize.
-  virtual void AXReadyCallback() {}
+  // Returns true if a serialization occurs.
+  virtual bool AXReadyCallback() { return false; }
 
   // Audio Output Devices API --------------------------------------------
 
@@ -826,6 +827,11 @@ class BLINK_EXPORT WebLocalFrameClient {
   // Called when script in the frame (and it subframes) wishes to be printed via
   // a window.print() call.
   virtual void ScriptedPrint() {}
+
+  // This method is ONLY for web tests and is not supposed to be overridden in
+  // classes other than web_frame_test_proxy. It's called from accessibility and
+  // is used as a way to notify that an accessibility object has been destroyed.
+  virtual void HandleAXObjectDetachedForTest(unsigned axid) {}
 
   // This method is ONLY for web tests and is not supposed to be overridden in
   // classes other than web_frame_test_proxy. It's called from accessibility and

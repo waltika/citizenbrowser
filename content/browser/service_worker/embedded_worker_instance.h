@@ -275,13 +275,6 @@ class CONTENT_EXPORT EmbeddedWorkerInstance
       const std::string& devtools_worker_token,
       const std::string& citizennotes_worker_token);
 
-  // Returns the unique token that has been generated to identify this worker
-  // instance, and its corresponding GlobalScope in the renderer process. If the
-  // service worker is not currently running, this is std::nullopt.
-  const std::optional<blink::ServiceWorkerToken>& token() const {
-    return token_;
-  }
-
  private:
   typedef base::ObserverList<Listener>::Unchecked ListenerList;
   struct StartInfo;
@@ -436,12 +429,6 @@ class CONTENT_EXPORT EmbeddedWorkerInstance
   // requests initiated from the service worker. The impl lives on the UI
   // thread, and |coep_reporter_| has the ownership of the impl instance.
   std::unique_ptr<CrossOriginEmbedderPolicyReporter> coep_reporter_;
-
-  // A unique identifier for this service worker instance. This is unique across
-  // the browser process, but not persistent across service worker restarts.
-  // This token is set every time the worker starts, and is plumbed through to
-  // the corresponding ServiceWorkerGlobalScope in the renderer process.
-  std::optional<blink::ServiceWorkerToken> token_;
 
   base::WeakPtrFactory<EmbeddedWorkerInstance> weak_factory_{this};
 };

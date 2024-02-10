@@ -54,6 +54,7 @@ class CC_EXPORT HeadsUpDisplayLayerImpl : public LayerImpl {
 
   bool WillDraw(DrawMode draw_mode,
                 viz::ClientResourceProvider* resource_provider) override;
+  void DidDraw(viz::ClientResourceProvider* resource_provider) override;
   void AppendQuads(viz::CompositorRenderPass* render_pass,
                    AppendQuadsData* append_quads_data) override;
   void UpdateHudTexture(DrawMode draw_mode,
@@ -91,6 +92,7 @@ class CC_EXPORT HeadsUpDisplayLayerImpl : public LayerImpl {
 
   void UpdateHudContents();
   void DrawHudContents(PaintCanvas* canvas);
+  void DrawDebuggerPaused(PaintCanvas* canvas);
   void DrawText(PaintCanvas* canvas,
                 const PaintFlags& flags,
                 const std::string& text,

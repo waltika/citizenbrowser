@@ -5687,6 +5687,7 @@ interface MLGraphBuilder
     method linear
     method log
     method logicalNot
+    method lstm
     method matmul
     method max
     method maxPool2d
@@ -6789,6 +6790,7 @@ interface OTPCredential : Credential
 interface Observable
     attribute @@toStringTag
     method constructor
+    method forEach
     method subscribe
     method takeUntil
     method toArray

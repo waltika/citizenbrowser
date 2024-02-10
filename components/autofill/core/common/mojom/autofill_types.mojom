@@ -414,7 +414,6 @@ struct FormData {
   array<ButtonTitleInfo> button_titles;
   url.mojom.Url action;
   bool is_action_empty;
-  bool is_form_tag;
   FormRendererId renderer_id;
   array<FrameTokenWithPredecessor> child_frames;
   SubmissionIndicatorEvent submission_event;
@@ -510,7 +509,7 @@ struct PasswordSuggestionRequest {
   uint64 password_field_index;
   mojo_base.mojom.TextDirection text_direction;
   mojo_base.mojom.String16 typed_username;
-  int32 options;
+  bool show_webauthn_credentials;
   gfx.mojom.RectF bounds;
 };
 

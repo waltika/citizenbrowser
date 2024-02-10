@@ -1617,6 +1617,11 @@ bool ContentBrowserClient::
   return true;
 }
 
+bool ContentBrowserClient::IsTransientActivationRequiredForHtmlFullscreen(
+    content::RenderFrameHost* render_frame_host) {
+  return true;
+}
+
 bool ContentBrowserClient::ShouldUseFirstPartyStorageKey(
     const url::Origin& origin) {
   return false;
@@ -1684,5 +1689,10 @@ ContentBrowserClient::GetIpProtectionProxyBypassPolicy() {
 void ContentBrowserClient::MaybePrewarmHttpDiskCache(
     BrowserContext& browser_context,
     const GURL& navigation_url) {}
+
+void ContentBrowserClient::NotifyMultiCaptureStateChanged(
+    GlobalRenderFrameHostId capturer_rfh_id,
+    const std::string& label,
+    MultiCaptureChanged state) {}
 
 }  // namespace content

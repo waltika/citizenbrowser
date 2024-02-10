@@ -1142,7 +1142,6 @@ Inkognito režīmā vietnes nedrīkst izmantot sīkfailus, lai skatītu jūsu p�
 <translation id="681368974849482173">Vienums izveidots</translation>
 <translation id="6822587385560699678">Ja šis iestatījums ir ieslēgts, paroles tiek saglabātas kontā <ph name="ACCOUNT" />. Ja šis iestatījums ir izslēgts, paroles tiek saglabātas tikai šajā ierīcē.</translation>
 <translation id="6831043979455480757">Tulkot</translation>
-<translation id="6839843088069935119">{count,plural, =1{Grāmatzīme tika saglabāta mapē {title}. Tā tika saglabāta tikai šajā ierīcē.}zero{Grāmatzīmes tika saglabātas mapē {title}. Tās tika saglabātas tikai šajā ierīcē.}one{Grāmatzīmes tika saglabātas mapē {title}. Tās tika saglabātas tikai šajā ierīcē.}other{Grāmatzīmes tika saglabātas mapē {title}. Tās tika saglabātas tikai šajā ierīcē.}}</translation>
 <translation id="6842136130964845393">Lai vienmēr varētu piekļūt savām saglabātajām parolēm, apstipriniet savu identitāti.</translation>
 <translation id="6851516051005285358">Pieprasīt datora vietni</translation>
 <translation id="6852222216891664518">Aizvērt piesprausto cilni</translation>
@@ -1412,6 +1411,7 @@ Vietnes drīkst izmantot sīkfailus, lai skatītu jūsu pārlūkošanas darbība
 <translation id="8273982424131314219">Jūs aizpildīsiet informāciju vietnē <ph name="URL" />.</translation>
 <translation id="8281781826761538115">Noklusējuma — <ph name="DEFAULT_LOCALE" /></translation>
 <translation id="8281886186245836920">Izlaist</translation>
+<translation id="828291969289324795">{count,plural, =1{Pievienot cilni jaunai grupai}zero{Pievienot cilnes jaunai grupai}one{Pievienot cilnes jaunai grupai}other{Pievienot cilnes jaunai grupai}}</translation>
 <translation id="8283172974887967105">Iestatīt…</translation>
 <translation id="8286036467436129157">Pierakstīties</translation>
 <translation id="8299417921174340354">Lai izmantotu paroles, vispirms ierīcei ir jāiestata piekļuves kods.</translation>

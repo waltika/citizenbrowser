@@ -35,6 +35,7 @@
 #include "third_party/blink/public/mojom/interest_group/ad_auction_service.mojom.h"
 #include "third_party/blink/public/mojom/interest_group/interest_group_types.mojom-forward.h"
 #include "third_party/blink/public/mojom/parakeet/ad_request.mojom.h"
+#include "third_party/blink/public/mojom/permissions_policy/permissions_policy_feature.mojom-forward.h"
 #include "url/gurl.h"
 #include "url/origin.h"
 
@@ -141,7 +142,17 @@ class CONTENT_EXPORT AdAuctionServiceImpl final
   // Checks if a join or leave interest group is allowed to be sent from the
   // current renderer. If not, returns false and invokes
   // ReportBadMessageAndDeleteThis().
-  bool JoinOrLeaveApiAllowedFromRenderer(const url::Origin& owner);
+  bool JoinOrLeaveApiAllowedFromRenderer(const url::Origin& owner,
+                                         const char* invoked_method);
+
+  // Checks if `feature` is enabled for the frame, and returns true if so, and
+  // false if not. Additionally, if the feature is enabled, prints a warning to
+  // the console if the feature would not be enabled if the default state of the
+  // feature across cross-origin frames were switched to disabled instead of
+  // enabled.
+  bool IsPermissionPolicyEnabledAndWarnIfNeeded(
+      blink::mojom::PermissionsPolicyFeature feature,
+      const char* method);
 
   // Returns true if `origin` is allowed to perform the specified
   // `interest_group_api_operation` in this frame. Must be called on worklet /
@@ -241,6 +252,12 @@ class CONTENT_EXPORT AdAuctionServiceImpl final
   // BiddingAndAuctionDataConstructionState's data and key will be edited in
   // place as they are loaded.
   base::queue<BiddingAndAuctionDataConstructionState> ba_data_callbacks_;
+
+  // True if a feature is currently enabled, but would be disabled if the
+  // default policy for the feature were switched to EnableForSelf. Lazily
+  // populated.
+  std::map<blink::mojom::PermissionsPolicyFeature, bool>
+      should_warn_about_feature_;
 
   base::WeakPtrFactory<AdAuctionServiceImpl> weak_ptr_factory_{this};
 };

@@ -18,7 +18,6 @@ js_files = [
   "file_manager/copy_between_windows.js",
   "file_manager/create_new_folder.js",
   "file_manager/crostini.js",
-  "file_manager/directory_tree.js",
   "file_manager/directory_tree_context_menu.js",
   "file_manager/dlp.js",
   "file_manager/dlp_enterprise_connectors.js",
@@ -38,14 +37,7 @@ js_files = [
   "file_manager/metadata.js",
   "file_manager/metrics.js",
   "file_manager/my_files.js",
-  "file_manager/navigation.js",
   "file_manager/office.js",
-  "file_manager/open_audio_media_app.js",
-  "file_manager/open_files_in_web_drive.js",
-  "file_manager/open_image_media_app.js",
-  "file_manager/open_media_app.js",
-  "file_manager/open_sniffed_files.js",
-  "file_manager/open_video_media_app.js",
   "file_manager/providers.js",
   "file_manager/quick_view.js",
   "file_manager/recents.js",
@@ -59,7 +51,6 @@ js_files = [
   "file_manager/test_data.js",
   "file_manager/toolbar.js",
   "file_manager/transfer.js",
-  "file_manager/trash.js",
   "file_manager/traverse.js",
   "file_manager/zip_files.js",
 
@@ -92,7 +83,7 @@ ts_files = [
 
   # "file_manager/crostini.ts",
 
-  # "file_manager/directory_tree.ts",
+  "file_manager/directory_tree.ts",
 
   # "file_manager/directory_tree_context_menu.ts",
 
@@ -134,21 +125,16 @@ ts_files = [
 
   # "file_manager/my_files.ts",
 
-  # "file_manager/navigation.ts",
+  "file_manager/navigation.ts",
 
   # "file_manager/office.ts",
 
-  # "file_manager/open_audio_media_app.ts",
-
-  # "file_manager/open_files_in_web_drive.ts",
-
-  # "file_manager/open_image_media_app.ts",
-
-  # "file_manager/open_media_app.ts",
-
-  # "file_manager/open_sniffed_files.ts",
-
-  # "file_manager/open_video_media_app.ts",
+  "file_manager/open_audio_media_app.ts",
+  "file_manager/open_files_in_web_drive.ts",
+  "file_manager/open_image_media_app.ts",
+  "file_manager/open_media_app.ts",
+  "file_manager/open_sniffed_files.ts",
+  "file_manager/open_video_media_app.ts",
 
   # "file_manager/providers.ts",
 
@@ -176,7 +162,7 @@ ts_files = [
 
   # "file_manager/transfer.ts",
 
-  # "file_manager/trash.ts",
+  "file_manager/trash.ts",
 
   # "file_manager/traverse.ts",
 

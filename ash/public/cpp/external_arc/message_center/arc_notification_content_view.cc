@@ -133,6 +133,7 @@ class ArcNotificationContentView::EventForwarder : public ui::EventHandler {
       } else if (located_event->IsScrollEvent()) {
         owner_->item_->CancelPress();
         widget->OnScrollEvent(located_event->AsScrollEvent());
+        return;
       } else if (located_event->IsGestureEvent() &&
                  event->type() != ui::ET_GESTURE_TAP) {
         bool slide_handled_by_android = false;
@@ -395,8 +396,9 @@ void ArcNotificationContentView::UpdateCornerRadius(float top_radius,
   top_radius_ = top_radius;
   bottom_radius_ = bottom_radius;
 
-  if (GetWidget())
+  if (GetWidget() && GetNativeViewContainer()) {
     UpdateMask(force_update);
+  }
 }
 
 void ArcNotificationContentView::OnSlideChanged(bool in_progress) {
@@ -923,7 +925,7 @@ void ArcNotificationContentView::OnNotificationSurfaceRemoved(
   SetSurface(nullptr);
 }
 
-BEGIN_METADATA(ArcNotificationContentView, views::NativeViewHost)
+BEGIN_METADATA(ArcNotificationContentView)
 END_METADATA
 
 }  // namespace ash

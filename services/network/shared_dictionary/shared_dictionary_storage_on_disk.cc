@@ -75,12 +75,14 @@ class SharedDictionaryStorageOnDisk::RefCountedSharedDictionary
   RefCountedSharedDictionary(
       size_t size,
       const net::SHA256HashValue& hash,
+      const std::string& id,
       const base::UnguessableToken& disk_cache_key_token,
       SharedDictionaryDiskCache& disk_cahe,
       base::OnceClosure disk_cache_error_callback,
       base::ScopedClosureRunner on_deleted_closure_runner)
       : SharedDictionaryOnDisk(size,
                                hash,
+                               id,
                                disk_cache_key_token,
                                &disk_cahe,
                                std::move(disk_cache_error_callback)),
@@ -118,6 +120,9 @@ class SharedDictionaryStorageOnDisk::WrappedSharedDictionary
   }
   const net::SHA256HashValue& hash() const override {
     return ref_counted_shared_dictionary_->hash();
+  }
+  const std::string& id() const override {
+    return ref_counted_shared_dictionary_->id();
   }
 
  private:
@@ -199,7 +204,7 @@ SharedDictionaryStorageOnDisk::GetDictionarySync(
 
   auto ref_counted_shared_dictionary = base::MakeRefCounted<
       RefCountedSharedDictionary>(
-      info->size(), info->hash(), info->disk_cache_key_token(),
+      info->size(), info->hash(), info->id(), info->disk_cache_key_token(),
       manager_->disk_cache(),
       base::BindOnce(
           &SharedDictionaryManagerOnDisk::MaybePostMismatchingEntryDeletionTask,
@@ -239,13 +244,11 @@ SharedDictionaryStorageOnDisk::CreateWriter(
   }
 
   std::unique_ptr<SimpleUrlPatternMatcher> matcher;
-  if (NeedToUseUrlPatternMatcher()) {
-    auto matcher_create_result = SimpleUrlPatternMatcher::Create(match, url);
-    if (!matcher_create_result.has_value()) {
-      return nullptr;
-    }
-    matcher = std::move(matcher_create_result.value());
+  auto matcher_create_result = SimpleUrlPatternMatcher::Create(match, url);
+  if (!matcher_create_result.has_value()) {
+    return nullptr;
   }
+  matcher = std::move(matcher_create_result.value());
   return manager_->CreateWriter(
       isolation_key_, url, response_time, expiration, match, match_dest, id,
       base::BindOnce(&SharedDictionaryStorageOnDisk::OnDictionaryWritten,
@@ -273,20 +276,17 @@ void SharedDictionaryStorageOnDisk::OnDatabaseRead(
     return;
   }
 
-  const bool need_matcher = NeedToUseUrlPatternMatcher();
   for (auto& info : result.value()) {
     const url::SchemeHostPort scheme_host_port =
         url::SchemeHostPort(info.url());
     const std::string match = info.match();
     std::unique_ptr<SimpleUrlPatternMatcher> matcher;
-    if (need_matcher) {
-      auto matcher_create_result =
-          SimpleUrlPatternMatcher::Create(match, info.url());
-      if (!matcher_create_result.has_value()) {
-        continue;
-      }
-      matcher = std::move(matcher_create_result.value());
+    auto matcher_create_result =
+        SimpleUrlPatternMatcher::Create(match, info.url());
+    if (!matcher_create_result.has_value()) {
+      continue;
     }
+    matcher = std::move(matcher_create_result.value());
     WrappedDictionaryInfo wrapped_info(std::move(info), std::move(matcher));
     auto key = std::make_tuple(match, wrapped_info.match_dest());
     dictionary_info_map_[scheme_host_port].insert(

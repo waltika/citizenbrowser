@@ -61,6 +61,7 @@ import org.chromium.chrome.browser.lifecycle.ActivityLifecycleDispatcher;
 import org.chromium.chrome.browser.lifecycle.LifecycleObserver;
 import org.chromium.chrome.browser.lifecycle.PauseResumeWithNativeObserver;
 import org.chromium.chrome.browser.logo.LogoUtils;
+import org.chromium.chrome.browser.magic_stack.HomeModulesConfigManager;
 import org.chromium.chrome.browser.magic_stack.HomeModulesCoordinator;
 import org.chromium.chrome.browser.magic_stack.ModuleDelegateHost;
 import org.chromium.chrome.browser.native_page.ContextMenuManager;
@@ -74,6 +75,7 @@ import org.chromium.chrome.browser.profiles.ProfileKey;
 import org.chromium.chrome.browser.search_engines.TemplateUrlServiceFactory;
 import org.chromium.chrome.browser.search_resumption.SearchResumptionModuleCoordinator;
 import org.chromium.chrome.browser.search_resumption.SearchResumptionModuleUtils;
+import org.chromium.chrome.browser.settings.SettingsLauncherImpl;
 import org.chromium.chrome.browser.share.ShareDelegate;
 import org.chromium.chrome.browser.suggestions.SuggestionsMetrics;
 import org.chromium.chrome.browser.suggestions.SuggestionsNavigationDelegate;
@@ -99,7 +101,6 @@ import org.chromium.chrome.browser.ui.native_page.NativePageHost;
 import org.chromium.chrome.browser.util.BrowserUiUtils;
 import org.chromium.chrome.browser.util.BrowserUiUtils.HostSurface;
 import org.chromium.chrome.browser.xsurface.feed.FeedLaunchReliabilityLogger.SurfaceType;
-import org.chromium.chrome.features.magic_stack.ChromeHomeModulesConfigManager;
 import org.chromium.chrome.features.start_surface.StartSurfaceConfiguration;
 import org.chromium.chrome.features.tasks.SingleTabSwitcherCoordinator;
 import org.chromium.components.browser_ui.bottomsheet.BottomSheetController;
@@ -1292,7 +1293,7 @@ public class NewTabPage
                         mActivity,
                         this,
                         mNewTabPageLayout,
-                        ChromeHomeModulesConfigManager.getInstance(),
+                        HomeModulesConfigManager.getInstance(),
                         profileSupplier);
     }
 
@@ -1408,7 +1409,7 @@ public class NewTabPage
 
     @Override
     public void customizeSettings() {
-        ChromeHomeModulesConfigManager.getInstance().onMenuClick(mContext);
+        HomeModulesConfigManager.getInstance().onMenuClick(mContext, new SettingsLauncherImpl());
     }
 
     @Override
@@ -1437,5 +1438,12 @@ public class NewTabPage
         }
 
         return mMostRecentTabSupplier.get();
+    }
+
+    @Override
+    public boolean isHomeSurface() {
+        // Can only show a local tab to resume if we we have a tracked tab. The presence of the
+        // local tab to resume module is effectively what being a home surface is.
+        return mMostRecentTabSupplier.hasValue();
     }
 }

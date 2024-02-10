@@ -9,6 +9,8 @@ import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
 
+import org.chromium.base.supplier.ObservableSupplier;
+import org.chromium.base.supplier.ObservableSupplierImpl;
 import org.chromium.ui.modelutil.PropertyModel;
 import org.chromium.ui.modelutil.PropertyModelChangeProcessor;
 
@@ -19,15 +21,20 @@ import java.util.List;
 public class ColorPickerMediator {
     private final @NonNull List<PropertyModel> mColorItems;
     private final @NonNull List<Integer> mColors;
-    private int mSelectedColor;
+    private final @NonNull @ColorPickerType int mColorPickerType;
+    private ObservableSupplierImpl<Integer> mSelectedColorSupplier = new ObservableSupplierImpl<>();
 
-    public ColorPickerMediator(List<Integer> colors) {
-        this(colors, new ArrayList<>());
+    public ColorPickerMediator(List<Integer> colors, @ColorPickerType int colorPickerType) {
+        this(colors, new ArrayList<>(), colorPickerType);
     }
 
-    protected ColorPickerMediator(List<Integer> colors, List<PropertyModel> colorItems) {
+    protected ColorPickerMediator(
+            List<Integer> colors,
+            List<PropertyModel> colorItems,
+            @ColorPickerType int colorPickerType) {
         mColors = colors;
         mColorItems = colorItems;
+        mColorPickerType = colorPickerType;
     }
 
     /**
@@ -37,7 +44,6 @@ public class ColorPickerMediator {
      * @param containerView The parent container for all color items inflated by this component.
      */
     public void setColorListItems(ColorPickerContainer containerView) {
-        // The default selected color, which is the 0th item in the list.
         List<FrameLayout> colorViews = new ArrayList<>();
         Context context = containerView.getContext();
 
@@ -49,6 +55,7 @@ public class ColorPickerMediator {
                     ColorPickerItemProperties.create(
                             /* color= */ color,
                             /* isSelected= */ false,
+                            /* colorPickerType= */ mColorPickerType,
                             /* onClickListener= */ () -> {
                                 setSelectedColorItem(color);
                             });
@@ -67,10 +74,10 @@ public class ColorPickerMediator {
             model.set(ColorPickerItemProperties.IS_SELECTED, isSelected);
         }
 
-        mSelectedColor = selectedColor;
+        mSelectedColorSupplier.set(selectedColor);
     }
 
-    int getSelectedColor() {
-        return mSelectedColor;
+    ObservableSupplier<Integer> getSelectedColorSupplier() {
+        return mSelectedColorSupplier;
     }
 }

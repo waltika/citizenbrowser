@@ -9,7 +9,9 @@
 #include "ash/picker/mock_picker_asset_fetcher.h"
 #include "ash/picker/model/picker_category.h"
 #include "ash/picker/model/picker_search_results.h"
+#include "ash/picker/views/picker_category_type.h"
 #include "ash/picker/views/picker_category_view.h"
+#include "ash/picker/views/picker_contents_view.h"
 #include "ash/picker/views/picker_search_field_view.h"
 #include "ash/picker/views/picker_search_results_view.h"
 #include "ash/picker/views/picker_section_view.h"
@@ -26,6 +28,7 @@
 #include "testing/gmock/include/gmock/gmock-matchers.h"
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
+#include "ui/base/emoji/emoji_panel_helper.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/chromeos/styles/cros_tokens_color_mappings.h"
 #include "ui/display/screen.h"
@@ -114,14 +117,17 @@ PickerView* GetPickerViewFromWidget(views::Widget& widget) {
 }
 
 // Gets an item view that can be clicked to select a category.
-// TODO: b/316935911 - This assumes that the picker is in the zero state and
-// that the first item is a category. This probably won't be the case once more
-// of the zero state view has been implemented. We should have a better way of
-// getting a category item.
 views::View* GetCategoryItemView(PickerView* picker_view) {
   return picker_view->zero_state_view_for_testing()
-      .section_views_for_testing()[0]
-      ->item_views_for_testing()[0];
+      .section_views_for_testing()
+      .find(PickerCategoryType::kExpressions)
+      ->second->item_views_for_testing()[0];
+}
+views::View* GetNonEmojiCategoryItemView(PickerView* picker_view) {
+  return picker_view->zero_state_view_for_testing()
+      .section_views_for_testing()
+      .find(PickerCategoryType::kExpressions)
+      ->second->item_views_for_testing()[1];
 }
 
 TEST_F(PickerViewTest, CreateWidgetHasCorrectHierarchy) {
@@ -265,7 +271,7 @@ TEST_F(PickerViewTest, SwitchesToCategoryView) {
   widget->Show();
 
   PickerView* picker_view = GetPickerViewFromWidget(*widget);
-  views::View* category_item_view = GetCategoryItemView(picker_view);
+  views::View* category_item_view = GetNonEmojiCategoryItemView(picker_view);
   ViewDrawnWaiter().Wait(category_item_view);
   LeftClickOn(category_item_view);
 
@@ -282,7 +288,7 @@ TEST_F(PickerViewTest, SelectingCategoryUpdatesSearchFieldPlaceholderText) {
   widget->Show();
 
   PickerView* picker_view = GetPickerViewFromWidget(*widget);
-  views::View* category_item_view = GetCategoryItemView(picker_view);
+  views::View* category_item_view = GetNonEmojiCategoryItemView(picker_view);
   ViewDrawnWaiter().Wait(category_item_view);
   LeftClickOn(category_item_view);
 
@@ -290,7 +296,7 @@ TEST_F(PickerViewTest, SelectingCategoryUpdatesSearchFieldPlaceholderText) {
                   .textfield_for_testing()
                   .GetPlaceholderText(),
               Eq(l10n_util::GetStringUTF16(
-                  IDS_PICKER_EMOJIS_CATEGORY_SEARCH_FIELD_PLACEHOLDER_TEXT)));
+                  IDS_PICKER_SYMBOLS_CATEGORY_SEARCH_FIELD_PLACEHOLDER_TEXT)));
 }
 
 TEST_F(PickerViewTest, SearchingWithCategorySwitchesToSearchResultsView) {
@@ -302,7 +308,7 @@ TEST_F(PickerViewTest, SearchingWithCategorySwitchesToSearchResultsView) {
 
   // Switch to category view.
   PickerView* picker_view = GetPickerViewFromWidget(*widget);
-  views::View* category_item_view = GetCategoryItemView(picker_view);
+  views::View* category_item_view = GetNonEmojiCategoryItemView(picker_view);
   ViewDrawnWaiter().Wait(category_item_view);
   LeftClickOn(category_item_view);
   // Type something into the search field.
@@ -322,7 +328,7 @@ TEST_F(PickerViewTest, EmptySearchFieldSwitchesBackToCategoryView) {
 
   // Switch to category view.
   PickerView* picker_view = GetPickerViewFromWidget(*widget);
-  views::View* category_item_view = GetCategoryItemView(picker_view);
+  views::View* category_item_view = GetNonEmojiCategoryItemView(picker_view);
   ViewDrawnWaiter().Wait(category_item_view);
   LeftClickOn(category_item_view);
   // Type something into the search field.
@@ -557,7 +563,7 @@ TEST_F(PickerViewTest, ResultsBelowSearchFieldNearTopOfScreen) {
   widget->Show();
 
   PickerView* view = GetPickerViewFromWidget(*widget);
-  EXPECT_GE(view->zero_state_view_for_testing().GetBoundsInScreen().y(),
+  EXPECT_GE(view->contents_view_for_testing().GetBoundsInScreen().y(),
             view->search_field_view_for_testing().GetBoundsInScreen().bottom());
 }
 
@@ -573,8 +579,24 @@ TEST_F(PickerViewTest, ResultsAboveSearchFieldNearBottomOfScreen) {
   widget->Show();
 
   PickerView* view = GetPickerViewFromWidget(*widget);
-  EXPECT_LE(view->zero_state_view_for_testing().GetBoundsInScreen().bottom(),
+  EXPECT_LE(view->contents_view_for_testing().GetBoundsInScreen().bottom(),
             view->search_field_view_for_testing().GetBoundsInScreen().y());
+}
+
+TEST_F(PickerViewTest, ShowsEmojiPickerWhenClickingOnEmoji) {
+  FakePickerViewDelegate delegate;
+  auto widget =
+      PickerView::CreateWidget(kDefaultCaretBounds, kDefaultCursorPoint,
+                               kDefaultFocusedWindowBounds, &delegate);
+  widget->Show();
+  bool called = false;
+  ui::SetShowEmojiKeyboardCallback(
+      base::BindRepeating([](bool* called) { *called = true; }, &called));
+
+  LeftClickOn(GetCategoryItemView(GetPickerViewFromWidget(*widget)));
+
+  EXPECT_TRUE(widget->IsClosed());
+  EXPECT_TRUE(called);
 }
 
 }  // namespace

@@ -67,6 +67,8 @@ const yellowThemeSelectionColor = 'var(--google-blue-100)';
 
 const previousReadHighlightClass = 'previous-read-highlight';
 
+const linkDataAttribute = 'link';
+
 // A two-way map where each key is unique and each value is unique. The keys are
 // DOM nodes and the values are numbers, representing AXNodeIDs.
 class TwoWayMap<K, V> extends Map<K, V> {
@@ -102,6 +104,12 @@ if (chrome.readingMode) {
     const readAnythingApp = document.querySelector('read-anything-app');
     assert(readAnythingApp);
     readAnythingApp.updateContent();
+  };
+
+  chrome.readingMode.updateLinks = () => {
+    const readAnythingApp = document.querySelector('read-anything-app');
+    assert(readAnythingApp);
+    readAnythingApp.updateLinks();
   };
 
   chrome.readingMode.updateSelection = () => {
@@ -223,6 +231,10 @@ export class ReadAnythingElement extends ReadAnythingElementBase {
   speechStarted = false;
   maxSpeechLength = 175;
 
+  // The node id of the first text node that should be used by Read Aloud.
+  // -1 if the node is not set.
+  firstTextNodeSetForReadAloud = -1;
+
   rate: number = 1;
 
   constructor() {
@@ -288,6 +300,7 @@ export class ReadAnythingElement extends ReadAnythingElementBase {
 
   private buildSubtree_(nodeId: number): Node {
     let htmlTag = chrome.readingMode.getHtmlTag(nodeId);
+    const dataAttributes = new Map<string, string>();
 
     // Text nodes do not have an html tag.
     if (!htmlTag.length) {
@@ -307,17 +320,24 @@ export class ReadAnythingElement extends ReadAnythingElementBase {
       htmlTag = 'div';
     }
 
+    const url = chrome.readingMode.getUrl(nodeId);
+
     if (!this.shouldShowLinks() && htmlTag === 'a') {
       htmlTag = 'span';
+      dataAttributes.set(linkDataAttribute, url ?? '');
     }
 
     const element = document.createElement(htmlTag);
+    // Add required data attributes.
+    for (const [attr, val] of dataAttributes) {
+      element.dataset[attr] = val;
+    }
     this.domNodeToAxNodeIdMap_.set(element, nodeId);
     const direction = chrome.readingMode.getTextDirection(nodeId);
     if (direction) {
       element.setAttribute('dir', direction);
     }
-    const url = chrome.readingMode.getUrl(nodeId);
+
     if (url && element.nodeName === 'A') {
       element.setAttribute('href', url);
       element.onclick = () => {
@@ -347,6 +367,16 @@ export class ReadAnythingElement extends ReadAnythingElementBase {
   }
 
   private createTextNode_(nodeId: number): Node {
+    // When creating text nodes, save the first text node id. We need this
+    // node id to call InitAXPosition in playSpeech. If it's not saved here,
+    // we have to retrieve it through a DOM search such as createTreeWalker,
+    // which can be computationally expensive.
+    // However, since updateContent may be called after speech starts playing,
+    // don't call InitAXPosition from here to avoid interrupting current speech.
+    if (this.firstTextNodeSetForReadAloud < 0) {
+      this.firstTextNodeSetForReadAloud = nodeId;
+    }
+
     const textContent = chrome.readingMode.getTextContent(nodeId);
     const textNode = document.createTextNode(textContent);
     this.domNodeToAxNodeIdMap_.set(textNode, nodeId);
@@ -410,6 +440,16 @@ export class ReadAnythingElement extends ReadAnythingElementBase {
   // TODO(crbug.com/1474951): Handle focus changes for speech, including
   // updating speech state.
   updateContent() {
+    // Each time we rebuild the subtree, we should clear the node id of the
+    // first text node.
+    this.firstTextNodeSetForReadAloud = -1;
+
+    this.refreshContent();
+  }
+
+  // Refreshes the content. This should only be called from the UI to avoid
+  // clearing state, such as the first text node.
+  private refreshContent() {
     const shadowRoot = this.shadowRoot;
     assert(shadowRoot);
     const container = shadowRoot.getElementById('container');
@@ -474,8 +514,26 @@ export class ReadAnythingElement extends ReadAnythingElementBase {
     startElement.scrollIntoViewIfNeeded();
   }
 
+  updateLinks() {
+    if (!this.shadowRoot) {
+      return;
+    }
+
+    const selector = this.shouldShowLinks() ? 'span[data-link]' : 'a';
+    const elements = this.shadowRoot.querySelectorAll(selector);
+
+    for (const elem of elements) {
+      assert(elem instanceof HTMLElement);
+      const nodeId = this.domNodeToAxNodeIdMap_.get(elem);
+      assert(nodeId !== undefined);
+      const replacement = this.buildSubtree_(nodeId);
+      this.replaceElement(elem, replacement);
+    }
+  }
+
   onSpeechRateChange(rate: number) {
     this.rate = rate;
+    this.resetSpeechPostSettingChange_();
   }
 
   getSpeechSynthesisVoice(): SpeechSynthesisVoice|undefined {
@@ -531,6 +589,16 @@ export class ReadAnythingElement extends ReadAnythingElementBase {
       this.availableVoices = this.synth.getVoices();
     }
     return this.availableVoices;
+  }
+
+  private replaceElement(current: HTMLElement, replacer: Node) {
+    const nodeId = this.domNodeToAxNodeIdMap_.get(current);
+    assert(nodeId !== undefined);
+    // Update map.
+    this.domNodeToAxNodeIdMap_.delete(current);
+    this.domNodeToAxNodeIdMap_.set(replacer, nodeId);
+    // Replace element in DOM.
+    current.replaceWith(replacer);
   }
 
   private onPreviewVoice_(
@@ -593,7 +661,7 @@ export class ReadAnythingElement extends ReadAnythingElementBase {
     // if it's paused from a non-pause button (e.g. voice previews) so the links
     // don't flash off and on.
     if (chrome.readingMode.linksEnabled && pausedFromPlayClickButton) {
-      this.updateContent();
+      this.updateLinks();
       this.highlightNodes(chrome.readingMode.getCurrentText());
     }
   }
@@ -612,7 +680,7 @@ export class ReadAnythingElement extends ReadAnythingElementBase {
   //  previous granularity.
   playPreviousGranularity() {
     this.synth.cancel();
-    this.resetPreviousHighlight();
+    this.resetPreviousHighlightAndRemoveCurrentHighlight();
     chrome.readingMode.movePositionToPreviousGranularity();
 
     if (!this.highlightAndPlayMessage()) {
@@ -639,7 +707,7 @@ export class ReadAnythingElement extends ReadAnythingElementBase {
       // Hide links when speech resumes. We only hide links when the page was
       // paused from the play/pause button.
       if (chrome.readingMode.linksEnabled && pausedFromPlayClickButton) {
-        this.updateContent();
+        this.updateLinks();
       }
 
       // If the current read highlight has been cleared from a call to
@@ -659,27 +727,14 @@ export class ReadAnythingElement extends ReadAnythingElementBase {
       this.pausedFromPlayClickButton = false;
       // Hide links when speech begins playing.
       if (chrome.readingMode.linksEnabled) {
-        this.updateContent();
+        this.updateLinks();
       }
 
-      // Gather all the messages that can be played. We need nodes, rather
-      // than just text because we need to add a span to the current sentence
-      // in order to use css styling to highlight the text as it's spoken.
-      // Since this modifies the nodes, and we can't do that while we're
-      // iterating over the tree, we gather them first, then speak them.
-      // TODO(crbug.com/1474951): Better handle if a sentence is split across
-      // multiple nodes (e.g. if some text is linked). Right now it will just
-      // sound choppy.
-      const treeRoot = container.firstChild;
-      assert(treeRoot);
-      const treeWalker =
-          document.createTreeWalker(treeRoot, NodeFilter.SHOW_TEXT);
-      treeWalker.nextNode();
-      const axNode = this.domNodeToAxNodeIdMap_.get(treeWalker.currentNode);
       // TODO(crbug.com/1474951): There should be a way to use AXPosition so
       // that this step can be skipped.
-      if (axNode) {
-        chrome.readingMode.initAXPositionWithNode(axNode);
+      if (this.firstTextNodeSetForReadAloud > 0) {
+        chrome.readingMode.initAXPositionWithNode(
+            this.firstTextNodeSetForReadAloud);
         this.highlightAndPlayMessage();
       }
     }
@@ -919,7 +974,7 @@ export class ReadAnythingElement extends ReadAnythingElementBase {
 
     // Hide links when speech finishes playing.
     if (chrome.readingMode.linksEnabled) {
-      this.updateContent();
+      this.updateLinks();
     }
   }
 
@@ -938,6 +993,25 @@ export class ReadAnythingElement extends ReadAnythingElementBase {
     this.selectedVoice = event.detail.selectedVoice;
     chrome.readingMode.onVoiceChange(
         this.selectedVoice.name, this.selectedVoice.lang.split('-')[0]);
+
+    this.resetSpeechPostSettingChange_();
+  }
+
+  private resetSpeechPostSettingChange_() {
+    // Don't call stopSpeech() if initAXPositionWithNode hasn't been called
+    if (!this.speechStarted) {
+      return;
+    }
+
+    const playSpeechOnChange = !this.paused;
+
+    // Cancel the queued up Utterance using the old speech settings
+    this.stopSpeech();
+
+    // If speech was playing when a setting was changed, continue playing speech
+    if (playSpeechOnChange) {
+      this.playSpeech();
+    }
   }
 
   // TODO(b/1465029): Once the IsReadAnythingWebUIEnabled flag is removed
@@ -989,6 +1063,15 @@ export class ReadAnythingElement extends ReadAnythingElementBase {
       default:
         return defaultSelectionColor;
     }
+  }
+
+  private resetPreviousHighlightAndRemoveCurrentHighlight() {
+    const lastElement = this.previousHighlight_.pop();
+    if (lastElement) {
+      lastElement.className = '';
+    }
+
+    this.resetPreviousHighlight();
   }
 
   private resetPreviousHighlight() {

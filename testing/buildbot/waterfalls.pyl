@@ -2420,6 +2420,22 @@
           'isolated_scripts': 'gpu_dawn_android_isolated_scripts',
         },
       },
+      'Dawn Android arm64 Experimental Release (Pixel 6)': {
+        'os_type': 'android',
+        'browser_config': 'android-chromium',
+        'mixins': [
+          'android_t',
+          'has_native_resultdb_integration',
+          'oriole',
+          'gpu-swarming-pool',
+        ],
+        # When the experimental OS version is identical to the stable version,
+        # the gpu_noop_sleep_telemetry_test test should be used. Otherwise, this
+        # should have the same test_suites as 'Dawn Android arm64 Release (Pixel 6)'.
+        'test_suites': {
+          'gpu_telemetry_tests': 'gpu_noop_sleep_telemetry_test',
+        },
+      },
       'Dawn Android arm64 Release (Pixel 6)': {
         'os_type': 'android',
         'browser_config': 'android-chromium',
@@ -2802,7 +2818,7 @@
           'mac_default_arm64',
         ],
         'test_suites': {
-           'gtest_tests': 'chromium_dev_desktop_gtests',
+           'gtest_tests': 'chromium_dev_mac_gtests',
         },
       },
       'mac-rel-dev': {
@@ -2810,7 +2826,7 @@
           'mac_default_x64',
         ],
         'test_suites': {
-           'gtest_tests': 'chromium_dev_desktop_gtests',
+           'gtest_tests': 'chromium_dev_mac_gtests',
         },
       },
       'win-rel-dev': {
@@ -2818,7 +2834,7 @@
           'win10',
         ],
         'test_suites': {
-           'gtest_tests': 'chromium_dev_desktop_gtests',
+           'gtest_tests': 'chromium_dev_win_gtests',
         },
       },
       'win11-rel-dev': {
@@ -2826,7 +2842,7 @@
           'win11',
         ],
         'test_suites': {
-           'gtest_tests': 'chromium_dev_desktop_gtests',
+           'gtest_tests': 'chromium_dev_win_gtests',
         },
       },
     },
@@ -3266,32 +3282,6 @@
         },
       },
 
-      # TODO(crbug.com/1235218): remove after the migration.
-      'chromeos-amd64-generic-rel (reclient compare)': {
-        'additional_compile_targets': [
-          'chromiumos_preflight',
-        ],
-        'browser_config': 'cros-chrome',
-        'mixins': [
-          'chromeos-amd64-generic',
-        ],
-        'os_type': 'chromeos',
-      },
-      'chromeos-amd64-generic-rel (reclient)': {
-        'additional_compile_targets': [
-          'chromiumos_preflight',
-        ],
-        'browser_config': 'cros-chrome',
-        'mixins': [
-          'chromeos-amd64-generic',
-        ],
-        'os_type': 'chromeos',
-        'test_suites': {
-          'gpu_telemetry_tests': 'gpu_chromeos_telemetry_tests',
-          'gtest_tests': 'chromeos_vm_gtests_and_tast',
-          'isolated_scripts': 'chromeos_isolated_scripts',
-        },
-      },
       'chromeos-jacuzzi-rel-skylab-fyi': {
         'additional_compile_targets': [
           'chrome',
@@ -3470,12 +3460,6 @@
         'test_suites': {
           'isolated_scripts': 'ios17_sdk_simulator_tests'
         },
-      },
-      'lacros-amd64-generic-rel (reclient)': {
-        'additional_compile_targets': [
-          'chrome',
-        ],
-        'os_type': 'chromeos'
       },
       'linux-annotator-rel': {
         'test_suites': {
@@ -5901,8 +5885,7 @@
           'mac_default_x64',
         ],
         'test_suites': {
-          # TODO(crbug.com/1409418): Reenable baremetal_tests.
-          'gtest_tests': 'webrtc_chromium_gtests',
+          'gtest_tests': 'webrtc_chromium_tests_without_baremetal_tests',
         },
       },
       'WebRTC Chromium Win Builder': {
@@ -5917,7 +5900,7 @@
           },
         },
         'test_suites': {
-          'gtest_tests': 'webrtc_chromium_tests_with_baremetal_tests',
+          'gtest_tests': 'webrtc_chromium_tests_without_baremetal_tests',
         },
       },
     },

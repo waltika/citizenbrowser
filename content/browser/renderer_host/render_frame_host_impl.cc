@@ -152,6 +152,7 @@
 #include "content/browser/web_package/prefetched_signed_exchange_cache.h"
 #include "content/browser/webauth/authenticator_impl.h"
 #include "content/browser/webauth/webauth_request_security_checker.h"
+#include "content/browser/webid/digital_credentials/digital_identity_request_impl.h"
 #include "content/browser/webid/federated_auth_request_impl.h"
 #include "content/browser/webid/flags.h"
 #include "content/browser/websockets/websocket_connector_impl.h"
@@ -9289,11 +9290,13 @@ void RenderFrameHostImpl::BeginNavigation(
                   initiator_process_id,
                   begin_params->initiator_frame_token.value())
             : nullptr;
-    // The initiator must have window-management permission, permission
-    // policy and `fullscreen` permission policy granted and the navigation must
-    // be from a user gesture, otherwise the fullscreen bit is dropped.
+    // The initiator needs window-management permission, window-management and
+    // fullscreen permission policies, and a user gesture or other allowance,
+    // otherwise the fullscreen bit is dropped.
     if (!initiator_render_frame_host ||
-        !validated_common_params->has_user_gesture ||
+        !(validated_common_params->has_user_gesture ||
+          !initiator_render_frame_host->delegate_
+               ->IsTransientActivationRequiredForHtmlFullscreen()) ||
         !IsWindowManagementGranted(initiator_render_frame_host) ||
         !initiator_render_frame_host->permissions_policy()->IsFeatureEnabled(
             blink::mojom::PermissionsPolicyFeature::kFullscreen) ||
@@ -9942,7 +9945,7 @@ RenderFrameHostImpl::CheckOrDispatchBeforeUnloadForFrame(
   // innermost frame, as Blink will walk all same-site (local)
   // descendants. Detect cases like this and skip them.
   bool has_same_site_ancestor = false;
-  for (auto* added_rfh : beforeunload_pending_replies_) {
+  for (RenderFrameHostImpl* added_rfh : beforeunload_pending_replies_) {
     if (rfh->IsDescendantOfWithinFrameTree(added_rfh) &&
         rfh->GetSiteInstance() == added_rfh->GetSiteInstance()) {
       has_same_site_ancestor = true;
@@ -10281,7 +10284,7 @@ void RenderFrameHostImpl::CommitNavigation(
     network::mojom::URLResponseHeadPtr response_head,
     mojo::ScopedDataPipeConsumerHandle response_body,
     network::mojom::URLLoaderClientEndpointsPtr url_loader_client_endpoints,
-    std::optional<SubresourceLoaderParams> subresource_loader_params,
+    SubresourceLoaderParams subresource_loader_params,
     std::optional<std::vector<blink::mojom::TransferrableURLLoaderPtr>>
         subresource_overrides,
     blink::mojom::ServiceWorkerContainerInfoForClientPtr container_info,
@@ -10591,10 +10594,9 @@ void RenderFrameHostImpl::CommitNavigation(
     mojo::PendingAssociatedRemote<blink::mojom::ServiceWorkerObject>
         remote_object;
     blink::mojom::ServiceWorkerState sent_state;
-    if (subresource_loader_params &&
-        subresource_loader_params->controller_service_worker_info) {
+    if (subresource_loader_params.controller_service_worker_info) {
       controller =
-          std::move(subresource_loader_params->controller_service_worker_info);
+          std::move(subresource_loader_params.controller_service_worker_info);
       if (controller->object_info) {
         controller->object_info->receiver =
             remote_object.InitWithNewEndpointAndPassReceiver();
@@ -10786,7 +10788,7 @@ void RenderFrameHostImpl::CommitNavigation(
     // it until its request endpoint is sent. Now that the request endpoint was
     // sent, it can be used, so add it to ServiceWorkerObjectHost.
     if (remote_object.is_valid()) {
-      subresource_loader_params->controller_service_worker_object_host
+      subresource_loader_params.controller_service_worker_object_host
           ->AddRemoteObjectPtrAndUpdateState(std::move(remote_object),
                                              sent_state);
     }
@@ -12239,6 +12241,11 @@ void RenderFrameHostImpl::BindWebOTPServiceReceiver(
     document_used_web_otp_ = true;
 }
 
+void RenderFrameHostImpl::BindDigitalIdentityRequestReceiver(
+    mojo::PendingReceiver<blink::mojom::DigitalIdentityRequest> receiver) {
+  DigitalIdentityRequestImpl::Create(*this, std::move(receiver));
+}
+
 void RenderFrameHostImpl::BindFederatedAuthRequestReceiver(
     mojo::PendingReceiver<blink::mojom::FederatedAuthRequest> receiver) {
   FederatedAuthRequestImpl::Create(this, std::move(receiver));
@@ -12767,8 +12774,14 @@ bool RenderFrameHostImpl::ValidateDidCommitParams(
       process->FilterURL(false, &params->url);
   process->FilterURL(true, &params->referrer->url);
 
+  // Check whether the URL was blocked by FilterURL, or by similar logic in the
+  // renderer process. Exclude cases where the renderer may have actually
+  // navigated same-document to about:blank#blocked.
+  bool blocked_by_renderer =
+      params->url == GURL(kBlockedURL) && !GetLastCommittedURL().IsAboutBlank();
   if (is_same_document_navigation &&
-      url_filter_result == RenderProcessHost::FilterURLResult::kBlocked) {
+      (url_filter_result == RenderProcessHost::FilterURLResult::kBlocked ||
+       blocked_by_renderer)) {
     // For same-document navigations, keeping about:blank#blocked can lead to
     // some really strange results with navigating back/forward and session
     // restore. So if the URL was filtered, replace it with the current URL:
@@ -12779,9 +12792,10 @@ bool RenderFrameHostImpl::ValidateDidCommitParams(
     // Note that this would be unsafe for cross-document navigations, which can
     // be cross-origin.
     //
-    // TODO(crbug.com/1464018): It would be nice to catch and block this in the
-    // renderer process, so the browser process could just treat this as a 'bad
-    // message received' situation.
+    // TODO(crbug.com/1464018): It would be nice to catch and block this earlier
+    // in the renderer process (causing the same-document navigation to fail),
+    // so the browser process could just treat this as a 'bad message received'
+    // situation.
     params->url = GetLastCommittedURL();
   }
 
@@ -13581,11 +13595,6 @@ void RenderFrameHostImpl::DidCommitNewDocument(
   accessibility_fatal_error_count_ = 0;
 
   UpdateIsolatableSandboxedIframeTracking(navigation_request);
-
-  // After commit, the browser process's access of the features' state becomes
-  // read-only. (i.e. It can only get feature state, not set)
-  RuntimeFeatureStateDocumentData::CreateForCurrentDocument(
-      this, navigation_request->GetRuntimeFeatureStateContext());
 }
 
 // TODO(arthursonzogni): Below, many NavigationRequest's objects are passed from
@@ -13612,6 +13621,8 @@ void RenderFrameHostImpl::TakeNewDocumentPropertiesFromNavigation(
   // this frame embeds a subframe when that subframe navigates).
   required_csp_ = navigation_request->TakeRequiredCSP();
 
+  // After commit, the browser process's access of the features' state becomes
+  // read-only. (i.e. It can only get feature state, not set)
   RuntimeFeatureStateDocumentData::CreateForCurrentDocument(
       this, navigation_request->GetRuntimeFeatureStateContext());
 

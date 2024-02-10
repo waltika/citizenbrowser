@@ -34981,6 +34981,9 @@ should be able to be added at any place in this file.
 </action>
 
 <action name="Signin_Signin_FromCloudPrint">
+  <obsolete>
+    Removed by clean-up in M123 but was deprecated even long before that.
+  </obsolete>
   <owner>gogerald@chromium.org</owner>
   <description>
     Recorded on sign in start from access point
@@ -41517,6 +41520,10 @@ should be able to be added at any place in this file.
       label="For ShoppingListMenuItem feature."/>
   <suffix name="ShoppingListSaveFlow"
       label="For ShoppingListSaveFlow feature."/>
+  <suffix name="SidePanelGenericMenuFeature"
+      label="For Side Panel Pinning menu entries."/>
+  <suffix name="SidePanelGenericPinnableFeature"
+      label="For Side Panel Pinning pin feature."/>
   <suffix name="SideSearch" label="For the side search feature."/>
   <suffix name="SideSearchAutoTriggering"
       label="For side search feature automatic triggering."/>
@@ -42052,6 +42059,9 @@ should be able to be added at any place in this file.
   <suffix name="HomeButton" label="Home button"/>
   <suffix name="MediaButton" label="Media button"/>
   <suffix name="NewTabButton" label="New tab button for thumbnail tab strip"/>
+  <suffix name="PinnedNewIncognitoWindow"
+      label="Pinned new incognito window button"/>
+  <suffix name="PinnedPrintButton" label="Pinned print button"/>
   <suffix name="PinnedShowBookmarkSidePanelButton"
       label="Pinned show bookmark side panel button"/>
   <suffix name="PinnedShowHistorySidePanelButton"

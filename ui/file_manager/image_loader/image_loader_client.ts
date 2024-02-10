@@ -4,17 +4,7 @@
 
 import {LruCache} from 'chrome://file-manager/common/js/lru_cache.js';
 
-import {LoadImageRequest, LoadImageResponse, LoadImageResponseStatus} from './load_image_request.js';
-
-// TODO(b/319188711): Share this definition with load_image_request.js when it's
-// converted to TS.
-interface CacheValue {
-  timestamp: number|null;
-  width: number;
-  height: number;
-  ifd: string|null;
-  data: string;
-}
+import {cacheKey, type CacheValue, createCancel, type LoadImageRequest, LoadImageResponse, LoadImageResponseStatus} from './load_image_request.js';
 
 let instance: ImageLoaderClient|null = null;
 
@@ -44,34 +34,6 @@ export class ImageLoaderClient {
   }
 
   /**
-   * Records binary metrics. Counts for true and false are stored as a
-   * histogram.
-   * @param name Histogram's name.
-   * @param value True or false.
-   */
-  static recordBinary(name: string, value: boolean) {
-    chrome.metricsPrivate.recordValue(
-        {
-          metricName: 'ImageLoader.Client.' + name,
-          type: chrome.metricsPrivate.MetricTypeType.HISTOGRAM_LINEAR,
-          min: 1,      // According to histogram.h, this should be 1 for enums.
-          max: 2,      // Maximum should be exclusive.
-          buckets: 3,  // Number of buckets: 0, 1 and overflowing 2.
-        },
-        value ? 1 : 0);
-  }
-
-  /**
-   * Records percent metrics, stored as a histogram.
-   * @param name Histogram's name.
-   * @param value Value (0..100).
-   */
-  static recordPercentage(name: string, value: number) {
-    chrome.metricsPrivate.recordPercentage(
-        'ImageLoader.Client.' + name, Math.round(value));
-  }
-
-  /**
    * Sends a message to the Image Loader extension.
    * @param request The image request.
    * @param callback Response handling callback. The response is passed as a
@@ -90,32 +52,26 @@ export class ImageLoaderClient {
    */
   load(request: LoadImageRequest, callback: (r: LoadImageResponse) => void):
       null|number {
-    // Record cache usage.
-    ImageLoaderClient.recordPercentage(
-        'Cache.Usage', this.cache_.size() / CACHE_MEMORY_LIMIT * 100.0);
-
     // Replace the client origin with the image loader extension origin.
     request.url = request.url ?? '';
     request.url = request.url.replace(CLIENT_URL_REGEX, IMAGE_LOADER_URL);
     request.url = request.url.replace(CLIENT_SWA_REGEX, IMAGE_LOADER_URL);
 
     // Try to load from cache, if available.
-    const cacheKey = LoadImageRequest.cacheKey(request);
-    if (cacheKey) {
+    const key = cacheKey(request);
+    if (key) {
       if (request.cache) {
         // Load from cache.
-        ImageLoaderClient.recordBinary('Cached', true);
-        let cachedValue: CacheValue|null = this.cache_.get(cacheKey);
+        let cachedValue: CacheValue|null = this.cache_.get(key);
         // Check if the image in cache is up to date. If not, then remove it.
         // It relies on comparing `null` equals to `undefined`.
         // eslint-disable-next-line eqeqeq
         if (cachedValue && cachedValue.timestamp != request.timestamp) {
-          this.cache_.remove(cacheKey);
+          this.cache_.remove(key);
           cachedValue = null;
         }
         if (cachedValue && cachedValue.data && cachedValue.width &&
             cachedValue.height) {
-          ImageLoaderClient.recordBinary('Cache.HitMiss', true);
           callback(
               new LoadImageResponse(LoadImageResponseStatus.SUCCESS, null, {
                 width: cachedValue.width,
@@ -124,13 +80,10 @@ export class ImageLoaderClient {
                 data: cachedValue.data,
               }));
           return null;
-        } else {
-          ImageLoaderClient.recordBinary('Cache.HitMiss', false);
         }
       } else {
         // Remove from cache.
-        ImageLoaderClient.recordBinary('Cached', false);
-        this.cache_.remove(cacheKey);
+        this.cache_.remove(key);
       }
     }
 
@@ -147,11 +100,11 @@ export class ImageLoaderClient {
       }
       const result = resultData;
       // Save to cache.
-      if (cacheKey && request.cache) {
+      if (key && request.cache) {
         const value: CacheValue|null =
             LoadImageResponse.cacheValue(result, request.timestamp);
         if (value) {
-          this.cache_.put(cacheKey, value, value.data.length);
+          this.cache_.put(key, value, value.data.length);
         }
       }
       callback(result);
@@ -165,8 +118,7 @@ export class ImageLoaderClient {
    * @param taskId Task id returned by ImageLoaderClient.load().
    */
   cancel(taskId: number) {
-    ImageLoaderClient.sendMessage_(
-        LoadImageRequest.createCancel(taskId), (_result) => {});
+    ImageLoaderClient.sendMessage_(createCancel(taskId), (_result) => {});
   }
 
   // Helper functions.

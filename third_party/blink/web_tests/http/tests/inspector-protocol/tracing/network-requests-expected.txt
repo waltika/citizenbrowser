@@ -43,6 +43,44 @@ Object: {
 			frame: string
 			fromCache: boolean
 			fromServiceWorker: boolean
+			headers: [
+				{
+					name: string
+					value: string
+				}
+				{
+					name: string
+					value: string
+				}
+				{
+					name: string
+					value: string
+				}
+				{
+					name: string
+					value: string
+				}
+				{
+					name: string
+					value: string
+				}
+				{
+					name: string
+					value: string
+				}
+				{
+					name: string
+					value: string
+				}
+				{
+					name: string
+					value: string
+				}
+				{
+					name: string
+					value: string
+				}
+			]
 			mimeType: string
 			requestId: string
 			responseTime: number

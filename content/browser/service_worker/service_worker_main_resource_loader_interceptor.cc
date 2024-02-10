@@ -258,6 +258,13 @@ void ServiceWorkerMainResourceLoaderInterceptor::MaybeCreateLoader(
       context_core->AsWeakPtr(), handle_->container_host(),
       request_destination_, skip_service_worker, frame_tree_node_id_,
       handle_->service_worker_accessed_callback());
+  if (handle_->parent_container_host()) {
+    // Set a parent container's client UUID.
+    // This is needed for PlzDedicatedWorker to have the client id for
+    // nested case.
+    request_handler_->set_parent_client_uuid(
+        handle_->parent_container_host()->client_uuid());
+  }
 
   request_handler_->MaybeCreateLoader(
       tentative_resource_request, *storage_key, browser_context,
@@ -267,9 +274,10 @@ void ServiceWorkerMainResourceLoaderInterceptor::MaybeCreateLoader(
 void ServiceWorkerMainResourceLoaderInterceptor::CompleteWithoutLoader(
     LoaderCallback loader_callback,
     base::WeakPtr<ServiceWorkerContainerHost> container_host) {
-  if (auto subresource_loader_params =
-          ServiceWorkerContainerHost::MaybeCreateSubresourceLoaderParams(
-              container_host)) {
+  auto subresource_loader_params =
+      ServiceWorkerContainerHost::MaybeCreateSubresourceLoaderParams(
+          container_host);
+  if (subresource_loader_params.controller_service_worker_info) {
     std::move(loader_callback)
         .Run(NavigationLoaderInterceptor::Result(
             /*factory=*/nullptr, std::move(subresource_loader_params)));

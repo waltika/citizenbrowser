@@ -328,7 +328,7 @@ class DeskBarScrollViewLayout : public views::LayoutManager {
       new_desk_button->SetBoundsRect(new_desk_button_bounds);
       LayoutDeskIconButtonLabel(bar_view_->new_desk_button_label(),
                                 new_desk_button_bounds, desk_name_view,
-                                IDS_ASH_DESKS_NEW_DESK_BUTTON);
+                                IDS_ASH_DESKS_NEW_DESK_BUTTON_LABEL);
       x +=
           (new_desk_button_size.width() + kDeskBarMiniViewsSpacing) * increment;
     };
@@ -538,7 +538,7 @@ DeskBarViewBase::DeskBarViewBase(aura::Window* root, Type type)
   new_desk_button_label_->SetPaintToLayer();
   new_desk_button_label_->layer()->SetFillsBoundsOpaquely(false);
 
-  if (saved_desk_util::IsSavedDesksEnabled()) {
+  if (saved_desk_util::ShouldShowSavedDesksButtons()) {
     int button_text_id = IDS_ASH_DESKS_TEMPLATES_DESKS_BAR_BUTTON_LIBRARY;
     if (!saved_desk_util::AreDesksTemplatesEnabled()) {
       button_text_id = IDS_ASH_DESKS_TEMPLATES_DESKS_BAR_BUTTON_SAVED_FOR_LATER;
@@ -777,6 +777,8 @@ void DeskBarViewBase::Init() {
 
   hover_observer_ = std::make_unique<DeskBarHoverObserver>(
       this, GetWidget()->GetNativeWindow());
+
+  RecordDeskProfileAdoption();
 }
 
 bool DeskBarViewBase::IsZeroState() const {
@@ -863,12 +865,6 @@ void DeskBarViewBase::NudgeDeskName(int desk_index) {
   auto* name_view = mini_views_[desk_index]->desk_name_view();
   name_view->RequestFocus();
 
-  // Set `name_view`'s accessible name if its text is cleared.
-  if (name_view->GetAccessibleName().empty()) {
-    name_view->SetAccessibleName(
-        l10n_util::GetStringUTF16(IDS_ASH_DESKS_DESK_NAME));
-  }
-
   if (type_ == Type::kOverview) {
     MoveFocusToView(name_view);
 
@@ -882,7 +878,7 @@ void DeskBarViewBase::NudgeDeskName(int desk_index) {
 }
 
 void DeskBarViewBase::UpdateButtonsForSavedDeskGrid() {
-  if (IsZeroState() || !saved_desk_util::IsSavedDesksEnabled()) {
+  if (IsZeroState() || !saved_desk_util::ShouldShowSavedDesksButtons()) {
     return;
   }
 
@@ -906,7 +902,7 @@ void DeskBarViewBase::UpdateDeskButtonsVisibility() {
 }
 
 void DeskBarViewBase::UpdateLibraryButtonVisibility() {
-  if (!saved_desk_util::IsSavedDesksEnabled()) {
+  if (!saved_desk_util::ShouldShowSavedDesksButtons()) {
     return;
   }
 
@@ -987,7 +983,7 @@ void DeskBarViewBase::OnGestureTap(const gfx::Rect& screen_rect,
 bool DeskBarViewBase::ShouldShowLibraryUi() {
   // Only update visibility when needed. This will save a lot of repeated work.
   if (library_ui_visibility_ == LibraryUiVisibility::kToBeChecked) {
-    if (!saved_desk_util::IsSavedDesksEnabled() ||
+    if (!saved_desk_util::ShouldShowSavedDesksButtons() ||
         display::Screen::GetScreen()->InTabletMode()) {
       library_ui_visibility_ = LibraryUiVisibility::kHidden;
     } else {
@@ -1705,6 +1701,29 @@ bool DeskBarViewBase::MaybeScrollByDraggedDesk() {
   }
 
   return false;
+}
+
+void DeskBarViewBase::RecordDeskProfileAdoption() {
+  // With regards to desk profiles, the user can be in one of these buckets:
+  //  1. Conditions for selecting a user profile have not been met.
+  //  2. Conditions are met, but the user has not actively selected a profile.
+  //  3. The user has selected a profile.
+  DeskProfilesUsageStatus status = DeskProfilesUsageStatus::kConditionsNotMet;
+  if (DesksController::Get()->GetNumberOfDesks() > 1) {
+    for (const auto& mini_view : mini_views_) {
+      if (mini_view->desk() && mini_view->desk()->lacros_profile_id()) {
+        // The user has actively selected a profile for at least one desk.
+        status = DeskProfilesUsageStatus::kEnabled;
+        break;
+      }
+      if (mini_view->desk_profiles_button()) {
+        // The user has the option to pick a profile.
+        status = DeskProfilesUsageStatus::kConditionsMet;
+      }
+    }
+  }
+
+  base::UmaHistogramEnumeration(kDeskProfilesUsageStatusHistogramName, status);
 }
 
 BEGIN_METADATA(DeskBarViewBase)

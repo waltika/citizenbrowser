@@ -62,6 +62,34 @@ std::u16string GetAccessibleTrayName(
       IDS_ASH_STATUS_TRAY_FOCUS_MODE_TRAY_ACCESSIBLE_NAME, time_remaining);
 }
 
+std::u16string GetAccessibleBubbleName(
+    const FocusModeSession::Snapshot& session_snapshot) {
+  const std::u16string task_title =
+      base::UTF8ToUTF16(FocusModeController::Get()->selected_task_title());
+
+  if (session_snapshot.state == FocusModeSession::State::kEnding) {
+    std::u16string title = l10n_util::GetStringUTF16(
+        IDS_ASH_STATUS_TRAY_FOCUS_MODE_ENDING_MOMENT_TITLE);
+    std::u16string body = l10n_util::GetStringUTF16(
+        task_title.empty()
+            ? IDS_ASH_STATUS_TRAY_FOCUS_MODE_ENDING_MOMENT_BODY
+            : IDS_ASH_STATUS_TRAY_FOCUS_MODE_ENDING_MOMENT_BODY_WITH_TASK);
+    return l10n_util::GetStringFUTF16(
+        IDS_ASH_STATUS_TRAY_FOCUS_MODE_ENDING_MOMENT_DIALOG, title, body);
+  }
+
+  const std::u16string time_remaining =
+      focus_mode_util::GetDurationString(session_snapshot.remaining_time,
+                                         /*digital_format=*/false);
+  return task_title.empty()
+             ? l10n_util::GetStringFUTF16(
+                   IDS_ASH_STATUS_TRAY_FOCUS_MODE_TRAY_BUBBLE_ACCESSIBLE_NAME,
+                   time_remaining)
+             : l10n_util::GetStringFUTF16(
+                   IDS_ASH_STATUS_TRAY_FOCUS_MODE_TRAY_BUBBLE_TASK_ACCESSIBLE_NAME,
+                   time_remaining, task_title);
+}
+
 }  // namespace
 
 class FocusModeTray::TaskItemView : public views::BoxLayoutView {
@@ -151,12 +179,37 @@ FocusModeTray::FocusModeTray(Shelf* shelf)
   progress_indicator_ =
       ProgressIndicator::CreateDefaultInstance(base::BindRepeating(
           [](FocusModeTray* view) -> std::optional<float> {
+            if (!view->visible_preferred() || view->is_active()) {
+              return 0.0f;
+            }
+            if (view->show_progress_ring_after_animation_) {
+              return ProgressIndicator::kForcedShow;
+            }
+
             auto* controller = FocusModeController::Get();
-            if (view->is_active() || !controller->in_focus_session()) {
-              // `kProgressComplete` causes the layer to not be painted, hiding
-              // the progress indicator.
+
+            // `kProgressComplete` is only returned by an ending moment, so that
+            // we can know when the pulse animation is done.
+            if (controller->in_ending_moment()) {
+              bool is_animating = false;
+              if (auto* progress_ring_animation =
+                      view->progress_indicator_->animation_registry()
+                          ->GetProgressRingAnimationForKey(
+                              view->progress_indicator_->animation_key())) {
+                is_animating = progress_ring_animation->IsAnimating();
+              }
+
+              // After the pulse animation, the ring isn't shown when the value
+              // is left at `kProgressComplete`, so we need to set it manually
+              // to `kForcedShow` to show the ring.
+              if (!is_animating && (view->progress_indicator_->progress() ==
+                                    ProgressIndicator::kProgressComplete)) {
+                view->show_progress_ring_after_animation_ = true;
+                return ProgressIndicator::kForcedShow;
+              }
               return ProgressIndicator::kProgressComplete;
             }
+
             return controller->current_session()
                 ->GetSnapshot(base::Time::Now())
                 .progress;
@@ -165,7 +218,7 @@ FocusModeTray::FocusModeTray(Shelf* shelf)
   progress_indicator_->SetInnerIconVisible(false);
   progress_indicator_->SetInnerRingVisible(false);
   progress_indicator_->SetOuterRingStrokeWidth(kProgressIndicatorThickness);
-  progress_indicator_->SetColorId(cros_tokens::kCrosSysPrimary);
+  progress_indicator_->SetColorId(cros_tokens::kCrosRefPrimary70);
 
   tray_container()->layer()->Add(
       progress_indicator_->CreateLayer(base::BindRepeating(
@@ -209,25 +262,11 @@ std::u16string FocusModeTray::GetAccessibleNameForTray() {
 }
 
 std::u16string FocusModeTray::GetAccessibleNameForBubble() {
-  auto* focus_mode_controller = FocusModeController::Get();
-
-  if (focus_mode_controller->in_ending_moment()) {
-    return l10n_util::GetStringUTF16(
-        IDS_ASH_STATUS_TRAY_FOCUS_MODE_TRAY_BUBBLE_ENDING_MOMENT_ACCESSIBLE_NAME);
+  if (!session_snapshot_) {
+    return std::u16string();
   }
 
-  const std::u16string time_remaining = focus_mode_util::GetDurationString(
-      focus_mode_controller->GetActualEndTime() - base::Time::Now(),
-      /*digital_format=*/false);
-  const std::u16string task_title =
-      base::UTF8ToUTF16(focus_mode_controller->selected_task_title());
-  return task_title.empty()
-             ? l10n_util::GetStringFUTF16(
-                   IDS_ASH_STATUS_TRAY_FOCUS_MODE_TRAY_BUBBLE_ACCESSIBLE_NAME,
-                   time_remaining)
-             : l10n_util::GetStringFUTF16(
-                   IDS_ASH_STATUS_TRAY_FOCUS_MODE_TRAY_BUBBLE_TASK_ACCESSIBLE_NAME,
-                   time_remaining, task_title);
+  return GetAccessibleBubbleName(session_snapshot_.value());
 }
 
 void FocusModeTray::HideBubbleWithView(const TrayBubbleView* bubble_view) {
@@ -333,6 +372,7 @@ void FocusModeTray::OnThemeChanged() {
 
 void FocusModeTray::OnFocusModeChanged(bool in_focus_session) {
   UpdateProgressRing();
+  show_progress_ring_after_animation_ = false;
 
   auto current_session = FocusModeController::Get()->current_session();
   if (!current_session) {

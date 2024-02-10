@@ -325,6 +325,8 @@ std::string ConvertToString(message_center::NotificationType type) {
       return "progress";
     case message_center::NOTIFICATION_TYPE_CUSTOM:
       return "custom";
+    case message_center::NOTIFICATION_TYPE_CONVERSATION:
+      return "conversation";
   }
   return "unknown";
 }
@@ -1822,7 +1824,7 @@ AutotestPrivateGetVisibleNotificationsFunction::Run() {
   message_center::NotificationList::Notifications notification_set =
       message_center::MessageCenter::Get()->GetVisibleNotifications();
   base::Value::List values;
-  for (auto* notification : notification_set) {
+  for (message_center::Notification* notification : notification_set) {
     values.Append(MakeDictionaryFromNotification(*notification));
   }
   return RespondNow(WithArguments(std::move(values)));

@@ -470,6 +470,8 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
 // Uses the kFilterName* values in ui_base_features.h as the 'filter' feature
 // param.
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kFilteringScrollPrediction);
+BLINK_COMMON_EXPORT extern const base::FeatureParam<std::string>
+    kFilteringScrollPredictionFilterParam;
 
 // (b/283408783): When enabled, first gesture scrolls on web pages that have
 // touch handlers registered will go through the normal queueing process if
@@ -1192,6 +1194,9 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kScopeMemoryCachePerContext);
 // paused instead of all pages.
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kPausePagesPerBrowsingContextGroup);
 
+// Whether the HUD display is shown for paused pages.
+BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kShowHudDisplayForPausedPages);
+
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kScriptStreaming);
 
 // If enabled, parser-blocking scripts are loaded asynchronously. The target
@@ -1307,6 +1312,15 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
 // TODO(crbug.com/1218540): Merge this flag with `kSharedStorageAPI` once
 // shipped.
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kSharedStorageAPIM118);
+
+// Additional Shared Storage API features shipped in M123.
+// TODO(crbug.com/1218540): Merge this flag with `kSharedStorageAPI` once
+// shipped.
+BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kSharedStorageAPIM123);
+
+// Enables WAL (write-ahead-logging) mode for the Shared Storage API SQLite
+// database backend.
+BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kSharedStorageAPIEnableWALForDatabase);
 
 // TODO(accessibility): This flag is set to accommodate JAWS on Windows so they
 // can adjust to us not simulating click events on a focus action. It is in the
@@ -1492,8 +1506,6 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
 
 // Combine WebRTC Network and Worker threads. More info at crbug.com/1373439.
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kWebRtcCombinedNetworkAndWorkerThread);
-// If enabled, expose non-standard stats in the WebRTC getStats API.
-BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kWebRtcExposeNonStandardStats);
 #if BUILDFLAG(RTC_USE_H264) && BUILDFLAG(ENABLE_FFMPEG_VIDEO_DECODERS)
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kWebRtcH264WithOpenH264FFmpeg);
 #endif  // BUILDFLAG(RTC_USE_H264) && BUILDFLAG(ENABLE_FFMPEG_VIDEO_DECODERS)
@@ -1592,6 +1604,10 @@ BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
 
 // Don't require FCP for the page to turn interactive. Useful for testing.
 BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(kInteractiveDetectorIgnoreFcp);
+
+// Optimize loading 1x1 transparent placeholder images.
+BLINK_COMMON_EXPORT BASE_DECLARE_FEATURE(
+    kSimplifyLoadingTransparentPlaceholderImage);
 
 }  // namespace features
 }  // namespace blink

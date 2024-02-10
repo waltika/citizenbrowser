@@ -5,11 +5,14 @@
 #include "net/spdy/spdy_session.h"
 
 #include <algorithm>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <utility>
 
 #include "base/base64.h"
+#include "base/containers/contains.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback.h"
 #include "base/memory/raw_ptr.h"
@@ -67,7 +70,6 @@
 #include "net/traffic_annotation/network_traffic_annotation_test_helper.h"
 #include "testing/gmock/include/gmock/gmock.h"
 #include "testing/platform_test.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 #include "url/gurl.h"
 #include "url/scheme_host_port.h"
 #include "url/url_constants.h"
@@ -1930,7 +1932,7 @@ bool NetLogSourceFromEventParameters(const base::Value::Dict* event_params,
     *source = NetLogSource();
     return false;
   }
-  absl::optional<int> opt_int;
+  std::optional<int> opt_int;
   opt_int = source_dict->FindInt("id");
   if (!opt_int) {
     *source = NetLogSource();
@@ -3355,7 +3357,7 @@ TEST_F(SpdySessionTest, CloseOneIdleConnection) {
               PrivacyMode::PRIVACY_MODE_DISABLED, NetworkAnonymizationKey(),
               SecureDnsPolicy::kAllow, /*disable_cert_network_fetches=*/false),
           ClientSocketPool::SocketParams::CreateForHttpForTesting(),
-          absl::nullopt /* proxy_annotation_tag */, DEFAULT_PRIORITY,
+          std::nullopt /* proxy_annotation_tag */, DEFAULT_PRIORITY,
           SocketTag(), ClientSocketPool::RespectLimits::ENABLED,
           callback2.callback(), ClientSocketPool::ProxyAuthCallback(), pool,
           NetLogWithSource()));
@@ -3447,7 +3449,7 @@ TEST_F(SpdySessionTest, CloseOneIdleConnectionWithAlias) {
               PrivacyMode::PRIVACY_MODE_DISABLED, NetworkAnonymizationKey(),
               SecureDnsPolicy::kAllow, /*disable_cert_network_fetches=*/false),
           ClientSocketPool::SocketParams::CreateForHttpForTesting(),
-          absl::nullopt /* proxy_annotation_tag */, DEFAULT_PRIORITY,
+          std::nullopt /* proxy_annotation_tag */, DEFAULT_PRIORITY,
           SocketTag(), ClientSocketPool::RespectLimits::ENABLED,
           callback3.callback(), ClientSocketPool::ProxyAuthCallback(), pool,
           NetLogWithSource()));
@@ -3528,7 +3530,7 @@ TEST_F(SpdySessionTest, CloseSessionOnIdleWhenPoolStalled) {
               PrivacyMode::PRIVACY_MODE_DISABLED, NetworkAnonymizationKey(),
               SecureDnsPolicy::kAllow, /*disable_cert_network_fetches=*/false),
           ClientSocketPool::SocketParams::CreateForHttpForTesting(),
-          absl::nullopt /* proxy_annotation_tag */, DEFAULT_PRIORITY,
+          std::nullopt /* proxy_annotation_tag */, DEFAULT_PRIORITY,
           SocketTag(), ClientSocketPool::RespectLimits::ENABLED,
           callback2.callback(), ClientSocketPool::ProxyAuthCallback(), pool,
           NetLogWithSource()));
@@ -5414,7 +5416,7 @@ TEST_F(SpdySessionTest, GreaseFrameTypeAfterSettings) {
   const uint8_t flags = 0xcc;
   const std::string payload("foo");
   session_deps_.greased_http2_frame =
-      absl::optional<net::SpdySessionPool::GreasedHttp2Frame>(
+      std::optional<net::SpdySessionPool::GreasedHttp2Frame>(
           {type, flags, payload});
 
   // Connection preface.
@@ -6128,13 +6130,8 @@ class TestSSLConfigService : public SSLConfigService {
   // Returns true if |hostname| is in domains_for_pooling_. This is a simpler
   // implementation than the production implementation in SSLConfigServiceMojo.
   bool CanShareConnectionWithClientCerts(
-      const std::string& hostname) const override {
-    for (const std::string& domain : domains_for_pooling_) {
-      if (domain == hostname) {
-        return true;
-      }
-    }
-    return false;
+      std::string_view hostname) const override {
+    return base::Contains(domains_for_pooling_, hostname);
   }
 
   void SetDomainsForPooling(const std::vector<std::string>& domains) {

@@ -3308,6 +3308,7 @@ Du kan hantera inställningarna för det här kontot genom att installera Family
 <translation id="3497560059572256875">Dela doodle</translation>
 <translation id="3497915391670770295">Skicka till dina &amp;enheter</translation>
 <translation id="3500417806337761827">Det gick inte att montera filresursen. För många SMB-filresurser har redan monterats.</translation>
+<translation id="3500764001796099683">Aktivera isolerade webbappar</translation>
 <translation id="350397915809787283">Om du inte har ett konto väljer du det första alternativet för att skapa ett.</translation>
 <translation id="3503995387997205657">Du kan återställa dina tidigare appar</translation>
 <translation id="3505100368357440862">Shoppingstips</translation>
@@ -4016,7 +4017,6 @@ Detta kan omfatta information om installerad programvara, filer, webbläsaren oc
 <translation id="4031179711345676612">Mikrofon är tillåten</translation>
 <translation id="4031527940632463547">Användning av sensorer har blockerats</translation>
 <translation id="4033471457476425443">Lägg till ny mapp</translation>
-<translation id="4033711848170683365">All webbinformation raderas permanent från den här enheten. Google-konton i den här profilen kanske används i andra appar på din <ph name="DEVICE_TYPE" />. Du kan ta bort dessa konton via <ph name="BEGIN_LINK" /><ph name="SETTING_SECTION" /> &gt; <ph name="ACCOUNTS_SECTION" /><ph name="END_LINK" />.</translation>
 <translation id="4033963223187371752">Säkra webbplatser kan ha inbäddat innehåll som bilder eller ramar som inte är säkra</translation>
 <translation id="4034706080855851454">Om du vill använda enheten med din organisationsprofil behöver organisationen information om enheten.
 
@@ -5734,7 +5734,7 @@ Du kan tilldela flera brytare denna åtgärd.</translation>
 <translation id="5411856344659127989">Om du vill lägga till ett konto åt någon annan <ph name="LINK_BEGIN" />lägger du till en ny person<ph name="LINK_END" /> på <ph name="DEVICE_TYPE" />.
 
 Behörigheter som du redan har gett webbplatser och appar kan gälla för det här kontot. Du kan hantera dina Google-konton i <ph name="SETTINGS_LINK_BEGIN" />inställningarna<ph name="SETTINGS_LINK_END" />.</translation>
-<translation id="5413640305322530561">Läs mer om diagnostik och data om användning</translation>
+<translation id="5413640305322530561">Läs mer om diagnostik- och användningsdata</translation>
 <translation id="5414198321558177633">Uppdaterar listan över profiler. Det kan ta några minuter.</translation>
 <translation id="5414566801737831689">Läsa in ikonerna för de webbplatser du besöker</translation>
 <translation id="5414836363063783498">Verifierar ...</translation>
@@ -5884,7 +5884,6 @@ Behörigheter som du redan har gett webbplatser och appar kan gälla för det h�
 <translation id="5514315914873062345">Tabb</translation>
 <translation id="5517304475148761050">Den här appen kräver åtkomst till Play Butik</translation>
 <translation id="5517412723934627386"><ph name="NETWORK_TYPE" /> – <ph name="NETWORK_DISPLAY_NAME" /></translation>
-<translation id="5518949581554491184">Konfigurera med en Android-telefon</translation>
 <translation id="5519053700692355541">Du kan öppna de flesta sidopanelsfunktionerna via Chrome-menyn uppe till höger</translation>
 <translation id="5519195206574732858">LTE</translation>
 <translation id="5519900055135507385">Skydda kontot med ett starkt lösenord. Det sparas i <ph name="GOOGLE_PASSWORD_MANAGER" /> för <ph name="EMAIL" />.</translation>
@@ -7184,6 +7183,7 @@ Behörigheter som du redan har gett webbplatser och appar kan gälla för det h�
 <translation id="6551508934388063976">Kommandot är inte tillgängligt. Tryck på Ctrl+N om du vill öppna ett nytt fönster.</translation>
 <translation id="6551606359270386381">Ellipsverktyg</translation>
 <translation id="6551612971599078809">Webbplatsen använder USB</translation>
+<translation id="6551620030439692385">Blockerad. Tidszonen är för närvarande inställd på <ph name="TIMEZONE" /> och kan endast uppdateras manuellt.</translation>
 <translation id="6551739526055143276">Hanteras via Family Link</translation>
 <translation id="655384502888039633"><ph name="USER_COUNT" /> användare</translation>
 <translation id="6555432686520421228">Ta bort alla användarkonton och återställ <ph name="IDS_SHORT_PRODUCT_NAME" />-enheten så blir den som ny.</translation>
@@ -7252,6 +7252,7 @@ Det finns # utsatta lösenord till. Du rekommenderas av Google Lösenordshanteri
 <translation id="6608773371844092260">Låt ditt barn trycka på fingeravtryckssensorn på höger sida av <ph name="DEVICE_TYPE" /> för att ställa in fingeravtryck. Ditt barns fingeravtrycksdata lagras på ett säkert sätt och lämnar aldrig denna <ph name="DEVICE_TYPE" />.</translation>
 <translation id="6609478180749378879">Inloggningsuppgifterna sparas på enheten när du har avslutat inkognitoläget. Du kan logga in på den här webbplatsen med enheten igen senare.</translation>
 <translation id="6610002944194042868">Översättningsalternativ</translation>
+<translation id="6610064275805055636">Hantera isolerade webbappar</translation>
 <translation id="6611972847767394631">Här finns dina flikar</translation>
 <translation id="661266467055912436">Förbättrar säkerheten för dig och alla andra på webben.</translation>
 <translation id="6613267708691765962">Söker efter skadlig programvara …</translation>
@@ -8616,6 +8617,7 @@ Det finns # utsatta lösenord till. Du rekommenderas av Google Lösenordshanteri
 <translation id="7671472752213333268"><ph name="EXTENSION_NAME" /> vill göra en genomsökning från <ph name="SCANNER_NAME" />.</translation>
 <translation id="7672504401554182757">Välj vilken enhet som ska ha lösenordet för <ph name="APP_NAME" /></translation>
 <translation id="7672520070349703697"><ph name="HUNG_IFRAME_URL" /> på <ph name="PAGE_TITLE" />.</translation>
+<translation id="7672726198839739113">Blockerad. Schemat är för närvarande inställt på <ph name="SUNRISE_TIME" />–<ph name="SUNSET_TIME" /> och kan endast uppdateras manuellt.</translation>
 <translation id="7673313156293624327">Loggar för ChromeOS Shill (anslutningshanterare)</translation>
 <translation id="7674416868315480713">Inaktivera all portvidarebefordran i Linux</translation>
 <translation id="7674537509496907005"><ph name="APP_COUNT" /> appar</translation>
@@ -9549,6 +9551,7 @@ Spara nyckelfilen på ett säkert ställe. Den behövs om du ska skapa nya versi
 <translation id="8376384591331888629">Inklusive cookies från tredje part på den här webbplatsen</translation>
 <translation id="8376451933628734023">Om webbappen försöker lura dig att den är en annan app ska du avinstallera den.</translation>
 <translation id="8376532149031784008">Läser in <ph name="DOMAIN" /> igen …</translation>
+<translation id="8376610503048439696">Tillägg som har installerats av administratören kan fortfarande läsa och ändra den här webbplatsen</translation>
 <translation id="8376752431516546391">Sidopanel med Google Sök</translation>
 <translation id="8377625247046155446">Den här nyckeln sparas bara på den här enheten. Den finns kvar på enheten när du stänger alla inkognitofönster.</translation>
 <translation id="8378714024927312812">Hanteras av organisationen</translation>
@@ -9688,6 +9691,7 @@ Spara nyckelfilen på ett säkert ställe. Den behövs om du ska skapa nya versi
     <ph name="BEGIN_PARAGRAPH2" />Du kan när som helst ge eller dra tillbaka ditt tillstånd till att rapporterna skickas. Detta gör du i inställningarna för barnets ChromeOS-enhet. Om du administrerar en domän kan du ändra inställningen i administratörskonsolen.<ph name="END_PARAGRAPH2" />
     <ph name="BEGIN_PARAGRAPH4" />Om inställningen Webb- och appaktivitet har aktiverats för ditt barns Google-konto kan barnets data sparas i Google-kontot. Läs mer om inställningarna och hur du ändrar dem på families.google.com.<ph name="END_PARAGRAPH4" /></translation>
 <translation id="8476630458761527665">Ange filens lösenord.</translation>
+<translation id="8476942730579767658">Fönster och skrivbord</translation>
 <translation id="8477178913400731244">Ta bort data</translation>
 <translation id="8477241577829954800">Ersatt</translation>
 <translation id="8477384620836102176">&amp;Allmänt</translation>

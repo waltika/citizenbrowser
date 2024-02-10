@@ -35,12 +35,14 @@ ts_modules = [
   "commands.ts",
   "focus_ring_manager.ts",
   "history.ts",
+  "menu_manager.ts",
   "metrics.ts",
   "navigator.ts",
   "navigator_interfaces.ts",
   "nodes/switch_access_node.ts",
   "point_scan_manager.ts",
   "settings_manager.ts",
+  "switch_access.ts",
   "switch_access_constants.ts",
   "switch_access_loader.ts",
 ]
@@ -49,7 +51,6 @@ ts_modules = [
 js_modules = [
   "action_manager.js",
   "item_scan_manager.js",
-  "menu_manager.js",
   "nodes/back_button_node.js",
   "nodes/basic_node.js",
   "nodes/combo_box_node.js",
@@ -61,7 +62,6 @@ js_modules = [
   "nodes/slider_node.js",
   "nodes/tab_node.js",
   "nodes/window_node.js",
-  "switch_access.js",
   "switch_access_predicate.js",
   "text_navigation_manager.js",
 ]

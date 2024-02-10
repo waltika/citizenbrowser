@@ -11,12 +11,9 @@
 #include "base/values.h"
 #include "content/common/content_export.h"
 #include "content/public/browser/web_contents.h"
-#include "third_party/blink/public/mojom/webid/federated_auth_request.mojom.h"
 #include "url/origin.h"
 
 #include <string>
-
-using blink::mojom::DigitalCredentialFieldRequirementPtr;
 
 namespace content {
 
@@ -34,7 +31,8 @@ class CONTENT_EXPORT DigitalCredentialProvider {
 
   static std::unique_ptr<DigitalCredentialProvider> Create();
 
-  using DigitalCredentialCallback = base::OnceCallback<void(std::string)>;
+  using DigitalCredentialCallback =
+      base::OnceCallback<void(const std::string&)>;
   virtual void RequestDigitalCredential(WebContents* web_contents,
                                         const url::Origin& origin,
                                         const base::Value::Dict& request,

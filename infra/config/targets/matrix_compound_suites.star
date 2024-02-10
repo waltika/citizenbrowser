@@ -190,6 +190,13 @@ targets.legacy_matrix_compound_suite(
 targets.legacy_matrix_compound_suite(
     name = "chromeos_jacuzzi_rel_skylab_tests",
     basic_suites = {
+        # After the builder gets stabilized, 'chromeos_device_only_gtests' will
+        # be tried to be replaced with 'chromeos_system_friendly_gtests'.
+        "chromeos_device_only_gtests": targets.legacy_matrix_config(
+            variants = [
+                "CROS_JACUZZI_CQ_PUBLIC_LKGM",
+            ],
+        ),
         "chromeos_chrome_all_tast_tests": targets.legacy_matrix_config(
             mixins = [
                 "chromeos-jacuzzi-skylab-chrome-all-tast-tests",
@@ -248,7 +255,24 @@ targets.legacy_matrix_compound_suite(
 targets.legacy_matrix_compound_suite(
     name = "chromeos_octopus_rel_skylab_tests",
     basic_suites = {
+        # After the builder gets stabilized, 'chromeos_device_only_gtests' will
+        # be tried to be replaced with 'chromeos_system_friendly_gtests'.
+        "chromeos_device_only_gtests": targets.legacy_matrix_config(
+            variants = [
+                "CROS_OCTOPUS_PUBLIC_LKGM",
+            ],
+        ),
         "chromeos_chrome_all_tast_tests": targets.legacy_matrix_config(
+            variants = [
+                "CROS_OCTOPUS_PUBLIC_LKGM",
+            ],
+        ),
+        "chromeos_chrome_criticalstaging_tast_tests": targets.legacy_matrix_config(
+            variants = [
+                "CROS_OCTOPUS_PUBLIC_LKGM",
+            ],
+        ),
+        "chromeos_chrome_disabled_tast_tests": targets.legacy_matrix_config(
             variants = [
                 "CROS_OCTOPUS_PUBLIC_LKGM",
             ],
@@ -1352,6 +1376,9 @@ targets.legacy_matrix_compound_suite(
     name = "optimization_guide_linux_script_tests",
     basic_suites = {
         "model_validation_tests": targets.legacy_matrix_config(
+            mixins = [
+                "gce",
+            ],
             variants = [
                 "MODEL_VALIDATION_BASE",
                 "MODEL_VALIDATION_TRUNK",
@@ -1389,7 +1416,11 @@ targets.legacy_matrix_compound_suite(
 targets.legacy_matrix_compound_suite(
     name = "optimization_guide_win_gtests",
     basic_suites = {
-        "optimization_guide_nogpu_gtests": None,
+        "optimization_guide_nogpu_gtests": targets.legacy_matrix_config(
+            mixins = [
+                "gce",
+            ],
+        ),
         "optimization_guide_gpu_gtests": targets.legacy_matrix_config(
             # TODO(b:321865883): Add NVIDIA variant once deployment is stable.
             variants = [
@@ -1404,9 +1435,19 @@ targets.legacy_matrix_compound_suite(
     name = "optimization_guide_win_script_tests",
     basic_suites = {
         "model_validation_tests": targets.legacy_matrix_config(
+            mixins = [
+                "gce",
+            ],
             variants = [
                 "MODEL_VALIDATION_BASE",
                 "MODEL_VALIDATION_TRUNK",
+            ],
+        ),
+        "ondevice_stability_tests": targets.legacy_matrix_config(
+            variants = [
+                "AMD_RADEON_RX_5500_XT",
+                "INTEL_UHD_630",
+                "NVIDIA_GEFORCE_GTX_1660",
             ],
         ),
     },

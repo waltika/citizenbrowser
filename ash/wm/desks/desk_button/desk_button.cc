@@ -30,6 +30,7 @@
 #include "base/metrics/histogram_functions.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/string_util.h"
+#include "chromeos/constants/chromeos_features.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/chromeos/styles/cros_tokens_color_mappings.h"
@@ -185,15 +186,6 @@ void DeskButton::OnGestureEvent(ui::GestureEvent* event) {
   views::Button::OnGestureEvent(event);
 }
 
-void DeskButton::StateChanged(ButtonState old_state) {
-  if (GetState() != ButtonState::STATE_NORMAL &&
-      GetState() != ButtonState::STATE_HOVERED) {
-    return;
-  }
-
-  UpdateShelfAutoHideDisabler(disable_shelf_auto_hide_hover_, !GetHovered());
-}
-
 void DeskButton::AboutToRequestFocusFromTabTraversal(bool reverse) {
   desk_button_container_->desk_button_widget()->MaybeFocusOut(reverse);
 }
@@ -216,7 +208,7 @@ void DeskButton::Init(DeskButtonContainer* desk_button_container) {
       this, gfx::Insets(kDeskButtonFocusRingHaloInset),
       kDeskButtonCornerRadius);
 
-  if (features::IsDeskButtonEnabled()) {
+  if (chromeos::features::IsDeskProfilesEnabled()) {
     AddChildView(views::Builder<views::ImageView>()
                      .CopyAddressTo(&desk_avatar_view_)
                      .SetPaintToLayer()
@@ -241,10 +233,6 @@ void DeskButton::Init(DeskButtonContainer* desk_button_container) {
   // context menu.
   set_context_menu_controller(
       desk_button_container_->shelf()->hotseat_widget()->GetShelfView());
-}
-
-bool DeskButton::GetHovered() const {
-  return GetState() == ButtonState::STATE_HOVERED;
 }
 
 void DeskButton::SetActivation(bool is_activated) {
@@ -310,7 +298,7 @@ void DeskButton::UpdateLocaleSpecificSettings() {
   if (desk_avatar_view_ && desk_avatar_view_->GetVisible()) {
     SetAccessibleName(l10n_util::GetStringFUTF16(
         IDS_SHELF_DESK_BUTTON_TITLE_WITH_PROFILE_AVATAR, active_desk->name(),
-        base::UTF8ToUTF16(profile_.name), base::UTF8ToUTF16(profile_.email),
+        profile_.name, profile_.email,
         base::NumberToString16(desk_controller->GetDeskIndex(active_desk) + 1),
         base::NumberToString16(desk_controller->GetNumberOfDesks())));
   } else {

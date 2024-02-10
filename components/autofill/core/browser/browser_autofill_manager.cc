@@ -235,7 +235,6 @@ FillDataType GetEventTypeFromSingleFieldSuggestionPopupItemId(
     case PopupItemId::kIbanEntry:
       return FillDataType::kSingleFieldFormFillerIban;
     case PopupItemId::kAccountStoragePasswordEntry:
-    case PopupItemId::kAccountStorageUsernameEntry:
     case PopupItemId::kAddressEntry:
     case PopupItemId::kAllSavedPasswordsEntry:
     case PopupItemId::kAutofillOptions:
@@ -1703,8 +1702,14 @@ void BrowserAutofillManager::UploadVotesAndLogQuality(
     return;
   }
 
+  const PersonalDataManager* pdm = client().GetPersonalDataManager();
   FieldTypeSet non_empty_types;
-  client().GetPersonalDataManager()->GetNonEmptyTypes(&non_empty_types);
+  for (const AutofillProfile* profile : pdm->GetProfiles()) {
+    profile->GetNonEmptyTypes(app_locale_, &non_empty_types);
+  }
+  for (const CreditCard* card : pdm->GetCreditCards()) {
+    card->GetNonEmptyTypes(app_locale_, &non_empty_types);
+  }
   // As CVC is not stored, treat it separately.
   if (!last_unlocked_credit_card_cvc_.empty() ||
       non_empty_types.contains(CREDIT_CARD_NUMBER)) {
@@ -2557,10 +2562,16 @@ std::optional<Suggestion> BrowserAutofillManager::MaybeGetPlusAddressSuggestion(
           client().IsOffTheRecord())) {
     return std::nullopt;
   }
+
+  const std::u16string normalized_field_value =
+      RemoveDiacriticsAndConvertToLowerCase(field.value);
   std::optional<std::string> maybe_address =
       plus_address_delegate->GetPlusAddress(
           client().GetLastCommittedPrimaryMainFrameOrigin());
   if (maybe_address == std::nullopt) {
+    if (!normalized_field_value.empty()) {
+      return std::nullopt;
+    }
     Suggestion create_plus_address_suggestion(
         plus_address_delegate->GetCreateSuggestionLabel(),
         PopupItemId::kCreateNewPlusAddress);
@@ -2573,8 +2584,7 @@ std::optional<Suggestion> BrowserAutofillManager::MaybeGetPlusAddressSuggestion(
 
   // Only suggest filling a plus address whose prefix matches the field's value.
   std::u16string address = base::UTF8ToUTF16(*maybe_address);
-  if (!address.starts_with(
-          RemoveDiacriticsAndConvertToLowerCase(field.value))) {
+  if (!address.starts_with(normalized_field_value)) {
     return std::nullopt;
   }
   Suggestion existing_plus_address_suggestion(

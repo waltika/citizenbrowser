@@ -12,14 +12,12 @@ __KNOWN_CONFIG_OPTIONS = [
 
     # TODO: b/308405411 - Enable this config for all builders.
     "remote-devtools-frontend-typescript",
-<<<<<<< HEAD
-
     "remote-citizennotes-frontend-typescript",
 
     # TODO: b/314693395 - Enable reproxy mode for cros by default.
     "reproxy-cros",
-=======
->>>>>>> upstream/main
+    # TODO: b/316267242 - Enable remote links after confirming performance.
+    "remote-library-link",
 ]
 
 def __check(ctx):

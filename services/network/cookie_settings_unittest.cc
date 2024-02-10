@@ -88,11 +88,39 @@ std::unique_ptr<net::CanonicalCookie> MakeCanonicalSameSiteNoneCookie(
 // NOTE: Consider modifying
 // /components/content_settings/core/browser/cookie_settings_unittest.cc if
 // applicable.
-enum TestVariables {
-  kTopLevelStorageAccessGrantEligible = 0,
+
+// To avoid an explosion of test cases, please don't just add a boolean to
+// the test features. Consider whether features can interact with each other and
+// whether you really need all combinations.
+
+// Controls features that can unblock 3p cookies.
+enum GrantSource {
+  // Not eligible for additional grants.
+  kNoneGranted,
+  // Eligible for StorageAccess grants.
   kStorageAccessGrantsEligible,
+  // Eligible for TopLevelStorageAccess grants.
+  kTopLevelStorageAccessGrantEligible,
+
+  kGrantSourceCount
+};
+
+// Features that can block 3p cookies.
+enum BlockSource {
+  // 3p cookie blocking is not enabled.
+  kNoneBlocked,
+  // Tracking protection enabled by default.
   kTrackingProtectionEnabledFor3pcd,
+  // Third-party cookie blocking is enabled through a flag.
   kForceThirdPartyCookieBlockingFlagEnabled,
+
+  kBlockSourceCount
+
+};
+
+enum TestVariables {
+  kGrantSource,
+  kBlockSource,
   kHostIndexedMetadataGrantsEnabled
 };
 
@@ -105,7 +133,8 @@ class CookieSettingsTestBase {
       const std::string& primary_pattern,
       const std::string& secondary_pattern,
       ContentSetting setting,
-      base::Time expiration = base::Time()) {
+      base::Time expiration = base::Time(),
+      const std::string& source = std::string()) {
     content_settings::RuleMetaData metadata;
     metadata.SetExpirationAndLifetime(
         expiration, expiration.is_null() ? base::TimeDelta()
@@ -113,7 +142,7 @@ class CookieSettingsTestBase {
     return ContentSettingPatternSource(
         ContentSettingsPattern::FromString(primary_pattern),
         ContentSettingsPattern::FromString(secondary_pattern),
-        base::Value(setting), std::string(), false /* incognito */, metadata);
+        base::Value(setting), source, false /* incognito */, metadata);
   }
 
   void FastForwardTime(base::TimeDelta delta) {
@@ -130,10 +159,8 @@ class CookieSettingsTestBase {
 class CookieSettingsTest
     : public CookieSettingsTestBase,
       public testing::TestWithParam<
-          std::tuple</*kTopLevelStorageAccessGrantEligible*/ bool,
-                     /*kStorageAccessGrantsEligible*/ bool,
-                     /*kTrackingProtectionEnabledFor3pcd*/ bool,
-                     /*kForceThirdPartyCookieBlockingFlagEnabled*/ bool,
+          std::tuple</*kGrantSource*/ GrantSource,
+                     /*kBlockSource*/ BlockSource,
                      /*kHostIndexedMetadataGrantsEnabled*/ bool>> {
  public:
   CookieSettingsTest() {
@@ -163,22 +190,23 @@ class CookieSettingsTest
   // Indicates whether the setting comes from the testing flag if the test case
   // has 3pc blocked.
   bool IsForceThirdPartyCookieBlockingFlagEnabled() const {
-    return std::get<TestVariables::kForceThirdPartyCookieBlockingFlagEnabled>(
-        GetParam());
+    return std::get<TestVariables::kBlockSource>(GetParam()) ==
+           BlockSource::kForceThirdPartyCookieBlockingFlagEnabled;
   }
 
   bool IsTrackingProtectionEnabledFor3pcd() const {
-    return std::get<TestVariables::kTrackingProtectionEnabledFor3pcd>(
-        GetParam());
+    return std::get<TestVariables::kBlockSource>(GetParam()) ==
+           BlockSource::kTrackingProtectionEnabledFor3pcd;
   }
 
   bool IsStorageAccessGrantEligible() const {
-    return std::get<TestVariables::kStorageAccessGrantsEligible>(GetParam());
+    return std::get<TestVariables::kGrantSource>(GetParam()) ==
+           GrantSource::kStorageAccessGrantsEligible;
   }
 
   bool IsTopLevelStorageAccessGrantEligible() const {
-    return std::get<TestVariables::kTopLevelStorageAccessGrantEligible>(
-        GetParam());
+    return std::get<TestVariables::kGrantSource>(GetParam()) ==
+           GrantSource::kTopLevelStorageAccessGrantEligible;
   }
 
   bool IsHostIndexedMetadataGrantsEnabled() const {
@@ -254,6 +282,25 @@ TEST_P(CookieSettingsTest, GetCookieSetting) {
       ContentSettingsType::COOKIES,
       {CreateSetting(kURL, kURL, CONTENT_SETTING_BLOCK)});
   EXPECT_EQ(settings.GetCookieSetting(GURL(kURL), GURL(kURL),
+                                      GetCookieSettingOverrides(), nullptr),
+            CONTENT_SETTING_BLOCK);
+}
+
+TEST_P(CookieSettingsTest, GetCookieSettingMultipleProviders) {
+  CookieSettings settings;
+  settings.set_content_settings(
+      ContentSettingsType::COOKIES,
+      {CreateSetting(kURL, kURL, CONTENT_SETTING_SESSION_ONLY, base::Time(),
+                     "policy"),
+       CreateSetting("*", "*", CONTENT_SETTING_BLOCK, base::Time(), "policy"),
+       CreateSetting(kOtherURL, kOtherURL, CONTENT_SETTING_ALLOW, base::Time(),
+                     "pref"),
+       CreateSetting("*", "*", CONTENT_SETTING_ALLOW, base::Time(),
+                     "default")});
+  EXPECT_EQ(settings.GetCookieSetting(GURL(kURL), GURL(kURL),
+                                      GetCookieSettingOverrides(), nullptr),
+            CONTENT_SETTING_SESSION_ONLY);
+  EXPECT_EQ(settings.GetCookieSetting(GURL(kOtherURL), GURL(kOtherURL),
                                       GetCookieSettingOverrides(), nullptr),
             CONTENT_SETTING_BLOCK);
 }
@@ -1645,14 +1692,10 @@ std::string CustomTestName(
   std::stringstream custom_test_name;
   // clang-format off
   custom_test_name
-      << "TopLvlStorageAccess_"
-      << std::get<TestVariables::kTopLevelStorageAccessGrantEligible>(info.param)
-      << "_StorageAccess_"
-      << std::get<TestVariables::kStorageAccessGrantsEligible>(info.param)
-      << "_TrackingProtection3pcd_"
-      << std::get<TestVariables::kTrackingProtectionEnabledFor3pcd>(info.param)
-      << "_Force3pcb_"
-      << std::get<TestVariables::kForceThirdPartyCookieBlockingFlagEnabled>(info.param)
+      << "GrantSource_"
+      << std::get<TestVariables::kGrantSource>(info.param)
+      << "_BlockSource_"
+      << std::get<TestVariables::kBlockSource>(info.param)
       << "_HostIndexed_"
       << std::get<TestVariables::kHostIndexedMetadataGrantsEnabled>(info.param);
   // clang-format on
@@ -1662,10 +1705,10 @@ std::string CustomTestName(
 INSTANTIATE_TEST_SUITE_P(
     /* no prefix */,
     CookieSettingsTest,
-    testing::Combine(testing::Bool(),
-                     testing::Bool(),
-                     testing::Bool(),
-                     testing::Bool(),
+    testing::Combine(testing::Range(GrantSource::kNoneGranted,
+                                    GrantSource::kGrantSourceCount),
+                     testing::Range(BlockSource::kNoneBlocked,
+                                    BlockSource::kBlockSourceCount),
                      testing::Bool()),
     CustomTestName);
 

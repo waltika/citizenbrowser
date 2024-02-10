@@ -59,6 +59,7 @@ VirtualDisplayWinUtil::~VirtualDisplayWinUtil() {
   screen_->RemoveObserver(this);
 }
 
+// static
 bool VirtualDisplayWinUtil::IsAPIAvailable() {
   return DisplayDriverController::IsDriverInstalled();
 }
@@ -135,7 +136,7 @@ void VirtualDisplayWinUtil::OnDisplayAdded(
       win::ScreenWin::DIPToScreenPoint(new_display.work_area().CenterPoint())
           .ToPOINT(),
       MONITOR_DEFAULTTONEAREST);
-  absl::optional<DISPLAYCONFIG_PATH_INFO> path_info =
+  std::optional<DISPLAYCONFIG_PATH_INFO> path_info =
       ::display::win::GetDisplayConfigPathInfo(monitor);
   if (::display::win::GetDisplayManufacturerId(path_info) ==
       kDriverMonitorManufacturer) {

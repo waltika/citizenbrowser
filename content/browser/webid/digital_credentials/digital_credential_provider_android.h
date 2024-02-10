@@ -14,9 +14,6 @@
 #include "url/origin.h"
 
 #include <jni.h>
-#include <string>
-
-using blink::mojom::DigitalCredentialFieldRequirementPtr;
 
 namespace content {
 
@@ -36,7 +33,6 @@ class CONTENT_EXPORT DigitalCredentialProviderAndroid
   DigitalCredentialProviderAndroid& operator=(
       const DigitalCredentialProviderAndroid&) = delete;
 
-  using DigitalCredentialCallback = base::OnceCallback<void(std::string)>;
   // Implementation of corresponding JNI methods in
   // DigitalCredentialProviderAndroid.Natives.*
   void OnReceive(JNIEnv*, jstring vc);

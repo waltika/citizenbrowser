@@ -23,6 +23,8 @@
 #include "base/scoped_observation.h"
 #include "build/build_config.h"
 #include "components/autofill/core/browser/address_data_cleaner.h"
+#include "components/autofill/core/browser/address_data_manager.h"
+#include "components/autofill/core/browser/autofill_shared_storage_handler.h"
 #include "components/autofill/core/browser/data_model/autofill_offer_data.h"
 #include "components/autofill/core/browser/data_model/autofill_profile.h"
 #include "components/autofill/core/browser/data_model/autofill_wallet_usage_data.h"
@@ -57,7 +59,6 @@
 #include "components/sync/service/sync_service_observer.h"
 #include "components/webdata/common/web_data_service_consumer.h"
 
-class PaymentsSuggestionBottomSheetMediatorTest;
 class Profile;
 class PrefService;
 
@@ -143,19 +144,7 @@ class PersonalDataManager : public KeyedService,
                             public signin::IdentityManager::Observer,
                             public AccountInfoGetter {
  public:
-  // Profiles can be retrieved from the PersonalDataManager in different orders.
-  enum class ProfileOrder {
-    // Arbitrary order.
-    kNone,
-    // In descending order of frecency
-    // (`AutofillProfile::HasGreaterRankingThan())`.
-    kHighestFrecencyDesc,
-    // Most recently modified profiles first.
-    kMostRecentlyModifiedDesc,
-    // Most recently used profiles first.
-    kMostRecentlyUsedFirstDesc,
-    kMaxValue = kMostRecentlyUsedFirstDesc
-  };
+  using ProfileOrder = AddressDataManager::ProfileOrder;
 
   explicit PersonalDataManager(const std::string& app_locale);
   PersonalDataManager(const std::string& app_locale,
@@ -174,15 +163,17 @@ class PersonalDataManager : public KeyedService,
   // (sync disabled by CLI) or outlives this object, it may not have started yet
   // but its preferences can already be queried. |image_fetcher| is to fetch the
   // customized images for autofill data.
-  void Init(scoped_refptr<AutofillWebDataService> profile_database,
-            scoped_refptr<AutofillWebDataService> account_database,
-            PrefService* pref_service,
-            PrefService* local_state,
-            signin::IdentityManager* identity_manager,
-            history::HistoryService* history_service,
-            syncer::SyncService* sync_service,
-            StrikeDatabaseBase* strike_database,
-            AutofillImageFetcherBase* image_fetcher);
+  void Init(
+      scoped_refptr<AutofillWebDataService> profile_database,
+      scoped_refptr<AutofillWebDataService> account_database,
+      PrefService* pref_service,
+      PrefService* local_state,
+      signin::IdentityManager* identity_manager,
+      history::HistoryService* history_service,
+      syncer::SyncService* sync_service,
+      StrikeDatabaseBase* strike_database,
+      AutofillImageFetcherBase* image_fetcher,
+      std::unique_ptr<AutofillSharedStorageHandler> shared_storage_handler);
 
   // KeyedService:
   void Shutdown() override;
@@ -193,7 +184,8 @@ class PersonalDataManager : public KeyedService,
   // PersonalDataManagerObserver:: OnPersonalDataFinishedProfileTasks() will be
   // called.
   bool IsAwaitingPendingAddressChanges() const {
-    return ProfileChangesAreOngoing() || HasPendingAddressQueries();
+    return address_data_manager_->ProfileChangesAreOngoing() ||
+           address_data_manager_->HasPendingQueries();
   }
 
   // history::HistoryServiceObserver
@@ -212,7 +204,6 @@ class PersonalDataManager : public KeyedService,
   void OnStateChanged(syncer::SyncService* sync) override;
   void OnSyncPaymentsIntegrationEnabledChanged(
       syncer::SyncService* sync) override;
-  void OnSyncShutdown(syncer::SyncService* sync) override;
 
   // AccountInfoGetter:
   CoreAccountInfo GetAccountInfoForPaymentsServer() const override;
@@ -279,7 +270,6 @@ class PersonalDataManager : public KeyedService,
 
   // Removes the profile, credit card or IBAN identified by `guid`.
   virtual void RemoveByGUID(const std::string& guid);
-  void RemoveProfile(const std::string& guid);
 
   // Returns the profile with the specified |guid|, or nullptr if there is no
   // profile with the specified |guid|.
@@ -407,9 +397,6 @@ class PersonalDataManager : public KeyedService,
   // Returns the credit card with the given server id, or nullptr if there is no
   // match.
   CreditCard* GetCreditCardByServerId(const std::string& server_id);
-
-  // Gets the field types available in the stored address and credit card data.
-  void GetNonEmptyTypes(FieldTypeSet* non_empty_types) const;
 
   // Returns whether the personal data has been loaded from the web database.
   virtual bool IsDataLoaded() const;
@@ -553,9 +540,8 @@ class PersonalDataManager : public KeyedService,
   // Cancels any pending queries to the server web database.
   void CancelPendingServerQueries();
 
-  // Returns if there are any pending queries to the web database.
-  bool HasPendingQueriesForTesting() {
-    return HasPendingAddressQueries() || HasPendingPaymentQueries();
+  bool HasPendingPaymentQueriesForTesting() const {
+    return HasPendingPaymentQueries();
   }
 
   // This function assumes |credit_card| contains the full PAN. Returns |true|
@@ -670,7 +656,7 @@ class PersonalDataManager : public KeyedService,
 
   // Returns true if Sync-the-feature is enabled and
   // UserSelectableType::kAutofill is among the user's selected data types.
-  // TODO(crbug.com/1462552): Remove this method once ConsentLevel::kSync and
+  // TODO(crbug.com/40066949): Remove this method once ConsentLevel::kSync and
   // SyncService::IsSyncFeatureEnabled() are deleted from the codebase.
   bool IsSyncFeatureEnabledForAutofill() const;
 
@@ -750,7 +736,6 @@ class PersonalDataManager : public KeyedService,
                            AddAndGetCreditCardArtImage);
   FRIEND_TEST_ALL_PREFIXES(PersonalDataManagerTest, LogStoredCreditCardMetrics);
 
-  friend class ::PaymentsSuggestionBottomSheetMediatorTest;
   friend class PaymentsDataCleaner;
   friend class VirtualCardEnrollmentManagerTest;
 
@@ -804,9 +789,8 @@ class PersonalDataManager : public KeyedService,
   // to the query handle.
   void CancelPendingServerQuery(WebDataServiceBase::Handle* handle);
 
-  // The first time this is called, logs a UMA metrics about the user's autofill
-  // addresses, credit card, offer and IBAN.
-  void LogStoredAddressDataMetrics() const;
+  // The first time this is called, logs a UMA metrics about the user's credit
+  // card, offer and IBAN.
   void LogStoredPaymentsDataMetrics() const;
 
   // Whether server cards or IBANs are enabled and should be suggested to the
@@ -820,33 +804,15 @@ class PersonalDataManager : public KeyedService,
   // Asks `image_fetcher_` to fetch images. Virtual for testing.
   virtual void FetchImagesForURLs(base::span<const GURL> updated_urls) const;
 
-  // The PersonalDataManager supports two types of AutofillProfiles, stored in
-  // `synced_local_profiles_` and `account_profiles_` and distinguished by their
-  // source.
-  // Several function need to read/write from the correct vector, depending
-  // on the source of the profile they are dealing with. This helper function
-  // returns the vector where profiles of the given `source` are stored.
-  const std::vector<std::unique_ptr<AutofillProfile>>& GetProfileStorage(
-      AutofillProfile::Source source) const;
-  std::vector<std::unique_ptr<AutofillProfile>>& GetProfileStorage(
-      AutofillProfile::Source source) {
-    return const_cast<std::vector<std::unique_ptr<AutofillProfile>>&>(
-        const_cast<const PersonalDataManager*>(this)->GetProfileStorage(
-            source));
-  }
+  // Responsible for all address-related logic of the PDM.
+  // Non-null after `Init()`.
+  std::unique_ptr<AddressDataManager> address_data_manager_;
 
   // Decides which database type to use for server and local cards.
   std::unique_ptr<PersonalDatabaseHelper> database_helper_;
 
   // True if personal data has been loaded from the web database.
-  bool is_address_data_loaded_ = false;
   bool is_payments_data_loaded_ = false;
-
-  // The loaded profiles from the AutofillTable come from two sources:
-  // - kLocalOrSyncable: Stored in `synced_local_profiles_`.
-  // - kAccount: Stored in `account_profiles_`.
-  std::vector<std::unique_ptr<AutofillProfile>> synced_local_profiles_;
-  std::vector<std::unique_ptr<AutofillProfile>> account_profiles_;
 
   // Stores the PaymentsCustomerData obtained from the database.
   std::unique_ptr<PaymentsCustomerData> payments_customer_data_;
@@ -877,10 +843,7 @@ class PersonalDataManager : public KeyedService,
 
   // When the manager makes a request from WebDataServiceBase, the database
   // is queried on another sequence, we record the query handle until we
-  // get called back.  We store handles for both profile and credit card queries
-  // so they can be loaded at the same time.
-  WebDataServiceBase::Handle pending_synced_local_profiles_query_ = 0;
-  WebDataServiceBase::Handle pending_account_profiles_query_ = 0;
+  // get called back.
   WebDataServiceBase::Handle pending_creditcards_query_ = 0;
   WebDataServiceBase::Handle pending_server_creditcards_query_ = 0;
   WebDataServiceBase::Handle pending_server_creditcard_cloud_token_data_query_ =
@@ -900,12 +863,6 @@ class PersonalDataManager : public KeyedService,
       alternative_state_name_map_updater_;
 
  private:
-  // A profile change with a boolean representing if the change is ongoing or
-  // not. "Ongoing" means that the change is taking place asynchronously on the
-  // DB sequence at the moment. Ongoing changes are still part of
-  // `ongoing_profile_changes_` to prevent other changes from being scheduled.
-  using QueuedAutofillProfileChange = std::pair<AutofillProfileChange, bool>;
-
   // Sets (or resets) the Sync service, which may not have started yet
   // but its preferences can already be queried. Can also be a nullptr
   // if it is disabled by CLI.
@@ -924,32 +881,12 @@ class PersonalDataManager : public KeyedService,
   // prefs::kAutofillProfileEnabled changes.
   void EnableAutofillPrefChanged();
 
-  // Update a profile in AutofillTable asynchronously. The change only surfaces
-  // in the PDM after the task on the DB sequence has finished.
-  void UpdateProfileInDB(const AutofillProfile& profile);
-
-  // Triggered when a profile is added/updated/removed on db.
-  void OnAutofillProfileChanged(const AutofillProfileChange& change);
-
   // Triggered when all the card art image fetches have been completed,
   // regardless of whether all of them succeeded.
   void OnCardArtImagesFetched(
       const std::vector<std::unique_ptr<CreditCardArtImage>>& art_images);
 
-  // Look at the next profile change for profile with guid = |guid|, and handle
-  // it.
-  void HandleNextProfileChange(const std::string& guid);
-  // returns true if there is any profile change that's still ongoing.
-  bool ProfileChangesAreOngoing() const;
-  // returns true if there is any ongoing change for profile with guid = |guid|
-  // that's still ongoing.
-  bool ProfileChangesAreOngoing(const std::string& guid) const;
-  // Remove the change from the |ongoing_profile_changes_|, handle next task or
-  // Refresh.
-  void OnProfileChangeDone(const std::string& guid);
-
   // Returns if there are any pending queries to the web database.
-  bool HasPendingAddressQueries() const;
   bool HasPendingPaymentQueries() const;
 
   // Returns the database that is used for storing local data.
@@ -985,6 +922,9 @@ class PersonalDataManager : public KeyedService,
   // necessary to ensure it always has a value.
   mutable std::string experiment_country_code_;
 
+  // The shared storage handler this instance uses.
+  std::unique_ptr<AutofillSharedStorageHandler> shared_storage_handler_;
+
   // The PrefService that this instance uses. Must outlive this instance.
   raw_ptr<PrefService> pref_service_ = nullptr;
 
@@ -1001,10 +941,6 @@ class PersonalDataManager : public KeyedService,
   // when the sync starts.
   std::unique_ptr<AddressDataCleaner> address_data_cleaner_;
   std::unique_ptr<PaymentsDataCleaner> payments_data_cleaner_;
-
-  // A timely ordered list of ongoing changes for each profile.
-  std::unordered_map<std::string, std::deque<QueuedAutofillProfileChange>>
-      ongoing_profile_changes_;
 
   // The identity manager that this instance uses. Must outlive this instance.
   raw_ptr<signin::IdentityManager> identity_manager_ = nullptr;

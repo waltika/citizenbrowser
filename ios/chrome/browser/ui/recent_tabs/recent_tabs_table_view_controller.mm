@@ -46,6 +46,7 @@
 #import "ios/chrome/browser/shared/model/web_state_list/web_state_opener.h"
 #import "ios/chrome/browser/shared/public/commands/application_commands.h"
 #import "ios/chrome/browser/shared/public/commands/open_new_tab_command.h"
+#import "ios/chrome/browser/shared/public/commands/settings_commands.h"
 #import "ios/chrome/browser/shared/public/commands/show_signin_command.h"
 #import "ios/chrome/browser/shared/public/features/features.h"
 #import "ios/chrome/browser/shared/ui/symbols/symbols.h"
@@ -1573,8 +1574,7 @@ typedef std::pair<SessionID, TableViewURLItem*> RecentlyClosedTableViewItemPair;
     } else {
       self.webStateList->InsertWebState(
           std::move(web_state),
-          WebStateList::InsertionParams::AtIndex(self.webStateList->count())
-              .Activate());
+          WebStateList::InsertionParams::Automatic().Activate());
     }
   }
   [self.presentationDelegate showActiveRegularTabFromRecentTabs];
@@ -1649,8 +1649,7 @@ typedef std::pair<SessionID, TableViewURLItem*> RecentlyClosedTableViewItemPair;
 
   self.webStateList->InsertWebState(
       std::move(webState),
-      WebStateList::InsertionParams::AtIndex(self.webStateList->count())
-          .Activate());
+      WebStateList::InsertionParams::Automatic().Activate());
   webStatePtr->OpenURL(web::WebState::OpenURLParams(
       searchUrl, web::Referrer(), WindowOpenDisposition::CURRENT_TAB,
       ui::PAGE_TRANSITION_GENERATED, /*is_renderer_initiated=*/false));

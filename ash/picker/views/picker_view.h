@@ -38,9 +38,9 @@ class SystemShadow;
 
 // View for the Picker widget.
 class ASH_EXPORT PickerView : public views::WidgetDelegateView {
- public:
-  METADATA_HEADER(PickerView);
+  METADATA_HEADER(PickerView, views::WidgetDelegateView)
 
+ public:
   enum class PickerLayoutType {
     kResultsBelowSearchField,
     kResultsAboveSearchField,
@@ -84,6 +84,7 @@ class ASH_EXPORT PickerView : public views::WidgetDelegateView {
   PickerSearchFieldView& search_field_view_for_testing() {
     return *search_field_view_;
   }
+  PickerContentsView& contents_view_for_testing() { return *contents_view_; }
   PickerSearchResultsView& search_results_view_for_testing() {
     return *search_results_view_;
   }
@@ -113,7 +114,7 @@ class ASH_EXPORT PickerView : public views::WidgetDelegateView {
   void OnClickOutsideWidget();
 
   void AddSearchFieldView();
-  void AddContentsView();
+  void AddContentsView(PickerLayoutType layout_type);
 
   std::optional<PickerCategory> selected_category_;
 

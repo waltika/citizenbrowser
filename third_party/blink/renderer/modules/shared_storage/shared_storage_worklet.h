@@ -14,7 +14,6 @@
 
 namespace blink {
 
-class SharedStorage;
 class SharedStorageUrlWithMetadata;
 class SharedStorageRunOperationMethodOptions;
 
@@ -23,7 +22,8 @@ class MODULES_EXPORT SharedStorageWorklet final : public ScriptWrappable {
   DEFINE_WRAPPERTYPEINFO();
 
  public:
-  explicit SharedStorageWorklet(SharedStorage*);
+  static SharedStorageWorklet* Create(ScriptState*);
+
   ~SharedStorageWorklet() override = default;
 
   void Trace(Visitor*) const override;
@@ -33,23 +33,33 @@ class MODULES_EXPORT SharedStorageWorklet final : public ScriptWrappable {
   ScriptPromise addModule(ScriptState*,
                           const String& module_url,
                           ExceptionState&);
-
-  ScriptPromise SelectURL(ScriptState*,
+  ScriptPromise selectURL(ScriptState*,
+                          const String& name,
+                          HeapVector<Member<SharedStorageUrlWithMetadata>> urls,
+                          ExceptionState&);
+  ScriptPromise selectURL(ScriptState*,
                           const String& name,
                           HeapVector<Member<SharedStorageUrlWithMetadata>> urls,
                           const SharedStorageRunOperationMethodOptions* options,
                           ExceptionState&);
-  ScriptPromise Run(ScriptState*,
+  ScriptPromise run(ScriptState*, const String& name, ExceptionState&);
+  ScriptPromise run(ScriptState*,
                     const String& name,
                     const SharedStorageRunOperationMethodOptions* options,
                     ExceptionState&);
+
+  // Helper implementation method for `sharedStorage.worklet.addModule()` and
+  // for `sharedStorage.createWorklet()`.
+  ScriptPromise AddModuleHelper(ScriptState*,
+                                const String& module_url,
+                                ExceptionState&,
+                                bool resolve_to_worklet);
 
  private:
   // Set when addModule() was called and passed early renderer checks.
   HeapMojoAssociatedRemote<mojom::blink::SharedStorageWorkletHost>
       worklet_host_{nullptr};
 
-  Member<SharedStorage> shared_storage_;
   bool keep_alive_after_operation_ = true;
 };
 

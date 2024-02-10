@@ -981,14 +981,9 @@ Range* Document::CreateRangeAdjustedToTreeScope(const TreeScope& tree_scope,
                                      adjusted_position, adjusted_position);
 }
 
-CaretPosition* Document::CreateCaretPositionAdjustedToTreeScope(
-    const TreeScope& tree_scope,
-    const Position& position) {
-  const Position& adjusted_position =
-      PositionAdjustedToTreeScope(tree_scope, position);
+CaretPosition* Document::CreateCaretPosition(const Position& position) {
   return MakeGarbageCollected<CaretPosition>(
-      adjusted_position.ComputeContainerNode(),
-      adjusted_position.ComputeOffsetInContainerNode());
+      position.AnchorNode(), position.ComputeOffsetInContainerNode());
 }
 
 const Position Document::PositionAdjustedToTreeScope(
@@ -1728,8 +1723,8 @@ CaretPosition* Document::caretPositionFromPoint(float x, float y) {
     return nullptr;
   }
 
-  return CreateCaretPositionAdjustedToTreeScope(
-      *this, position_with_affinity.GetPosition().ParentAnchoredEquivalent());
+  return CreateCaretPosition(
+      position_with_affinity.GetPosition().ParentAnchoredEquivalent());
 }
 
 Element* Document::scrollingElement() {
@@ -3171,6 +3166,13 @@ void Document::Shutdown() {
   mime_handler_view_before_unload_event_listener_ = nullptr;
 
   resource_coordinator_.reset();
+
+  // Because the document view transition supplement can get destroyed before
+  // the execution context notification, we should clean up the transition
+  // object here.
+  if (auto* transition = ViewTransitionUtils::GetTransition(*this)) {
+    transition->SkipTransition();
+  }
 
   // This is required, as our LocalFrame might delete itself as soon as it
   // detaches us. However, this violates Node::detachLayoutTree() semantics, as
@@ -5350,7 +5352,7 @@ bool Document::SetFocusedElement(Element* new_focused_element,
   // Remove focus from the existing focus node (if any)
   if (old_focused_element) {
     old_focused_element->SetFocused(false, params.type);
-    old_focused_element->SetHasFocusWithinUpToAncestor(false, ancestor);
+    old_focused_element->SetHasFocusWithinUpToAncestor(false, ancestor, true);
 
     DisplayLockUtilities::ElementLostFocus(old_focused_element);
 
@@ -5426,7 +5428,7 @@ bool Document::SetFocusedElement(Element* new_focused_element,
     if (focused_element_ == nullptr) {
       return false;
     }
-    focused_element_->SetHasFocusWithinUpToAncestor(true, ancestor);
+    focused_element_->SetHasFocusWithinUpToAncestor(true, ancestor, true);
     DisplayLockUtilities::ElementGainedFocus(focused_element_.Get());
 
     // Element::setFocused for frames can dispatch events.

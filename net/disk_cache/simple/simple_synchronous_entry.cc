@@ -7,6 +7,7 @@
 #include <cstring>
 #include <functional>
 #include <limits>
+#include <optional>
 
 #include "base/compiler_specific.h"
 #include "base/files/file_util.h"
@@ -33,7 +34,6 @@
 #include "net/disk_cache/simple/simple_histogram_macros.h"
 #include "net/disk_cache/simple/simple_util.h"
 #include "third_party/abseil-cpp/absl/container/inlined_vector.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 #include "third_party/zlib/zlib.h"
 
 using base::FilePath;
@@ -342,7 +342,7 @@ SimpleSynchronousEntry::SparseRequest::SparseRequest(int64_t sparse_offset_p,
 void SimpleSynchronousEntry::OpenEntry(
     net::CacheType cache_type,
     const FilePath& path,
-    const absl::optional<std::string>& key,
+    const std::optional<std::string>& key,
     const uint64_t entry_hash,
     SimpleFileTracker* file_tracker,
     std::unique_ptr<UnboundBackendFileOperations> file_operations,
@@ -1172,7 +1172,7 @@ void SimpleSynchronousEntry::Close(
 SimpleSynchronousEntry::SimpleSynchronousEntry(
     net::CacheType cache_type,
     const FilePath& path,
-    const absl::optional<std::string>& key,
+    const std::optional<std::string>& key,
     const uint64_t entry_hash,
     SimpleFileTracker* file_tracker,
     std::unique_ptr<UnboundBackendFileOperations> unbound_file_operations,
@@ -1984,7 +1984,7 @@ bool SimpleSynchronousEntry::ScanSparseFile(base::File* sparse_file,
     range.length = range_header.length;
     range.data_crc32 = range_header.data_crc32;
     range.file_offset = range_header_offset + sizeof(range_header);
-    sparse_ranges_.insert(std::make_pair(range.offset, range));
+    sparse_ranges_.emplace(range.offset, range);
 
     range_header_offset += sizeof(range_header) + range.length;
 
@@ -2105,7 +2105,7 @@ bool SimpleSynchronousEntry::AppendSparseRange(base::File* sparse_file,
   range.length = len;
   range.data_crc32 = data_crc32;
   range.file_offset = data_file_offset;
-  sparse_ranges_.insert(std::make_pair(offset, range));
+  sparse_ranges_.emplace(offset, range);
 
   return true;
 }

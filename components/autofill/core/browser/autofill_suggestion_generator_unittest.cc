@@ -64,24 +64,6 @@ using testing::Matcher;
 constexpr auto kDefaultTriggerSource =
     AutofillSuggestionTriggerSource::kFormControlElementClicked;
 
-Matcher<Suggestion> EqualsSuggestion(PopupItemId id) {
-  return Field(&Suggestion::popup_item_id, id);
-}
-
-Matcher<Suggestion> EqualsSuggestion(PopupItemId id,
-                                     const std::u16string& main_text) {
-  return AllOf(
-      Field(&Suggestion::popup_item_id, id),
-      Field(&Suggestion::main_text,
-            Suggestion::Text(main_text, Suggestion::Text::IsPrimary(true))));
-}
-
-Matcher<Suggestion> EqualsSuggestion(PopupItemId id,
-                                     const std::u16string& main_text,
-                                     Suggestion::Icon icon) {
-  return AllOf(EqualsSuggestion(id, main_text), Field(&Suggestion::icon, icon));
-}
-
 Matcher<Suggestion> EqualsFieldByFieldFillingSuggestion(
     PopupItemId id,
     const std::u16string& main_text,
@@ -218,7 +200,8 @@ class AutofillSuggestionGeneratorTest : public testing::Test {
                          /*history_service=*/nullptr,
                          /*sync_service=*/&sync_service_,
                          /*strike_database=*/nullptr,
-                         /*image_fetcher=*/nullptr);
+                         /*image_fetcher=*/nullptr,
+                         /*shared_storage_handler=*/nullptr);
     suggestion_generator_ = std::make_unique<TestAutofillSuggestionGenerator>(
         autofill_client_, personal_data());
     autofill_client_.set_autofill_offer_manager(

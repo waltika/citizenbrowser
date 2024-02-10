@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "base/base_switches.h"
+#include "base/check_deref.h"
 #include "base/command_line.h"
 #include "base/containers/contains.h"
 #include "base/containers/fixed_flat_set.h"
@@ -208,6 +209,7 @@
 #include "components/browsing_topics/browsing_topics_service.h"
 #include "components/captive_portal/core/buildflags.h"
 #include "components/content_settings/browser/page_specific_content_settings.h"
+#include "components/content_settings/core/browser/content_settings_utils.h"
 #include "components/content_settings/core/browser/cookie_settings.h"
 #include "components/content_settings/core/browser/host_content_settings_map.h"
 #include "components/content_settings/core/browser/private_network_settings.h"
@@ -513,10 +515,12 @@
 #include "chrome/browser/policy/networking/policy_cert_service_factory.h"
 #include "chrome/browser/policy/system_features_disable_list_policy_handler.h"
 #include "chrome/browser/smart_card/chromeos_smart_card_delegate.h"
+#include "chrome/browser/web_applications/web_app_tab_helper.h"
 #include "chrome/common/chromeos/extensions/chromeos_system_extension_info.h"
 #include "chromeos/components/kiosk/kiosk_utils.h"
 #include "chromeos/constants/chromeos_features.h"
 #include "components/crash/core/app/breakpad_linux.h"
+#include "content/public/browser/chromeos/multi_capture_service.h"
 #include "third_party/cros_system_api/switches/chrome_switches.h"
 #endif
 
@@ -1381,6 +1385,63 @@ bool ShouldUseSpareRenderProcessHostForTopChromePage(Profile* profile) {
          !IsTopChromeRendererPresent(profile);
 }
 
+#if BUILDFLAG(IS_CHROMEOS)
+void NotifyMultiCaptureStarted(const std::string& label,
+                               content::WebContents* web_contents,
+                               const webapps::AppId* app_id) {
+#if BUILDFLAG(IS_CHROMEOS_ASH)
+  if (app_id &&
+      video_capture::mojom::MultiCaptureServiceClient::Version_ >=
+          video_capture::mojom::MultiCaptureServiceClient::MethodMinVersions::
+              kMultiCaptureStartedFromAppMinVersion) {
+    content::GetMultiCaptureService().NotifyMultiCaptureStartedFromApp(
+        label, *app_id,
+        web_app::WebAppProvider::GetForWebContents(web_contents)
+            ->registrar_unsafe()
+            .GetAppShortName(*app_id));
+  } else {
+    // TODO(b/319317165): Remove this case once the pivot to web apps is
+    // complete.
+    content::GetMultiCaptureService().NotifyMultiCaptureStarted(
+        label, url::Origin::Create(web_contents->GetLastCommittedURL()));
+  }
+#elif BUILDFLAG(IS_CHROMEOS_LACROS)
+  chromeos::LacrosService& service =
+      CHECK_DEREF(chromeos::LacrosService::Get());
+  crosapi::mojom::MultiCaptureService& multi_capture_service = CHECK_DEREF(
+      service.GetRemote<crosapi::mojom::MultiCaptureService>().get());
+  if (app_id &&
+      service.GetInterfaceVersion<crosapi::mojom::MultiCaptureService>() >=
+          (int)crosapi::mojom::MultiCaptureService::MethodMinVersions::
+              kMultiCaptureStartedFromAppMinVersion) {
+    multi_capture_service.MultiCaptureStartedFromApp(
+        label, *app_id,
+        web_app::WebAppProvider::GetForWebContents(web_contents)
+            ->registrar_unsafe()
+            .GetAppShortName(*app_id));
+  } else {
+    // TODO(b/319317165): Remove this case once the pivot to web apps is
+    // complete.
+    multi_capture_service.MultiCaptureStarted(
+        label, web_contents->GetLastCommittedURL().host());
+  }
+#endif
+}
+
+void NotifyMultiCaptureStopped(const std::string& label) {
+#if BUILDFLAG(IS_CHROMEOS_ASH)
+  content::GetMultiCaptureService().NotifyMultiCaptureStopped(label);
+#elif BUILDFLAG(IS_CHROMEOS_LACROS)
+  crosapi::mojom::MultiCaptureService& multi_capture_service =
+      CHECK_DEREF(chromeos::LacrosService::Get()
+                      ->GetRemote<crosapi::mojom::MultiCaptureService>()
+                      .get());
+  multi_capture_service.MultiCaptureStopped(label);
+#endif
+}
+
+#endif  // BUILDFLAG(IS_CHROMEOS)
+
 std::unique_ptr<blocked_content::PopupNavigationDelegate>
 CreatePopupNavigationDelegate(NavigateParams params) {
   return std::make_unique<ChromePopupNavigationDelegate>(std::move(params));
@@ -1526,6 +1587,8 @@ void ChromeContentBrowserClient::RegisterProfilePrefs(
 
   registry->RegisterBooleanPref(
       policy::policy_prefs::kForcePermissionPolicyUnloadDefaultEnabled, false);
+
+  registry->RegisterStringPref(prefs::kAllowedDomainsForApps, std::string());
 
 #if BUILDFLAG(IS_CHROMEOS)
   registry->RegisterListPref(prefs::kMandatoryExtensionsForIncognitoNavigation);
@@ -4142,6 +4205,9 @@ void ChromeContentBrowserClient::OverrideWebkitPrefs(
   web_prefs->require_transient_activation_for_show_file_or_directory_picker =
       IsFileOrDirectoryPickerWithoutGestureAllowed(web_contents);
 #endif  // !BUILDFLAG(IS_ANDROID)
+  web_prefs->require_transient_activation_for_html_fullscreen =
+      IsTransientActivationRequiredForHtmlFullscreen(
+          web_contents->GetPrimaryMainFrame());
 
   switch (GetWebTheme()->GetPreferredContrast()) {
     case ui::NativeTheme::PreferredContrast::kNoPreference:
@@ -4246,6 +4312,14 @@ bool ChromeContentBrowserClient::OverrideWebPreferencesAfterNavigation(
   web_prefs->require_transient_activation_for_show_file_or_directory_picker =
       require_transient_activation_for_show_file_or_directory_picker;
 #endif  // !BUILDFLAG(IS_ANDROID)
+  const bool require_transient_activation_for_html_fullscreen =
+      IsTransientActivationRequiredForHtmlFullscreen(
+          web_contents->GetPrimaryMainFrame());
+  prefs_changed |=
+      (web_prefs->require_transient_activation_for_html_fullscreen !=
+       require_transient_activation_for_html_fullscreen);
+  web_prefs->require_transient_activation_for_html_fullscreen =
+      require_transient_activation_for_html_fullscreen;
 
   for (auto& parts : extra_parts_) {
     prefs_changed |=
@@ -4714,13 +4788,6 @@ bool ChromeContentBrowserClient::PreSpawnChild(
     case sandbox::mojom::Sandbox::kWindowsSystemProxyResolver:
       break;
   }
-
-#if !defined(OFFICIAL_BUILD)
-  // Disable renderer code integrity when Application Verifier or pageheap are
-  // enabled for chrome.exe to avoid renderer crashes. https://crbug.com/1004989
-  if (base::win::IsAppVerifierEnabled(chrome::kBrowserProcessExecutableName))
-    enforce_code_integrity = false;
-#endif  // !defined(OFFICIAL_BUILD)
 
   if (!enforce_code_integrity)
     return true;
@@ -8007,6 +8074,24 @@ bool ChromeContentBrowserClient::
 #endif  // !BUILDFLAG(IS_ANDROID)
 }
 
+bool ChromeContentBrowserClient::IsTransientActivationRequiredForHtmlFullscreen(
+    content::RenderFrameHost* render_frame_host) {
+  if (base::FeatureList::IsEnabled(
+          features::kAutomaticFullscreenContentSetting)) {
+    const GURL& url = render_frame_host->GetLastCommittedURL();
+    const HostContentSettingsMap* const content_settings =
+        HostContentSettingsMapFactory::GetForProfile(
+            render_frame_host->GetBrowserContext());
+    if (content_settings->GetContentSetting(
+            url, url, ContentSettingsType::AUTOMATIC_FULLSCREEN) ==
+        CONTENT_SETTING_ALLOW) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 #if BUILDFLAG(IS_MAC)
 std::string ChromeContentBrowserClient::GetChildProcessSuffix(int child_flags) {
   if (child_flags == chrome::kChildProcessHelperAlerts) {
@@ -8181,3 +8266,27 @@ void ChromeContentBrowserClient::MaybePrewarmHttpDiskCache(
     loading_predictor->MaybePrewarmResources(navigation_url);
   }
 }
+
+#if BUILDFLAG(IS_CHROMEOS)
+void ChromeContentBrowserClient::NotifyMultiCaptureStateChanged(
+    content::GlobalRenderFrameHostId capturer_rfh_id,
+    const std::string& label,
+    MultiCaptureChanged state) {
+  content::WebContents* const web_contents = WebContents::FromRenderFrameHost(
+      RenderFrameHost::FromID(capturer_rfh_id));
+  if (!web_contents) {
+    return;
+  }
+
+  switch (state) {
+    case MultiCaptureChanged::kStarted:
+      NotifyMultiCaptureStarted(
+          label, web_contents,
+          web_app::WebAppTabHelper::GetAppId(web_contents));
+      break;
+    case MultiCaptureChanged::kStopped:
+      NotifyMultiCaptureStopped(label);
+      break;
+  }
+}
+#endif  // BUILDFLAG(IS_CHROMEOS)

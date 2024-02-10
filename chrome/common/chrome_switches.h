@@ -176,6 +176,7 @@ extern const char kSimulateOutdated[];
 extern const char kSimulateOutdatedNoAU[];
 extern const char kSimulateUpgrade[];
 extern const char kSimulateIdleTimeout[];
+extern const char kSkipLocalUpmGmsCoreVersionCheckForTesting[];
 extern const char kSSLVersionMax[];
 extern const char kSSLVersionMin[];
 extern const char kSSLVersionTLSv12[];
@@ -251,6 +252,7 @@ extern const char kMakeChromeDefault[];
 
 #if BUILDFLAG(IS_WIN)
 extern const char kEnableProfileShortcutManager[];
+extern const char kFromBrowserSwitcher[];
 extern const char kFromInstaller[];
 extern const char kHideIcons[];
 extern const char kNoAppCompatClear[];

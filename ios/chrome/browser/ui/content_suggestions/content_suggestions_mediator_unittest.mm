@@ -495,6 +495,15 @@ TEST_F(ContentSuggestionsMediatorTest,
       {});
 
   [mediator_ disconnect];
+
+  // Create NTP.
+  web_state_list_->InsertWebState(
+      CreateWebState("chrome://newtab"),
+      WebStateList::InsertionParams::Automatic().Activate());
+  web::WebState* ntp_web_state = web_state_list_->GetActiveWebState();
+  mediator_.webState = ntp_web_state;
+  NewTabPageTabHelper::FromWebState(ntp_web_state)->SetShowStartSurface(true);
+
   SetUpMediator();
   consumer_ = OCMProtocolMock(@protocol(ContentSuggestionsConsumer));
   mediator_.segmentationService =

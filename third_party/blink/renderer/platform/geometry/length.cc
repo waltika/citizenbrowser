@@ -194,14 +194,22 @@ void Length::DecrementCalculatedRef() const {
   CalcHandles().DecrementRef(CalculationHandle());
 }
 
-float Length::NonNanCalculatedValue(
-    float max_value,
-    const AnchorEvaluator* anchor_evaluator) const {
+float Length::NonNanCalculatedValue(float max_value,
+                                    const EvaluationInput& input) const {
   DCHECK(IsCalculated());
-  float result = GetCalculationValue().Evaluate(max_value, anchor_evaluator);
+  float result = GetCalculationValue().Evaluate(max_value, input);
   if (std::isnan(result))
     return 0;
   return result;
+}
+
+bool Length::IsContentOrIntrinsic() const {
+  if (GetType() == kCalculated) {
+    return GetCalculationValue().HasContentOrIntrinsicSize();
+  }
+  return GetType() == kMinContent || GetType() == kMaxContent ||
+         GetType() == kFitContent || GetType() == kMinIntrinsic ||
+         GetType() == kContent;
 }
 
 bool Length::IsCalculatedEqual(const Length& o) const {

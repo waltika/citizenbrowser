@@ -853,12 +853,14 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="BrowserRenderProcessHost.BlockedByFilterURL"
-    enum="RenderProcessHostBlockedURLReason" expires_after="2024-07-06">
+    enum="RenderProcessHostBlockedURLReason" expires_after="2025-02-05">
   <owner>creis@chromium.org</owner>
   <owner>site-isolation-dev@chromium.org</owner>
   <summary>
     Recorded when RenderProcessHostImpl::FilterURL detects a disallowed URL sent
-    by the renderer process and rewrites it to about:blank#blocked.
+    by the renderer process and rewrites it to about:blank#blocked. See also
+    Navigation.Renderer.BlockedForFilterURL for cases caught earlier in the
+    renderer process, and https://crbug.com/40066983.
   </summary>
 </histogram>
 
@@ -1142,6 +1144,18 @@ chromium-metrics-reviews@google.com.
     &quot;AppData/Local/Google/BrowserSwitcher&quot; directory was successfully
     moved to its final destination (&quot;cache.dat&quot;) after writing its
     contents. Windows only.
+  </summary>
+</histogram>
+
+<histogram name="BrowserSwitcher.ChromeLaunch.IsFromBrowserSwitcher"
+    enum="Boolean" expires_after="2024-03-25">
+  <owner>nicolaso@chromium.org</owner>
+  <owner>pastarmovj@chromium.org</owner>
+  <summary>
+    Whether or not Chrome was launched by the Legacy Browser Support for Edge
+    extension's native host. This indicates an automatic Edge=&gt;Chrome or
+    IE=&gt;Chrome transition. Recorded whenever Chrome is launched by any means.
+    Only recorded on Windows.
   </summary>
 </histogram>
 

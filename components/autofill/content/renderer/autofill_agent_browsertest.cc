@@ -20,12 +20,14 @@
 #include "components/autofill/content/common/mojom/autofill_driver.mojom.h"
 #include "components/autofill/content/renderer/autofill_agent_test_api.h"
 #include "components/autofill/content/renderer/autofill_renderer_test.h"
+#include "components/autofill/content/renderer/form_autofill_util.h"
 #include "components/autofill/content/renderer/form_tracker.h"
 #include "components/autofill/content/renderer/test_utils.h"
 #include "components/autofill/core/common/autofill_features.h"
 #include "components/autofill/core/common/field_data_manager.h"
 #include "components/autofill/core/common/form_data.h"
 #include "components/autofill/core/common/mojom/autofill_types.mojom-shared.h"
+#include "components/autofill/core/common/unique_ids.h"
 #include "content/public/renderer/render_frame.h"
 #include "content/public/test/navigation_simulator.h"
 #include "content/public/test/test_utils.h"
@@ -483,6 +485,48 @@ TEST_F(AutofillAgentTest, PreviewThenClear) {
   EXPECT_EQ(field.GetAutofillState(), blink::WebAutofillState::kNotFilled);
 }
 
+// Test that AutofillAgent::JavaScriptChangedValue updates the
+// last interacted saved state.
+TEST_F(AutofillAgentTest,
+       JavaScriptChangedValueUpdatesLastInteractedSavedState) {
+  base::test::ScopedFeatureList scoped_feature_list{
+      features::kAutofillImproveSubmissionDetection};
+  LoadHTML(R"(<form id="form_id"><input id="text_id"></form>)");
+
+  blink::WebFormElement form = GetMainFrame()
+                                   ->GetDocument()
+                                   .GetElementById("form_id")
+                                   .DynamicTo<blink::WebFormElement>();
+  FormRendererId form_id = form_util::GetFormRendererId(form);
+
+  ExecuteJavaScriptForTests(
+      R"(document.forms[0].elements[0].value = 'js-set value';)");
+  std::optional<FormData> last_interacted_saved_state =
+      AutofillAgentTestApi(&autofill_agent()).last_interacted_saved_state();
+  // Since we do not have a tracked form yet, the JS call should not update (in
+  // this case set) the last interacted form.
+  ASSERT_FALSE(last_interacted_saved_state.has_value());
+
+  SimulateUserEditField(form, "text_id", "user-set value");
+  last_interacted_saved_state =
+      AutofillAgentTestApi(&autofill_agent()).last_interacted_saved_state();
+  ASSERT_TRUE(last_interacted_saved_state.has_value());
+  EXPECT_EQ(last_interacted_saved_state->renderer_id, form_id);
+  ASSERT_EQ(1u, last_interacted_saved_state->fields.size());
+  EXPECT_EQ(u"user-set value", last_interacted_saved_state->fields[0].value);
+
+  ExecuteJavaScriptForTests(
+      R"(document.forms[0].elements[0].value = 'js-set value';)");
+  last_interacted_saved_state =
+      AutofillAgentTestApi(&autofill_agent()).last_interacted_saved_state();
+  // Since we now have a tracked form and JS modified the same form, we should
+  // see the JS modification reflected in the last interacted saved form.
+  ASSERT_TRUE(last_interacted_saved_state.has_value());
+  EXPECT_EQ(last_interacted_saved_state->renderer_id, form_id);
+  ASSERT_EQ(1u, last_interacted_saved_state->fields.size());
+  EXPECT_EQ(u"js-set value", last_interacted_saved_state->fields[0].value);
+}
+
 // Test that AutofillAgent::ApplyFormAction(mojom::ActionPersistence::kFill)
 // updates the last interacted saved state when the <input>s have no containing
 // <form>.
@@ -725,6 +769,69 @@ TEST_F(AutofillAgentTest, FormlessOnNavigationAfterSomeInputsRemoved) {
   ExecuteJavaScriptForTests(R"(document.getElementById('name').remove();)");
   // Simulate page navigation.
   autofill_agent().OnProbablyFormSubmitted();
+}
+
+// Test that in the scenario that:
+// - The user autofills a form which dynamically removes -
+//   during autofill - `AutofillAgent::last_queried_element_` from the DOM
+//   hierarchy.
+// THAT
+// - Inferred form submission as a result of the page removing the <form> from
+//   the DOM hierarchy does not send fields which were removed from the DOM
+//   hierarchy at autofill time.
+TEST_F(AutofillAgentTest,
+       OnInferredFormSubmissionAfterAutofillRemovesLastQueriedElement) {
+  LoadHTML(R"(
+    <form id="form">
+      <input id="input1">
+      <input id="input2" onchange="document.getElementById('input1').remove();">
+    </form>
+  )");
+
+  blink::WebFormElement form_element =
+      GetWebElementById("form").DynamicTo<blink::WebFormElement>();
+  ASSERT_FALSE(form_element.IsNull());
+  std::optional<FormData> form_data =
+      form_util::ExtractFormData(GetMainFrame()->GetDocument(), form_element,
+                                 autofill_agent().field_data_manager(),
+                                 {form_util::ExtractOption::kValue});
+  ASSERT_TRUE(form_data.has_value());
+
+  blink::WebVector<blink::WebFormControlElement> field_elements =
+      form_element.GetFormControlElements();
+
+  for (const blink::WebFormControlElement& field_element : field_elements) {
+    ASSERT_EQ(field_element.GetAutofillState(),
+              blink::WebAutofillState::kNotFilled);
+  }
+
+  for (FormFieldData& field : form_data->fields) {
+    field.value = field.id_attribute + u" autofilled";
+    field.is_autofilled = true;
+  }
+
+  // Update `AutofillAgent::last_queried_element_`.
+  static_cast<content::RenderFrameObserver*>(&autofill_agent())
+      ->FocusedElementChanged(field_elements[0]);
+
+  autofill_agent().ApplyFormAction(mojom::ActionType::kFill,
+                                   mojom::ActionPersistence::kFill,
+                                   FormData::FillData(*form_data));
+
+  for (const blink::WebFormControlElement& field_element : field_elements) {
+    ASSERT_EQ(field_element.GetAutofillState(),
+              blink::WebAutofillState::kAutofilled);
+  }
+
+  EXPECT_CALL(autofill_driver(),
+              FormSubmitted(AllOf(FieldsAre("id", &FormFieldData::id_attribute,
+                                            {u"input2"}),
+                                  FieldsAre("value", &FormFieldData::value,
+                                            {u"input2 autofilled"})),
+                            _, _));
+  ExecuteJavaScriptForTests(R"(document.getElementById('form').remove();)");
+  autofill_agent().OnInferredFormSubmission(
+      mojom::SubmissionSource::XHR_SUCCEEDED);
 }
 
 }  // namespace

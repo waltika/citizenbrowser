@@ -964,6 +964,9 @@ class ChromeContentBrowserClient : public content::ContentBrowserClient {
   bool IsTransientActivationRequiredForShowFileOrDirectoryPicker(
       content::WebContents* web_contents) override;
 
+  bool IsTransientActivationRequiredForHtmlFullscreen(
+      content::RenderFrameHost* render_frame_host) override;
+
   bool ShouldUseFirstPartyStorageKey(const url::Origin& origin) override;
 
   std::unique_ptr<content::ResponsivenessCalculatorDelegate>
@@ -1006,6 +1009,12 @@ class ChromeContentBrowserClient : public content::ContentBrowserClient {
   GetIpProtectionProxyBypassPolicy() override;
   void MaybePrewarmHttpDiskCache(content::BrowserContext& browser_context,
                                  const GURL& navigation_url) override;
+#if BUILDFLAG(IS_CHROMEOS)
+  void NotifyMultiCaptureStateChanged(
+      content::GlobalRenderFrameHostId capturer_rfh_id,
+      const std::string& label,
+      MultiCaptureChanged state) override;
+#endif  // BUILDFLAG(IS_CHROMEOS)
 
  protected:
   static bool HandleWebUI(GURL* url, content::BrowserContext* browser_context);

@@ -16,10 +16,12 @@
 #include "ash/picker/views/picker_strings.h"
 #include "ash/picker/views/picker_view_delegate.h"
 #include "ash/picker/views/picker_zero_state_view.h"
+#include "ash/public/cpp/picker/picker_search_result.h"
 #include "ash/style/system_shadow.h"
 #include "base/check.h"
 #include "base/functional/bind.h"
 #include "ui/base/accelerators/accelerator.h"
+#include "ui/base/emoji/emoji_panel_helper.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/base/ui_base_types.h"
 #include "ui/chromeos/styles/cros_tokens_color_mappings.h"
@@ -160,10 +162,10 @@ PickerView::PickerView(PickerViewDelegate* delegate,
     case PickerLayoutType::kResultsBelowSearchField:
       AddSearchFieldView();
       AddChildView(CreateSeparator());
-      AddContentsView();
+      AddContentsView(layout_type);
       break;
     case PickerLayoutType::kResultsAboveSearchField:
-      AddContentsView();
+      AddContentsView(layout_type);
       AddChildView(CreateSeparator());
       AddSearchFieldView();
       break;
@@ -279,6 +281,13 @@ void PickerView::SelectSearchResult(const PickerSearchResult& result) {
 
 void PickerView::SelectCategory(PickerCategory category) {
   selected_category_ = category;
+  if (category == PickerCategory::kEmojis) {
+    if (auto* widget = GetWidget()) {
+      widget->Close();
+    }
+    ui::ShowEmojiPanel();
+    return;
+  }
   search_field_view_->SetPlaceholderText(
       GetSearchFieldPlaceholderTextForPickerCategory(category));
   contents_view_->SetActivePage(category_view_);
@@ -305,8 +314,9 @@ void PickerView::AddSearchFieldView() {
       &session_metrics_));
 }
 
-void PickerView::AddContentsView() {
-  contents_view_ = AddChildView(std::make_unique<PickerContentsView>());
+void PickerView::AddContentsView(PickerLayoutType layout_type) {
+  contents_view_ =
+      AddChildView(std::make_unique<PickerContentsView>(layout_type));
   contents_view_->SetProperty(
       views::kFlexBehaviorKey,
       views::FlexSpecification(views::MinimumFlexSizeRule::kScaleToZero,
@@ -315,21 +325,24 @@ void PickerView::AddContentsView() {
 
   // `base::Unretained` is safe here because this class owns
   // `zero_state_view_`, `category_view_` and `search_results_view`_.
-  zero_state_view_ = contents_view_->AddPage(
-      std::make_unique<PickerZeroStateView>(base::BindRepeating(
-          &PickerView::SelectCategory, base::Unretained(this))));
+  zero_state_view_ =
+      contents_view_->AddPage(std::make_unique<PickerZeroStateView>(
+          kPickerSize.width(), base::BindRepeating(&PickerView::SelectCategory,
+                                                   base::Unretained(this))));
   category_view_ = contents_view_->AddPage(std::make_unique<PickerCategoryView>(
+      kPickerSize.width(),
       base::BindOnce(&PickerView::SelectSearchResult, base::Unretained(this)),
       delegate_->GetAssetFetcher()));
   search_results_view_ =
       contents_view_->AddPage(std::make_unique<PickerSearchResultsView>(
+          kPickerSize.width(),
           base::BindOnce(&PickerView::SelectSearchResult,
                          base::Unretained(this)),
           delegate_->GetAssetFetcher()));
   contents_view_->SetActivePage(zero_state_view_);
 }
 
-BEGIN_METADATA(PickerView, views::View)
+BEGIN_METADATA(PickerView)
 END_METADATA
 
 }  // namespace ash

@@ -870,12 +870,13 @@ TEST_F(PaymentsAutofillTableTest, RemoveOriginURLsModifiedBetween) {
 
 TEST_F(PaymentsAutofillTableTest, SetGetServerCards) {
   std::vector<CreditCard> inputs;
-  inputs.emplace_back(CreditCard::RecordType::kFullServerCard, "a123");
+  inputs.emplace_back(CreditCard::RecordType::kMaskedServerCard, "a123");
   inputs[0].SetRawInfo(CREDIT_CARD_NAME_FULL, u"Paul F. Tompkins");
   inputs[0].SetRawInfo(CREDIT_CARD_EXP_MONTH, u"1");
   inputs[0].SetRawInfo(CREDIT_CARD_EXP_4_DIGIT_YEAR, u"2020");
-  inputs[0].SetRawInfo(CREDIT_CARD_NUMBER, u"4111111111111111");
-  inputs[0].set_card_issuer(CreditCard::Issuer::kGoogle);
+  inputs[0].SetRawInfo(CREDIT_CARD_NUMBER, u"4444");
+  inputs[0].SetNetworkForMaskedCard(kVisaCard);
+  inputs[0].set_card_issuer(CreditCard::Issuer::kExternalIssuer);
   inputs[0].set_instrument_id(321);
   inputs[0].set_virtual_card_enrollment_state(
       CreditCard::VirtualCardEnrollmentState::kUnenrolled);
@@ -927,7 +928,7 @@ TEST_F(PaymentsAutofillTableTest, SetGetServerCards) {
   EXPECT_TRUE(outputs[0]->nickname().empty());
   EXPECT_EQ(nickname, outputs[1]->nickname());
 
-  EXPECT_EQ(CreditCard::Issuer::kGoogle, outputs[0]->card_issuer());
+  EXPECT_EQ(CreditCard::Issuer::kExternalIssuer, outputs[0]->card_issuer());
   EXPECT_EQ(CreditCard::Issuer::kExternalIssuer, outputs[1]->card_issuer());
   EXPECT_EQ("", outputs[0]->issuer_id());
   EXPECT_EQ("amex", outputs[1]->issuer_id());
@@ -1212,43 +1213,7 @@ TEST_F(PaymentsAutofillTableTest, SetServerCardsData_ExistingMetadata) {
   EXPECT_THAT(outputs, ElementsAre(input));
 }
 
-TEST_F(PaymentsAutofillTableTest, MaskUnmaskServerCards) {
-  std::u16string masked_number(u"1111");
-  std::vector<CreditCard> inputs;
-  inputs.emplace_back(CreditCard::RecordType::kMaskedServerCard, "a123");
-  inputs[0].SetRawInfo(CREDIT_CARD_NAME_FULL, u"Jay Johnson");
-  inputs[0].SetRawInfo(CREDIT_CARD_EXP_MONTH, u"1");
-  inputs[0].SetRawInfo(CREDIT_CARD_EXP_4_DIGIT_YEAR, u"2020");
-  inputs[0].SetRawInfo(CREDIT_CARD_NUMBER, masked_number);
-  inputs[0].SetNetworkForMaskedCard(kVisaCard);
-  test::SetServerCreditCards(table_.get(), inputs);
-
-  // Unmask the number. The full number should be available.
-  std::u16string full_number(u"4111111111111111");
-  ASSERT_TRUE(table_->UnmaskServerCreditCard(inputs[0], full_number));
-
-  std::vector<std::unique_ptr<CreditCard>> outputs;
-  table_->GetServerCreditCards(outputs);
-  ASSERT_EQ(1u, outputs.size());
-  EXPECT_TRUE(CreditCard::RecordType::kFullServerCard ==
-              outputs[0]->record_type());
-  EXPECT_EQ(full_number, outputs[0]->GetRawInfo(CREDIT_CARD_NUMBER));
-
-  outputs.clear();
-
-  // Re-mask the number, we should only get the last 4 digits out.
-  ASSERT_TRUE(table_->MaskServerCreditCard(inputs[0].server_id()));
-  table_->GetServerCreditCards(outputs);
-  ASSERT_EQ(1u, outputs.size());
-  EXPECT_TRUE(CreditCard::RecordType::kMaskedServerCard ==
-              outputs[0]->record_type());
-  EXPECT_EQ(masked_number, outputs[0]->GetRawInfo(CREDIT_CARD_NUMBER));
-
-  outputs.clear();
-}
-
-// Calling SetServerCreditCards should replace all existing cards, but unmasked
-// cards should not be re-masked.
+// Calling SetServerCreditCards should replace all existing cards.
 TEST_F(PaymentsAutofillTableTest, SetServerCardModify) {
   // Add a masked card.
   CreditCard masked_card(CreditCard::RecordType::kMaskedServerCard, "a123");
@@ -1262,33 +1227,6 @@ TEST_F(PaymentsAutofillTableTest, SetServerCardModify) {
   inputs.push_back(masked_card);
   test::SetServerCreditCards(table_.get(), inputs);
 
-  // Now unmask it.
-  std::u16string full_number = u"4111111111111111";
-  table_->UnmaskServerCreditCard(masked_card, full_number);
-
-  // The card should now be unmasked.
-  std::vector<std::unique_ptr<CreditCard>> outputs;
-  table_->GetServerCreditCards(outputs);
-  ASSERT_EQ(1u, outputs.size());
-  EXPECT_TRUE(outputs[0]->record_type() ==
-              CreditCard::RecordType::kFullServerCard);
-  EXPECT_EQ(full_number, outputs[0]->GetRawInfo(CREDIT_CARD_NUMBER));
-
-  outputs.clear();
-
-  // Call set again with the masked number.
-  inputs[0] = masked_card;
-  test::SetServerCreditCards(table_.get(), inputs);
-
-  // The card should stay unmasked.
-  table_->GetServerCreditCards(outputs);
-  ASSERT_EQ(1u, outputs.size());
-  EXPECT_TRUE(outputs[0]->record_type() ==
-              CreditCard::RecordType::kFullServerCard);
-  EXPECT_EQ(full_number, outputs[0]->GetRawInfo(CREDIT_CARD_NUMBER));
-
-  outputs.clear();
-
   // Set inputs that do not include our old card.
   CreditCard random_card(CreditCard::RecordType::kMaskedServerCard, "b456");
   random_card.SetRawInfo(CREDIT_CARD_NAME_FULL, u"Rick Roman");
@@ -1300,25 +1238,13 @@ TEST_F(PaymentsAutofillTableTest, SetServerCardModify) {
   test::SetServerCreditCards(table_.get(), inputs);
 
   // We should have only the new card, the other one should have been deleted.
+  std::vector<std::unique_ptr<CreditCard>> outputs;
   table_->GetServerCreditCards(outputs);
   ASSERT_EQ(1u, outputs.size());
   EXPECT_TRUE(outputs[0]->record_type() ==
               CreditCard::RecordType::kMaskedServerCard);
   EXPECT_EQ(random_card.server_id(), outputs[0]->server_id());
   EXPECT_EQ(u"2222", outputs[0]->GetRawInfo(CREDIT_CARD_NUMBER));
-
-  outputs.clear();
-
-  // Putting back the original card masked should make it masked (this tests
-  // that the unmasked data was really deleted).
-  inputs[0] = masked_card;
-  test::SetServerCreditCards(table_.get(), inputs);
-  table_->GetServerCreditCards(outputs);
-  ASSERT_EQ(1u, outputs.size());
-  EXPECT_TRUE(outputs[0]->record_type() ==
-              CreditCard::RecordType::kMaskedServerCard);
-  EXPECT_EQ(masked_card.server_id(), outputs[0]->server_id());
-  EXPECT_EQ(u"1111", outputs[0]->GetRawInfo(CREDIT_CARD_NUMBER));
 
   outputs.clear();
 }
@@ -1388,80 +1314,6 @@ TEST_F(PaymentsAutofillTableTest, SetServerCardUpdateUsageStatsAndBillingAddress
   EXPECT_NE(base::Time(), outputs[0]->use_date());
   EXPECT_EQ(base::Time(), outputs[0]->modification_date());
   EXPECT_EQ("1", outputs[0]->billing_address_id());
-  outputs.clear();
-}
-
-// Tests that deleting time ranges re-masks server credit cards that were
-// unmasked in that time.
-TEST_F(PaymentsAutofillTableTest, DeleteUnmaskedCard) {
-  // This isn't the exact unmasked time, since the database will use the
-  // current time that it is called. The code below has to be approximate.
-  base::Time unmasked_time = AutofillClock::Now();
-
-  // Add a masked card.
-  std::u16string masked_number = u"1111";
-  CreditCard masked_card(CreditCard::RecordType::kMaskedServerCard, "a123");
-  masked_card.SetRawInfo(CREDIT_CARD_NAME_FULL, u"Paul F. Tompkins");
-  masked_card.SetRawInfo(CREDIT_CARD_EXP_MONTH, u"1");
-  masked_card.SetRawInfo(CREDIT_CARD_EXP_4_DIGIT_YEAR, u"2020");
-  masked_card.SetRawInfo(CREDIT_CARD_NUMBER, masked_number);
-  masked_card.SetNetworkForMaskedCard(kVisaCard);
-
-  std::vector<CreditCard> inputs;
-  inputs.push_back(masked_card);
-  table_->SetServerCreditCards(inputs);
-
-  // Unmask it.
-  std::u16string full_number = u"4111111111111111";
-  table_->UnmaskServerCreditCard(masked_card, full_number);
-
-  // Delete data in a range a year in the future.
-  std::vector<std::unique_ptr<CreditCard>> credit_cards;
-  ASSERT_TRUE(table_->RemoveAutofillDataModifiedBetween(
-      unmasked_time + base::Days(365), unmasked_time + base::Days(530),
-      &credit_cards));
-
-  // This should not affect the unmasked card (should be unmasked).
-  std::vector<std::unique_ptr<CreditCard>> outputs;
-  ASSERT_TRUE(table_->GetServerCreditCards(outputs));
-  ASSERT_EQ(1u, outputs.size());
-  EXPECT_EQ(CreditCard::RecordType::kFullServerCard, outputs[0]->record_type());
-  EXPECT_EQ(full_number, outputs[0]->GetRawInfo(CREDIT_CARD_NUMBER));
-  outputs.clear();
-
-  // Delete data in the range of the last 24 hours.
-  // Fudge |now| to make sure it's strictly greater than the |now| that
-  // the database uses.
-  base::Time now = AutofillClock::Now() + base::Seconds(1);
-  ASSERT_TRUE(table_->RemoveAutofillDataModifiedBetween(now - base::Days(1),
-                                                        now, &credit_cards));
-
-  // This should re-mask.
-  ASSERT_TRUE(table_->GetServerCreditCards(outputs));
-  ASSERT_EQ(1u, outputs.size());
-  EXPECT_EQ(CreditCard::RecordType::kMaskedServerCard,
-            outputs[0]->record_type());
-  EXPECT_EQ(masked_number, outputs[0]->GetRawInfo(CREDIT_CARD_NUMBER));
-  outputs.clear();
-
-  // Unmask again, the card should be back.
-  table_->UnmaskServerCreditCard(masked_card, full_number);
-  ASSERT_TRUE(table_->GetServerCreditCards(outputs));
-  ASSERT_EQ(1u, outputs.size());
-  EXPECT_EQ(CreditCard::RecordType::kFullServerCard, outputs[0]->record_type());
-  EXPECT_EQ(full_number, outputs[0]->GetRawInfo(CREDIT_CARD_NUMBER));
-  outputs.clear();
-
-  // Delete all data.
-  ASSERT_TRUE(table_->RemoveAutofillDataModifiedBetween(
-      base::Time(), base::Time::Max(), &credit_cards));
-
-  // Should be masked again.
-  ASSERT_TRUE(table_->GetServerCreditCards(outputs));
-  ASSERT_EQ(1u, outputs.size());
-  EXPECT_EQ(CreditCard::RecordType::kMaskedServerCard,
-            outputs[0]->record_type());
-  EXPECT_EQ(masked_number, outputs[0]->GetRawInfo(CREDIT_CARD_NUMBER));
   outputs.clear();
 }
 
@@ -1738,89 +1590,103 @@ TEST_F(PaymentsAutofillTableTest, RemoveAllVirtualCardUsageData) {
   EXPECT_TRUE(usage_data.empty());
 }
 
-TEST_F(PaymentsAutofillTableTest, AddMaskedBankAccount) {
-  BankAccount bank_account_to_store_1 = test::CreatePixBankAccount(100);
-  BankAccount bank_account_to_store_2 = test::CreatePixBankAccount(200);
-  table_.get()->AddMaskedBankAccount(bank_account_to_store_1);
-  table_.get()->AddMaskedBankAccount(bank_account_to_store_2);
+TEST_F(PaymentsAutofillTableTest, GetMaskedBankAccounts) {
+  // Populate masked_bank_accounts table.
+  ASSERT_TRUE(db_->GetSQLConnection()->Execute(
+      "INSERT INTO masked_bank_accounts (instrument_id, bank_name, "
+      "account_number_suffix, account_type, nickname, display_icon_url) "
+      "VALUES(100, 'bank_name', 'account_number_suffix', 1, 'nickname', "
+      "'http://display-icon-url.com');"
+      "INSERT INTO masked_bank_accounts (instrument_id, bank_name, "
+      "account_number_suffix, account_type, nickname, display_icon_url) "
+      "VALUES(200, 'bank_name_2', 'account_number_suffix_2', 3, 'nickname_2', "
+      "'http://display-icon-url2.com');"));
 
-  // Verify bank account 1 is correctly retrieved.
-  std::unique_ptr<BankAccount> bank_account_from_db_1 =
-      table_->GetMaskedBankAccount(
-          bank_account_to_store_1.payment_instrument().instrument_id());
+  std::vector<std::unique_ptr<BankAccount>> bank_accounts_from_db;
+  table_->GetMaskedBankAccounts(bank_accounts_from_db);
 
-  ASSERT_TRUE(bank_account_from_db_1);
-  EXPECT_EQ(bank_account_to_store_1, *bank_account_from_db_1);
+  EXPECT_EQ(2u, bank_accounts_from_db.size());
 
-  // Verify bank account 2 is correctly retrieved.
-  std::unique_ptr<BankAccount> bank_account_from_db_2 =
-      table_->GetMaskedBankAccount(
-          bank_account_to_store_2.payment_instrument().instrument_id());
-
-  ASSERT_TRUE(bank_account_from_db_2);
-  EXPECT_EQ(bank_account_to_store_2, *bank_account_from_db_2);
-}
-
-TEST_F(PaymentsAutofillTableTest, UpdateMaskedBankAccount) {
-  BankAccount bank_account_to_store = test::CreatePixBankAccount(100);
-  ASSERT_TRUE(table_.get()->AddMaskedBankAccount(bank_account_to_store));
-
-  BankAccount updated_bank_account_to_store(
-      100, u"updated_nickname", GURL("http://www.updated-example.com"),
-      u"updated_bank_name", u"updated_account_number_suffix",
-      BankAccount::AccountType::kSalary);
-  ASSERT_TRUE(
-      table_.get()->UpdateMaskedBankAccount(updated_bank_account_to_store));
-
-  std::unique_ptr<BankAccount> bank_account_from_db =
-      table_->GetMaskedBankAccount(
-          bank_account_to_store.payment_instrument().instrument_id());
-
-  ASSERT_TRUE(bank_account_from_db);
-  EXPECT_EQ(updated_bank_account_to_store, *bank_account_from_db);
-}
-
-TEST_F(PaymentsAutofillTableTest, RemoveMaskedBankAccount) {
-  BankAccount bank_account_to_store = test::CreatePixBankAccount(100);
-  ASSERT_TRUE(table_.get()->AddMaskedBankAccount(bank_account_to_store));
-
-  // Remove bank account from db.
-  ASSERT_TRUE(table_.get()->RemoveMaskedBankAccount(bank_account_to_store));
-
-  // Verify row is deleted from bank_accounts table.
-  sql::Statement bank_accounts_select(
-      db_->GetSQLConnection()->GetUniqueStatement(
-          "SELECT COUNT(*) "
-          "FROM masked_bank_accounts WHERE instrument_id = ?"));
-  bank_accounts_select.BindInt64(
-      0, bank_account_to_store.payment_instrument().instrument_id());
-  EXPECT_TRUE(bank_accounts_select.Step());
-  EXPECT_EQ(0, bank_accounts_select.ColumnInt(0));
-}
-
-TEST_F(PaymentsAutofillTableTest, GetPaymentInstrument) {
-  sql::Statement bank_accounts_insert(
-      db_->GetSQLConnection()->GetUniqueStatement(
-          "INSERT INTO masked_bank_accounts (instrument_id, bank_name, "
-          "account_number_suffix, account_type, nickname, display_icon_url) "
-          "VALUES(100, 'bank_name', "
-          "'account_number_suffix', 1, 'nickname', "
-          "'http://display-icon-url.com')"));
-  EXPECT_TRUE(bank_accounts_insert.Run());
-
-  std::unique_ptr<BankAccount> bank_account_from_db =
-      table_->GetMaskedBankAccount(100);
-
-  ASSERT_TRUE(bank_account_from_db);
-  EXPECT_EQ(100, bank_account_from_db->payment_instrument().instrument_id());
-  EXPECT_EQ(u"nickname", bank_account_from_db->payment_instrument().nickname());
-  EXPECT_EQ(static_cast<BankAccount::AccountType>(1),
-            bank_account_from_db->account_type());
+  BankAccount bank_account_from_db_1 = *bank_accounts_from_db.at(0).get();
+  EXPECT_EQ(100, bank_account_from_db_1.payment_instrument().instrument_id());
+  EXPECT_EQ(u"bank_name", bank_account_from_db_1.bank_name());
   EXPECT_EQ(u"account_number_suffix",
-            bank_account_from_db->account_number_suffix());
+            bank_account_from_db_1.account_number_suffix());
+  EXPECT_EQ(static_cast<BankAccount::AccountType>(1),
+            bank_account_from_db_1.account_type());
+  EXPECT_EQ(u"nickname",
+            bank_account_from_db_1.payment_instrument().nickname());
   EXPECT_EQ(GURL("http://display-icon-url.com"),
-            bank_account_from_db->payment_instrument().display_icon_url());
-  EXPECT_EQ(u"bank_name", bank_account_from_db->bank_name());
+            bank_account_from_db_1.payment_instrument().display_icon_url());
+
+  BankAccount bank_account_from_db_2 = *bank_accounts_from_db.at(1).get();
+  EXPECT_EQ(200, bank_account_from_db_2.payment_instrument().instrument_id());
+  EXPECT_EQ(u"bank_name_2", bank_account_from_db_2.bank_name());
+  EXPECT_EQ(u"account_number_suffix_2",
+            bank_account_from_db_2.account_number_suffix());
+  EXPECT_EQ(static_cast<BankAccount::AccountType>(3),
+            bank_account_from_db_2.account_type());
+  EXPECT_EQ(u"nickname_2",
+            bank_account_from_db_2.payment_instrument().nickname());
+  EXPECT_EQ(GURL("http://display-icon-url2.com"),
+            bank_account_from_db_2.payment_instrument().display_icon_url());
+}
+
+TEST_F(PaymentsAutofillTableTest,
+       GetMaskedBankAccounts_BankAccountTypeOutOfBounds) {
+  // Populate masked_bank_accounts table with the first row to have an invalid
+  // bank account type with value 100.
+  ASSERT_TRUE(db_->GetSQLConnection()->Execute(
+      "INSERT INTO masked_bank_accounts (instrument_id, bank_name, "
+      "account_number_suffix, account_type, nickname, display_icon_url) "
+      "VALUES(100, 'bank_name', 'account_number_suffix', 100, 'nickname', "
+      "'http://display-icon-url.com');"
+      "INSERT INTO masked_bank_accounts (instrument_id, bank_name, "
+      "account_number_suffix, account_type, nickname, display_icon_url) "
+      "VALUES(200, 'bank_name_2', 'account_number_suffix_2', 3, 'nickname_2', "
+      "'http://display-icon-url2.com');"));
+
+  std::vector<std::unique_ptr<BankAccount>> bank_accounts_from_db;
+  table_->GetMaskedBankAccounts(bank_accounts_from_db);
+
+  // Expect only one bank account since the other one has an invalid bank
+  // account type.
+  EXPECT_EQ(1u, bank_accounts_from_db.size());
+  // Verify that the returned bank account maps to the second row in the table.
+  BankAccount bank_account_from_db = *bank_accounts_from_db.at(0).get();
+  EXPECT_EQ(200, bank_account_from_db.payment_instrument().instrument_id());
+}
+
+TEST_F(PaymentsAutofillTableTest, SetMaskedBankAccounts) {
+  ASSERT_TRUE(db_->GetSQLConnection()->Execute(
+      "INSERT INTO masked_bank_accounts (instrument_id, bank_name, "
+      "account_number_suffix, account_type, nickname, display_icon_url) "
+      "VALUES(100, 'bank_name', 'account_number_suffix', 1, 'nickname', "
+      "'http://display-icon-url.com');"
+      "INSERT INTO masked_bank_accounts (instrument_id, bank_name, "
+      "account_number_suffix, account_type, nickname, display_icon_url) "
+      "VALUES(200, 'bank_name_2', 'account_number_suffix_2', 3, 'nickname_2', "
+      "'http://display-icon-url2.com');"));
+
+  // Verify that GetMaskedBankAccounts returns 2 bank accounts.
+  std::vector<std::unique_ptr<BankAccount>> bank_accounts_from_db;
+  table_->GetMaskedBankAccounts(bank_accounts_from_db);
+  EXPECT_EQ(2u, bank_accounts_from_db.size());
+
+  // Create bank account with different id from the ones above.
+  BankAccount bank_account_to_store = test::CreatePixBankAccount(8000);
+  std::vector<BankAccount> bank_accounts_to_store;
+  bank_accounts_to_store.push_back(bank_account_to_store);
+  table_->SetMaskedBankAccounts(bank_accounts_to_store);
+
+  // Verify that GetMaskedBankAccounts returns 1 bank account.
+  table_->GetMaskedBankAccounts(bank_accounts_from_db);
+  EXPECT_EQ(1u, bank_accounts_from_db.size());
+
+  // Verify that the instrument id of the returned bank account matches the one
+  // that was stored.
+  BankAccount bank_account_from_db = *bank_accounts_from_db.at(0).get();
+  EXPECT_EQ(8000, bank_account_from_db.payment_instrument().instrument_id());
 }
 
 }  // namespace autofill

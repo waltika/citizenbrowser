@@ -322,7 +322,7 @@ chromium-metrics-reviews@google.com.
       label="Cookie rotation success (request completed before cookie fresh
              notification)"/>
   <int value="2" label="Cookie rotation failure"/>
-  <int value="3" label="Network connection offline"/>
+  <int value="3" label="(obsolete) Network connection offline"/>
   <int value="4" label="Timeout"/>
   <int value="5" label="Shutdown or session termination"/>
   <int value="6" label="Cookie is already fresh"/>
@@ -361,7 +361,7 @@ chromium-metrics-reviews@google.com.
   <int value="10" label="Avatar bubble sign in"/>
   <int value="11" label="Profile picker"/>
   <int value="12" label="Devices page"/>
-  <int value="13" label="Cloud print"/>
+  <int value="13" label="(obsolete) Cloud print"/>
   <int value="14" label="(obsolete) Content area"/>
   <int value="15" label="Signin promo"/>
   <int value="16" label="Recent tabs"/>
@@ -766,6 +766,7 @@ chromium-metrics-reviews@google.com.
   </int>
   <int value="19" label="LogoutTabHelper::DidFinishNavigation"/>
   <int value="20" label="ForceSigninReauthWithDifferentAccount"/>
+  <int value="21" label="AccountReconcilor::RevokeTokensNotInCookies"/>
 </enum>
 
 <enum name="SyncErrorPromptUIAction">

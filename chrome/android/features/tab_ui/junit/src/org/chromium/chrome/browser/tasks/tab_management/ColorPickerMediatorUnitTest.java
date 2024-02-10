@@ -49,7 +49,7 @@ public class ColorPickerMediatorUnitTest {
         MockitoAnnotations.initMocks(this);
         mActivity = Robolectric.buildActivity(Activity.class).setup().get();
         mColorIds = ColorPickerUtils.getTabGroupColorIdList();
-        mMediator = new ColorPickerMediator(mColorIds, mColorItems);
+        mMediator = new ColorPickerMediator(mColorIds, mColorItems, ColorPickerType.TAB_GROUP);
     }
 
     @Test
@@ -78,6 +78,6 @@ public class ColorPickerMediatorUnitTest {
             }
         }
 
-        assertEquals(selectedColor, mMediator.getSelectedColor());
+        assertEquals(selectedColor, (int) mMediator.getSelectedColorSupplier().get());
     }
 }

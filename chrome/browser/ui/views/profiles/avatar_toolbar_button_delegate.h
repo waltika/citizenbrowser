@@ -17,6 +17,7 @@
 #include "chrome/browser/signin/web_signin_interceptor.h"
 #include "chrome/browser/sync/sync_ui_util.h"
 #include "chrome/browser/ui/browser_list_observer.h"
+#include "chrome/browser/ui/color/chrome_color_id.h"
 #include "chrome/browser/ui/views/profiles/avatar_toolbar_button.h"
 #include "components/signin/public/identity_manager/identity_manager.h"
 #include "components/sync/service/sync_service.h"
@@ -26,8 +27,19 @@
 class Browser;
 class Profile;
 
-// Handles the business logic for AvatarToolbarButton. This includes
-// managing the highlight animation and the identity animation.
+// Handles the business logic for AvatarToolbarButton.
+// Listens to Chrome and Profile changes in order to compute the proper state of
+// the button. This state is used to compute the information requested by
+// the button to be shown, such as Text and color, Icon, tooltip text etc...
+// The different states that can be reached:
+// - Regular state: regular browsing session.
+// - Private mode: Incognito or Guest browser sessions.
+// - Identity name shown: the identity name is shown for a short period of time.
+//   This can be triggered by identity changes in Chrome or when an IPH is
+//   showing.
+// - Explicit modifications override: such as displaying specific text when
+//   intercept bubbles are displayed.
+// - Sync paused/error state.
 class AvatarToolbarButtonDelegate : public BrowserListObserver,
                                     public ProfileAttributesStorage::Observer,
                                     public signin::IdentityManager::Observer,
@@ -41,54 +53,61 @@ class AvatarToolbarButtonDelegate : public BrowserListObserver,
 
   ~AvatarToolbarButtonDelegate() override;
 
-  // Methods called by the AvatarToolbarButton to get profile information.
-  std::u16string GetProfileName() const;
-  std::u16string GetShortProfileName() const;
-  gfx::Image GetGaiaAccountImage() const;
-  // Must only be called in states which have an avatar image (i.e. not
-  // kGuestSession and not kIncognitoProfile).
-  gfx::Image GetProfileAvatarImage(gfx::Image gaia_account_image,
-                                   int preferred_size) const;
-
-  // Returns the count of incognito or guest windows attached to the profile.
-  int GetWindowCount() const;
-
-  AvatarToolbarButton::State GetState() const;
-
-  std::optional<AvatarSyncErrorType> GetAvatarSyncErrorType() const;
-
-  bool IsSyncFeatureEnabled() const;
-
-  bool IsHighlightAnimationVisible() const;
+  // These info are based on the `ButtonState`.
+  std::pair<std::u16string, std::optional<SkColor>> GetTextAndColor(
+      const ui::ColorProvider* const color_provider) const;
+  std::optional<SkColor> GetHighlightTextColor(
+      const ui::ColorProvider* const color_provider) const;
+  std::u16string GetAvatarTooltipText() const;
+  std::pair<ChromeColorIds, ChromeColorIds> GetInkdropColors() const;
+  ui::ImageModel GetAvatarIcon(int icon_size, SkColor icon_color) const;
+  bool ShouldPaintBorder() const;
 
 #if BUILDFLAG(ENABLE_DICE_SUPPORT)
   void ShowInterceptText(
       WebSigninInterceptor::SigninInterceptionType interception_type);
-  void HideText();
 
-  std::u16string GetInterceptText();
+  void MaybeShowEnterpriseText();
 #endif
+  void ShowDefaultText();
 
   // Should be called when the icon is updated. This may trigger the identity
   // pill animation if the delegate is waiting for the image.
-  void MaybeShowIdentityAnimation(const gfx::Image& gaia_account_image);
+  void MaybeShowIdentityAnimation();
 
   // Enables or disables the IPH highlight.
   void SetHasInProductHelpPromo(bool has_promo);
 
   // Called by the AvatarToolbarButton to notify the delegate about events.
-  void NotifyClick();
   void OnMouseExited();
   void OnBlur();
   void OnThemeChanged(const ui::ColorProvider* color_provider);
 
  private:
-  enum class ButtonTextState {
+  // Internal text state
+  enum class TextState {
     kNotShowing,
     kWaitingForImage,
     kShowingName,
-    kShowingInterceptText
+    kShowingInterceptText,
+    kShowingEnterpriseText,
   };
+
+  // States of the button ordered in priority of getting displayed.
+  enum class ButtonState {
+    kIncognitoProfile,
+    kGuestSession,
+    kInterceptTextShowing,
+    kAnimatedUserIdentity,
+    kSyncPaused,
+    // An error in sync-the-feature or sync-the-transport.
+    kSyncError,
+    kWork,
+    kSchool,
+    kNormal
+  };
+
+  ButtonState ComputeState() const;
 
   // BrowserListObserver:
   void OnBrowserAdded(Browser* browser) override;
@@ -100,6 +119,8 @@ class AvatarToolbarButtonDelegate : public BrowserListObserver,
       const base::FilePath& profile_path) override;
   void OnProfileNameChanged(const base::FilePath& profile_path,
                             const std::u16string& old_profile_name) override;
+  void OnProfileUserManagementAcceptanceChanged(
+      const base::FilePath& profile_path) override;
 
   // IdentityManager::Observer:
   // Needed if the first sync promo account should be displayed.
@@ -128,6 +149,18 @@ class AvatarToolbarButtonDelegate : public BrowserListObserver,
   // this extends the duration of the current animation.
   void ShowIdentityAnimation();
 
+  TextState GetDefaultTextState() const;
+
+  std::u16string GetProfileName() const;
+  std::u16string GetShortProfileName() const;
+  // Must only be called in states which have an avatar image (i.e. not
+  // kGuestSession and not kIncognitoProfile).
+  gfx::Image GetProfileAvatarImage(int preferred_size) const;
+  // Returns the count of incognito or guest windows attached to the profile.
+  int GetWindowCount() const;
+  std::optional<AvatarSyncErrorType> GetAvatarSyncErrorType() const;
+  gfx::Image GetGaiaAccountImage() const;
+
   void Reset();
 
   base::ScopedObservation<ProfileAttributesStorage,
@@ -142,13 +175,15 @@ class AvatarToolbarButtonDelegate : public BrowserListObserver,
   const raw_ptr<AvatarToolbarButton> avatar_toolbar_button_;
   const raw_ptr<Browser> browser_;
   const raw_ptr<Profile> profile_;
-  ButtonTextState button_text_state_ = ButtonTextState::kNotShowing;
+  TextState button_text_state_ = TextState::kNotShowing;
 
   // Count of identity pill animation timeouts that are currently scheduled.
   // Multiple timeouts are scheduled when multiple animation triggers happen in
   // a quick sequence (before the first timeout passes). The identity pill tries
   // to close when this reaches 0.
   int identity_animation_timeout_count_ = 0;
+
+  bool enterprise_text_hide_scheduled_ = false;
 
   bool refresh_tokens_loaded_ = false;
   bool has_in_product_help_promo_ = false;

@@ -262,8 +262,8 @@ SavedDeskLibraryView::SavedDeskLibraryView() {
   scroll_view_->SetHorizontalScrollBarMode(
       views::ScrollView::ScrollBarMode::kDisabled);
   // Use ash style rounded scroll bar just like `AppListBubbleAppsPage`.
-  auto vertical_scroll =
-      std::make_unique<RoundedScrollBar>(/*horizontal=*/false);
+  auto vertical_scroll = std::make_unique<RoundedScrollBar>(
+      views::ScrollBar::Orientation::kVertical);
   vertical_scroll->SetInsets(kLibraryPageVerticalScrollInsets);
   vertical_scroll->SetSnapBackOnDragOutside(false);
   scroll_view_->SetVerticalScrollBar(std::move(vertical_scroll));
@@ -291,7 +291,7 @@ SavedDeskLibraryView::SavedDeskLibraryView() {
 
     scroll_contents->AddChildView(std::move(group_contents));
   }
-  if (saved_desk_util::IsSavedDesksEnabled()) {
+  if (saved_desk_util::ShouldShowSavedDesksButtons()) {
     auto group_contents = GetLabelAndGridGroupContents();
     save_and_recall_grid_view_ =
         group_contents->AddChildView(std::make_unique<SavedDeskGridView>());

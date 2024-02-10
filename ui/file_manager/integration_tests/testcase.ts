@@ -9,7 +9,7 @@ import * as androidPhotosTests from './file_manager/android_photos.js';
 // import * as copyBetweenWindowsTests from './file_manager/copy_between_windows.js';
 // import * as createNewFolderTests from './file_manager/create_new_folder.js';
 // import * as crostiniTests from './file_manager/crostini.js';
-// import * as directoryTreeTests from './file_manager/directory_tree.js';
+import * as directoryTreeTests from './file_manager/directory_tree.js';
 // import * as directoryTreeContextMenuTests from './file_manager/directory_tree_context_menu.js';
 // import * as dlpTests from './file_manager/dlp.js';
 // import * as dlpEnterpriseConnectorsTests from './file_manager/dlp_enterprise_connectors.js';
@@ -30,14 +30,13 @@ import * as filesTooltipTests from './file_manager/files_tooltip.js';
 // import * as metadataTests from './file_manager/metadata.js';
 // import * as metricsTests from './file_manager/metrics.js';
 // import * as myFilesTests from './file_manager/my_files.js';
-// import * as navigationTests from './file_manager/navigation.js';
+import * as navigationTests from './file_manager/navigation.js';
 // import * as officeTests from './file_manager/office.js';
-// import * as openAudioMediaAppTests from './file_manager/open_audio_media_app.js';
-// import * as openFilesInWebDriveTests from './file_manager/open_files_in_web_drive.js';
-// import * as openImageMediaAppTests from './file_manager/open_image_media_app.js';
-// import * as openMediaAppTests from './file_manager/open_media_app.js';
-// import * as openSniffedFilesTests from './file_manager/open_sniffed_files.js';
-// import * as openVideoMediaAppTests from './file_manager/open_video_media_app.js';
+import * as openAudioMediaAppTests from './file_manager/open_audio_media_app.js';
+import * as openFilesInWebDriveTests from './file_manager/open_files_in_web_drive.js';
+import * as openImageMediaAppTests from './file_manager/open_image_media_app.js';
+import * as openSniffedFilesTests from './file_manager/open_sniffed_files.js';
+import * as openVideoMediaAppTests from './file_manager/open_video_media_app.js';
 // import * as providersTests from './file_manager/providers.js';
 // import * as quickViewTests from './file_manager/quick_view.js';
 // import * as recentsTests from './file_manager/recents.js';
@@ -50,7 +49,7 @@ import * as filesTooltipTests from './file_manager/files_tooltip.js';
 // import * as tasksTests from './file_manager/tasks.js';
 // import * as toolbarTests from './file_manager/toolbar.js';
 // import * as transferTests from './file_manager/transfer.js';
-// import * as trashTests from './file_manager/trash.js';
+import * as trashTests from './file_manager/trash.js';
 // import * as traverseTests from './file_manager/traverse.js';
 // import * as zipFilesTests from './file_manager/zip_files.js';
 // clang-format on
@@ -68,7 +67,7 @@ export const testcase: Record<TestFunctionName, TestFunction> = {
   // ...copyBetweenWindowsTests,
   // ...createNewFolderTests,
   // ...crostiniTests,
-  // ...directoryTreeTests,
+  ...directoryTreeTests,
   // ...directoryTreeContextMenuTests,
   // ...dlpTests,
   // ...dlpEnterpriseConnectorsTests,
@@ -89,14 +88,13 @@ export const testcase: Record<TestFunctionName, TestFunction> = {
   // ...metadataTests,
   // ...metricsTests,
   // ...myFilesTests,
-  // ...navigationTests,
+  ...navigationTests,
   // ...officeTests,
-  // ...openAudioMediaAppTests,
-  // ...openFilesInWebDriveTests,
-  // ...openImageMediaAppTests,
-  // ...openMediaAppTests,
-  // ...openSniffedFilesTests,
-  // ...openVideoMediaAppTests,
+  ...openAudioMediaAppTests,
+  ...openFilesInWebDriveTests,
+  ...openImageMediaAppTests,
+  ...openSniffedFilesTests,
+  ...openVideoMediaAppTests,
   // ...providersTests,
   // ...quickViewTests,
   // ...recentsTests,
@@ -109,7 +107,7 @@ export const testcase: Record<TestFunctionName, TestFunction> = {
   // ...tasksTests,
   // ...toolbarTests,
   // ...transferTests,
-  // ...trashTests,
+  ...trashTests,
   // ...traverseTests,
   // ...zipFilesTests,
 };

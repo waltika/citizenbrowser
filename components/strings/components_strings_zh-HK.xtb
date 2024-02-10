@@ -53,7 +53,6 @@
 <translation id="1074497978438210769">不安全</translation>
 <translation id="1075079914415273530">農林業</translation>
 <translation id="1075364221219156102">使用密鑰</translation>
-<translation id="1078033282564106222">已選取門牌號碼選項</translation>
 <translation id="1080116354587839789">縮放至符合畫面寬度</translation>
 <translation id="1081061862829655580">紙匣 19</translation>
 <translation id="1082026381988252344">捲動及縮放已分享分頁的內容</translation>
@@ -398,7 +397,7 @@
 <translation id="1711528724596764268">機器學習和人工智能</translation>
 <translation id="1712552549805331520"><ph name="URL" /> 要求在您的本機電腦上永久儲存數據</translation>
 <translation id="1713628304598226412">紙匣 2</translation>
-<translation id="1713819065634160212">將地址儲存到 Google 帳戶並自動填入</translation>
+<translation id="1713819065634160212">將地址儲存至 Google 帳戶並自動填入</translation>
 <translation id="1714807406136741351">瀏覽模式，改成「表格」模式之後，用向左/向右箭咀就可以喺圖表上面睇到價格變動</translation>
 <translation id="1717218214683051432">動作感應器</translation>
 <translation id="1717494416764505390">出紙槽 3</translation>
@@ -613,7 +612,6 @@
 <translation id="2126374524350484896">PDF 製作工具：</translation>
 <translation id="2130448033692577677">您並未設定 DnsOverHttpsMode 政策，因此系統無法套用您指定的範本。</translation>
 <translation id="2130699163006053678">A3x7</translation>
-<translation id="2131200882015008178">正在下載<ph name="LANGUAGE" />語言套件…<ph name="PERCENT" />%</translation>
 <translation id="2135799067377889518">男裝</translation>
 <translation id="2137891579555018930">正在等待許可…</translation>
 <translation id="213826338245044447">流動版書籤</translation>
@@ -1089,7 +1087,7 @@
 <translation id="3120807611504813890">信封 (輕量)</translation>
 <translation id="3121994479408824897">前往 <ph name="DOMAIN" /></translation>
 <translation id="3126023634486644099">標籤 (永久)</translation>
-<translation id="3133565499688974786"><ph name="SEARCH_ENGINE_NAME" /> 已設為預設搜尋引擎</translation>
+<translation id="3133565499688974786"><ph name="SEARCH_ENGINE_NAME" /> 已設定為預設搜尋引擎</translation>
 <translation id="3140646734028448730">商業服務</translation>
 <translation id="3141093262818886744">仍要開啟</translation>
 <translation id="3141641372357166056">沒有同意書決定</translation>
@@ -1386,7 +1384,6 @@
 <translation id="3681007416295224113">憑證資料</translation>
 <translation id="3681421644246505351">Chrome 會根據您最近的瀏覽記錄，記住您感興趣的主題。</translation>
 <translation id="3682094733650754138">揀咗填入地址選項</translation>
-<translation id="3689867156802445220">門牌號碼</translation>
 <translation id="3693327506115126094">選擇身分驗證方式</translation>
 <translation id="3698629142018988477">建立網站按鈕，啟動之後就可以喺「Google 協作平台」度快速建立新網站</translation>
 <translation id="3701325639446035885">活動售票</translation>
@@ -1510,7 +1507,7 @@
 <translation id="3943857333388298514">貼上</translation>
 <translation id="3946209740501886391">在此網站上一律詢問</translation>
 <translation id="3948588869002647271">此應用程式遺失或已毀損</translation>
-<translation id="3949297482798028668">系統管理員已禁止在此貼上這項內容。</translation>
+<translation id="3949297482798028668">管理員已禁止在此貼上這項內容。</translation>
 <translation id="3949571496842715403">此伺服器無法證明所屬網域為 <ph name="DOMAIN" />；其安全性憑證沒有指定主體替代名稱。這可能是因為設定錯誤，或有攻擊者攔截您的連線。</translation>
 <translation id="3949601375789751990">您的瀏覽記錄會在這裡顯示</translation>
 <translation id="3949790930165450333"><ph name="DEVICE_NAME" /> (<ph name="DEVICE_ID" />)</translation>
@@ -1575,6 +1572,7 @@
 <translation id="4089152113577680600">紙匣 14</translation>
 <translation id="4092349052316400070">填入地址</translation>
 <translation id="4096237801206588987">11 x 15 吋</translation>
+<translation id="4098306082496067348">結帳時輕按虛擬卡詳情即可使用。</translation>
 <translation id="4098354747657067197">前往的是欺詐網站</translation>
 <translation id="4099048595830172239">當螢幕上出現機密內容時，管理員政策不建議您與 <ph name="APPLICATION_TITLE" /> 分享螢幕畫面：</translation>
 <translation id="4099391883283080991"><ph name="CUSTOMIZE_CHROME_FONTS_FOCUSED_FRIENDLY_MATCH_TEXT" />，㩒一下 Tab 鍵，然後㩒一下 Enter 鍵就可以自訂 Chrome 嘅字型大小同字體</translation>
@@ -2454,7 +2452,7 @@
 <translation id="5838732667866024867">你可以用向左/向右箭咀睇到圖表嘅價格變化</translation>
 <translation id="5840318881868981258">更新 Google 帳戶 (<ph name="ACCOUNT" />) 中的密碼</translation>
 <translation id="5841338463993781099">要儲存在帳戶中嗎？</translation>
-<translation id="5843987376989109187">目前尚不支援這個語言。
+<translation id="5843987376989109187">目前不支援此語言。
     <ph name="BEGIN_LINK" />瞭解詳情<ph name="END_LINK" /></translation>
 <translation id="5847181246682413476">電力供應</translation>
 <translation id="5851548754964597211">分頁清單</translation>
@@ -4100,7 +4098,7 @@
 <translation id="9049981332609050619">您嘗試連線至 <ph name="DOMAIN" />，但伺服器提供的憑證無效。</translation>
 <translation id="9050666287014529139">複雜密碼</translation>
 <translation id="9051072642122229460">咖啡及濃縮咖啡機</translation>
-<translation id="9051260467258969162">請重新<ph name="BEGIN_LINK" />登入<ph name="END_LINK" />，再返回這個分頁取得寫入協助</translation>
+<translation id="9051260467258969162">請重新<ph name="BEGIN_LINK" />登入<ph name="END_LINK" />並返回此分頁，才能取得撰寫協助</translation>
 <translation id="9053840549256861041">我們即將推出名為「廣告成效評估」的全新廣告私隱功能。Chrome 只會在網站間分享非常有限的資料 (例如向使用者放送廣告的時段)，以協助網站評估廣告成效。</translation>
 <translation id="9056953843249698117">商店</translation>
 <translation id="9062620674789239642">此檔案可能已被移動、編輯或刪除。</translation>

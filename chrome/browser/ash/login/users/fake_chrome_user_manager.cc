@@ -14,7 +14,6 @@
 #include "base/ranges/algorithm.h"
 #include "base/system/sys_info.h"
 #include "base/task/single_thread_task_runner.h"
-#include "chrome/browser/ash/login/users/avatar/user_image_manager_impl.h"
 #include "chrome/browser/ash/login/users/chrome_user_manager.h"
 #include "chrome/browser/ash/login/users/chrome_user_manager_util.h"
 #include "chrome/browser/ash/login/users/default_user_image/default_user_images.h"
@@ -25,6 +24,7 @@
 #include "chromeos/ash/components/login/login_state/login_state.h"
 #include "components/user_manager/fake_user_manager.h"
 #include "components/user_manager/known_user.h"
+#include "components/user_manager/multi_user/multi_user_sign_in_policy_controller.h"
 #include "components/user_manager/user.h"
 #include "components/user_manager/user_image/user_image.h"
 #include "components/user_manager/user_names.h"
@@ -200,22 +200,9 @@ void FakeChromeUserManager::LoginUser(const AccountId& account_id,
   SimulateUserProfileLoad(account_id);
 }
 
-MultiProfileUserController*
-FakeChromeUserManager::GetMultiProfileUserController() {
-  return multi_profile_user_controller_;
-}
-
-UserImageManager* FakeChromeUserManager::GetUserImageManager(
-    const AccountId& account_id) {
-  UserImageManagerMap::iterator user_image_manager_it =
-      user_image_managers_.find(account_id);
-  if (user_image_manager_it != user_image_managers_.end()) {
-    return user_image_manager_it->second.get();
-  }
-  auto mgr = std::make_unique<UserImageManagerImpl>(account_id, this);
-  UserImageManagerImpl* mgr_raw = mgr.get();
-  user_image_managers_[account_id] = std::move(mgr);
-  return mgr_raw;
+user_manager::MultiUserSignInPolicyController*
+FakeChromeUserManager::GetMultiUserSignInPolicyController() {
+  return multi_user_sign_in_policy_controller_;
 }
 
 void FakeChromeUserManager::SwitchActiveUser(const AccountId& account_id) {
@@ -290,16 +277,6 @@ bool FakeChromeUserManager::IsDeprecatedSupervisedAccountId(
          user_manager::kSupervisedUserDomain;
 }
 
-const gfx::ImageSkia& FakeChromeUserManager::GetResourceImageSkiaNamed(
-    int id) const {
-  return *ui::ResourceBundle::GetSharedInstance().GetImageSkiaNamed(id);
-}
-
-std::u16string FakeChromeUserManager::GetResourceStringUTF16(
-    int string_id) const {
-  return std::u16string();
-}
-
 void FakeChromeUserManager::ScheduleResolveLocale(
     const std::string& locale,
     base::OnceClosure on_resolved_callback,
@@ -319,10 +296,6 @@ void FakeChromeUserManager::Initialize() {
 
 void FakeChromeUserManager::Shutdown() {
   ChromeUserManager::Shutdown();
-
-  for (auto& user_image_manager : user_image_managers_) {
-    user_image_manager.second->Shutdown();
-  }
 }
 
 const user_manager::UserList& FakeChromeUserManager::GetUsers() const {
@@ -445,11 +418,6 @@ void FakeChromeUserManager::SaveUserDisplayName(
       return;
     }
   }
-}
-
-std::u16string FakeChromeUserManager::GetUserDisplayName(
-    const AccountId& account_id) const {
-  return std::u16string();
 }
 
 void FakeChromeUserManager::SaveUserDisplayEmail(

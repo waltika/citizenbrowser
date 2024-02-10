@@ -112,7 +112,7 @@ std::unique_ptr<HardwareDisplayPlane> HardwareDisplayPlaneManager::CreatePlane(
   return std::make_unique<HardwareDisplayPlane>(id);
 }
 
-absl::optional<int> HardwareDisplayPlaneManager::LookupCrtcIndex(
+std::optional<int> HardwareDisplayPlaneManager::LookupCrtcIndex(
     uint32_t crtc_id) const {
   for (size_t i = 0; i < crtc_state_.size(); ++i) {
     if (crtc_state_[i].properties.id == crtc_id)
@@ -121,7 +121,7 @@ absl::optional<int> HardwareDisplayPlaneManager::LookupCrtcIndex(
   return {};
 }
 
-absl::optional<int> HardwareDisplayPlaneManager::LookupConnectorIndex(
+std::optional<int> HardwareDisplayPlaneManager::LookupConnectorIndex(
     uint32_t connector_id) const {
   for (size_t i = 0; i < connectors_props_.size(); ++i) {
     if (connectors_props_[i].id == connector_id)
@@ -350,16 +350,6 @@ void HardwareDisplayPlaneManager::SetColorTemperatureAdjustment(
   UpdateAndCommitCrtcState(crtc_id, crtc_state);
 }
 
-void HardwareDisplayPlaneManager::SetColorCalibration(
-    uint32_t crtc_id,
-    const display::ColorCalibration& calibration) {
-  const auto crtc_index = LookupCrtcIndex(crtc_id);
-  DCHECK(crtc_index.has_value());
-  CrtcState* crtc_state = &crtc_state_[*crtc_index];
-  crtc_state->color_calibration = calibration;
-  UpdateAndCommitCrtcState(crtc_id, crtc_state);
-}
-
 void HardwareDisplayPlaneManager::SetGammaAdjustment(
     uint32_t crtc_id,
     const display::GammaAdjustment& adjustment) {
@@ -531,7 +521,7 @@ void HardwareDisplayPlaneManager::ResetModesetStateForCrtc(uint32_t crtc_id) {
 
 HardwareCapabilities HardwareDisplayPlaneManager::GetHardwareCapabilities(
     uint32_t crtc_id) {
-  absl::optional<std::string> driver = drm_->GetDriverName();
+  std::optional<std::string> driver = drm_->GetDriverName();
   if (!driver.has_value())
     return {.is_valid = false};
 

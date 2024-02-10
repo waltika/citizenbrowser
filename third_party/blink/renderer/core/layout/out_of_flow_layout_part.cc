@@ -640,23 +640,23 @@ OutOfFlowLayoutPart::ApplyInsetArea(
   // adjustment is already set to 0 above.
   if (inset_area.UsedTop().IsCalculated()) {
     AnchorScope anchor_scope(AnchorScope::Mode::kTop, anchor_evaluator);
-    top = inset_area.UsedTop().NonNanCalculatedValue(available_height,
-                                                     anchor_evaluator);
+    top = inset_area.UsedTop().NonNanCalculatedValue(
+        available_height, {.anchor_evaluator = anchor_evaluator});
   }
   if (inset_area.UsedBottom().IsCalculated()) {
     AnchorScope anchor_scope(AnchorScope::Mode::kBottom, anchor_evaluator);
-    bottom = inset_area.UsedBottom().NonNanCalculatedValue(available_height,
-                                                           anchor_evaluator);
+    bottom = inset_area.UsedBottom().NonNanCalculatedValue(
+        available_height, {.anchor_evaluator = anchor_evaluator});
   }
   if (inset_area.UsedLeft().IsCalculated()) {
     AnchorScope anchor_scope(AnchorScope::Mode::kLeft, anchor_evaluator);
-    left = inset_area.UsedLeft().NonNanCalculatedValue(available_width,
-                                                       anchor_evaluator);
+    left = inset_area.UsedLeft().NonNanCalculatedValue(
+        available_width, {.anchor_evaluator = anchor_evaluator});
   }
   if (inset_area.UsedRight().IsCalculated()) {
     AnchorScope anchor_scope(AnchorScope::Mode::kRight, anchor_evaluator);
-    right = inset_area.UsedRight().NonNanCalculatedValue(available_width,
-                                                         anchor_evaluator);
+    right = inset_area.UsedRight().NonNanCalculatedValue(
+        available_width, {.anchor_evaluator = anchor_evaluator});
   }
 
   ContainingBlockInfo adjusted_container_info(container_info);
@@ -734,8 +734,7 @@ OutOfFlowLayoutPart::GetContainingBlockInfo(
           const BoxStrut& borders,
           const LogicalSize& size) -> OutOfFlowLayoutPart::ContainingBlockInfo {
     const auto& grid_style = containing_grid.StyleRef();
-    GridItemData grid_item(candidate.Node(), grid_style,
-                           grid_style.GetFontBaseline());
+    GridItemData grid_item(candidate.Node(), grid_style);
 
     return {grid_style.GetWritingDirection(),
             GridLayoutAlgorithm::ComputeOutOfFlowItemContainingRect(
@@ -1587,6 +1586,10 @@ void OutOfFlowLayoutPart::LayoutFragmentainerDescendants(
       auto& children = FragmentationContextChildren();
       wtf_size_t num_children = children.size();
 
+      // Even if all OOFs are done creating fragments, we need to create enough
+      // fragmentainers to encompass all monolithic overflow when printing.
+      LayoutUnit monolithic_overflow;
+
       // Set to true if an OOF inside a fragmentainer breaks. This does not
       // include repeated fixed-positioned elements.
       bool last_fragmentainer_has_break_inside = false;
@@ -1622,7 +1625,8 @@ void OutOfFlowLayoutPart::LayoutFragmentainerDescendants(
           last_fragmentainer_has_break_inside = false;
           LayoutOOFsInFragmentainer(
               pending_descendants, index, fragmentainer_progression,
-              &last_fragmentainer_has_break_inside, &fragmented_descendants);
+              &monolithic_overflow, &last_fragmentainer_has_break_inside,
+              &fragmented_descendants);
 
           // Retrieve the updated or newly added fragmentainer, and add its
           // block contribution to the consumed block size. Skip this if we are
@@ -1640,11 +1644,15 @@ void OutOfFlowLayoutPart::LayoutFragmentainerDescendants(
 
         // Extend |descendants_to_layout| if an OOF element fragments into a
         // fragmentainer at an index that does not yet exist in
-        // |descendants_to_layout|. At the same time we need to make sure that
-        // repeated fixed-positioned elements don't trigger creation of
-        // additional fragmentainers (since they'd just repeat forever).
+        // |descendants_to_layout|. We also need to do this if there's
+        // monolithic overflow (when printing), so that there are enough
+        // fragmentainers to paint the overflow. At the same time we need to
+        // make sure that repeated fixed-positioned elements don't trigger
+        // creation of additional fragmentainers on their own (since they'd just
+        // repeat forever).
         if (index == descendants_to_layout.size() - 1 &&
             (last_fragmentainer_has_break_inside ||
+             monolithic_overflow > LayoutUnit() ||
              (!fragmented_descendants.empty() &&
               index + 1 < FragmentationContextChildren().size()))) {
           descendants_to_layout.resize(index + 2);
@@ -2424,6 +2432,7 @@ const LayoutResult* OutOfFlowLayoutPart::GenerateFragment(
       DCHECK_EQ(node.Style().GetPosition(), EPosition::kFixed);
       builder.SetShouldRepeat(true);
       builder.SetIsInsideRepeatableContent(true);
+      builder.DisableMonolithicOverflowPropagation();
       is_repeatable = true;
     } else {
       SetupSpaceBuilderForFragmentation(
@@ -2443,9 +2452,11 @@ const LayoutResult* OutOfFlowLayoutPart::GenerateFragment(
       // finished this OOF there. But we have no (easy) way of telling where
       // that might be. But as long as the OOF doesn't contribute to any
       // additional fragmentainers, we should be (pretty) good.
-      if (is_last_fragmentainer_so_far &&
-          node_info.containing_block.IsFragmentedInsideClippedContainer()) {
-        builder.DisableFurtherFragmentation();
+      if (node_info.containing_block.IsFragmentedInsideClippedContainer()) {
+        if (is_last_fragmentainer_so_far) {
+          builder.DisableFurtherFragmentation();
+        }
+        builder.DisableMonolithicOverflowPropagation();
       }
     }
   } else if (container_builder_->IsInitialColumnBalancingPass()) {
@@ -2465,12 +2476,13 @@ void OutOfFlowLayoutPart::LayoutOOFsInFragmentainer(
     HeapVector<NodeToLayout>& pending_descendants,
     wtf_size_t index,
     LogicalOffset fragmentainer_progression,
+    LayoutUnit* monolithic_overflow,
     bool* has_actual_break_inside,
     HeapVector<NodeToLayout>* fragmented_descendants) {
   auto& children = FragmentationContextChildren();
   wtf_size_t num_children = children.size();
   bool is_new_fragment = index >= num_children;
-  bool is_last_fragmentainer_so_far = index + 1 == num_children;
+  bool is_last_fragmentainer_so_far = index + 1 >= num_children;
 
   DCHECK(fragmented_descendants);
   HeapVector<NodeToLayout> descendants_continued;
@@ -2478,13 +2490,15 @@ void OutOfFlowLayoutPart::LayoutOOFsInFragmentainer(
       &descendants_continued);
   std::swap(*fragmented_descendants, descendants_continued);
 
-  // If |index| is greater than the number of current children, and there are
-  // no OOF children to be added, we will still need to add an empty
-  // fragmentainer in its place. Otherwise, return early since there is no work
-  // to do.
+  // If |index| is greater than the number of current children, and there are no
+  // OOF children to be added, we will still need to add an empty fragmentainer
+  // in its place. Otherwise, return early since there is no work to do, unless
+  // there is overflowed monolithic content to take into account (in the case of
+  // pagination).
   if (pending_descendants.empty() && descendants_continued.empty() &&
-      !is_new_fragment)
+      *monolithic_overflow <= LayoutUnit() && !is_new_fragment) {
     return;
+  }
 
   const ConstraintSpace& space = GetFragmentainerConstraintSpace(index);
 
@@ -2537,10 +2551,25 @@ void OutOfFlowLayoutPart::LayoutOOFsInFragmentainer(
                           &algorithm, fragmented_descendants);
   }
 
+  // Don't update the builder when performing column balancing.
+  if (column_balancing_info_) {
+    return;
+  }
+
+  const LayoutResult* fragmentainer_result = algorithm.Layout();
+  const auto& new_fragmentainer =
+      To<PhysicalBoxFragment>(fragmentainer_result->GetPhysicalFragment());
+
   // Finalize layout on the cloned fragmentainer and replace all existing
   // references to the old result.
   ReplaceFragmentainer(index, fragmentainer_offset, is_new_fragment,
-                       &algorithm);
+                       new_fragmentainer);
+
+  if (const BlockBreakToken* break_token = new_fragmentainer.GetBreakToken()) {
+    *monolithic_overflow = break_token->MonolithicOverflow();
+  } else {
+    *monolithic_overflow = LayoutUnit();
+  }
 }
 
 void OutOfFlowLayoutPart::AddOOFToFragmentainer(
@@ -2703,18 +2732,11 @@ void OutOfFlowLayoutPart::ReplaceFragmentainer(
     wtf_size_t index,
     LogicalOffset offset,
     bool create_new_fragment,
-    SimplifiedOofLayoutAlgorithm* algorithm) {
-  // Don't update the builder when performing column balancing.
-  if (column_balancing_info_)
-    return;
-
+    const PhysicalBoxFragment& new_fragmentainer) {
   if (create_new_fragment) {
-    const LayoutResult* new_result = algorithm->Layout();
-    container_builder_->AddChild(new_result->GetPhysicalFragment(), offset);
+    container_builder_->AddChild(new_fragmentainer, offset);
   } else {
-    const LayoutResult* new_result = algorithm->Layout();
-    const PhysicalFragment* new_fragment = &new_result->GetPhysicalFragment();
-    container_builder_->ReplaceChild(index, *new_fragment, offset);
+    container_builder_->ReplaceChild(index, new_fragmentainer, offset);
 
     if (multicol_children_ && index < multicol_children_->size()) {
       // We are in a nested fragmentation context. Replace the column entry
@@ -2722,7 +2744,7 @@ void OutOfFlowLayoutPart::ReplaceFragmentainer(
       // there any new columns, they will be appended as part of regenerating
       // the multicol fragment.
       MulticolChildInfo& column_info = (*multicol_children_)[index];
-      column_info.mutable_link->fragment = new_fragment;
+      column_info.mutable_link->fragment = &new_fragmentainer;
     }
   }
 }

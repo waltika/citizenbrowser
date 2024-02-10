@@ -85,6 +85,7 @@ class USER_MANAGER_EXPORT FakeUserManager : public UserManagerBase {
                   UserRemovalReason reason) override {}
   void RemoveUserFromList(const AccountId& account_id) override;
   void RemoveUserFromListForRecreation(const AccountId& account_id) override;
+  void CleanStaleUserInformationFor(const AccountId& account_id) override;
   bool IsKnownUser(const AccountId& account_id) const override;
   const User* FindUser(const AccountId& account_id) const override;
   User* FindUserAndModify(const AccountId& account_id) override;
@@ -93,7 +94,6 @@ class USER_MANAGER_EXPORT FakeUserManager : public UserManagerBase {
   }
   void SaveForceOnlineSignin(const AccountId& account_id,
                              bool force_online_signin) override {}
-  std::u16string GetUserDisplayName(const AccountId& account_id) const override;
   void SaveUserDisplayEmail(const AccountId& account_id,
                             const std::string& display_email) override {}
   std::optional<std::string> GetOwnerEmail() override;
@@ -121,12 +121,12 @@ class USER_MANAGER_EXPORT FakeUserManager : public UserManagerBase {
   void AsyncRemoveCryptohome(const AccountId& account_id) const override;
   bool IsDeprecatedSupervisedAccountId(
       const AccountId& account_id) const override;
-  const gfx::ImageSkia& GetResourceImageSkiaNamed(int id) const override;
-  std::u16string GetResourceStringUTF16(int string_id) const override;
   void ScheduleResolveLocale(const std::string& locale,
                              base::OnceClosure on_resolved_callback,
                              std::string* out_resolved_locale) const override;
   bool IsValidDefaultUserImageId(int image_index) const override;
+  MultiUserSignInPolicyController* GetMultiUserSignInPolicyController()
+      override;
 
   // UserManagerBase overrides:
   void SetEphemeralModeConfig(
@@ -139,6 +139,9 @@ class USER_MANAGER_EXPORT FakeUserManager : public UserManagerBase {
   void PerformPostUserLoggedInActions(bool browser_restart) override {}
   bool IsDeviceLocalAccountMarkedForRemoval(
       const AccountId& account_id) const override;
+  void SetUserAffiliation(
+      const AccountId& account_id,
+      const base::flat_set<std::string>& user_affiliation_ids) override {}
   void KioskAppLoggedIn(User* user) override {}
   void PublicAccountUserLoggedIn(User* user) override {}
   // Just make it public for tests.

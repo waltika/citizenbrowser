@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <optional>
 #include <utility>
 
 #include "base/functional/bind.h"
@@ -20,7 +21,6 @@
 #include "base/run_loop.h"
 #include "base/task/single_thread_task_runner.h"
 #include "build/chromeos_buildflags.h"
-#include "third_party/abseil-cpp/absl/types/optional.h"
 #include "ui/base/cursor/cursor.h"
 #include "ui/base/cursor/mojom/cursor_type.mojom.h"
 #include "ui/base/cursor/platform_cursor.h"
@@ -172,7 +172,7 @@ void WaylandWindow::SetWindowScale(float new_scale) {
   RequestStateFromClient(state);
 }
 
-absl::optional<WaylandOutput::Id> WaylandWindow::GetPreferredEnteredOutputId() {
+std::optional<WaylandOutput::Id> WaylandWindow::GetPreferredEnteredOutputId() {
   // Child windows don't store entered outputs. Instead, take the window's
   // root parent window and use its preferred output.
   if (parent_window_) {
@@ -194,7 +194,7 @@ absl::optional<WaylandOutput::Id> WaylandWindow::GetPreferredEnteredOutputId() {
           ->wayland_screen()
           ->GetOutputIdMatching(GetBoundsInDIP());
     }
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   // PlatformWindowType::kPopup are created as toplevel windows as well.
@@ -220,7 +220,7 @@ absl::optional<WaylandOutput::Id> WaylandWindow::GetPreferredEnteredOutputId() {
     DCHECK(output) << " output " << output_id << " not found!";
     DCHECK(preferred_output) << " output " << preferred_id << " not found!";
     if (!output || !preferred_output) {
-      return absl::nullopt;
+      return std::nullopt;
     }
 
     if (output->scale_factor() > preferred_output->scale_factor()) {
@@ -550,7 +550,7 @@ void WaylandWindow::SetDecorationInsets(const gfx::Insets* insets_px) {
   if (insets_px) {
     frame_insets_px_ = *insets_px;
   } else {
-    frame_insets_px_ = absl::nullopt;
+    frame_insets_px_ = std::nullopt;
   }
 }
 
@@ -641,6 +641,24 @@ EventTargeter* WaylandWindow::GetEventTargeter() {
   return nullptr;
 }
 
+void WaylandWindow::OcclusionStateChanged(
+    PlatformWindowOcclusionState occlusion_state) {
+  // Put non-synchronized occlusion state updates into pending occlusion state
+  // as well, to avoid an earlier pending synchronized occlusion state update
+  // being applied later and overwriting a non-synchronized occlusion state that
+  // happened in between. This can only happen if a non-synchronized occlusion
+  // state update is sent after configure is initiated from the server but
+  // before it is finalized (and the pending state is applied). It's also safe
+  // to overwrite the current pending state from a configure, because there's no
+  // happens-before/after guarantees on unsynchronised state setting w.r.t.
+  // configures, so it would be valid for the configure ack's commit to have the
+  // unsynchronised occlusion state set, if that happened after configure but
+  // before the corresponding frame was produced.
+  // TODO(crbug.com/1278648): Remove this once the oldest ash we want to use
+  // supports synchronized occlusion state in configure.
+  SetPendingOcclusionState(occlusion_state);
+}
+
 void WaylandWindow::HandleSurfaceConfigure(uint32_t serial) {
   NOTREACHED()
       << "Only shell surfaces must receive HandleSurfaceConfigure calls.";
@@ -726,13 +744,13 @@ void WaylandWindow::OnCloseRequest() {
   delegate_->OnCloseRequest();
 }
 
-void WaylandWindow::OnDragEnter(const gfx::PointF& point, int operation) {
+void WaylandWindow::OnDragEnter(const gfx::PointF& point, int operations) {
   WmDropHandler* drop_handler = GetWmDropHandler(*this);
   if (!drop_handler) {
     return;
   }
   // TODO(crbug.com/1102857): get the real event modifier here.
-  drop_handler->OnDragEnter(point, operation, /*modifiers=*/0);
+  drop_handler->OnDragEnter(point, operations, /*modifiers=*/0);
 }
 
 void WaylandWindow::OnDragDataAvailable(std::unique_ptr<OSExchangeData> data) {
@@ -744,14 +762,13 @@ void WaylandWindow::OnDragDataAvailable(std::unique_ptr<OSExchangeData> data) {
   drop_handler->OnDragDataAvailable(std::move(data));
 }
 
-int WaylandWindow::OnDragMotion(const gfx::PointF& point, int operation) {
+int WaylandWindow::OnDragMotion(const gfx::PointF& point, int operations) {
   WmDropHandler* drop_handler = GetWmDropHandler(*this);
   if (!drop_handler) {
     return 0;
   }
   // TODO(crbug.com/1102857): get the real event modifier here.
-  return drop_handler->OnDragMotion(point, operation,
-                                    /*modifiers=*/0);
+  return drop_handler->OnDragMotion(point, operations, /*modifiers=*/0);
 }
 
 void WaylandWindow::OnDragDrop() {
@@ -1095,7 +1112,7 @@ bool WaylandWindow::CommitOverlays(
             root_surface()->use_blending(), gfx::Rect(),
             root_surface()->opacity(), gfx::OverlayPriorityHint::kNone,
             rounded_clip_bounds.value_or(gfx::RRectF()),
-            gfx::ColorSpace::CreateSRGB(), absl::nullopt),
+            gfx::ColorSpace::CreateSRGB(), std::nullopt),
         nullptr, root_surface()->buffer_id(), buffer_scale);
   }
 
@@ -1113,9 +1130,9 @@ void WaylandWindow::UpdateCursorShape(scoped_refptr<BitmapCursor> cursor) {
         base::IsValueInRangeForNumericType<int>(
             cursor->cursor_image_scale_factor()));
 
-  absl::optional<uint32_t> shape =
+  std::optional<uint32_t> shape =
       WaylandCursorShape::ShapeFromType(cursor->type());
-  absl::optional<int32_t> zcr_shape =
+  std::optional<int32_t> zcr_shape =
       WaylandZcrCursorShapes::ShapeFromType(cursor->type());
 
   // Round cursor scale factor to ceil as wl_surface.set_buffer_scale accepts

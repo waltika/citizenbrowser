@@ -672,6 +672,7 @@ public final class ProductionSupportedFlagList {
                 "Enable attribution reporting to cross the app/web barrier by letting "
                         + "the WebView use OS-level attribution."),
         Flag.baseFeature(BaseFeatures.THREAD_POOL_CAP2, "Sets a fixed thread pool cap"),
+        Flag.baseFeature("ThreadGroupSemaphore"),
         Flag.baseFeature(
                 BlinkFeatures.BEFOREUNLOAD_EVENT_CANCEL_BY_PREVENT_DEFAULT,
                 "Enables showing the cancel dialog by calling preventDefault() "
@@ -886,6 +887,10 @@ public final class ProductionSupportedFlagList {
         Flag.baseFeature(
                 BlinkFeatures.BACK_FORWARD_CACHE_SEND_NOT_RESTORED_REASONS,
                 "Expose NotRestoredReasons via PerformanceNavigationTiming API."),
+        Flag.baseFeature("SkipUnnecessaryThreadHopsForParseHeaders"),
+        Flag.commandLine(
+                AwSwitches.WEBVIEW_FPS_COMPONENT,
+                "Enables installing the first party sets component to WebViews."),
         // Add new commandline switches and features above. The final entry should have a
         // trailing comma for cleaner diffs.
     };
