@@ -243,7 +243,6 @@ void CitizenNotesAgent::AttachCitizenNotesSessionImpl(
     bool client_is_trusted,
     const WTF::String& session_id,
     bool session_waits_for_debugger) {
-  TRACE_EVENT0("citizennotes", "Agent::AttachCitizenNotesSessionImpl");
   client_->DebuggerTaskStarted();
   CitizenNotesSession* session = MakeGarbageCollected<CitizenNotesSession>(
       this, std::move(host), std::move(session_receiver),
@@ -265,7 +264,6 @@ void CitizenNotesAgent::AttachCitizenNotesSession(
     bool client_is_trusted,
     const WTF::String& session_id,
     bool session_waits_for_debugger) {
-  TRACE_EVENT0("citizennotes", "Agent::AttachCitizenNotesSession");
   if (associated_receiver_.is_bound()) {
     // Discard `session_waits_for_debugger` for regular pages, this is rather
     // handled by the navigation throttles machinery on the browser side.
@@ -319,7 +317,6 @@ void CitizenNotesAgent::ReportChildTargetsPostCallbackToIO(
     bool report,
     bool wait_for_debugger,
     CrossThreadOnceClosure callback) {
-  TRACE_EVENT0("citizennotes", "Agent::ReportChildTargetsPostCallbackToIO");
   ReportChildTargetsImpl(report, wait_for_debugger, base::DoNothing());
   // This message originally came from the IOAgent for a worker which means the
   // response needs to be sent on the IO thread as well, so we post the callback
@@ -332,7 +329,6 @@ void CitizenNotesAgent::ReportChildTargetsPostCallbackToIO(
 void CitizenNotesAgent::ReportChildTargetsImpl(bool report,
                                            bool wait_for_debugger,
                                            base::OnceClosure callback) {
-  TRACE_EVENT0("citizennotes", "Agent::ReportChildTargetsImpl");
   report_child_workers_ = report;
   pause_child_workers_on_start_ = wait_for_debugger;
   if (report_child_workers_) {
@@ -346,7 +342,6 @@ void CitizenNotesAgent::ReportChildTargetsImpl(bool report,
 void CitizenNotesAgent::ReportChildTargets(bool report,
                                        bool wait_for_debugger,
                                        base::OnceClosure callback) {
-  TRACE_EVENT0("citizennotes", "Agent::ReportChildTargets");
   if (associated_receiver_.is_bound()) {
     ReportChildTargetsImpl(report, wait_for_debugger, std::move(callback));
   } else {

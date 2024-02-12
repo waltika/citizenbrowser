@@ -69,16 +69,6 @@ const double kMinimumReportingInterval = 250.0;
 const char kRecordModeParam[] = "record_mode";
 const char kTraceBufferSizeInKb[] = "trace_buffer_size_in_kb";
 
-#if BUILDFLAG(USE_PERFETTO_CLIENT_LIBRARY)
-const char kTrackEventDataSourceName[] = "track_event";
-#endif
-
-// Frames need to be at least 1x1, otherwise nothing would be captured.
-constexpr gfx::Size kMinFrameSize = gfx::Size(1, 1);
-
-// Frames do not need to be greater than 500x500 for tracing.
-constexpr gfx::Size kMaxFrameSize = gfx::Size(500, 500);
-
 // Convert from camel case to separator + lowercase.
 std::string ConvertFromCamelCase(const std::string& in_str, char separator) {
   std::string out_str;
@@ -185,9 +175,6 @@ void SendProcessReadyInBrowserEvent(const base::UnguessableToken& frame_token,
   data->SetString("frame", frame_token.ToString());
   data->SetString("processPseudoId", GetProcessHostHex(host));
   data->SetInteger("processId", static_cast<int>(host->GetProcess().Pid()));
-  TRACE_EVENT_INSTANT1(TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline"),
-                       "ProcessReadyInBrowser", TRACE_EVENT_SCOPE_THREAD,
-                       "data", std::move(data));
 }
 
 void FillFrameData(base::trace_event::TracedValue* data,
@@ -231,22 +218,6 @@ StringToMemoryDumpLevelOfDetail(const std::string& str) {
 void AddPidsToProcessFilter(
     const std::unordered_set<base::ProcessId>& included_process_ids,
     perfetto::TraceConfig& trace_config) {
-#if BUILDFLAG(USE_PERFETTO_CLIENT_LIBRARY)
-  const std::string kDataSourceName = kTrackEventDataSourceName;
-#else
-  const std::string kDataSourceName = tracing::mojom::kTraceEventDataSourceName;
-#endif
-  for (auto& data_source : *(trace_config.mutable_data_sources())) {
-    auto* source_config = data_source.mutable_config();
-    if (source_config->name() == kDataSourceName) {
-      for (auto& enabled_pid : included_process_ids) {
-        *data_source.add_producer_name_filter() = base::StrCat(
-            {tracing::mojom::kPerfettoProducerNamePrefix,
-             base::NumberToString(static_cast<uint32_t>(enabled_pid))});
-      }
-      break;
-    }
-  }
 }
 
 bool IsChromeDataSource(const std::string& data_source_name) {
@@ -279,27 +250,6 @@ absl::optional<perfetto::BackendType> GetBackendTypeFromParameters(
 // a chrome_config instead. We build a track_event_config based on the
 // chrome_config if no other track_event data sources have been configured.
 void ConvertToTrackEventConfigIfNeeded(perfetto::TraceConfig& trace_config) {
-#if BUILDFLAG(USE_PERFETTO_CLIENT_LIBRARY)
-  for (const auto& data_source : trace_config.data_sources()) {
-    if (!data_source.config().track_event_config_raw().empty()) {
-      return;
-    }
-  }
-  for (auto& data_source : *trace_config.mutable_data_sources()) {
-    if (data_source.config().name() ==
-            tracing::mojom::kTraceEventDataSourceName &&
-        data_source.config().has_chrome_config()) {
-      data_source.mutable_config()->set_name(kTrackEventDataSourceName);
-      base::trace_event::TraceConfig base_config(
-          data_source.config().chrome_config().trace_config());
-      bool privacy_filtering_enabled =
-          data_source.config().chrome_config().privacy_filtering_enabled();
-      data_source.mutable_config()->set_track_event_config_raw(
-          base_config.ToPerfettoTrackEventConfigRaw(privacy_filtering_enabled));
-      return;
-    }
-  }
-#endif  // BUILDFLAG(USE_PERFETTO_CLIENT_LIBRARY)
 }
 
 // We currently don't support concurrent tracing sessions, but are planning to.
@@ -957,22 +907,6 @@ void CNTracingHandler::OnRecordingEnabled(std::unique_ptr<StartCallback> callbac
   callback->sendSuccess();
 
   SetupTimer(buffer_usage_reporting_interval_);
-
-  bool screenshot_enabled;
-  TRACE_EVENT_CATEGORY_GROUP_ENABLED(
-      TRACE_DISABLED_BY_DEFAULT("citizennotes.screenshot"), &screenshot_enabled);
-  if (screenshot_enabled) {
-    // Reset number of screenshots received, each time tracing begins.
-    number_of_screenshots_from_video_consumer_ = 0;
-    if (WebContents* wc = host_ ? host_->GetWebContents() : nullptr) {
-      auto* frame_host =
-          static_cast<RenderFrameHostImpl*>(wc->GetPrimaryMainFrame());
-      video_consumer_->SetFrameSinkId(
-          frame_host->GetRenderWidgetHost()->GetFrameSinkId());
-    }
-    video_consumer_->SetMinAndMaxFrameSize(kMinFrameSize, kMaxFrameSize);
-    video_consumer_->StartCapture();
-  }
 }
 
 void CNTracingHandler::OnBufferUsage(bool success,
@@ -1043,17 +977,6 @@ void CNTracingHandler::OnFrameFromVideoConsumer(
     return;
   }
   const SkBitmap skbitmap = CitizenNotesVideoConsumer::GetSkBitmapFromFrame(frame);
-  uint64_t frame_sequence = *frame->metadata().frame_sequence;
-
-  // This reference_time is an ESTIMATE. It is set by the compositor frame sink
-  // from the `expected_display_time`, which is based on a previously known
-  // frame start PLUS the vsync interval (eg 16.6ms)
-  base::TimeTicks expected_display_time = *frame->metadata().reference_time;
-
-  TRACE_EVENT_OBJECT_SNAPSHOT_WITH_ID_AND_TIMESTAMP(
-      TRACE_DISABLED_BY_DEFAULT("citizennotes.screenshot"), "Screenshot",
-      frame_sequence, expected_display_time,
-      std::make_unique<CitizenNotesTraceableScreenshot>(skbitmap));
 
   ++number_of_screenshots_from_video_consumer_;
   DCHECK(video_consumer_);
@@ -1128,9 +1051,6 @@ void CNTracingHandler::EmitFrameTree() {
     });
     data->EndArray();
   }
-  TRACE_EVENT_INSTANT1(TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline"),
-                       "TracingStartedInBrowser", TRACE_EVENT_SCOPE_THREAD,
-                       "data", std::move(data));
 }
 
 void CNTracingHandler::WillInitiatePrerender(FrameTreeNode* frame_tree_node) {
@@ -1140,9 +1060,6 @@ void CNTracingHandler::WillInitiatePrerender(FrameTreeNode* frame_tree_node) {
   auto data = std::make_unique<base::trace_event::TracedValue>();
   FillFrameData(data.get(), frame_tree_node->current_frame_host(),
                 frame_tree_node->current_url());
-  TRACE_EVENT_INSTANT1(TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline"),
-                       "FrameCommittedInBrowser", TRACE_EVENT_SCOPE_THREAD,
-                       "data", std::move(data));
 }
 
 void CNTracingHandler::ReadyToCommitNavigation(
@@ -1152,9 +1069,6 @@ void CNTracingHandler::ReadyToCommitNavigation(
   auto data = std::make_unique<base::trace_event::TracedValue>();
   RenderFrameHostImpl* frame_host = navigation_request->GetRenderFrameHost();
   FillFrameData(data.get(), frame_host, navigation_request->GetURL());
-  TRACE_EVENT_INSTANT1(TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline"),
-                       "FrameCommittedInBrowser", TRACE_EVENT_SCOPE_THREAD,
-                       "data", std::move(data));
   if (frame_host->IsOutermostMainFrame()) {
     video_consumer_->SetFrameSinkId(navigation_request->GetRenderFrameHost()
                                         ->GetRenderWidgetHost()
@@ -1175,9 +1089,6 @@ void CNTracingHandler::FrameDeleted(int frame_tree_node_id) {
   auto data = std::make_unique<base::trace_event::TracedValue>();
   data->SetString(
       "frame", node->current_frame_host()->citizennotes_frame_token().ToString());
-  TRACE_EVENT_INSTANT1(TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline"),
-                       "FrameDeletedInBrowser", TRACE_EVENT_SCOPE_THREAD,
-                       "data", std::move(data));
 }
 
 // static

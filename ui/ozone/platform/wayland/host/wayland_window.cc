@@ -33,6 +33,7 @@
 #include "ui/events/platform/platform_event_source.h"
 #include "ui/gfx/color_space.h"
 #include "ui/gfx/geometry/point_f.h"
+#include "ui/gfx/geometry/rect_conversions.h"
 #include "ui/gfx/geometry/rrect_f.h"
 #include "ui/gfx/geometry/size.h"
 #include "ui/gfx/native_widget_types.h"
@@ -689,6 +690,18 @@ std::string WaylandWindow::WindowStates::ToString() const {
   if (is_activated) {
     states += "activated ";
   }
+  if (is_minimized) {
+    states += "minimized ";
+  }
+  if (is_snapped_primary) {
+    states += "snapped_primary ";
+  }
+  if (is_snapped_secondary) {
+    states += "snapped_secondary ";
+  }
+  if (is_floated) {
+    states += "floated ";
+  }
   if (states.empty()) {
     states = "<default>";
   } else {
@@ -1013,7 +1026,7 @@ bool WaylandWindow::ArrangeSubsurfaceStack(size_t above, size_t below) {
 
 bool WaylandWindow::CommitOverlays(
     uint32_t frame_id,
-    int64_t seq,
+    const gfx::FrameData& data,
     std::vector<wl::WaylandOverlayConfig>& overlays) {
   if (overlays.empty()) {
     return true;
@@ -1053,7 +1066,7 @@ bool WaylandWindow::CommitOverlays(
   if (!wayland_overlay_delegation_enabled_) {
     DCHECK_EQ(overlays.size(), 1u);
     frame_manager_->RecordFrame(std::make_unique<WaylandFrame>(
-        frame_id, seq, root_surface(), std::move(*overlays.begin())));
+        frame_id, data, root_surface(), std::move(*overlays.begin())));
     return true;
   }
 
@@ -1117,7 +1130,7 @@ bool WaylandWindow::CommitOverlays(
   }
 
   frame_manager_->RecordFrame(std::make_unique<WaylandFrame>(
-      frame_id, seq, root_surface(), std::move(root_config),
+      frame_id, data, root_surface(), std::move(root_config),
       std::move(subsurfaces_to_overlays)));
 
   return true;
@@ -1242,8 +1255,10 @@ void WaylandWindow::RequestState(PlatformWindowDelegate::State state,
 
   // Adjust state values if necessary.
   state.bounds_dip = AdjustBoundsToConstraintsDIP(state.bounds_dip);
-  state.size_px =
-      gfx::ScaleToEnclosingRect(state.bounds_dip, state.window_scale).size();
+
+  state.size_px = gfx::ScaleToEnclosingRectIgnoringError(state.bounds_dip,
+                                                         state.window_scale)
+                      .size();
   // This will ensure that if insets at the time of the request changed, a new
   // frame is produced when the state is applied.
   state.insets = GetDecorationInsetsInDIP();

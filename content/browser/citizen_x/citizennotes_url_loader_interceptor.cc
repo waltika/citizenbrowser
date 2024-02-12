@@ -976,7 +976,6 @@ void CNInterceptionJob::Detach() {
   if (state_ == State::kAuthRequired) {
     state_ = State::kRequestSent;
     waiting_for_resolution_ = false;
-    TRACE_EVENT_NESTABLE_ASYNC_END0("citizennotes", "Fetch.requestPaused", this);
     std::move(pending_auth_callback_).Run(true, absl::nullopt);
     return;
   }
@@ -990,7 +989,6 @@ Response CNInterceptionJob::InnerContinueRequest(
         "Invalid state for continueInterceptedRequest");
   }
   waiting_for_resolution_ = false;
-  TRACE_EVENT_NESTABLE_ASYNC_END0("citizennotes", "Fetch.requestPaused", this);
   if (modifications->intercept_response.has_value()) {
     if (modifications->intercept_response.value()) {
       if (stage_ == InterceptionStage::REQUEST)
@@ -1484,7 +1482,6 @@ void CNInterceptionJob::NotifyClientWithCookies(
       protocol::CNNetworkHandler::CreateRequestFromResourceRequest(
           create_loader_params_->request, cookie_line);
 
-  TRACE_EVENT_NESTABLE_ASYNC_BEGIN0("citizennotes", "Fetch.requestPaused", this);
   waiting_for_resolution_ = true;
   interceptor_->request_intercepted_callback_.Run(std::move(request_info));
 }

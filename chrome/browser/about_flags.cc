@@ -2297,6 +2297,14 @@ const FeatureEntry::FeatureVariation kStartSurfaceReturnTimeVariations[] = {
      std::size(kStartSurfaceReturnTime_60Minute), nullptr},
 };
 
+const FeatureEntry::FeatureParam kMagicStackAndroid_show_all_modules[] = {
+    {"show_all_modules", "true"}};
+
+const FeatureEntry::FeatureVariation kMagicStackAndroidVariations[] = {
+    {"Show all modules", kMagicStackAndroid_show_all_modules,
+     std::size(kMagicStackAndroid_show_all_modules), nullptr},
+};
+
 const FeatureEntry::FeatureParam
     kAccountReauthenticationRecentTimeWindow_0Minutes[] = {
         {"account_reauthentication_recent_time_window_minutes", "0"},
@@ -4181,9 +4189,6 @@ const FeatureEntry kFeatureEntries[] = {
     {"os-feedback-dialog", flag_descriptions::kOsFeedbackDialogName,
      flag_descriptions::kOsFeedbackDialogDescription, kOsCrOS,
      FEATURE_VALUE_TYPE(ash::features::kOsFeedbackDialog)},
-    {"os-feedback-jelly", flag_descriptions::kOsFeedbackJellyName,
-     flag_descriptions::kOsFeedbackJellyDescription, kOsCrOS,
-     FEATURE_VALUE_TYPE(ash::features::kOsFeedbackJelly)},
     {"os-settings-app-badging-toggle",
      flag_descriptions::kOsSettingsAppBadgingToggleName,
      flag_descriptions::kOsSettingsAppBadgingToggleDescription, kOsCrOS,
@@ -7014,7 +7019,9 @@ const FeatureEntry kFeatureEntries[] = {
 
     {"enable-magic-stack-android", flag_descriptions::kMagicStackAndroidName,
      flag_descriptions::kMagicStackAndroidDescription, kOsAndroid,
-     FEATURE_VALUE_TYPE(chrome::android::kMagicStackAndroid)},
+     FEATURE_WITH_PARAMS_VALUE_TYPE(chrome::android::kMagicStackAndroid,
+                                    kMagicStackAndroidVariations,
+                                    "MagicStackAndroid")},
 
     {"search-in-cct", flag_descriptions::kSearchInCCTName,
      flag_descriptions::kSearchInCCTDescription, kOsAndroid,

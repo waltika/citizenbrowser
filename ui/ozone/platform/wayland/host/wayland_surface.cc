@@ -20,6 +20,7 @@
 #include "base/files/scoped_file.h"
 #include "base/logging.h"
 #include "base/ranges/algorithm.h"
+#include "base/trace_event/trace_event.h"
 #include "ui/gfx/color_space.h"
 #include "ui/gfx/geometry/rect.h"
 #include "ui/gfx/geometry/rect_conversions.h"
@@ -413,6 +414,7 @@ wl::Object<wl_region> WaylandSurface::CreateAndAddRegion(
       wl_compositor_create_region(connection_->compositor()));
 
   for (const auto& rect_px : region_px) {
+    // On Lacros, the buffer scale should be 1, so no need to ignore error.
     gfx::Rect rect = gfx::ScaleToEnclosedRect(rect_px, 1.f / buffer_scale);
     wl_region_add(region.get(), rect.x(), rect.y(), rect.width(),
                   rect.height());
@@ -839,6 +841,23 @@ bool WaylandSurface::ApplyPendingState() {
     memcpy(dst_set_, dst_to_set, 2 * sizeof(*dst_to_set));
   }
 
+  if (pending_state_.frame_trace_id >= 0) {
+    bool is_frame_tracing_enabled;
+    TRACE_EVENT_CATEGORY_GROUP_ENABLED("viz,benchmark,graphics.pipeline",
+                                       &is_frame_tracing_enabled);
+    if (is_frame_tracing_enabled) {
+      auto* augmented_surface = get_augmented_surface();
+      if (augmented_surface &&
+          augmented_surface_get_version(augmented_surface) >=
+              AUGMENTED_SURFACE_SET_FRAME_TRACE_ID_SINCE_VERSION) {
+        augmented_surface_set_frame_trace_id(
+            augmented_surface, pending_state_.frame_trace_id >> 32,
+            pending_state_.frame_trace_id & 0xffffffff);
+      }
+    }
+    pending_state_.frame_trace_id = -1;
+  }
+
   DCHECK_LE(pending_state_.damage_px.size(), 1u);
   if (pending_state_.damage_px.empty() ||
       pending_state_.damage_px.back().IsEmpty()) {
@@ -850,7 +869,8 @@ bool WaylandSurface::ApplyPendingState() {
   DCHECK(pending_state_.buffer);
 
   // Lacros on Ash will always have a scale factory of 1, so damage will be
-  // unchanged on Ash, but that won't always be true on other compositors.
+  // unchanged on Ash and no need to ignore error, but that won't always be true
+  // on other compositors.
   gfx::Rect damage = ScaleToEnclosingRect(
       pending_state_.damage_px.back(), 1.f / GetWaylandScale(pending_state_));
 

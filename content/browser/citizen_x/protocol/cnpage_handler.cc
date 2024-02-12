@@ -95,27 +95,23 @@ using BitmapEncoder =
 
 bool EncodeBitmapAsPngSlow(const SkBitmap& bitmap,
                            std::vector<uint8_t>& output) {
-  TRACE_EVENT0("citizennotes", "EncodeBitmapAsPngSlow");
   return gfx::PNGCodec::EncodeBGRASkBitmap(bitmap, false, &output);
 }
 
 bool EncodeBitmapAsPngFast(const SkBitmap& bitmap,
                            std::vector<uint8_t>& output) {
-  TRACE_EVENT0("citizennotes", "EncodeBitmapAsPngFast");
   return gfx::PNGCodec::FastEncodeBGRASkBitmap(bitmap, false, &output);
 }
 
 bool EncodeBitmapAsJpeg(int quality,
                         const SkBitmap& bitmap,
                         std::vector<uint8_t>& output) {
-  TRACE_EVENT0("citizennotes", "EncodeBitmapAsJpeg");
   return gfx::JPEGCodec::Encode(bitmap, quality, &output);
 }
 
 bool EncodeBitmapAsWebp(int quality,
                         const SkBitmap& bitmap,
                         std::vector<uint8_t>& output) {
-  TRACE_EVENT0("citizennotes", "EncodeBitmapAsWebp");
   return gfx::WebpCodec::Encode(bitmap, quality, &output);
 }
 

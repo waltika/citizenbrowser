@@ -4,6 +4,7 @@
 
 #include "base/base64.h"
 #include "base/strings/utf_string_conversions.h"
+#include "base/test/metrics/histogram_tester.h"
 #include "base/test/scoped_feature_list.h"
 #include "base/test/test_future.h"
 #include "chrome/browser/autofill/autofill_uitest_util.h"
@@ -37,10 +38,12 @@ class ContentAutofillSharedStorageHandlerBrowserTest
 
   test::AutofillBrowserTestEnvironment autofill_test_environment_;
   base::test::ScopedFeatureList feature_list_;
+  base::HistogramTester histogram_tester_;
 };
 
 IN_PROC_BROWSER_TEST_F(ContentAutofillSharedStorageHandlerBrowserTest,
                        CheckSharedStorageData) {
+
   CreditCard card = test::GetFullServerCard();
   AddTestServerCreditCard(browser()->profile(), card);
 
@@ -73,6 +76,10 @@ IN_PROC_BROWSER_TEST_F(ContentAutofillSharedStorageHandlerBrowserTest,
             static_cast<int>(card_data.expiration_month()));
   EXPECT_EQ(card.expiration_year(),
             static_cast<int>(card_data.expiration_year()));
+
+  histogram_tester_.ExpectUniqueSample(
+      "Autofill.SharedStorageServerCardDataSetResult",
+      storage::SharedStorageManager::OperationResult::kSet, 1);
 }
 
 class AutofillSharedStorageServerCardDataDisabledTest
@@ -86,6 +93,7 @@ class AutofillSharedStorageServerCardDataDisabledTest
 
   test::AutofillBrowserTestEnvironment autofill_test_environment_;
   base::test::ScopedFeatureList feature_list_;
+  base::HistogramTester histogram_tester_;
 };
 
 IN_PROC_BROWSER_TEST_F(AutofillSharedStorageServerCardDataDisabledTest,
@@ -104,6 +112,9 @@ IN_PROC_BROWSER_TEST_F(AutofillSharedStorageServerCardDataDisabledTest,
             u"browser_autofill_card_data", future.GetCallback());
   ASSERT_EQ(future.Take().result,
             storage::SharedStorageDatabase::OperationResult::kNotFound);
+
+  histogram_tester_.ExpectTotalCount(
+      "Autofill.SharedStorageServerCardDataSetResult", 0);
 }
 
 }  // namespace autofill

@@ -1900,6 +1900,26 @@
             ]
         }
     ],
+    "AutofillSharedStorageServerCardData": [
+        {
+            "platforms": [
+                "android",
+                "chromeos",
+                "chromeos_lacros",
+                "linux",
+                "mac",
+                "windows"
+            ],
+            "experiments": [
+                {
+                    "name": "Enabled",
+                    "enable_features": [
+                        "AutofillSharedStorageServerCardData"
+                    ]
+                }
+            ]
+        }
+    ],
     "AutofillSurveys": [
         {
             "platforms": [
@@ -3738,6 +3758,44 @@
             ]
         }
     ],
+    "ChromeOSHoldingSpaceWallpaperNudge": [
+        {
+            "platforms": [
+                "chromeos"
+            ],
+            "experiments": [
+                {
+                    "name": "EnabledWithDropToPin",
+                    "params": {
+                        "drop-to-pin": "true",
+                        "is-counterfactual": "false"
+                    },
+                    "enable_features": [
+                        "HoldingSpaceWallpaperNudge"
+                    ]
+                },
+                {
+                    "name": "EnabledWithoutDropToPin",
+                    "params": {
+                        "drop-to-pin": "false",
+                        "is-counterfactual": "false"
+                    },
+                    "enable_features": [
+                        "HoldingSpaceWallpaperNudge"
+                    ]
+                },
+                {
+                    "name": "Counterfactual",
+                    "params": {
+                        "is-counterfactual": "true"
+                    },
+                    "enable_features": [
+                        "HoldingSpaceWallpaperNudge"
+                    ]
+                }
+            ]
+        }
+    ],
     "ChromeOSIgnoreUiGainsOnAGC": [
         {
             "platforms": [
@@ -3894,6 +3952,26 @@
                     "name": "Enabled",
                     "enable_features": [
                         "StartSurfaceWithAccessibility"
+                    ]
+                }
+            ]
+        }
+    ],
+    "ChromeWallpaperSearchLaunch": [
+        {
+            "platforms": [
+                "chromeos",
+                "chromeos_lacros",
+                "linux",
+                "mac",
+                "windows"
+            ],
+            "experiments": [
+                {
+                    "name": "Enabled",
+                    "enable_features": [
+                        "CustomizeChromeWallpaperSearch",
+                        "CustomizeChromeWallpaperSearchInspirationCard"
                     ]
                 }
             ]
@@ -10974,6 +11052,21 @@
             ]
         }
     ],
+    "MacAllowBackgroundingRenderProcesses": [
+        {
+            "platforms": [
+                "mac"
+            ],
+            "experiments": [
+                {
+                    "name": "Enabled",
+                    "enable_features": [
+                        "MacAllowBackgroundingRenderProcesses"
+                    ]
+                }
+            ]
+        }
+    ],
     "MacImmersiveFullscreen": [
         {
             "platforms": [
@@ -11919,6 +12012,28 @@
             ]
         }
     ],
+    "NonStandardAppearanceValueSliderVertical": [
+        {
+            "platforms": [
+                "android",
+                "android_webview",
+                "chromeos",
+                "chromeos_lacros",
+                "fuchsia",
+                "linux",
+                "mac",
+                "windows"
+            ],
+            "experiments": [
+                {
+                    "name": "Disabled",
+                    "disable_features": [
+                        "NonStandardAppearanceValueSliderVertical"
+                    ]
+                }
+            ]
+        }
+    ],
     "NonStandardAppearanceValuesHighUsage": [
         {
             "platforms": [
@@ -12520,30 +12635,6 @@
                     "name": "Enabled",
                     "enable_features": [
                         "OmniboxMatchToolbarAndStatusBarColor"
-                    ]
-                }
-            ]
-        }
-    ],
-    "OmniboxMlUrlScoringDesktop": [
-        {
-            "platforms": [
-                "chromeos",
-                "chromeos_lacros",
-                "linux",
-                "mac",
-                "windows"
-            ],
-            "experiments": [
-                {
-                    "name": "Enabled_fullModel_120523",
-                    "params": {
-                        "MlUrlScoringShortcutDocumentSignals": "true",
-                        "enable_scoring_signals_annotators_for_ml_scoring": "true"
-                    },
-                    "enable_features": [
-                        "MlUrlScoring",
-                        "UrlScoringModel"
                     ]
                 }
             ]
@@ -15102,6 +15193,29 @@
                     "name": "Enabled",
                     "enable_features": [
                         "FledgeEnableWALForInterestGroupStorage"
+                    ]
+                }
+            ]
+        }
+    ],
+    "ProtectedAudiences40ComponentAds": [
+        {
+            "platforms": [
+                "android",
+                "chromeos",
+                "chromeos_lacros",
+                "linux",
+                "mac",
+                "windows"
+            ],
+            "experiments": [
+                {
+                    "name": "Enabled",
+                    "params": {
+                        "FledgeAdComponentLimit": "40"
+                    },
+                    "enable_features": [
+                        "FledgeCustomMaxAuctionAdComponents"
                     ]
                 }
             ]
@@ -18166,6 +18280,21 @@
                     "name": "Enabled",
                     "enable_features": [
                         "SmartZoom"
+                    ]
+                }
+            ]
+        }
+    ],
+    "SonomaAccessibilityActivationRefinements": [
+        {
+            "platforms": [
+                "mac"
+            ],
+            "experiments": [
+                {
+                    "name": "Enabled",
+                    "enable_features": [
+                        "SonomaAccessibilityActivationRefinements"
                     ]
                 }
             ]

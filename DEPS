@@ -306,19 +306,19 @@ vars = {
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling V8
   # and whatever else without interference from each other.
-  'src_internal_revision': '7b1e0f68eee48b80db4ba707030185738209d172',
+  'src_internal_revision': '29cfcfc980f6bd17d5f91a1bef3568b79597f0a3',
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling Skia
   # and whatever else without interference from each other.
-  'skia_revision': '4081496b769386bea3ee4aa38748f460580bd3e4',
+  'skia_revision': '27e40e2fbaa7a6ccacc7760f7bb60facf1be283b',
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling V8
   # and whatever else without interference from each other.
-  'v8_revision': 'fd7abcdf8f1557425658ab2dc73299a8c23a5849',
+  'v8_revision': '3d8504da5a5ab98fc3ad86a0974b4f8be9726643',
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling ANGLE
   # and whatever else without interference from each other.
-  'angle_revision': 'c3d06480e5b531842461cd7c76ce6838d3cc42b7',
+  'angle_revision': 'eaddd3baa5edcad015601e7be6e2aa004f5afca7',
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling SwiftShader
   # and whatever else without interference from each other.
@@ -326,7 +326,7 @@ vars = {
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling PDFium
   # and whatever else without interference from each other.
-  'pdfium_revision': '467e8dde57c687bb7ec9452fa2620f000cfe849a',
+  'pdfium_revision': 'aad37f1a2976c5379b8a2aba60a330d7aba55164',
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling BoringSSL
   # and whatever else without interference from each other.
@@ -381,11 +381,11 @@ vars = {
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling catapult
   # and whatever else without interference from each other.
-  'catapult_revision': '1b7f440461d21ef889944bb4487312f1ca166a49',
+  'catapult_revision': '4495ac19babd1c6d43f083ddcfe342e58c5bdb95',
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling chromium_variations
   # and whatever else without interference from each other.
-  'chromium_variations_revision': '1a83c5cc1a7439211690b2fc9e082b84414d0938',
+  'chromium_variations_revision': 'f4fc895670d87da53cb313f80487268f8e19f190',
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling CrossBench
   # and whatever else without interference from each other.
@@ -425,7 +425,7 @@ vars = {
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling feed
   # and whatever else without interference from each other.
-  'dawn_revision': 'd81d4516f5086fbe4bfa4b551c73b1f2cd98da48',
+  'dawn_revision': '3a8494c48539d625ee8ff01ebfe56bdc3ea904d4',
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling feed
   # and whatever else without interference from each other.
@@ -825,12 +825,12 @@ deps = {
 
   'src/clank': {
     'url': Var('chrome_git') + '/clank/internal/apps.git' + '@' +
-    '2dee0b9c5c872dcb475d44272a9d967227f0ef43',
+    '62bff35f5587d259ca988f0fbc65435aff3d383b',
     'condition': 'checkout_android and checkout_src_internal',
   },
 
   'src/docs/website': {
-    'url': Var('chromium_git') + '/website.git' + '@' + '0069ebb09549f037d61ff052a6b4aabfc6dfc89c',
+    'url': Var('chromium_git') + '/website.git' + '@' + '29c6f8fa1ef2454e0aaaaf66d588d38944552c85',
   },
 
   'src/ios/third_party/earl_grey2/src': {
@@ -987,7 +987,7 @@ deps = {
     'packages': [
       {
           'package': 'chromium/third_party/androidx',
-          'version': 'U4ePoUXpQBGmA50oRgG5rSI7odoDUbfHl7-4omRl73sC',
+          'version': 'px89TDox-1hG4LKyqavIZHHQ-iYkDTrJSgy3lkh3OBEC',
       },
     ],
     'condition': 'checkout_android',
@@ -1663,7 +1663,7 @@ deps = {
     Var('pdfium_git') + '/pdfium.git' + '@' +  Var('pdfium_revision'),
 
   'src/third_party/perfetto':
-    Var('android_git') + '/platform/external/perfetto.git' + '@' + '12bb89fe9a582e7264c6cd5e1de34635f207d72f',
+    Var('android_git') + '/platform/external/perfetto.git' + '@' + '7fcd1eb7e2bc6fbf7268bd027be9744aaeeca079',
 
   'src/third_party/perl': {
       'url': Var('chromium_git') + '/chromium/deps/perl.git' + '@' + '8ef97ff3b7332e38e61b347a2fbed425a4617151',
@@ -1808,7 +1808,7 @@ deps = {
       'dep_type': 'cipd',
   },
 
-  'src/third_party/vulkan-deps': '{chromium_git}/vulkan-deps@30f82aa4b5d59e191d217a1b9908dca1e1530013',
+  'src/third_party/vulkan-deps': '{chromium_git}/vulkan-deps@91655d66567371b10e91a600f8e39a0a3d257c99',
 
   'src/third_party/vulkan_memory_allocator':
     Var('chromium_git') + '/external/github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git' + '@' + '56300b29fbfcc693ee6609ddad3fdd5b7a449a21',
@@ -1845,7 +1845,7 @@ deps = {
     Var('chromium_git') + '/external/khronosgroup/webgl.git' + '@' + 'f4bf599a8b575df685c31d9c4729a70a04e377ed',
 
   'src/third_party/webgpu-cts/src':
-    Var('chromium_git') + '/external/github.com/gpuweb/cts.git' + '@' + 'c0742d6dbd82e5a9d70c437b6b0f38673f8eccf9',
+    Var('chromium_git') + '/external/github.com/gpuweb/cts.git' + '@' + '726c24a39ce7818f71837c8bd4924fe0f9ba71b2',
 
   'src/third_party/webrtc':
     Var('webrtc_git') + '/src.git' + '@' + '951372774b350f253b7e12f9480e9fa8aeb98997',
@@ -2015,7 +2015,7 @@ deps = {
     'packages': [
       {
         'package': 'chromeos_internal/apps/projector_app/app',
-        'version': '13xsKNg153MniPHo4n21f6iNF9ghzHraEJ14ExjGDRoC',
+        'version': 'RhVFIjqv3Gnz7WtgLqe9Dsm02SYfuUknWMY9r706TYoC',
       },
     ],
     'condition': 'checkout_chromeos and checkout_src_internal',
@@ -4055,7 +4055,7 @@ deps = {
 
   'src/ios_internal':  {
       'url': Var('chrome_git') + '/chrome/ios_internal.git' + '@' +
-        'aa5435081c65cd74dcf7c955e9f22c4cdf80de51',
+        '7f876023e3cb26f854addc3d27db34af3b9de9ae',
       'condition': 'checkout_ios and checkout_src_internal',
   },
 

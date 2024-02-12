@@ -613,8 +613,6 @@ COMPONENT_EXPORT(ASH_CONSTANTS) bool IsOsFeedbackDialogEnabled();
 COMPONENT_EXPORT(ASH_CONSTANTS)
 BASE_DECLARE_FEATURE(kOsFeedbackDialog);
 COMPONENT_EXPORT(ASH_CONSTANTS)
-BASE_DECLARE_FEATURE(kOsFeedbackJelly);
-COMPONENT_EXPORT(ASH_CONSTANTS)
 BASE_DECLARE_FEATURE(kOsSettingsAppNotificationsPage);
 COMPONENT_EXPORT(ASH_CONSTANTS)
 BASE_DECLARE_FEATURE(kOsSettingsDeprecateDnsDialog);
@@ -1077,7 +1075,6 @@ COMPONENT_EXPORT(ASH_CONSTANTS)
 bool IsInternalServerSideSpeechRecognitionControlEnabled();
 COMPONENT_EXPORT(ASH_CONSTANTS) bool IsIppClientInfoEnabled();
 COMPONENT_EXPORT(ASH_CONSTANTS) bool IsJellyEnabledForDiagnosticsApp();
-COMPONENT_EXPORT(ASH_CONSTANTS) bool IsJellyEnabledForOsFeedback();
 COMPONENT_EXPORT(ASH_CONSTANTS) bool IsJellyEnabledForScanningApp();
 COMPONENT_EXPORT(ASH_CONSTANTS) bool IsJellyEnabledForShortcutCustomization();
 COMPONENT_EXPORT(ASH_CONSTANTS)
@@ -1267,6 +1264,7 @@ COMPONENT_EXPORT(ASH_CONSTANTS) bool IsTrilinearFilteringEnabled();
 COMPONENT_EXPORT(ASH_CONSTANTS)
 bool IsUnmanagedDeviceDeviceTrustConnectorFeatureEnabled();
 COMPONENT_EXPORT(ASH_CONSTANTS) bool IsUserEducationEnabled();
+COMPONENT_EXPORT(ASH_CONSTANTS) bool IsUpstreamTrustedReportsFirmwareEnabled();
 COMPONENT_EXPORT(ASH_CONSTANTS) bool IsVideoConferenceEnabled();
 COMPONENT_EXPORT(ASH_CONSTANTS) bool IsStopAllScreenShareEnabled();
 COMPONENT_EXPORT(ASH_CONSTANTS) bool IsVcBackgroundReplaceEnabled();

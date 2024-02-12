@@ -191,13 +191,7 @@ void CNWorkerInspectorController::OnTraceLogDisabled() {}
 
 void CNWorkerInspectorController::EmitTraceEvent() {
   if (worker_citizennotes_token_.is_empty())
-    return;
-  DEVTOOLS_TIMELINE_TRACE_EVENT_INSTANT_WITH_CATEGORIES(
-      TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline"),
-      "TracingSessionIdForWorker",
-      inspector_tracing_session_id_for_worker_event::Data,
-      worker_citizennotes_token_, parent_citizennotes_token_, url_, worker_thread_id_);
-}
+    return;}
 
 void CNWorkerInspectorController::Trace(Visitor* visitor) const {
   visitor->Trace(agent_);

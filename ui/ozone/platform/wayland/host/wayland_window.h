@@ -26,6 +26,7 @@
 #include "ui/base/ui_base_types.h"
 #include "ui/events/event_target.h"
 #include "ui/events/platform/platform_event_dispatcher.h"
+#include "ui/gfx/frame_data.h"
 #include "ui/gfx/geometry/insets.h"
 #include "ui/gfx/geometry/point_f.h"
 #include "ui/gfx/geometry/rect.h"
@@ -122,7 +123,7 @@ class WaylandWindow : public PlatformWindow,
   // subsurface_stack_below_.size() >= below.
   bool ArrangeSubsurfaceStack(size_t above, size_t below);
   bool CommitOverlays(uint32_t frame_id,
-                      int64_t seq,
+                      const gfx::FrameData& data,
                       std::vector<wl::WaylandOverlayConfig>& overlays);
 
   // Called when the focus changed on this window.
@@ -254,8 +255,7 @@ class WaylandWindow : public PlatformWindow,
     WindowTiledEdges tiled_edges;
 #endif
 
-    // Dumps the values of the states that are part of the standard
-    // xdg_toplevel.state enum into a string;
+    // Dumps the values of the states into a string.
     std::string ToString() const;
   };
 

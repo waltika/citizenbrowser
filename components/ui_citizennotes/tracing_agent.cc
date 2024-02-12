@@ -437,9 +437,6 @@ void TracingAgent::EditTraceDataForFrontend() {
   process_data->EndDictionary();
 
   process_data->EndArray();
-  TRACE_EVENT_INSTANT1(TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline"),
-                       "TracingStartedInBrowser", TRACE_EVENT_SCOPE_THREAD,
-                       "data", std::move(process_data));
 
   // Browser citizennotes make sure the SetLayerTreeId trace event has the same
   // layertreeid as the layertreeid from the frame trace events 'DrawFrame' and
@@ -449,9 +446,6 @@ void TracingAgent::EditTraceDataForFrontend() {
   auto layer_tree_data = std::make_unique<base::trace_event::TracedValue>();
   layer_tree_data->SetString("frame", "ui_citizennotes_browser_frame");
   layer_tree_data->SetInteger("layerTreeId", 1);
-  TRACE_EVENT_INSTANT1(TRACE_DISABLED_BY_DEFAULT("citizennotes.timeline"),
-                       "SetLayerTreeId", TRACE_EVENT_SCOPE_THREAD, "data",
-                       std::move(layer_tree_data));
 }
 
 void TracingAgent::SetupTimer(double usage_reporting_interval) {

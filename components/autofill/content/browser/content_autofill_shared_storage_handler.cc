@@ -6,6 +6,7 @@
 
 #include "base/base64.h"
 #include "base/functional/bind.h"
+#include "base/metrics/histogram_macros.h"
 #include "base/strings/utf_string_conversions.h"
 #include "components/autofill/content/browser/autofill_shared_storage.pb.h"
 #include "components/autofill/content/common/content_autofill_features.h"
@@ -50,20 +51,27 @@ void ContentAutofillSharedStorageHandler::OnServerCardDataRefreshed(
     return;
   }
 
-  shared_storage_manager_->Set(
-      url::Origin::Create(payments::GetBaseSecureUrl()),
-      kAutofillServerCardDataSharedStorageKey,
-      EncodeServerCardDataForSharedStorage(server_card_data),
-      base::BindOnce(&ContentAutofillSharedStorageHandler::
-                         OnSharedStorageSetAutofillDataComplete,
-                     weak_factory_.GetWeakPtr()),
-      storage::SharedStorageDatabase::SetBehavior::kDefault);
+  if (server_card_data.empty()) {
+    shared_storage_manager_->Delete(
+        url::Origin::Create(payments::GetBaseSecureUrl()),
+        kAutofillServerCardDataSharedStorageKey, base::DoNothing());
+  } else {
+    shared_storage_manager_->Set(
+        url::Origin::Create(payments::GetBaseSecureUrl()),
+        kAutofillServerCardDataSharedStorageKey,
+        EncodeServerCardDataForSharedStorage(server_card_data),
+        base::BindOnce(&ContentAutofillSharedStorageHandler::
+                           OnSharedStorageSetAutofillDataComplete,
+                       weak_factory_.GetWeakPtr()),
+        storage::SharedStorageDatabase::SetBehavior::kDefault);
+  }
 }
 
 void ContentAutofillSharedStorageHandler::
     OnSharedStorageSetAutofillDataComplete(
         storage::SharedStorageManager::OperationResult result) {
-  // TODO(crbug/1519929): Record metrics.
+  UMA_HISTOGRAM_ENUMERATION("Autofill.SharedStorageServerCardDataSetResult",
+                            result);
 }
 
 }  // namespace autofill

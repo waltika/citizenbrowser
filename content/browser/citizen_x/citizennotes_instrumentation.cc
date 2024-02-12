@@ -512,10 +512,6 @@ void OnSignedExchangeCertificateRequestSent(
 
   auto value = std::make_unique<base::trace_event::TracedValue>();
   value->SetString("requestId", request_id.ToString());
-  TRACE_EVENT_INSTANT_WITH_TIMESTAMP1(
-      "citizennotes.timeline", "ResourceWillSendRequest", TRACE_EVENT_SCOPE_PROCESS,
-      timestamp, "data",
-      inspector_will_send_navigation_request_event::Data(request_id));
 }
 
 void OnSignedExchangeCertificateResponseReceived(
@@ -1131,11 +1127,6 @@ void OnNavigationRequestWillBeSent(
   DispatchToAgents(navigation_request.frame_tree_node(),
                    &protocol::CNNetworkHandler::NavigationRequestWillBeSent,
                    navigation_request, timestamp);
-  TRACE_EVENT_INSTANT_WITH_TIMESTAMP1(
-      "citizennotes.timeline", "ResourceWillSendRequest", TRACE_EVENT_SCOPE_PROCESS,
-      timestamp, "data",
-      inspector_will_send_navigation_request_event::Data(
-          navigation_request.citizennotes_navigation_token()));
 }
 
 // Notify the provided agent host of a certificate error. Returns true if one of

@@ -96,10 +96,6 @@ class CitizenNotesSession::IOSession : public mojom::blink::CitizenNotesSession 
   void DispatchProtocolCommand(int call_id,
                                const String& method,
                                base::span<const uint8_t> message) override {
-    TRACE_EVENT_WITH_FLOW1("citizennotes", "IOSession::DispatchProtocolCommand",
-                           call_id,
-                           TRACE_EVENT_FLAG_FLOW_OUT | TRACE_EVENT_FLAG_FLOW_IN,
-                           "call_id", call_id);
     // Crash renderer.
     if (method == "Page.crash")
       CHECK(false);
@@ -225,9 +221,6 @@ void CitizenNotesSession::DispatchProtocolCommand(
     int call_id,
     const String& method,
     base::span<const uint8_t> message) {
-  TRACE_EVENT_WITH_FLOW1(
-      "citizennotes", "CitizenNotesSession::DispatchProtocolCommand", call_id,
-      TRACE_EVENT_FLAG_FLOW_OUT | TRACE_EVENT_FLAG_FLOW_IN, "call_id", call_id);
   return DispatchProtocolCommandImpl(call_id, method, message);
 }
 
@@ -237,9 +230,6 @@ void CitizenNotesSession::DispatchProtocolCommandImpl(
     base::span<const uint8_t> data) {
   DCHECK(crdtp::cbor::IsCBORMessage(
       crdtp::span<uint8_t>(data.data(), data.size())));
-  TRACE_EVENT_WITH_FLOW1(
-      "citizennotes", "CitizenNotesSession::DispatchProtocolCommandImpl", call_id,
-      TRACE_EVENT_FLAG_FLOW_OUT | TRACE_EVENT_FLAG_FLOW_IN, "call_id", call_id);
 
   // IOSession does not provide ordering guarantees relative to
   // Session, so a command may come to IOSession after Session is detached,
@@ -325,9 +315,6 @@ void CitizenNotesSession::sendResponse(
 
 void CitizenNotesSession::SendProtocolResponse(int call_id,
                                            std::vector<uint8_t> message) {
-  TRACE_EVENT_WITH_FLOW1(
-      "citizennotes", "CitizenNotesSession::SendProtocolResponse", call_id,
-      TRACE_EVENT_FLAG_FLOW_OUT | TRACE_EVENT_FLAG_FLOW_IN, "call_id", call_id);
   if (IsDetached())
     return;
   flushProtocolNotifications();

@@ -371,11 +371,6 @@ void CitizenNotesSession::HandleCommandInternal(crdtp::Dispatchable dispatchable
   crdtp::UberDispatcher::DispatchResult dispatched =
       dispatcher_->Dispatch(dispatchable);
   if (browser_only_ || dispatched.MethodFound()) {
-    TRACE_EVENT_WITH_FLOW2(
-        "citizennotes", "CitizenNotesSession::HandleCommand in Browser",
-        dispatchable.CallId(), TRACE_EVENT_FLAG_FLOW_OUT, "method",
-        std::string(dispatchable.Method().begin(), dispatchable.Method().end()),
-        "call_id", dispatchable.CallId());
     dispatched.Run();
   } else {
     FallThrough(dispatchable.CallId(), dispatchable.Method(),
@@ -442,19 +437,11 @@ void CitizenNotesSession::DispatchToAgent(const PendingMessage& message) {
   // Debugger.pause don't get stuck behind other blocking messages.
   if (ShouldSendOnIO(crdtp::SpanFrom(message.method)) || use_io_session_) {
     if (io_session_) {
-      TRACE_EVENT_WITH_FLOW2(
-          "citizennotes", "CitizenNotesSession::DispatchToAgent on IO", message.call_id,
-          TRACE_EVENT_FLAG_FLOW_OUT, "method", message.method, "call_id",
-          message.call_id);
       io_session_->DispatchProtocolCommand(message.call_id, message.method,
                                            message.payload);
     }
   } else {
     if (session_) {
-      TRACE_EVENT_WITH_FLOW2("citizennotes", "CitizenNotesSession::DispatchToAgent",
-                             message.call_id, TRACE_EVENT_FLAG_FLOW_OUT,
-                             "method", message.method, "call_id",
-                             message.call_id);
       session_->DispatchProtocolCommand(message.call_id, message.method,
                                         message.payload);
     }
@@ -533,9 +520,6 @@ void CitizenNotesSession::DispatchProtocolResponse(
     blink::mojom::CitizenNotesMessagePtr message,
     int call_id,
     blink::mojom::CitizenNotesSessionStatePtr updates) {
-  TRACE_EVENT_WITH_FLOW1("citizennotes",
-                         "CitizenNotesSession::DispatchProtocolResponse", call_id,
-                         TRACE_EVENT_FLAG_FLOW_IN, "call_id", call_id);
   ApplySessionStateUpdates(std::move(updates));
   auto it = waiting_for_response_.find(call_id);
   // TODO(johannes): Consider shutting down renderer instead of just
