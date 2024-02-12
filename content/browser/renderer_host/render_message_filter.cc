@@ -33,6 +33,7 @@ mojom::FrameRoutingInfoPtr RenderMessageFilter::AllocateNewRoutingInfo() {
   auto result = mojom::FrameRoutingInfo::New();
   result->routing_id = render_widget_helper_->GetNextRoutingID();
   result->devtools_frame_token = base::UnguessableToken::Create();
+  result->citizennotes_frame_token = base::UnguessableToken::Create();
   render_widget_helper_->StoreNextFrameRoutingID(
       result->routing_id, result->frame_token, result->devtools_frame_token, result->citizennotes_frame_token,
       result->document_token);
