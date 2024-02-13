@@ -321,28 +321,6 @@ void DidUpdatePrerenderStatus(
 
 namespace {
 
-protocol::String BuildBlockedByResponseReason(
-    network::mojom::BlockedByResponseReason reason) {
-  switch (reason) {
-    case network::mojom::BlockedByResponseReason::
-        kCoepFrameResourceNeedsCoepHeader:
-      return protocol::Audits::BlockedByResponseReasonEnum::
-          CoepFrameResourceNeedsCoepHeader;
-    case network::mojom::BlockedByResponseReason::
-        kCoopSandboxedIFrameCannotNavigateToCoopPage:
-      return protocol::Audits::BlockedByResponseReasonEnum::
-          CoopSandboxedIFrameCannotNavigateToCoopPage;
-    case network::mojom::BlockedByResponseReason::kCorpNotSameOrigin:
-      return protocol::Audits::BlockedByResponseReasonEnum::CorpNotSameOrigin;
-    case network::mojom::BlockedByResponseReason::
-        kCorpNotSameOriginAfterDefaultedToSameOriginByCoep:
-      return protocol::Audits::BlockedByResponseReasonEnum::
-          CorpNotSameOriginAfterDefaultedToSameOriginByCoep;
-    case network::mojom::BlockedByResponseReason::kCorpNotSameSite:
-      return protocol::Audits::BlockedByResponseReasonEnum::CorpNotSameSite;
-  }
-}
-
 void ReportBlockedByResponseIssue(
     const GURL& url,
     std::string& requestId,
@@ -350,42 +328,6 @@ void ReportBlockedByResponseIssue(
     RenderFrameHostImpl* parent_frame,
     const network::URLLoaderCompletionStatus& status) {
   DCHECK(status.blocked_by_response_reason);
-
-  auto issueDetails = protocol::Audits::InspectorIssueDetails::Create();
-  auto request = protocol::Audits::AffectedRequest::Create()
-                     .SetRequestId(requestId)
-                     .SetUrl(url.spec())
-                     .Build();
-  auto blockedByResponseDetails =
-      protocol::Audits::BlockedByResponseIssueDetails::Create()
-          .SetRequest(std::move(request))
-          .SetReason(
-              BuildBlockedByResponseReason(*status.blocked_by_response_reason))
-          .Build();
-
-  blockedByResponseDetails->SetBlockedFrame(
-      protocol::Audits::AffectedFrame::Create()
-          .SetFrameId(
-              ftn->current_frame_host()->citizennotes_frame_token().ToString())
-          .Build());
-  if (parent_frame) {
-    blockedByResponseDetails->SetParentFrame(
-        protocol::Audits::AffectedFrame::Create()
-            .SetFrameId(parent_frame->citizennotes_frame_token().ToString())
-            .Build());
-  }
-
-  issueDetails.SetBlockedByResponseIssueDetails(
-      std::move(blockedByResponseDetails));
-
-  auto inspector_issue =
-      protocol::Audits::InspectorIssue::Create()
-          .SetCode(
-              protocol::Audits::InspectorIssueCodeEnum::BlockedByResponseIssue)
-          .SetDetails(issueDetails.Build())
-          .Build();
-
-  ReportBrowserInitiatedIssue(ftn->current_frame_host(), inspector_issue.get());
 }
 
 }  // namespace
@@ -1195,143 +1137,6 @@ void DragEnded(FrameTreeNode& node) {
   DispatchToAgents(&node, &protocol::CNInputHandler::DragEnded);
 }
 
-namespace {
-std::unique_ptr<protocol::Array<protocol::String>> BuildExclusionReasons(
-    net::CookieInclusionStatus status) {
-  auto exclusion_reasons =
-      std::make_unique<protocol::Array<protocol::String>>();
-  if (status.HasExclusionReason(
-          net::CookieInclusionStatus::
-              EXCLUDE_SAMESITE_UNSPECIFIED_TREATED_AS_LAX)) {
-    exclusion_reasons->push_back(protocol::Audits::CookieExclusionReasonEnum::
-                                     ExcludeSameSiteUnspecifiedTreatedAsLax);
-  }
-  if (status.HasExclusionReason(
-          net::CookieInclusionStatus::EXCLUDE_SAMESITE_NONE_INSECURE)) {
-    exclusion_reasons->push_back(protocol::Audits::CookieExclusionReasonEnum::
-                                     ExcludeSameSiteNoneInsecure);
-  }
-  if (status.HasExclusionReason(
-          net::CookieInclusionStatus::EXCLUDE_SAMESITE_LAX)) {
-    exclusion_reasons->push_back(
-        protocol::Audits::CookieExclusionReasonEnum::ExcludeSameSiteLax);
-  }
-  if (status.HasExclusionReason(
-          net::CookieInclusionStatus::EXCLUDE_SAMESITE_STRICT)) {
-    exclusion_reasons->push_back(
-        protocol::Audits::CookieExclusionReasonEnum::ExcludeSameSiteStrict);
-  }
-  if (status.HasExclusionReason(
-          net::CookieInclusionStatus::EXCLUDE_DOMAIN_NON_ASCII)) {
-    exclusion_reasons->push_back(
-        protocol::Audits::CookieExclusionReasonEnum::ExcludeDomainNonASCII);
-  }
-  if (status.HasExclusionReason(
-          net::CookieInclusionStatus::
-              EXCLUDE_THIRD_PARTY_BLOCKED_WITHIN_FIRST_PARTY_SET)) {
-    exclusion_reasons->push_back(
-        protocol::Audits::CookieExclusionReasonEnum::
-            ExcludeThirdPartyCookieBlockedInFirstPartySet);
-  }
-  if (status.HasExclusionReason(
-          net::CookieInclusionStatus::EXCLUDE_THIRD_PARTY_PHASEOUT)) {
-    exclusion_reasons->push_back(
-        protocol::Audits::CookieExclusionReasonEnum::ExcludeThirdPartyPhaseout);
-  }
-
-  return exclusion_reasons;
-}
-
-std::unique_ptr<protocol::Array<protocol::String>> BuildWarningReasons(
-    net::CookieInclusionStatus status) {
-  auto warning_reasons = std::make_unique<protocol::Array<protocol::String>>();
-  if (status.HasWarningReason(
-          net::CookieInclusionStatus::WARN_ATTRIBUTE_VALUE_EXCEEDS_MAX_SIZE)) {
-    warning_reasons->push_back(protocol::Audits::CookieWarningReasonEnum::
-                                   WarnAttributeValueExceedsMaxSize);
-  }
-  if (status.HasWarningReason(
-          net::CookieInclusionStatus::
-              WARN_SAMESITE_UNSPECIFIED_CROSS_SITE_CONTEXT)) {
-    warning_reasons->push_back(protocol::Audits::CookieWarningReasonEnum::
-                                   WarnSameSiteUnspecifiedCrossSiteContext);
-  }
-  if (status.HasWarningReason(
-          net::CookieInclusionStatus::WARN_SAMESITE_NONE_INSECURE)) {
-    warning_reasons->push_back(
-        protocol::Audits::CookieWarningReasonEnum::WarnSameSiteNoneInsecure);
-  }
-  if (status.HasWarningReason(net::CookieInclusionStatus::
-                                  WARN_SAMESITE_UNSPECIFIED_LAX_ALLOW_UNSAFE)) {
-    warning_reasons->push_back(protocol::Audits::CookieWarningReasonEnum::
-                                   WarnSameSiteUnspecifiedLaxAllowUnsafe);
-  }
-
-  // There can only be one of the following warnings.
-  if (status.HasWarningReason(net::CookieInclusionStatus::
-                                  WARN_STRICT_LAX_DOWNGRADE_STRICT_SAMESITE)) {
-    warning_reasons->push_back(protocol::Audits::CookieWarningReasonEnum::
-                                   WarnSameSiteStrictLaxDowngradeStrict);
-  } else if (status.HasWarningReason(
-                 net::CookieInclusionStatus::
-                     WARN_STRICT_CROSS_DOWNGRADE_STRICT_SAMESITE)) {
-    warning_reasons->push_back(protocol::Audits::CookieWarningReasonEnum::
-                                   WarnSameSiteStrictCrossDowngradeStrict);
-  } else if (status.HasWarningReason(
-                 net::CookieInclusionStatus::
-                     WARN_STRICT_CROSS_DOWNGRADE_LAX_SAMESITE)) {
-    warning_reasons->push_back(protocol::Audits::CookieWarningReasonEnum::
-                                   WarnSameSiteStrictCrossDowngradeLax);
-  } else if (status.HasWarningReason(
-                 net::CookieInclusionStatus::
-                     WARN_LAX_CROSS_DOWNGRADE_STRICT_SAMESITE)) {
-    warning_reasons->push_back(protocol::Audits::CookieWarningReasonEnum::
-                                   WarnSameSiteLaxCrossDowngradeStrict);
-  } else if (status.HasWarningReason(
-                 net::CookieInclusionStatus::
-                     WARN_LAX_CROSS_DOWNGRADE_LAX_SAMESITE)) {
-    warning_reasons->push_back(protocol::Audits::CookieWarningReasonEnum::
-                                   WarnSameSiteLaxCrossDowngradeLax);
-  }
-
-  if (status.HasWarningReason(
-          net::CookieInclusionStatus::WARN_DOMAIN_NON_ASCII)) {
-    warning_reasons->push_back(
-        protocol::Audits::CookieWarningReasonEnum::WarnDomainNonASCII);
-  }
-
-  if (status.HasWarningReason(
-          net::CookieInclusionStatus::WARN_THIRD_PARTY_PHASEOUT)) {
-    warning_reasons->push_back(
-        protocol::Audits::CookieWarningReasonEnum::WarnThirdPartyPhaseout);
-  }
-
-  // This warning only affects cookies when the corresponding feature is
-  // enabled, therefore we should only create an issue for it then.
-  if (base::FeatureList::IsEnabled(
-          net::features::kCookieSameSiteConsidersRedirectChain) &&
-      status.HasWarningReason(
-          net::CookieInclusionStatus::
-              WARN_CROSS_SITE_REDIRECT_DOWNGRADE_CHANGES_INCLUSION)) {
-    warning_reasons->push_back(
-        protocol::Audits::CookieWarningReasonEnum::
-            WarnCrossSiteRedirectDowngradeChangesInclusion);
-  }
-
-  return warning_reasons;
-}
-
-protocol::String BuildCookieOperation(blink::mojom::CookieOperation operation) {
-  switch (operation) {
-    case blink::mojom::CookieOperation::kReadCookie:
-      return protocol::Audits::CookieOperationEnum::ReadCookie;
-    case blink::mojom::CookieOperation::kSetCookie:
-      return protocol::Audits::CookieOperationEnum::SetCookie;
-  }
-}
-
-}  // namespace
-
 void ReportCookieIssue(
     RenderFrameHostImpl* render_frame_host_impl,
     const network::mojom::CookieOrLineWithAccessResultPtr& excluded_cookie,
@@ -1339,81 +1144,8 @@ void ReportCookieIssue(
     const net::SiteForCookies& site_for_cookies,
     blink::mojom::CookieOperation operation,
     const std::optional<std::string>& citizennotes_request_id) {
-  auto exclusion_reasons =
-      BuildExclusionReasons(excluded_cookie->access_result.status);
-  auto warning_reasons =
-      BuildWarningReasons(excluded_cookie->access_result.status);
-  if (exclusion_reasons->empty() && warning_reasons->empty()) {
-    // If we don't report any reason, there is no point in informing CitizenNotes.
-    return;
-  }
-
-  std::unique_ptr<protocol::Audits::AffectedRequest> affected_request;
-  if (citizennotes_request_id) {
-    // We can report the url here, because if citizennotes_request_id is set, the
-    // url is the url of the request.
-    affected_request = protocol::Audits::AffectedRequest::Create()
-                           .SetRequestId(*citizennotes_request_id)
-                           .SetUrl(url.spec())
-                           .Build();
-  }
-
-  auto cookie_issue_details =
-      protocol::Audits::CookieIssueDetails::Create()
-          .SetCookieExclusionReasons(std::move(exclusion_reasons))
-          .SetCookieWarningReasons(std::move(warning_reasons))
-          .SetOperation(BuildCookieOperation(operation))
-          .SetCookieUrl(url.spec())
-          .SetRequest(std::move(affected_request))
-          .Build();
-
-  if (excluded_cookie->cookie_or_line->is_cookie()) {
-    const auto& cookie = excluded_cookie->cookie_or_line->get_cookie();
-    auto affected_cookie = protocol::Audits::AffectedCookie::Create()
-                               .SetName(cookie.Name())
-                               .SetPath(cookie.Path())
-                               .SetDomain(cookie.Domain())
-                               .Build();
-    cookie_issue_details->SetCookie(std::move(affected_cookie));
-  } else {
-    CHECK(excluded_cookie->cookie_or_line->is_cookie_string());
-    cookie_issue_details->SetRawCookieLine(
-        excluded_cookie->cookie_or_line->get_cookie_string());
-  }
-
-  if (!site_for_cookies.IsNull()) {
-    cookie_issue_details->SetSiteForCookies(
-        site_for_cookies.RepresentativeUrl().spec());
-  }
-
-  auto details = protocol::Audits::InspectorIssueDetails::Create()
-                     .SetCookieIssueDetails(std::move(cookie_issue_details))
-                     .Build();
-
-  auto issue =
-      protocol::Audits::InspectorIssue::Create()
-          .SetCode(protocol::Audits::InspectorIssueCodeEnum::CookieIssue)
-          .SetDetails(std::move(details))
-          .Build();
-
-  ReportBrowserInitiatedIssue(render_frame_host_impl, issue.get());
+ 
 }
-
-namespace {
-
-void AddIssueToIssueStorage(
-    RenderFrameHost* rfh,
-    std::unique_ptr<protocol::Audits::InspectorIssue> issue) {
-  // We only utilize a central storage on the page. Each issue is still
-  // associated with the originating |RenderFrameHost| though.
-  CitizenNotesIssueStorage* issue_storage =
-      CitizenNotesIssueStorage::GetOrCreateForPage(
-          rfh->GetOutermostMainFrame()->GetPage());
-
-  issue_storage->AddInspectorIssue(rfh, std::move(issue));
-}
-
-}  // namespace
 
 void ReportBrowserInitiatedIssue(RenderFrameHostImpl* frame,
                                  protocol::Audits::InspectorIssue* issue) {
@@ -1422,14 +1154,7 @@ void ReportBrowserInitiatedIssue(RenderFrameHostImpl* frame,
     return;
   }
 
-  AddIssueToIssueStorage(frame, issue->Clone());
   DispatchToAgents(ftn, &protocol::CNAuditsHandler::OnIssueAdded, issue);
-}
-
-void BuildAndReportBrowserInitiatedIssue(
-    RenderFrameHostImpl* frame,
-    blink::mojom::InspectorIssueInfoPtr info) {
-  NOTREACHED_NORETURN();
 }
 
 void OnWebTransportHandshakeFailed(

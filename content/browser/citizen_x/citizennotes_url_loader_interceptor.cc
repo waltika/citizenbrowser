@@ -347,7 +347,7 @@ class HeadersOverride {
       removed_headers.push_back(entry.first);
   }
 
-  network::ResourceRequest& request_;
+  RAW_PTR_EXCLUSION network::ResourceRequest& request_;
   net::HttpRequestHeaders original_headers_;
   GURL original_referrer_;
   net::ReferrerPolicy original_referrer_policy_;

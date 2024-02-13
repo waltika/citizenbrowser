@@ -261,7 +261,7 @@ class CNInputHandler : public CitizenNotesDomainHandler, public Input::Backend {
         base::WeakPtr<RenderWidgetHostViewBase> view,
         absl::optional<gfx::PointF> maybe_point);
 
-    CNInputHandler& handler_;
+    RAW_PTR_EXCLUSION CNInputHandler& handler_;
 
     // These get used for starting a drag.
     std::unique_ptr<InitialState> initial_state_;

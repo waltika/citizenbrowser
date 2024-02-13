@@ -149,8 +149,6 @@ void NetworkServiceCitizenNotesObserver::OnPrivateNetworkRequest(
                    .SetCode(protocol::Audits::InspectorIssueCodeEnum::CorsIssue)
                    .SetDetails(std::move(details))
                    .Build();
-  citizennotes_instrumentation::ReportBrowserInitiatedIssue(
-      ftn->current_frame_host(), issue.get());
 }
 
 void NetworkServiceCitizenNotesObserver::OnCorsPreflightRequest(
@@ -254,7 +252,6 @@ void NetworkServiceCitizenNotesObserver::OnCorsError(
                    .SetDetails(std::move(details))
                    .SetIssueId(cors_error_status.issue_id.ToString())
                    .Build();
-  citizennotes_instrumentation::ReportBrowserInitiatedIssue(rfhi, issue.get());
 }
 
 void NetworkServiceCitizenNotesObserver::OnCorbError(
@@ -284,7 +281,6 @@ void NetworkServiceCitizenNotesObserver::OnCorbError(
           .SetCode(protocol::Audits::InspectorIssueCodeEnum::GenericIssue)
           .SetDetails(std::move(details))
           .Build();
-  citizennotes_instrumentation::ReportBrowserInitiatedIssue(rfhi, issue.get());
 }
 
 void NetworkServiceCitizenNotesObserver::OnSubresourceWebBundleMetadata(

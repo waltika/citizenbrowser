@@ -130,7 +130,7 @@ class AuxGPUInfoEnumerator : public gpu::GPUInfo::Enumerator {
     in_aux_attributes_ = false;
   }
 
-  protocol::DictionaryValue& dictionary_;
+  RAW_PTR_EXCLUSION protocol::DictionaryValue& dictionary_;
   bool in_aux_attributes_ = false;
 };
 

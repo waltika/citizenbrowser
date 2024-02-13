@@ -22,7 +22,7 @@ class WindowElement : public aura::WindowObserver,
   WindowElement(const WindowElement&) = delete;
   WindowElement& operator=(const WindowElement&) = delete;
   ~WindowElement() override;
-  aura::Window* window() const { return window_; }
+  raw_ptr<aura::Window> window() const { return window_; }
 
   // WindowObserver:
   void OnWindowHierarchyChanging(
@@ -54,7 +54,7 @@ class WindowElement : public aura::WindowObserver,
   ui::Layer* GetLayer() const override;
 
  private:
-  aura::Window* window_;
+  raw_ptr<aura::Window> window_;
 };
 
 }  // namespace ui_citizennotes

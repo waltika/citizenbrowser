@@ -29,7 +29,6 @@
 #include "services/network/public/cpp/url_loader_completion_status.h"
 #include "services/network/public/mojom/url_loader_factory.mojom.h"
 #include "services/network/public/mojom/url_response_head.mojom-forward.h"
-//#include "third_party/blink/public/mojom/citizennotes/cninspector_issue.mojom-forward.h"
 #include "third_party/blink/public/mojom/navigation/navigation_params.mojom-forward.h"
 #include "third_party/blink/public/mojom/speculation_rules/speculation_rules.mojom-forward.h"
 
@@ -81,7 +80,7 @@ struct PrerenderMismatchedHeaders;
 struct SignedExchangeError;
 
 namespace protocol::Audits {
-class InspectorIssue;
+class CNInspectorIssue;
 }  // namespace protocol::Audits
 
 namespace citizennotes_instrumentation {
@@ -388,13 +387,11 @@ void ReportCookieIssue(
 // |ReportBrowserInitiatedIssue| are lost.
 void CONTENT_EXPORT
 ReportBrowserInitiatedIssue(RenderFrameHostImpl* frame,
-                            protocol::Audits::InspectorIssue* issue);
+                            protocol::Audits::CNInspectorIssue* issue);
 
 // Produces an inspector issue and sends it to the client with
 // |ReportBrowserInitiatedIssue|.
-void BuildAndReportBrowserInitiatedIssue(
-    RenderFrameHostImpl* frame,
-    blink::mojom::InspectorIssueInfoPtr info);
+
 
 void OnWebTransportHandshakeFailed(
     RenderFrameHostImpl* frame_host,
