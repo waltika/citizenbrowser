@@ -50,7 +50,7 @@ const UIStrings = {
    */
   notAvailable: 'not available',
 };
-const str_ = i18n.i18n.registerUIStrings('panels/console/ConsolePinPane.ts', UIStrings);
+const str_ = i18n.i18n.registerUIStrings('panels/console/TestPinPane.ts', UIStrings);
 const i18nString = i18n.i18n.getLocalizedString.bind(undefined, str_);
 
 const elementToConsolePin = new WeakMap<Element, ConsolePin>();

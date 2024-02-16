@@ -200,7 +200,7 @@ const UIStrings = {
    */
   explainThisMessage: 'Explain this message',
 };
-const str_ = i18n.i18n.registerUIStrings('panels/console/ConsoleViewMessage.ts', UIStrings);
+const str_ = i18n.i18n.registerUIStrings('panels/console/TestViewMessage.ts', UIStrings);
 const i18nString = i18n.i18n.getLocalizedString.bind(undefined, str_);
 const elementToMessage = new WeakMap<Element, ConsoleViewMessage>();
 
@@ -209,7 +209,7 @@ export const getMessageForElement = (element: Element): ConsoleViewMessage|undef
 };
 
 // This value reflects the 18px min-height of .console-message, plus the
-// 1px border of .console-message-wrapper. Keep in sync with consoleView.css.
+// 1px border of .console-message-wrapper. Keep in sync with testView.css.
 const defaultConsoleRowHeight = 19;
 
 const parameterToRemoteObject = (runtimeModel: SDK.RuntimeModel.RuntimeModel|null): (

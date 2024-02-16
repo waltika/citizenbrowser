@@ -21,7 +21,7 @@ ts_library("legacy_test_runner-source") {
   sources = [ "legacy_test_runner.ts" ]
 
   deps = [
-    "../entrypoints/citizennotes_app:cnentrypoint",
+    "../entrypoints/citizennotes_app:entrypoint",
     "../panels/console_counters:bundle",
     "../panels/event_listeners:bundle",
     "test_runner:bundle",

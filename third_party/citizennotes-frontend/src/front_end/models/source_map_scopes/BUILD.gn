@@ -32,6 +32,7 @@ citizennotes_entrypoint("bundle") {
     ":*",
     "../../../test/unittests/front_end/models/source_map_scopes/*",
     "../../panels/console/*",
+    "../../panels/test/*",
     "../../panels/sources/*",
     "../../panels/timeline/*",
     "../../ui/components/text_editor/*",

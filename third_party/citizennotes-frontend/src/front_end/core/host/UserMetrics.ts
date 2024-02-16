@@ -643,7 +643,10 @@ export enum Action {
   InsightClosed = 119,
   InsightErrored = 120,
   InsightHoverButtonShown = 121,
-  MaxValue = 122,
+  TestEvaluated = 122,
+  InsightTestMessageShown = 123,
+  CommandEvaluatedInTestPanel = 124,
+  MaxValue = 125,
 }
 
 /* eslint-disable @typescript-eslint/naming-convention */

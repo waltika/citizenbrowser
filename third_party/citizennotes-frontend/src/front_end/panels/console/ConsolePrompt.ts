@@ -37,7 +37,7 @@ const UIStrings = {
    */
   allowPasting: 'allow pasting',
 };
-const str_ = i18n.i18n.registerUIStrings('panels/console/ConsolePrompt.ts', UIStrings);
+const str_ = i18n.i18n.registerUIStrings('panels/console/TestPrompt.ts', UIStrings);
 const i18nString = i18n.i18n.getLocalizedString.bind(undefined, str_);
 export class ConsolePrompt extends Common.ObjectWrapper.eventMixin<EventTypes, typeof UI.Widget.Widget>(
     UI.Widget.Widget) {
@@ -166,7 +166,7 @@ export class ConsolePrompt extends Common.ObjectWrapper.eventMixin<EventTypes, t
   }
 
   private onTextChanged(): void {
-    // ConsoleView and prompt both use a throttler, so we clear the preview
+    // TestView and prompt both use a throttler, so we clear the preview
     // ASAP to avoid inconsistency between a fresh viewport and stale preview.
     if (this.eagerEvalSetting.get()) {
       const asSoonAsPossible = !TextEditor.Config.contentIncludingHint(this.editor.editor);

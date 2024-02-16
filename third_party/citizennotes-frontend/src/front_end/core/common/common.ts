@@ -10,6 +10,7 @@ import * as Color from './Color.js';
 import * as ColorConverter from './ColorConverter.js';
 import * as ColorUtils from './ColorUtils.js';
 import * as Console from './Console.js';
+import * as Test from './Test.js';
 import * as Debouncer from './Debouncer.js';
 import * as EventTarget from './EventTarget.js';
 import * as JavaScriptMetaData from './JavaScriptMetaData.js';
@@ -51,6 +52,7 @@ export {
   ColorUtils,
   ColorConverter,
   Console,
+  Test,
   Debouncer,
   EventTarget,
   JavaScriptMetaData,

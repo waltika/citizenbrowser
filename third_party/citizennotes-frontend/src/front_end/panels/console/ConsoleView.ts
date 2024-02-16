@@ -261,7 +261,7 @@ const UIStrings = {
   filteredMessagesInConsole: '{PH1} messages in console',
 
 };
-const str_ = i18n.i18n.registerUIStrings('panels/console/ConsoleView.ts', UIStrings);
+const str_ = i18n.i18n.registerUIStrings('panels/console/TestView.ts', UIStrings);
 const i18nString = i18n.i18n.getLocalizedString.bind(undefined, str_);
 let consoleViewInstance: ConsoleView;
 

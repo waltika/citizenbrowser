@@ -59,6 +59,7 @@ citizennotes_entrypoint("bundle") {
     "../../legacy_test_runner/*",
     "../../panels/application/*",
     "../../panels/console/*",
+    "../../panels/test/*",
     "../../panels/coverage/*",
     "../../panels/network/*",
     "../../panels/profiler/*",

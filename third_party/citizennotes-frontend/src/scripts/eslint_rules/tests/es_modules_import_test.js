@@ -104,7 +104,7 @@ ruleTester.run('es_modules_import', rule, {
     },
     {
       code: 'import * as ConsoleCounters from \'../console_counters/console_counters.js\';',
-      filename: 'front_end/panels/console/ConsoleView.ts',
+      filename: 'front_end/panels/console/TestView.ts',
     },
     {
       code: 'import * as Elements from \'./elements.js\';',

@@ -39,6 +39,7 @@ citizennotes_entrypoint("bundle") {
     ":*",
     "../../../../panels/application/*",
     "../../../../panels/console/*",
+    "../../../../panels/test/*",
     "../../../../panels/coverage/*",
     "../../../../panels/css_overview/*",
     "../../../../panels/developer_resources/*",

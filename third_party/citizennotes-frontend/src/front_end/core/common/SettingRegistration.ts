@@ -34,6 +34,10 @@ const UIStrings = {
    */
   console: 'Console',
   /**
+   *@description Title of the Test tool
+   */
+  test: 'Test',
+  /**
    *@description A title of the 'Persistence' setting category
    */
   persistence: 'Persistence',
@@ -133,6 +137,7 @@ export enum SettingCategory {
   NETWORK = 'NETWORK',
   PERFORMANCE = 'PERFORMANCE',
   CONSOLE = 'CONSOLE',
+  TEST = 'TEST',
   PERSISTENCE = 'PERSISTENCE',
   DEBUGGER = 'DEBUGGER',
   GLOBAL = 'GLOBAL',
@@ -160,6 +165,8 @@ export function getLocalizedSettingsCategory(category: SettingCategory): Platfor
       return i18nString(UIStrings.performance);
     case SettingCategory.CONSOLE:
       return i18nString(UIStrings.console);
+    case SettingCategory.TEST:
+      return i18nString(UIStrings.test);
     case SettingCategory.PERSISTENCE:
       return i18nString(UIStrings.persistence);
     case SettingCategory.DEBUGGER:

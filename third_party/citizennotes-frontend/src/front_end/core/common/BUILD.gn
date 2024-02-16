@@ -37,6 +37,7 @@ citizennotes_module("common") {
     "Settings.ts",
     "SimpleHistoryManager.ts",
     "StringOutputStream.ts",
+    "Test.ts",
     "TextDictionary.ts",
     "Throttler.ts",
     "Trie.ts",

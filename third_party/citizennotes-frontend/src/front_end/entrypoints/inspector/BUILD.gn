@@ -9,7 +9,7 @@ citizennotes_entrypoint("entrypoint") {
 
   deps = [
     "../../panels/screencast:meta",
-    "../citizennotes_app:cnentrypoint",
+    "../citizennotes_app:entrypoint",
   ]
 
   visibility = [ "../../:*" ]

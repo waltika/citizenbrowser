@@ -17,7 +17,7 @@ describe('ErrorStackParser', () => {
   const fileTestingUrl = 'file:///testing.js' as Platform.CitizenNotesPath.UrlString;
 
   beforeEach(() => {
-    // TODO(crbug/1280141): Remove complicated stubbing code once `parseSourcePositionsFromErrorStack`
+    // TODO(crbug/1280141): Remove complicated stubbing code once `testParseSourcePositionsFromErrorStack`
     //                      no longer needs a RuntimeModel.
     runtimeModel = sinon.createStubInstance(SDK.RuntimeModel.RuntimeModel, {
       target: sinon.createStubInstance(SDK.Target.Target, {

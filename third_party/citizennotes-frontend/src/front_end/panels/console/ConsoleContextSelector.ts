@@ -26,7 +26,7 @@ const UIStrings = {
    */
   javascriptContextS: 'JavaScript context: {PH1}',
 };
-const str_ = i18n.i18n.registerUIStrings('panels/console/ConsoleContextSelector.ts', UIStrings);
+const str_ = i18n.i18n.registerUIStrings('panels/console/TestContextSelector.ts', UIStrings);
 const i18nString = i18n.i18n.getLocalizedString.bind(undefined, str_);
 export class ConsoleContextSelector implements SDK.TargetManager.SDKModelObserver<SDK.RuntimeModel.RuntimeModel>,
                                                UI.SoftDropDown.Delegate<SDK.RuntimeModel.ExecutionContext> {

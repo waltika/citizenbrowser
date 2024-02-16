@@ -18,6 +18,7 @@ citizennotes_entrypoint("shell") {
     "../../panels/application:meta",
     "../../panels/changes:meta",
     "../../panels/console:meta",
+    "../../panels/test:meta",
     "../../panels/console_counters:meta",
     "../../panels/coverage:meta",
     "../../panels/explain:meta",

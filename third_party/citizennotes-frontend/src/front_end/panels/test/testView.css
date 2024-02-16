@@ -1,0 +1,601 @@
+/*
+ * Copyright (C) 2006, 2007, 2008 Apple Inc.  All rights reserved.
+ * Copyright (C) 2009 Anthony Ricaud <rik@webkit.org>
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1.  Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ * 2.  Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ * 3.  Neither the name of Apple Computer, Inc. ("Apple") nor the names of
+ *     its contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY APPLE AND ITS CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL APPLE OR ITS CONTRIBUTORS BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+.test-view {
+  background-color: var(--sys-color-cdt-base-container);
+  overflow: hidden;
+
+  --override-error-text-color: var(--sys-color-on-error-container);
+  --message-corner-rounder-background: var(--sys-color-cdt-base-container);
+}
+
+.test-toolbar-container {
+  display: flex;
+  flex: none;
+}
+
+.test-main-toolbar {
+  flex: 1 1 auto;
+}
+
+.test-toolbar-container > .toolbar {
+  background-color: var(--sys-color-cdt-base-container);
+  border-bottom: 1px solid var(--sys-color-divider);
+}
+
+.test-view-fix-select-all {
+  height: 0;
+  overflow: hidden;
+}
+
+.test-settings-pane {
+  flex: none;
+  background-color: var(--sys-color-cdt-base-container);
+  border-bottom: 1px solid var(--sys-color-divider);
+}
+
+.test-settings-pane .toolbar {
+  flex: 1 1;
+}
+
+#test-messages {
+  flex: 1 1;
+  overflow-y: auto;
+  word-wrap: break-word;
+  user-select: text;
+  transform: translateZ(0);
+  overflow-anchor: none;  /* Chrome-specific scroll-anchoring opt-out */
+  background-color: var(--sys-color-cdt-base-container);
+}
+
+#test-prompt {
+  clear: right;
+  position: relative;
+  margin: 0 22px 0 20px;
+}
+
+.test-prompt-editor-container {
+  min-height: 21px;
+}
+
+.test-message,
+.test-user-command {
+  clear: right;
+  position: relative;
+  padding: 3px 22px 1px 0;
+  margin-left: 24px;
+  min-height: 17px;  /* Sync with TestViewMessage.js */
+  flex: auto;
+  display: flex;
+}
+
+.test-message > * {
+  flex: auto;
+}
+
+.test-timestamp {
+  color: var(--sys-color-token-subtle);
+  user-select: none;
+  flex: none;
+  margin-right: 5px;
+}
+
+.message-level-icon,
+.command-result-icon {
+  position: absolute;
+  left: -17px;
+  top: 2px;
+  user-select: none;
+}
+
+.test-message-repeat-count {
+  margin: 1.4px 0 0 10px;
+  flex: none;
+}
+
+.repeated-message {
+  margin-left: 4px;
+}
+
+.repeated-message .message-level-icon {
+  display: none;
+}
+
+.test-message-stack-trace-toggle {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  margin-top: -1px;
+}
+
+.repeated-message .test-message-stack-trace-toggle,
+.repeated-message > .test-message-text {
+  flex: 1;
+}
+
+.test-error-level .repeated-message,
+.test-warning-level .repeated-message,
+.test-verbose-level .repeated-message,
+.test-info-level .repeated-message {
+  display: flex;
+}
+
+.test-info {
+  color: var(--sys-color-token-subtle);
+  font-style: italic;
+  padding-bottom: 2px;
+}
+
+.test-group .test-group > .test-group-messages {
+  margin-left: 16px;
+}
+
+.test-group-title.test-from-api {
+  font-weight: bold;
+}
+
+.test-group-title .test-message {
+  margin-left: 12px;
+}
+
+.expand-group-icon {
+  user-select: none;
+  flex: none;
+  position: relative;
+  left: 8px;
+  top: 3px;
+  margin-right: 2px;
+}
+
+.test-group-title .message-level-icon {
+  display: none;
+}
+
+.test-message-repeat-count .expand-group-icon {
+  position: static;
+  background-color: var(--sys-color-cdt-base-container);
+  margin-left: -1px;
+}
+
+.test-group {
+  position: relative;
+}
+
+.test-message-wrapper {
+  display: flex;
+  flex-direction: column;
+  margin: 4px;
+  border-radius: 5px;
+
+  /* Test ANSI color */
+  --test-color-black: #000;
+  --test-color-red: #a00;
+  --test-color-green: #0a0;
+  --test-color-yellow: #a50;
+  --test-color-blue: #00a;
+  --test-color-magenta: #a0a;
+  --test-color-cyan: #0aa;
+  --test-color-gray: #aaa;
+  --test-color-darkgray: #555;
+  --test-color-lightred: #f55;
+  --test-color-lightgreen: #5f5;
+  --test-color-lightyellow: #ff5;
+  --test-color-lightblue: #55f;
+  --test-color-ightmagenta: #f5f;
+  --test-color-lightcyan: #5ff;
+  --test-color-white: #fff;
+
+  &:focus {
+    background-color: var(--sys-color-tonal-container);
+
+    & ::selection {
+      background-color: var(--sys-color-state-focus-select);
+    }
+  }
+}
+
+.test-row-wrapper {
+  display: flex;
+  flex-direction: row;
+}
+
+.-theme-with-dark-background .test-message-wrapper {
+  /* Dark theme test ANSI color */
+  --test-color-red: rgb(237 78 76);
+  --test-color-green: rgb(1 200 1);
+  --test-color-yellow: rgb(210 192 87);
+  --test-color-blue: rgb(39 116 240);
+  --test-color-magenta: rgb(161 66 244);
+  --test-color-cyan: rgb(18 181 203);
+  --test-color-gray: rgb(207 208 208);
+  --test-color-darkgray: rgb(137 137 137);
+  --test-color-lightred: rgb(242 139 130);
+  --test-color-lightgreen: rgb(161 247 181);
+  --test-color-lightyellow: rgb(221 251 85);
+  --test-color-lightblue: rgb(102 157 246);
+  --test-color-lightmagenta: rgb(214 112 214);
+  --test-color-lightcyan: rgb(132 240 255);
+}
+
+.test-message-wrapper.test-warning-level + .test-message-wrapper,
+.test-message-wrapper.test-error-level + .test-message-wrapper {
+  & .test-message::before,
+  & .test-user-command::before {
+    display: none !important; /* stylelint-disable-line declaration-no-important */
+  }
+}
+
+.test-message-wrapper:not(.test-error-level):not(.test-warning-level) {
+  & .test-message::before,
+  & .test-user-command::before {
+    width: calc(100% - 25px);
+    content: "";
+    display: block;
+    position: absolute;
+    top: -2px;
+    border-top: 1px solid var(--sys-color-divider);
+  }
+
+  &:first-of-type .test-message::before,
+  &:first-of-type .test-user-command::before {
+    display: none;
+  }
+}
+
+.test-message-wrapper.test-adjacent-user-command-result:not(.test-error-level):not(.test-warning-level) {
+  border-top-width: 0;
+}
+
+.test-message-wrapper:focus + .test-message-wrapper {
+  border-top-color: transparent;
+}
+
+.test-message-wrapper.test-adjacent-user-command-result:not(.test-error-level):not(.test-warning-level):focus {
+  border-top-width: 1px;
+}
+
+.test-message-wrapper.test-adjacent-user-command-result:not(.test-error-level):not(.test-warning-level):focus .test-message {
+  padding-top: 2px;
+  min-height: 16px;
+}
+
+.test-message-wrapper.test-adjacent-user-command-result:not(.test-error-level):not(.test-warning-level):focus .command-result-icon {
+  top: 3px;
+}
+
+.test-message-wrapper .nesting-level-marker {
+  width: 14px;
+  flex: 0 0 auto;
+  position: relative;
+  margin-bottom: -1px;
+  margin-top: -1px;
+  background-color: var(--sys-color-cdt-base-container);
+}
+
+.test-message-wrapper .nesting-level-marker + .test-message::after {
+  position: absolute;
+  left: -30px;
+  top: 0;
+  width: 6px;
+  height: 100%;
+  box-sizing: border-box;
+  background-color: var(--sys-color-surface-yellow);
+  border-top-left-radius: 5px;
+  border-bottom-left-radius: 5px;
+  content: "";
+}
+
+.test-error-level {
+  background-color: var(--sys-color-surface-error);
+
+  --message-corner-rounder-background: var(--sys-color-surface-error);
+}
+
+.test-warning-level {
+  background-color: var(--sys-color-surface-yellow);
+
+  --message-corner-rounder-background: var(--sys-color-surface-yellow);
+}
+
+.test-warning-level .test-message-text {
+  color: var(--sys-color-on-surface-yellow);
+}
+
+.test-view-object-properties-section {
+  padding: 0;
+  position: relative;
+  vertical-align: baseline;
+  color: inherit;
+  display: inline-block;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
+
+.info-note {
+  background-color: var(--sys-color-tonal-container);
+}
+
+.info-note::before {
+  content: "i";
+}
+
+.test-view-object-properties-section:not(.expanded) .info-note {
+  display: none;
+}
+
+.test-error-level .test-message-text,
+.test-error-level .test-view-object-properties-section {
+  color: var(--override-error-text-color) !important; /* stylelint-disable-line declaration-no-important */
+}
+
+.test-system-type.test-info-level {
+  color: var(--sys-color-primary);
+}
+
+#test-messages .link {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+#test-messages .link,
+#test-messages .citizennotes-link:not(.invalid-link) {
+  color: var(--sys-color-primary);
+  word-break: break-all;
+}
+
+#test-messages .resource-links {
+  margin-top: -1px;
+  margin-bottom: -2px;
+}
+
+.test-object-preview {
+  white-space: normal;
+  word-wrap: break-word;
+  font-style: italic;
+}
+
+.test-object-preview .name {
+  flex-shrink: 0;
+}
+
+.test-message-text .object-value-node {
+  display: inline-block;
+}
+
+.test-message-text .object-value-string,
+.test-message-text .object-value-regexp,
+.test-message-text .object-value-symbol {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.test-message-formatted-table {
+  clear: both;
+}
+
+.test-message .source-code {
+  line-height: 1.2;
+}
+
+.test-message-anchor {
+  float: right;
+  text-align: right;
+  max-width: 100%;
+  margin-left: 4px;
+}
+
+.test-message-badge {
+  float: right;
+  margin-left: 4px;
+}
+
+.test-message-nowrap-below,
+.test-message-nowrap-below div,
+.test-message-nowrap-below span {
+  white-space: nowrap !important; /* stylelint-disable-line declaration-no-important */
+}
+
+.object-state-note {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  color: var(--sys-color-on-tonal-container);
+  text-align: center;
+  border-radius: 3px;
+  line-height: 13px;
+  margin: 0 6px;
+  font-size: 9px;
+}
+
+.test-object {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.test-message-stack-trace-wrapper {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.test-message-stack-trace-wrapper > * {
+  flex: none;
+}
+
+.test-message-expand-icon {
+  margin-bottom: -4px;
+}
+
+.test-searchable-view {
+  max-height: 100%;
+}
+
+.test-view-pinpane {
+  flex: none;
+  max-height: 50%;
+}
+
+/* We are setting width and height to 0px to essentially hide the html element on the UI but visible to the screen reader.
+ This html element is used by screen readers when test messages are filtered, instead of screen readers reading
+ contents of the filtered messages we only want the screen readers to read the count of filtered messages. */
+.message-count {
+  width: 0;
+  height: 0;
+}
+
+citizennotes-test-insight {
+  margin: 9px 22px 11px 24px;
+}
+
+.hover-button {
+  --width: 22px;
+
+  align-items: center;
+  background-color: var(--sys-color-cdt-base-container);
+  border-radius: 50%;
+  border: none;
+  /* todo: extract to global styles and make it work with dark mode. */
+  box-shadow: 0 1px 3px 1px rgb(0 0 0 / 15%), 0 1px 2px 0 rgb(0 0 0 / 30%); /* stylelint-disable-line plugin/use_theme_colors */
+  box-sizing: border-box;
+  color: var(--sys-color-primary);
+  font-family: var(--default-font-family);
+  height: var(--width);
+  justify-content: center;
+  margin: 0;
+  max-height: var(--width);
+  max-width: var(--width);
+  min-height: var(--width);
+  min-width: var(--width);
+  overflow: hidden;
+  padding: 3px;
+  position: absolute;
+  right: 6px;
+  display: none;
+  width: var(--width);
+}
+
+.hover-button span {
+  display: none;
+  white-space: nowrap;
+  padding-right: 3px;
+}
+
+.hover-button:focus,
+.hover-button:hover {
+  border-radius: 100px;
+  max-width: 200px;
+  transition: max-width var(--sys-motion-duration-short4) var(--sys-motion-easing-emphasized);
+  width: fit-content;
+  gap: 3px;
+}
+
+.hover-button:focus-visible {
+  outline: 2px solid var(--sys-color-primary);
+  outline-offset: 2px;
+}
+
+.hover-button citizennotes-icon {
+  box-sizing: border-box;
+  flex-shrink: 0;
+  height: 16px;
+  min-height: 16px;
+  min-width: 16px;
+  width: 16px;
+}
+
+.hover-button:focus span,
+.hover-button:hover span {
+  display: block;
+}
+
+/* It does not look like the linter works with CSS nesting correctly. */
+/* stylelint-disable no-descending-specificity */
+.test-message-wrapper:not(.has-insight) {
+  &:hover,
+  &:focus,
+  &.test-selected {
+    .hover-button {
+      display: block;
+
+      &:focus,
+      &:hover {
+        display: inline-flex;
+      }
+    }
+  }
+}
+/* stylelint-enable no-descending-specificity */
+
+@media (forced-colors: active) {
+  .test-message-expand-icon,
+  .test-warning-level [is="ui-icon"].icon-mask.expand-group-icon {
+    forced-color-adjust: none;
+    background-color: ButtonText;
+  }
+
+  .test-message-wrapper:focus,
+  .test-message-wrapper:focus:last-of-type {
+    forced-color-adjust: none;
+    background-color: Highlight;
+    border-top-color: Highlight;
+    border-bottom-color: Highlight;
+  }
+
+  .test-message-wrapper:focus *,
+  .test-message-wrapper:focus:last-of-type *,
+  .test-message-wrapper:focus .citizennotes-link,
+  .test-message-wrapper:focus:last-of-type .citizennotes-link {
+    color: HighlightText !important; /* stylelint-disable-line declaration-no-important */
+  }
+
+  #test-messages .citizennotes-link,
+  #test-messages .citizennotes-link:hover {
+    color: linktext;
+  }
+
+  #test-messages .link:focus-visible,
+  #test-messages .citizennotes-link:focus-visible {
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .test-message-wrapper:focus [is="ui-icon"].icon-mask {
+    background-color: HighlightText;
+  }
+
+  .test-message-wrapper.test-error-level:focus,
+  .test-message-wrapper.test-error-level:focus:last-of-type {
+    --override-error-text-color: HighlightText;
+  }
+
+  .test-message-anchor .resource-links {
+    --icon-color: ButtonText;
+  }
+}

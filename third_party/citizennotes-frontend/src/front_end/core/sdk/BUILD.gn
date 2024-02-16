@@ -33,6 +33,8 @@ citizennotes_module("sdk") {
     "Connections.ts",
     "ConsoleModel.ts",
     "ConsoleModelTypes.ts",
+    "TestModel.ts",
+    "TestModelTypes.ts",
     "Cookie.ts",
     "CookieModel.ts",
     "CookieParser.ts",

@@ -31,6 +31,7 @@ citizennotes_module("explain") {
     "../../ui/legacy:bundle",
     "../../ui/legacy/components/source_frame:bundle",
     "../console:bundle",
+    "../test:bundle",
     "../sources:bundle",
   ]
 }
@@ -62,6 +63,7 @@ citizennotes_entrypoint("meta") {
     "../../models/workspace:bundle",
     "../../ui/legacy:bundle",
     "../console:bundle",
+    "../test:bundle",
     "../sources:bundle",
   ]
 

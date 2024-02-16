@@ -4157,6 +4157,11 @@ declare namespace ProtocolProxyApi {
     invoke_discardConsoleEntries(): Promise<Protocol.ProtocolResponseWithError>;
 
     /**
+     * Discards collected exceptions and console API calls.
+     */
+    invoke_discardTestEntries(): Promise<Protocol.ProtocolResponseWithError>;
+
+    /**
      * Enables reporting of execution contexts creation by means of `executionContextCreated` event.
      * When the reporting gets enabled the event will be sent immediately for each existing execution
      * context.

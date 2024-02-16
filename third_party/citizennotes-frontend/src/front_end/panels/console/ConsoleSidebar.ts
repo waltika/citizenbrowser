@@ -47,7 +47,7 @@ const UIStrings = {
    */
   dVerbose: '{n, plural, =0 {No verbose} =1 {# verbose} other {# verbose}}',
 };
-const str_ = i18n.i18n.registerUIStrings('panels/console/ConsoleSidebar.ts', UIStrings);
+const str_ = i18n.i18n.registerUIStrings('panels/console/TestSidebar.ts', UIStrings);
 const i18nString = i18n.i18n.getLocalizedString.bind(undefined, str_);
 
 export class ConsoleSidebar extends Common.ObjectWrapper.eventMixin<EventTypes, typeof UI.Widget.VBox>(UI.Widget.VBox) {

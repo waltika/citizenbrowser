@@ -57,6 +57,7 @@ citizennotes_entrypoint("bundle") {
     "../../../../../test/unittests/front_end/ui/legacy/components/object_ui/*",
     "../../../../panels/application/*",
     "../../../../panels/console/*",
+    "../../../../panels/test/*",
     "../../../../panels/elements/*",
     "../../../../panels/event_listeners/*",
     "../../../../panels/network/*",

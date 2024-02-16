@@ -194,6 +194,7 @@ citizennotes_entrypoint("bundle") {
     "../../entrypoints/main/*",
     "../../panels/application/*",
     "../../panels/console/*",
+    "../../panels/test/*",
     "../../panels/console_counters/*",
     "../../panels/elements/*",
     "../../panels/issues/*",

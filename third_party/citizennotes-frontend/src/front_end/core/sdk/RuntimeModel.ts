@@ -185,6 +185,9 @@ export class RuntimeModel extends SDKModel<EventTypes> {
     void this.agent.invoke_discardConsoleEntries();
   }
 
+  discardTestEntries(): void {
+    void this.agent.invoke_discardTestEntries();
+  }
   releaseObjectGroup(objectGroup: string): void {
     void this.agent.invoke_releaseObjectGroup({objectGroup});
   }
@@ -407,6 +410,20 @@ export class RuntimeModel extends SDKModel<EventTypes> {
     this.dispatchEventToListeners(Events.ConsoleAPICalled, consoleAPICall);
   }
 
+  testAPICalled(
+    type: Protocol.Runtime.TestAPICalledEventType, args: Protocol.Runtime.RemoteObject[],
+    executionContextId: number, timestamp: number, stackTrace?: Protocol.Runtime.StackTrace, context?: string): void {
+    const testAPICall = {
+      type: type,
+      args: args,
+      executionContextId: executionContextId,
+      timestamp: timestamp,
+      stackTrace: stackTrace,
+      context: context,
+    };
+    this.dispatchEventToListeners(Events.TestAPICalled, testAPICall);
+  }
+
   executionContextIdForScriptId(scriptId: string): number {
     const script = this.debuggerModel().scriptForId(scriptId);
     return script ? script.executionContextId : 0;
@@ -484,11 +501,21 @@ export enum Events {
   ExceptionThrown = 'ExceptionThrown',
   ExceptionRevoked = 'ExceptionRevoked',
   ConsoleAPICalled = 'ConsoleAPICalled',
+  TestAPICalled = 'TestAPICalled',
   QueryObjectRequested = 'QueryObjectRequested',
 }
 
 export interface ConsoleAPICall {
   type: Protocol.Runtime.ConsoleAPICalledEventType;
+  args: Protocol.Runtime.RemoteObject[];
+  executionContextId: number;
+  timestamp: number;
+  stackTrace?: Protocol.Runtime.StackTrace;
+  context?: string;
+}
+
+export interface TestAPICall {
+  type: Protocol.Runtime.TestAPICalledEventType;
   args: Protocol.Runtime.RemoteObject[];
   executionContextId: number;
   timestamp: number;
@@ -515,6 +542,7 @@ export type EventTypes = {
   [Events.ExceptionThrown]: ExceptionWithTimestamp,
   [Events.ExceptionRevoked]: number,
   [Events.ConsoleAPICalled]: ConsoleAPICall,
+  [Events.TestAPICalled]: TestAPICall,
   [Events.QueryObjectRequested]: QueryObjectRequestedEvent,
 };
 
@@ -547,6 +575,11 @@ class RuntimeDispatcher implements ProtocolProxyApi.RuntimeDispatcher {
   consoleAPICalled({type, args, executionContextId, timestamp, stackTrace, context}:
                        Protocol.Runtime.ConsoleAPICalledEvent): void {
     this.#runtimeModel.consoleAPICalled(type, args, executionContextId, timestamp, stackTrace, context);
+  }
+
+  testAPICalled({type, args, executionContextId, timestamp, stackTrace, context}:
+                     Protocol.Runtime.TestAPICalledEvent): void {
+    this.#runtimeModel.testAPICalled(type, args, executionContextId, timestamp, stackTrace, context);
   }
 
   inspectRequested({object, hints, executionContextId}: Protocol.Runtime.InspectRequestedEvent): void {

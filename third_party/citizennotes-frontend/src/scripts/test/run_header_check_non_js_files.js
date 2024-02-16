@@ -40,7 +40,7 @@ CSS_LIKE_LINE_REGEXES.push(new RegExp(' \\*\\/'));
 const EXEMPTED_FILES = new Set([
   ['front_end', 'panels', 'application', 'indexedDBViews.css'],
   ['front_end', 'panels', 'application', 'resourcesPanel.css'],
-  ['front_end', 'panels', 'console', 'consoleView.css'],
+  ['front_end', 'panels', 'console', 'testView.css'],
   ['front_end', 'panels', 'elements', 'elementsPanel.css'],
   ['front_end', 'panels', 'network', 'networkLogView.css'],
   ['front_end', 'panels', 'network', 'networkPanel.css'],

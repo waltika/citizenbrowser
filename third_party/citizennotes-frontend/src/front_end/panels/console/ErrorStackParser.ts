@@ -26,7 +26,7 @@ export interface ParsedErrorFrame {
  * the url is found in the raw line.
  *
  * @returns Null if the provided string has an unexpected format. A
- *          populated `ParsedErrorFrame[]` otherwise.
+ *          populated `TSParsedErrorFrame[]` otherwise.
  */
 export function parseSourcePositionsFromErrorStack(
     runtimeModel: SDK.RuntimeModel.RuntimeModel, stack: string): ParsedErrorFrame[]|null {
@@ -123,7 +123,7 @@ function parseOrScriptMatch(debuggerModel: SDK.DebuggerModel.DebuggerModel, url:
  * Error#stack output only contains script URLs. In some cases we are able to
  * retrieve additional exception details from V8 that we can use to augment
  * the parsed Error#stack with script IDs.
- * This function sets the `scriptId` field in `ParsedErrorFrame` when it finds
+ * This function sets the `scriptId` field in `TSParsedErrorFrame` when it finds
  * the corresponding info in `Protocol.Runtime.StackTrace`.
  */
 export function augmentErrorStackWithScriptIds(

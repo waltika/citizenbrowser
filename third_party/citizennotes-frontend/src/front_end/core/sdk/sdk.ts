@@ -79,6 +79,7 @@ import * as StorageBucketsModel from './StorageBucketsModel.js';
 import * as StorageKeyManager from './StorageKeyManager.js';
 import * as Target from './Target.js';
 import * as TargetManager from './TargetManager.js';
+import * as TestModel from './TestModel.js';
 import * as WebAuthnModel from './WebAuthnModel.js';
 
 export {
@@ -149,6 +150,7 @@ export {
   SourceMapManager,
   StorageBucketsModel,
   StorageKeyManager,
+  TestModel,
   Target,
   TargetManager,
   WebAuthnModel,

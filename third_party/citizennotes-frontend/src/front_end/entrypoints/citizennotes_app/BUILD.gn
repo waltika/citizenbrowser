@@ -4,7 +4,7 @@
 import("../../../scripts/build/ninja/citizennotes_entrypoint.gni")
 import("../visibility.gni")
 
-citizennotes_entrypoint("cnentrypoint") {
+citizennotes_entrypoint("entrypoint") {
   entrypoint = "citizennotes_app.ts"
 
   deps = [

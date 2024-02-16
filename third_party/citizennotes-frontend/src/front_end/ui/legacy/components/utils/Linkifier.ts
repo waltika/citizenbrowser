@@ -334,6 +334,19 @@ export class Linkifier extends Common.ObjectWrapper.ObjectWrapper<EventTypes> im
         linkifyOptions);
   }
 
+  maybeLinkifyTestCallFrame(
+    target: SDK.Target.Target|null, callFrame: Protocol.Runtime.CallFrame, options?: LinkifyOptions): HTMLElement
+    |null {
+    const linkifyOptions: LinkifyOptions = {
+      ...options,
+      columnNumber: callFrame.columnNumber,
+      inlineFrameIndex: options?.inlineFrameIndex ?? 0,
+    };
+    return this.maybeLinkifyScriptLocation(
+      target, callFrame.scriptId, callFrame.url as Platform.CitizenNotesPath.UrlString, callFrame.lineNumber,
+      linkifyOptions);
+  }
+
   linkifyStackTraceTopFrame(target: SDK.Target.Target|null, stackTrace: Protocol.Runtime.StackTrace): HTMLElement {
     console.assert(stackTrace.callFrames.length > 0);
 

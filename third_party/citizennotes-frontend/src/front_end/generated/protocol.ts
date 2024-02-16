@@ -18866,6 +18866,26 @@ export namespace Runtime {
     TimeEnd = 'timeEnd',
   }
 
+  export const enum TestAPICalledEventType {
+    Log = 'log',
+    Debug = 'debug',
+    Info = 'info',
+    Error = 'error',
+    Warning = 'warning',
+    Dir = 'dir',
+    DirXML = 'dirxml',
+    Table = 'table',
+    Trace = 'trace',
+    Clear = 'clear',
+    StartGroup = 'startGroup',
+    StartGroupCollapsed = 'startGroupCollapsed',
+    EndGroup = 'endGroup',
+    Assert = 'assert',
+    Profile = 'profile',
+    ProfileEnd = 'profileEnd',
+    Count = 'count',
+    TimeEnd = 'timeEnd',
+  }
   /**
    * Issued when console API was called.
    */
@@ -18900,6 +18920,36 @@ export namespace Runtime {
     context?: string;
   }
 
+  export interface TestAPICalledEvent {
+    /**
+     * Type of the call.
+     */
+    type: TestAPICalledEventType;
+    /**
+     * Call arguments.
+     */
+    args: RemoteObject[];
+    /**
+     * Identifier of the context where the call was made.
+     */
+    executionContextId: ExecutionContextId;
+    /**
+     * Call timestamp.
+     */
+    timestamp: Timestamp;
+    /**
+     * Stack trace captured when the call was made. The async stack chain is automatically reported for
+     * the following call types: `assert`, `error`, `trace`, `warning`. For other types the async call
+     * chain can be retrieved using `Debugger.getStackTrace` and `stackTrace.parentId` field.
+     */
+    stackTrace?: StackTrace;
+    /**
+     * Console context descriptor for calls on non-default console context (not console.*):
+     * 'anonymous#unique-logger-id' for call on unnamed context, 'name#unique-logger-id' for call
+     * on named context.
+     */
+    context?: string;
+  }
   /**
    * Issued when unhandled exception was revoked.
    */

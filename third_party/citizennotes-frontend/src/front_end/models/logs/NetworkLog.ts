@@ -595,12 +595,18 @@ export class NetworkLog extends Common.ObjectWrapper.ObjectWrapper<EventTypes> i
     return consoleMessageToRequest.get(consoleMessage) || null;
   }
 
+  static requestForTestMessage(testMessage: SDK.TestModel.TestMessage): SDK.NetworkRequest.NetworkRequest
+    |null {
+    return testMessageToRequest.get(testMessage) || null;
+  }
+
   requestsForId(requestId: string): SDK.NetworkRequest.NetworkRequest[] {
     return this.requestsMap.get(requestId) || [];
   }
 }
 
 const consoleMessageToRequest = new WeakMap<SDK.ConsoleModel.ConsoleMessage, SDK.NetworkRequest.NetworkRequest>();
+const testMessageToRequest = new WeakMap<SDK.TestModel.TestMessage, SDK.NetworkRequest.NetworkRequest>();
 
 // TODO(crbug.com/1167717): Make this a const enum again
 // eslint-disable-next-line rulesdir/const_enum

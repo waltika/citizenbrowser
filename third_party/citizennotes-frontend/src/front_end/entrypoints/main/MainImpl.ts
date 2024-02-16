@@ -691,10 +691,16 @@ export class MainImpl {
 
   #registerMessageSinkListener(): void {
     Common.Console.Console.instance().addEventListener(Common.Console.Events.MessageAdded, messageAdded);
+    Common.Test.Test.instance().addEventListener(Common.Test.Events.MessageAdded, messageTestAdded);
 
     function messageAdded({data: message}: Common.EventTarget.EventTargetEvent<Common.Console.Message>): void {
       if (message.show) {
         Common.Console.Console.instance().show();
+      }
+    }
+    function messageTestAdded({data: message}: Common.EventTarget.EventTargetEvent<Common.Test.Message>): void {
+      if (message.show) {
+        Common.Test.Test.instance().show();
       }
     }
   }
