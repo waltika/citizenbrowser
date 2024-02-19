@@ -591,6 +591,7 @@ export class MainImpl {
     // Required for legacy a11y layout tests
     UI.ShortcutRegistry.ShortcutRegistry.instance({forceNew: true, actionRegistry: actionRegistryInstance});
     this.#registerMessageSinkListener();
+    this.#registerTestMessageSinkListener();
 
     MainImpl.timeEnd('Main._createAppUI');
 
@@ -691,20 +692,23 @@ export class MainImpl {
 
   #registerMessageSinkListener(): void {
     Common.Console.Console.instance().addEventListener(Common.Console.Events.MessageAdded, messageAdded);
-    Common.Test.Test.instance().addEventListener(Common.Test.Events.MessageAdded, messageTestAdded);
 
     function messageAdded({data: message}: Common.EventTarget.EventTargetEvent<Common.Console.Message>): void {
       if (message.show) {
         Common.Console.Console.instance().show();
       }
     }
-    function messageTestAdded({data: message}: Common.EventTarget.EventTargetEvent<Common.Test.Message>): void {
+  }
+
+  #registerTestMessageSinkListener(): void {
+    Common.Test.Test.instance().addEventListener(Common.Test.Events.MessageAdded, messageAdded);
+
+    function messageAdded({data: message}: Common.EventTarget.EventTargetEvent<Common.Test.Message>): void {
       if (message.show) {
         Common.Test.Test.instance().show();
       }
     }
   }
-
   #revealSourceLine(event: Common.EventTarget.EventTargetEvent<Host.InspectorFrontendHostAPI.RevealSourceLineEvent>):
       void {
     const {url, lineNumber, columnNumber} = event.data;

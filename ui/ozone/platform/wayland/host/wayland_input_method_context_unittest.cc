@@ -269,6 +269,8 @@ class TestKeyboardDelegate : public WaylandKeyboard::Delegate {
     last_event_timestamp_ = timestamp;
     return 0;
   }
+  void OnSynthesizedKeyPressEvent(DomCode dom_code,
+                                  base::TimeTicks timestamp) override {}
 
   base::TimeTicks last_event_timestamp() const { return last_event_timestamp_; }
 
@@ -1785,7 +1787,9 @@ TEST_P(WaylandInputMethodContextTest, CharacterComposerPreeditStringDeadKey) {
   // should only be enabled on Linux ozone/wayland. Everywhere else, the preedit
   // string should always be empty.
 #if BUILDFLAG(IS_LINUX)
-  std::u16string preedit_string(1, kCombiningAcute);
+  // The preedit string should be the non-combining variant of the dead key.
+  const char16_t kAcute = 0x00B4;
+  std::u16string preedit_string(1, kAcute);
 #else
   std::u16string preedit_string = u"";
 #endif  // BUILDFLAG(IS_LINUX)

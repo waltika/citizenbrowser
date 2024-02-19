@@ -2,18 +2,18 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'chrome://compose/app.js';
+import 'chrome-untrusted://compose/app.js';
 
 import {CrFeedbackOption} from '//resources/cr_elements/cr_feedback_buttons/cr_feedback_buttons.js';
 import {loadTimeData} from '//resources/js/load_time_data.js';
-import type {ComposeAppElement, ComposeAppState} from 'chrome://compose/app.js';
-import type {ComposeState} from 'chrome://compose/compose.mojom-webui.js';
-import {CloseReason, Length, Tone, UserFeedback} from 'chrome://compose/compose.mojom-webui.js';
-import {ComposeApiProxyImpl} from 'chrome://compose/compose_api_proxy.js';
-import {ComposeStatus} from 'chrome://compose/compose_enums.mojom-webui.js';
-import {assertDeepEquals, assertEquals, assertFalse, assertStringContains, assertTrue} from 'chrome://webui-test/chai_assert.js';
-import {flushTasks} from 'chrome://webui-test/polymer_test_util.js';
-import {isVisible, whenCheck} from 'chrome://webui-test/test_util.js';
+import type {ComposeAppElement, ComposeAppState} from 'chrome-untrusted://compose/app.js';
+import type {ComposeState} from 'chrome-untrusted://compose/compose.mojom-webui.js';
+import {CloseReason, Length, Tone, UserFeedback} from 'chrome-untrusted://compose/compose.mojom-webui.js';
+import {ComposeApiProxyImpl} from 'chrome-untrusted://compose/compose_api_proxy.js';
+import {ComposeStatus} from 'chrome-untrusted://compose/compose_enums.mojom-webui.js';
+import {assertDeepEquals, assertEquals, assertFalse, assertStringContains, assertTrue} from 'chrome-untrusted://webui-test/chai_assert.js';
+import {flushTasks} from 'chrome-untrusted://webui-test/polymer_test_util.js';
+import {isVisible, whenCheck} from 'chrome-untrusted://webui-test/test_util.js';
 
 import {TestComposeApiProxy} from './test_compose_api_proxy.js';
 
@@ -547,6 +547,7 @@ suite('ComposeApp', () => {
     // Mock clicking edit in the textarea and verify new textarea shows.
     app.$.textarea.dispatchEvent(
         new CustomEvent('edit-click', {composed: true, bubbles: true}));
+    await testProxy.whenCalled('logEditInput');
     assertTrue(isVisible(app.$.editTextarea));
 
     // Mock updating input and cancelling.
@@ -554,6 +555,7 @@ suite('ComposeApp', () => {
     app.$.editTextarea.value = 'Here is a better input.';
     app.$.editTextarea.dispatchEvent(new CustomEvent('value-changed'));
     app.$.cancelEditButton.click();
+    await testProxy.whenCalled('logCancelEdit');
     assertFalse(isVisible(app.$.editTextarea));
     assertEquals('Initial input.', app.$.textarea.value);
 

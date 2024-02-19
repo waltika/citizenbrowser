@@ -933,7 +933,7 @@ export class TimelinePanel extends UI.Panel.Panel implements Client, TimelineMod
         throw new Error('Could not load root target.');
       }
 
-      if (UICitizennotesUtils.isUiCitizenNotes()) {
+      if (UICitizennotesUtils.isUiCitizennotes()) {
         this.controller = new UICitizennotesController(rootTarget, primaryPageTarget, this);
       } else {
         this.controller = new TimelineController(rootTarget, primaryPageTarget, this);

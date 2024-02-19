@@ -41,6 +41,8 @@ class ASH_PUBLIC_EXPORT PickerClient {
  public:
   using DownloadGifToStringCallback =
       base::OnceCallback<void(const std::string& gif_data)>;
+  using FetchGifsCallback =
+      base::OnceCallback<void(std::vector<PickerSearchResult> results)>;
   using CrosSearchResultsCallback =
       base::RepeatingCallback<void(ash::AppListSearchResultType result_type,
                                    std::vector<PickerSearchResult> results)>;
@@ -48,16 +50,26 @@ class ASH_PUBLIC_EXPORT PickerClient {
   virtual std::unique_ptr<ash::AshWebView> CreateWebView(
       const ash::AshWebView::InitParams& params) = 0;
 
-  // Downloads a gif from `url`. If the download is successful, the gif is
-  // passed to `callback` as a string of encoded bytes in gif format. Otherwise,
-  // `callback` is run with an empty string.
+  // Downloads a gif or gif preview from `url`. If the download is successful,
+  // the gif is passed to `callback` as a string of encoded bytes in gif or png
+  // format. Otherwise, `callback` is run with an empty string.
+  // TODO: b/325370527 - Consider moving parts of this function to
+  // PickerAssetFetcher and making it clearer whether it should be downloading a
+  // gif or gif preview.
   virtual void DownloadGifToString(const ValidGifUrl& url,
                                    DownloadGifToStringCallback callback) = 0;
+
+  // Fetches a list of gifs from the Tenor API.
+  virtual void FetchGifSearch(const std::string& query,
+                              FetchGifsCallback callback) = 0;
 
   // Starts a search using the CrOS Search API
   // (`app_list::SearchEngine::StartSearch`).
   virtual void StartCrosSearch(const std::u16string& query,
                                CrosSearchResultsCallback callback) = 0;
+  // Stops a search using the CrOS Search API
+  // (`app_list::SearchEngine::StopQuery`).
+  virtual void StopCrosQuery() = 0;
 
  protected:
   PickerClient();

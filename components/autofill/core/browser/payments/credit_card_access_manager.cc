@@ -410,18 +410,26 @@ void CreditCardAccessManager::CacheUnmaskedCardInfo(const CreditCard& card,
   unmasked_card_cache_[identifier] = card_info;
 }
 
-void CreditCardAccessManager::StartAuthenticationFlow(bool fido_auth_enabled) {
+bool areVirtualCardsSupported() {
 #if BUILDFLAG(IS_IOS)
-  // There is no FIDO auth available on iOS and there are no virtual cards on
-  // iOS either, so offer CVC auth immediately.
-  Authenticate(UnmaskAuthFlowType::kCvc);
+  return base::FeatureList::IsEnabled(features::kAutofillEnableVirtualCards);
 #else
-  if (card_->record_type() == CreditCard::RecordType::kVirtualCard) {
-    StartAuthenticationFlowForVirtualCard(fido_auth_enabled);
-  } else {
-    StartAuthenticationFlowForMaskedServerCard(fido_auth_enabled);
-  }
+  return true;
 #endif
+}
+
+void CreditCardAccessManager::StartAuthenticationFlow(bool fido_auth_enabled) {
+  if (areVirtualCardsSupported()) {
+    if (card_->record_type() == CreditCard::RecordType::kVirtualCard) {
+      StartAuthenticationFlowForVirtualCard(fido_auth_enabled);
+    } else {
+      StartAuthenticationFlowForMaskedServerCard(fido_auth_enabled);
+    }
+  } else {
+    // There is no FIDO auth available on iOS and until the feature is live
+    // there are no virtual cards, so offer CVC auth.
+    Authenticate(UnmaskAuthFlowType::kCvc);
+  }
 }
 
 void CreditCardAccessManager::StartAuthenticationFlowForVirtualCard(
@@ -1640,15 +1648,19 @@ void CreditCardAccessManager::StartDeviceAuthenticationForFilling(
       authentication_method ==
           payments::MandatoryReauthAuthenticationMethod::kUnsupportedMethod) {
     LogMandatoryReauthCheckoutFlowUsageEvent(
-        card->record_type(), authentication_method,
+        payments::MandatoryReauthManager::GetNonInteractivePaymentMethodType(
+            card->record_type()),
+        authentication_method,
         autofill_metrics::MandatoryReauthAuthenticationFlowEvent::kFlowSkipped);
     std::move(on_credit_card_fetched_callback_)
         .Run(CreditCardFetchResult::kSuccess, card);
     return;
   }
 
-  autofill_metrics::LogMandatoryReauthCheckoutFlowUsageEvent(
-      card->record_type(), authentication_method,
+  LogMandatoryReauthCheckoutFlowUsageEvent(
+      payments::MandatoryReauthManager::GetNonInteractivePaymentMethodType(
+          card->record_type()),
+      authentication_method,
       autofill_metrics::MandatoryReauthAuthenticationFlowEvent::kFlowStarted);
 #if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN) || BUILDFLAG(IS_IOS)
   client_->GetOrCreatePaymentsMandatoryReauthManager()->AuthenticateWithMessage(
@@ -1676,8 +1688,10 @@ void CreditCardAccessManager::OnDeviceAuthenticationResponseForFilling(
   CHECK(card);
   CreditCard::RecordType record_type = card->record_type();
 
-  autofill_metrics::LogMandatoryReauthCheckoutFlowUsageEvent(
-      record_type, authentication_method,
+  LogMandatoryReauthCheckoutFlowUsageEvent(
+      payments::MandatoryReauthManager::GetNonInteractivePaymentMethodType(
+          record_type),
+      authentication_method,
       successful_auth
           ? autofill_metrics::MandatoryReauthAuthenticationFlowEvent::
                 kFlowSucceeded

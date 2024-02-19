@@ -2055,6 +2055,10 @@ external/wpt/webcodecs/full-cycle-test.https.any.worker.html?h265_hevc [ Skip ]
 [ Mac10.15 ] external/wpt/webcodecs/videoDecoder-codec-specific.https.any.worker.html?h265_annexb [ Skip ]
 [ Mac10.15 ] external/wpt/webcodecs/videoDecoder-codec-specific.https.any.html?h265_hevc [ Skip ]
 [ Mac10.15 ] external/wpt/webcodecs/videoDecoder-codec-specific.https.any.worker.html?h265_hevc [ Skip ]
+[ Chrome ] external/wpt/webcodecs/videoDecoder-codec-specific.https.any.html?h265_annexb [ Skip ]
+[ Chrome ] external/wpt/webcodecs/videoDecoder-codec-specific.https.any.worker.html?h265_annexb [ Skip ]
+[ Chrome ] external/wpt/webcodecs/videoDecoder-codec-specific.https.any.html?h265_hevc [ Skip ]
+[ Chrome ] external/wpt/webcodecs/videoDecoder-codec-specific.https.any.worker.html?h265_hevc [ Skip ]
 
 # This test is Mac specific, it checks default monospace font-family on Mac.
 crbug.com/1449469 [ Linux ] wpt_internal/css/css-fonts/default-monospace-family-mac.html [ Skip ]
@@ -2073,6 +2077,8 @@ crbug.com/1197087 [ Debug ] external/wpt/web-animations/interfaces/Animation/fin
 # wpt_internal tests are all skipped for Chrome, but feature teams can choose to opt-in their directories.
 [ Chrome ] * [ Skip ]
 [ Chrome ] external/wpt/* [ Pass ]
+[ Chrome ] wpt_internal/infrastructure/fail-before-timeout.html [ Pass ]
+[ Chrome ] wpt_internal/infrastructure/fail-with-nonexistent-subtest.html [ Pass ]
 
 # At the moment, no plans to run wdspec tests for anything other than Chrome on
 # Linux due to resource constraints.

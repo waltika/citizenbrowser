@@ -138,6 +138,7 @@ static_assert(RESULT_CODE_HUNG == static_cast<int>(gpu::RESULT_CODE_HUNG),
 namespace {
 
 // UMA histogram names.
+constexpr char kFallbackEventCause[] = "GPU.FallbackEventCause";
 constexpr char kProcessLifetimeEventsHardwareAccelerated[] =
     "GPU.ProcessLifetimeEvents.HardwareAccelerated";
 constexpr char kProcessLifetimeEventsSwiftShader[] =
@@ -318,6 +319,14 @@ static const char* const kSwitchNames[] = {
     switches::kLacrosUseChromeosProtectedMedia,
     switches::kLacrosUseChromeosProtectedAv1,
 #endif
+};
+
+// These values are persisted to logs. Entries should not be renumbered and
+// numeric values should never be reused.
+enum class GPUFallbackEventCauseType {
+  kFailureToInit = 0,
+  kCrashLimit = 1,
+  kMaxValue = kCrashLimit,
 };
 
 // These values are persisted to logs. Entries should not be renumbered and
@@ -1038,8 +1047,11 @@ void GpuProcessHost::DidInitialize(
 
 void GpuProcessHost::DidFailInitialize() {
   did_fail_initialize_ = true;
-  if (kind_ == GPU_PROCESS_KIND_SANDBOXED)
+  if (kind_ == GPU_PROCESS_KIND_SANDBOXED) {
+    base::UmaHistogramEnumeration(kFallbackEventCause,
+                                  GPUFallbackEventCauseType::kFailureToInit);
     GpuDataManagerImpl::GetInstance()->FallBackToNextGpuMode();
+  }
 }
 
 void GpuProcessHost::DidCreateContextSuccessfully() {
@@ -1443,6 +1455,8 @@ void GpuProcessHost::RecordProcessCrash() {
   // GPU process crashed too many times, fallback on a different GPU process
   // mode.
   if (recent_crash_count_ >= GetFallbackCrashLimit() && !disable_crash_limit) {
+    base::UmaHistogramEnumeration(kFallbackEventCause,
+                                  GPUFallbackEventCauseType::kCrashLimit);
     GpuDataManagerImpl::GetInstance()->FallBackToNextGpuMode();
   }
 }

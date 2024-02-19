@@ -7,8 +7,11 @@
 #include <string>
 #include <string_view>
 
+#include "ash/ash_element_identifiers.h"
 #include "ash/strings/grit/ash_strings.h"
 #include "ash/style/typography.h"
+#include "base/functional/bind.h"
+#include "base/time/time.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/compositor/compositor.h"
@@ -40,6 +43,8 @@ PickerSearchFieldView::PickerSearchFieldView(
       .AddChild(
           views::Builder<views::Textfield>()
               .CopyAddressTo(&textfield_)
+              .SetProperty(views::kElementIdentifierKey,
+                           kPickerSearchFieldTextfieldElementId)
               .SetController(this)
               .SetBorder(views::CreateEmptyBorder(kSearchFieldBorderInsets))
               .SetBackgroundColor(SK_ColorTRANSPARENT)

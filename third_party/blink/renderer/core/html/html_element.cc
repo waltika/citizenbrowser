@@ -2594,6 +2594,8 @@ bool HTMLElement::CalculateAndAdjustAutoDirectionality() {
   if (resolve_result) {
     text_direction = *resolve_result;
     ClearDirAutoInheritsFromParent();
+  } else if (RuntimeEnabledFeatures::DirAutoNoInheritanceEnabled()) {
+    text_direction = TextDirection::kLtr;
   } else {
     text_direction = ParentDirectionality();
     SetDirAutoInheritsFromParent();
@@ -3185,6 +3187,33 @@ void HTMLElement::FinishParsingChildren() {
   Element::FinishParsingChildren();
   if (IsFormAssociatedCustomElement())
     EnsureElementInternals().TakeStateAndRestore();
+}
+
+AtomicString HTMLElement::writingSuggestions() const {
+  CHECK(RuntimeEnabledFeatures::WritingSuggestionsEnabled());
+  for (const Element* element = this; element;
+       element = element->ParentOrShadowHostElement()) {
+    const AtomicString& value =
+        element->FastGetAttribute(html_names::kWritingsuggestionsAttr);
+    if (value == g_null_atom) {
+      continue;
+    } else if (EqualIgnoringASCIICase(value, keywords::kFalse)) {
+      return keywords::kFalse;
+    } else {
+      // The invalid value default is 'true'.
+      return keywords::kTrue;
+    }
+  }
+  // Default is 'true'.
+  return keywords::kTrue;
+}
+
+void HTMLElement::setWritingSuggestions(const AtomicString& value) {
+  CHECK(RuntimeEnabledFeatures::WritingSuggestionsEnabled());
+  setAttribute(html_names::kWritingsuggestionsAttr,
+               EqualIgnoringASCIICase(value, keywords::kFalse)
+                   ? keywords::kFalse
+                   : keywords::kTrue);
 }
 
 }  // namespace blink

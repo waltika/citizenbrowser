@@ -593,7 +593,16 @@ bool IsContentPushNotificationsSetUpListEnabled() {
 
 bool IsContentPushNotificationsProvisionalEnabled() {
   return (ContentNotificationsExperimentTypeEnabled() ==
-          NotificationsExperimentTypeProvisional);
+              NotificationsExperimentTypeProvisional ||
+          ContentNotificationsExperimentTypeEnabled() ==
+              NotificationsExperimentTypeProvisionalBypass);
+}
+
+// TODO(b/322348322): Remove provisional notifications bypass conditions testing
+// flag param.
+bool IsContentPushNotificationsProvisionalBypass() {
+  return (ContentNotificationsExperimentTypeEnabled() ==
+          NotificationsExperimentTypeProvisionalBypass);
 }
 
 bool IsIOSLargeFakeboxEnabled() {
@@ -695,7 +704,7 @@ bool ShouldHideIrrelevantModules() {
 
 int TimeUntilShowingCompactedSetUpList() {
   return base::GetFieldTrialParamByFeatureAsInt(
-      kMagicStack, kSetUpListCompactedTimeThresholdDays, 3);
+      kMagicStack, kSetUpListCompactedTimeThresholdDays, 0);
 }
 
 bool IsExternalActionSchemeHandlingEnabled() {
@@ -711,7 +720,16 @@ BASE_FEATURE(kIOSTipsNotifications,
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 const char kIOSTipsNotificationsTriggerTimeParam[] = "trigger_time";
+const char kIOSTipsNotificationsEnabledParam[] = "enabled";
 
 bool IsIOSTipsNotificationsEnabled() {
   return base::FeatureList::IsEnabled(kIOSTipsNotifications);
+}
+
+BASE_FEATURE(kIOSMagicStackCollectionView,
+             "IOSMagicStackCollectionView",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+bool IsIOSMagicStackCollectionViewEnabled() {
+  return base::FeatureList::IsEnabled(kIOSMagicStackCollectionView);
 }

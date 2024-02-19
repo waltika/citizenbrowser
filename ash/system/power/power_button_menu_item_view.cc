@@ -60,7 +60,7 @@ PowerButtonMenuItemView::PowerButtonMenuItemView(
   title_->SetMultiLine(true);
   title_->SetMaxLines(2);
   title_->SetEnabledColorId(cros_tokens::kTextColorPrimary);
-  GetViewAccessibility().OverrideRole(ax::mojom::Role::kMenuItem);
+  GetViewAccessibility().SetRole(ax::mojom::Role::kMenuItem);
   GetViewAccessibility().OverrideName(title_->GetText());
 
   SetBorder(views::CreateEmptyBorder(
@@ -69,10 +69,6 @@ PowerButtonMenuItemView::PowerButtonMenuItemView(
 }
 
 PowerButtonMenuItemView::~PowerButtonMenuItemView() = default;
-
-const char* PowerButtonMenuItemView::GetClassName() const {
-  return "PowerButtonMenuItemView";
-}
 
 void PowerButtonMenuItemView::Layout(PassKey) {
   const gfx::Rect rect(GetContentsBounds());

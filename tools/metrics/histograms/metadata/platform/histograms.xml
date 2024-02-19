@@ -292,7 +292,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.DetachableBase.ActivePercent" units="%"
-    expires_after="2024-04-28">
+    expires_after="2024-08-11">
   <owner>fshao@chromium.org</owner>
   <owner>phoenixshen@chromium.org</owner>
   <owner>chromeos-kukui@google.com</owner>
@@ -543,7 +543,7 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
-<histogram name="Platform.FileSystem.{Partition}.fsckResult" units="FsckResult"
+<histogram name="Platform.FileSystem.{Partition}.fsckResult" enum="FsckResult"
     expires_after="2024-08-07">
   <owner>gwendal@google.com</owner>
   <owner>chromeos-storage@google.com</owner>
@@ -722,7 +722,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.Hibernate.Abort" enum="CrosHibernateAbortReason"
-    expires_after="2024-06-08">
+    expires_after="2024-08-11">
   <owner>mka@chromium.org</owner>
   <owner>bgeffon@chromium.org</owner>
   <owner>chromeos-hibernate@google.com</owner>
@@ -733,7 +733,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.Hibernate.Abort.Errno" units="Linux errno"
-    expires_after="2024-06-08">
+    expires_after="2024-08-11">
   <owner>mka@chromium.org</owner>
   <owner>bgeffon@chromium.org</owner>
   <owner>chromeos-hibernate@google.com</owner>
@@ -745,7 +745,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.Hibernate.AdditionalMemoryNeeded" units="MiB"
-    expires_after="2024-06-08">
+    expires_after="2024-08-11">
   <owner>mka@chromium.org</owner>
   <owner>bgeffon@chromium.org</owner>
   <owner>chromeos-hibernate@google.com</owner>
@@ -758,7 +758,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.Hibernate.DroppedPagesWithZeroesPercent" units="%"
-    expires_after="2024-06-08">
+    expires_after="2024-08-11">
   <owner>mka@chromium.org</owner>
   <owner>bgeffon@chromium.org</owner>
   <owner>chromeos-hibernate@google.com</owner>
@@ -770,7 +770,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.Hibernate.Event" enum="CrosHibernateCycleEvent"
-    expires_after="2024-06-08">
+    expires_after="2024-08-11">
   <owner>mka@chromium.org</owner>
   <owner>bgeffon@chromium.org</owner>
   <owner>chromeos-hibernate@google.com</owner>
@@ -782,7 +782,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.Hibernate.ExcessMemoryAvailable" units="MiB"
-    expires_after="2024-06-08">
+    expires_after="2024-08-11">
   <owner>mka@chromium.org</owner>
   <owner>bgeffon@chromium.org</owner>
   <owner>chromeos-hibernate@google.com</owner>
@@ -795,7 +795,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.Hibernate.FileSystem.Hibermeta.FileSystemStatus"
-    enum="CrosHibernateFileSystemStatus" expires_after="2024-06-08">
+    enum="CrosHibernateFileSystemStatus" expires_after="2024-08-11">
   <owner>mka@chromium.org</owner>
   <owner>bgeffon@chromium.org</owner>
   <owner>chromeos-hibernate@google.com</owner>
@@ -805,7 +805,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.Hibernate.HibernateDuration" units="hours"
-    expires_after="2024-06-08">
+    expires_after="2024-08-11">
   <owner>mka@chromium.org</owner>
   <owner>bgeffon@chromium.org</owner>
   <owner>chromeos-hibernate@google.com</owner>
@@ -815,7 +815,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.Hibernate.IO.ReadMainImage.Duration" units="seconds"
-    expires_after="2024-06-08">
+    expires_after="2024-08-11">
   <owner>mka@chromium.org</owner>
   <owner>bgeffon@chromium.org</owner>
   <owner>chromeos-hibernate@google.com</owner>
@@ -837,7 +837,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.Hibernate.IO.ReadMainImage.Size" units="KiB"
-    expires_after="2024-06-08">
+    expires_after="2024-08-11">
   <owner>mka@chromium.org</owner>
   <owner>bgeffon@chromium.org</owner>
   <owner>chromeos-hibernate@google.com</owner>
@@ -848,7 +848,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.Hibernate.IO.WriteHibernateImage.Duration"
-    units="seconds" expires_after="2024-06-08">
+    units="seconds" expires_after="2024-08-11">
   <owner>mka@chromium.org</owner>
   <owner>bgeffon@chromium.org</owner>
   <owner>chromeos-hibernate@google.com</owner>
@@ -870,7 +870,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.Hibernate.IO.WriteHibernateImage.Size" units="KiB"
-    expires_after="2024-06-08">
+    expires_after="2024-08-11">
   <owner>mka@chromium.org</owner>
   <owner>bgeffon@chromium.org</owner>
   <owner>chromeos-hibernate@google.com</owner>
@@ -881,7 +881,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.Hibernate.MemoryAndSwapAvailable" units="MiB"
-    expires_after="2024-06-08">
+    expires_after="2024-08-11">
   <owner>mka@chromium.org</owner>
   <owner>bgeffon@chromium.org</owner>
   <owner>chromeos-hibernate@google.com</owner>
@@ -892,7 +892,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.Hibernate.MemoryAvailable" units="MiB"
-    expires_after="2024-06-08">
+    expires_after="2024-08-11">
   <owner>mka@chromium.org</owner>
   <owner>bgeffon@chromium.org</owner>
   <owner>chromeos-hibernate@google.com</owner>
@@ -903,7 +903,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.Hibernate.ResumeTime.HibernateResumeReady" units="ms"
-    expires_after="2024-06-08">
+    expires_after="2024-08-11">
   <owner>mka@chromium.org</owner>
   <owner>bgeffon@chromium.org</owner>
   <owner>chromeos-hibernate@google.com</owner>
@@ -914,7 +914,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.Hibernate.ResumeTime.KernelResume" units="ms"
-    expires_after="2024-06-08">
+    expires_after="2024-08-11">
   <owner>mka@chromium.org</owner>
   <owner>bgeffon@chromium.org</owner>
   <owner>chromeos-hibernate@google.com</owner>
@@ -1078,7 +1078,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram
     name="Platform.Libhwsec.RetryAction.PinWeaverManager.{ReplayOperationType}{ReplayEntryType}"
-    enum="HwsecRetryActionEnum" expires_after="2024-06-09">
+    enum="HwsecRetryActionEnum" expires_after="2024-08-11">
   <owner>chensa@google.com</owner>
   <owner>cros-hwsec-userland-eng+uma@google.com</owner>
   <summary>
@@ -1547,7 +1547,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.Missive.CpuUsage" units="%"
-    expires_after="2024-03-20">
+    expires_after="2024-12-20">
   <owner>xuhong@chromium.org</owner>
   <owner>lbaraz@chromium.org</owner>
   <owner>cros-reporting-team@google.com</owner>
@@ -1581,7 +1581,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.Missive.MigrationStatus"
-    enum="MissiveMigrationStatus" expires_after="2024-03-24">
+    enum="MissiveMigrationStatus" expires_after="2024-12-24">
   <owner>lbaraz@chromium.org</owner>
   <owner>xuhong@chromium.org</owner>
   <owner>cros-reporting-team@google.com</owner>
@@ -1635,7 +1635,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Platform.Missive.StorageUsageNonUploading" units="MiB"
-    expires_after="2024-03-01">
+    expires_after="2024-12-01">
   <owner>lbaraz@chromium.org</owner>
   <owner>cros-reporting-team@google.com</owner>
   <summary>
@@ -2086,6 +2086,74 @@ chromium-metrics-reviews@google.com.
   <owner>asavery@chromium.org</owner>
   <owner>chromeos-memory@google.com</owner>
   <summary>Number of pages swapped OUT over a day, sampled daily.</summary>
+</histogram>
+
+<histogram name="Platform.ThinpoolMigration.LvmMetadataTime" units="ms"
+    expires_after="2025-03-01">
+  <owner>sarthakkukreti@google.com</owner>
+  <owner>chromeos-storage@google.com</owner>
+  <summary>
+    Time taken to persist LVM metadata. Recorded once per migration attempt.
+  </summary>
+</histogram>
+
+<histogram name="Platform.ThinpoolMigration.ResizeTime" units="ms"
+    expires_after="2025-03-01">
+  <owner>sarthakkukreti@google.com</owner>
+  <owner>chromeos-storage@google.com</owner>
+  <summary>
+    Time taken to resize the filesystem. Recorded once per migration attempt.
+  </summary>
+</histogram>
+
+<histogram name="Platform.ThinpoolMigration.Result"
+    enum="ThinpoolMigrationResult" expires_after="2025-03-01">
+  <owner>sarthakkukreti@google.com</owner>
+  <owner>chromeos-storage@google.com</owner>
+  <summary>
+    Result of stateful migration to thinpool. Recorded once per migration
+    attempt.
+  </summary>
+</histogram>
+
+<histogram name="Platform.ThinpoolMigration.RevertTime" units="ms"
+    expires_after="2025-03-01">
+  <owner>sarthakkukreti@google.com</owner>
+  <owner>chromeos-storage@google.com</owner>
+  <summary>
+    Time taken to revert the migration. Recorded once per failed migration
+    attempt.
+  </summary>
+</histogram>
+
+<histogram name="Platform.ThinpoolMigration.ThinpoolMetadataTime" units="ms"
+    expires_after="2025-03-01">
+  <owner>sarthakkukreti@google.com</owner>
+  <owner>chromeos-storage@google.com</owner>
+  <summary>
+    Time taken to persist thinpool metadata. Recorded once per migration
+    attempt.
+  </summary>
+</histogram>
+
+<histogram name="Platform.ThinpoolMigration.TotalTime" units="ms"
+    expires_after="2025-03-01">
+  <owner>sarthakkukreti@google.com</owner>
+  <owner>chromeos-storage@google.com</owner>
+  <summary>
+    Time taken for a migration attempt. Recorded once per migration attempt.
+  </summary>
+</histogram>
+
+<histogram name="Platform.ThinpoolMigration.TriesLeftAtCompletion"
+    units="units" expires_after="2025-03-01">
+  <owner>sarthakkukreti@google.com</owner>
+  <owner>chromeos-storage@google.com</owner>
+  <summary>
+    Number of migration attempts left at completion. Captures whether multiple
+    attempts were required to complete migration. Recorded once after successful
+    migration.
+  </summary>
 </histogram>
 
 <histogram name="Platform.TPM.ApRoVerificationTime" units="ms"

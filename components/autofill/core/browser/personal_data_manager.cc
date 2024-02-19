@@ -27,7 +27,6 @@
 #include "base/strings/utf_string_conversions.h"
 #include "base/uuid.h"
 #include "build/build_config.h"
-#include "build/chromeos_buildflags.h"
 #include "components/autofill/core/browser/address_data_manager.h"
 #include "components/autofill/core/browser/autofill_data_util.h"
 #include "components/autofill/core/browser/autofill_experiments.h"
@@ -41,7 +40,6 @@
 #include "components/autofill/core/browser/form_structure.h"
 #include "components/autofill/core/browser/geo/address_i18n.h"
 #include "components/autofill/core/browser/geo/autofill_country.h"
-#include "components/autofill/core/browser/geo/country_data.h"
 #include "components/autofill/core/browser/geo/phone_number_i18n.h"
 #include "components/autofill/core/browser/manual_testing_import.h"
 #include "components/autofill/core/browser/metrics/autofill_metrics.h"
@@ -218,13 +216,12 @@ template <typename ValueType>
 void ReceiveLoadedDbValues(WebDataServiceBase::Handle h,
                            WDTypedResult* result,
                            WebDataServiceBase::Handle* pending_handle,
-                           std::vector<std::unique_ptr<ValueType>>* dest) {
+                           std::vector<ValueType>* dest) {
   DCHECK_EQ(*pending_handle, h);
   *pending_handle = 0;
 
   *dest = std::move(
-      static_cast<WDResult<std::vector<std::unique_ptr<ValueType>>>*>(result)
-          ->GetValue());
+      static_cast<WDResult<std::vector<ValueType>>*>(result)->GetValue());
 }
 
 }  // namespace
@@ -364,11 +361,15 @@ void PersonalDataManager::Init(
     StrikeDatabaseBase* strike_database,
     AutofillImageFetcherBase* image_fetcher,
     std::unique_ptr<AutofillSharedStorageHandler> shared_storage_handler) {
-  address_data_manager_ = std::make_unique<AddressDataManager>(
-      profile_database,
-      base::BindRepeating(&PersonalDataManager::NotifyPersonalDataObserver,
-                          base::Unretained(this)),
-      app_locale_);
+  // TODO(b/322170538): Some tests use the TestPDM, but still call Init(),
+  // effectively overwriting the TestADM with a real ADM.
+  if (!address_data_manager_) {
+    address_data_manager_ = std::make_unique<AddressDataManager>(
+        profile_database,
+        base::BindRepeating(&PersonalDataManager::NotifyPersonalDataObserver,
+                            base::Unretained(this)),
+        app_locale_);
+  }
   database_helper_->Init(profile_database, account_database);
 
   SetPrefService(pref_service);
@@ -614,10 +615,6 @@ void PersonalDataManager::OnAutofillChangedBySync(
 void PersonalDataManager::OnStateChanged(syncer::SyncService* sync_service) {
   DCHECK_EQ(sync_service_, sync_service);
 
-  for (PersonalDataManagerObserver& observer : observers_) {
-    observer.OnPersonalDataSyncStateChanged();
-  }
-
   // Use the ephemeral account storage when the user didn't enable the sync
   // feature explicitly. `sync_service` is nullptr-checked because this
   // method can also be used (apart from the Sync service observer's calls) in
@@ -651,7 +648,9 @@ void PersonalDataManager::OnSyncPaymentsIntegrationEnabledChanged(
     // Re-mask all server cards when the user turns off wallet card
     // integration.
     ResetFullServerCards();
-    NotifyPersonalDataObserver();
+    for (PersonalDataManagerObserver& observer : observers_) {
+      observer.OnPersonalDataChanged();
+    }
   }
 }
 
@@ -778,15 +777,8 @@ void PersonalDataManager::RecordUseOf(
 
     Refresh();
   } else {
-    AutofillProfile* profile = GetProfileByGUID(
-        absl::get<const AutofillProfile*>(profile_or_credit_card)->guid());
-    if (!profile) {
-      return;
-    }
-
-    AutofillProfile updated_profile = *profile;
-    updated_profile.RecordAndLogUse();
-    UpdateProfile(updated_profile);
+    address_data_manager_->RecordUseOf(
+        *absl::get<const AutofillProfile*>(profile_or_credit_card));
   }
 }
 
@@ -837,12 +829,7 @@ bool PersonalDataManager::IsCountryEligibleForAccountStorage(
 
 void PersonalDataManager::MigrateProfileToAccount(
     const AutofillProfile& profile) {
-  CHECK_EQ(profile.source(), AutofillProfile::Source::kLocalOrSyncable);
-  AutofillProfile account_profile = profile.ConvertToAccountProfile();
-  DCHECK_NE(profile.guid(), account_profile.guid());
-  // Update the database (and this way indirectly Sync).
-  RemoveByGUID(profile.guid());
-  AddProfile(account_profile);
+  address_data_manager_->MigrateProfileToAccount(profile);
 }
 
 std::string PersonalDataManager::AddAsLocalIban(Iban iban) {
@@ -871,11 +858,11 @@ std::string PersonalDataManager::AddAsLocalIban(Iban iban) {
   // Search through `local_ibans_` to ensure no IBAN that already saved has the
   // same value and nickname as `iban`, because we do not want to add two IBANs
   // with the exact same data.
-  if (base::ranges::any_of(
-          local_ibans_, [&iban](const std::unique_ptr<Iban>& iban_from_list) {
-            return iban.value().compare(iban_from_list->value()) == 0 &&
-                   iban.nickname().compare(iban_from_list->nickname());
-          })) {
+  if (base::ranges::any_of(local_ibans_,
+                           [&iban](const std::unique_ptr<Iban>& local_iban) {
+                             return iban.value() == local_iban->value() &&
+                                    iban.nickname() == local_iban->nickname();
+                           })) {
     return std::string();
   }
 
@@ -1240,90 +1227,49 @@ CreditCard* PersonalDataManager::GetCreditCardByServerId(
   return nullptr;
 }
 
-CreditCardFlatRateBenefit*
+template <typename T>
+std::optional<T> PersonalDataManager::GetCreditCardBenefitByInstrumentId(
+    CreditCardBenefitBase::LinkedCardInstrumentId instrument_id,
+    base::FunctionRef<bool(T&)> filter) {
+  if (!IsAutofillWalletImportEnabled() || !IsAutofillPaymentMethodsEnabled()) {
+    return std::nullopt;
+  }
+  base::Time now = AutofillClock::Now();
+  for (CreditCardBenefit& benefit : credit_card_benefits_) {
+    if (auto* b = absl::get_if<T>(&benefit);
+        b && b->linked_card_instrument_id() == instrument_id &&
+        b->start_time() <= now && now < b->expiry_time() && filter(*b)) {
+      return *b;
+    }
+  }
+  return std::nullopt;
+}
+
+std::optional<CreditCardFlatRateBenefit>
 PersonalDataManager::GetFlatRateBenefitByInstrumentId(
-    const CreditCardBenefit::LinkedCardInstrumentId instrument_id) {
-  if (!IsAutofillWalletImportEnabled() || !IsAutofillPaymentMethodsEnabled()) {
-    return nullptr;
-  }
-
-  auto find_result = base::ranges::find_if(
-      credit_card_benefits_,
-      [instrument_id](std::unique_ptr<CreditCardBenefit>& benefit) {
-        return benefit->linked_card_instrument_id() == instrument_id &&
-               benefit->benefit_type() ==
-                   CreditCardBenefit::BenefitType::kFlatRateBenefit &&
-               benefit->expiry_time() > AutofillClock::Now() &&
-               benefit->start_time() <= AutofillClock::Now();
-      });
-
-  // Casting the search result to `CreditCardFlatRateBenefit`.
-  // Safe to do so as benefit type is checked in the search criteria.
-  return find_result == credit_card_benefits_.end()
-             ? nullptr
-             : static_cast<CreditCardFlatRateBenefit*>(find_result->get());
+    const CreditCardBenefitBase::LinkedCardInstrumentId instrument_id) {
+  return GetCreditCardBenefitByInstrumentId<CreditCardFlatRateBenefit>(
+      instrument_id);
 }
 
-CreditCardCategoryBenefit*
+std::optional<CreditCardCategoryBenefit>
 PersonalDataManager::GetCategoryBenefitByInstrumentIdAndCategory(
-    const CreditCardBenefit::LinkedCardInstrumentId instrument_id,
+    const CreditCardBenefitBase::LinkedCardInstrumentId instrument_id,
     const CreditCardCategoryBenefit::BenefitCategory benefit_category) {
-  if (!IsAutofillWalletImportEnabled() || !IsAutofillPaymentMethodsEnabled()) {
-    return nullptr;
-  }
-
-  auto find_result = base::ranges::find_if(
-      credit_card_benefits_, [instrument_id, benefit_category](
-                                 std::unique_ptr<CreditCardBenefit>& benefit) {
-        return benefit->linked_card_instrument_id() == instrument_id &&
-               benefit->benefit_type() ==
-                   CreditCardBenefit::BenefitType::kCategoryBenefit &&
-               // Safe to down-cast as BenefitType was checked before the cast.
-               static_cast<CreditCardCategoryBenefit*>(benefit.get())
-                       ->benefit_category() == benefit_category &&
-               benefit->expiry_time() > AutofillClock::Now() &&
-               benefit->start_time() <= AutofillClock::Now();
+  return GetCreditCardBenefitByInstrumentId<CreditCardCategoryBenefit>(
+      instrument_id, [&benefit_category](CreditCardCategoryBenefit& b) {
+        return b.benefit_category() == benefit_category;
       });
-
-  // Casting the search result to `CreditCardCategoryBenefit`.
-  // Safe to do so as benefit type is checked in the search criteria.
-  return find_result == credit_card_benefits_.end()
-             ? nullptr
-             : static_cast<CreditCardCategoryBenefit*>(find_result->get());
 }
 
-CreditCardMerchantBenefit*
+std::optional<CreditCardMerchantBenefit>
 PersonalDataManager::GetMerchantBenefitByInstrumentIdAndOrigin(
-    const CreditCardBenefit::LinkedCardInstrumentId instrument_id,
+    const CreditCardBenefitBase::LinkedCardInstrumentId instrument_id,
     const url::Origin& merchant_origin) {
-  if (!IsAutofillWalletImportEnabled() || !IsAutofillPaymentMethodsEnabled()) {
-    return nullptr;
-  }
-
-  auto find_result = base::ranges::find_if(
-      credit_card_benefits_, [instrument_id, merchant_origin](
-                                 std::unique_ptr<CreditCardBenefit>& benefit) {
-        return benefit->linked_card_instrument_id() == instrument_id &&
-               benefit->benefit_type() ==
-                   CreditCardBenefit::BenefitType::kMerchantBenefit &&
-               // Safe to down-cast as BenefitType was checked before the cast.
-               static_cast<CreditCardMerchantBenefit*>(benefit.get())
-                   ->merchant_domains()
-                   .contains(merchant_origin) &&
-               benefit->expiry_time() > AutofillClock::Now() &&
-               benefit->start_time() <= AutofillClock::Now();
+  return GetCreditCardBenefitByInstrumentId<CreditCardMerchantBenefit>(
+      instrument_id, [&merchant_origin](CreditCardMerchantBenefit& b) {
+        return b.merchant_domains().contains(merchant_origin);
       });
-
-  // Casting the search result to `CreditCardMerchantBenefit`.
-  // Safe to do so as benefit type is checked in the search criteria.
-  return find_result == credit_card_benefits_.end()
-             ? nullptr
-             : static_cast<CreditCardMerchantBenefit*>(find_result->get());
-}
-
-void PersonalDataManager::AddCreditCardBenefitForTest(
-    std::unique_ptr<CreditCardBenefit> benefit) {
-  credit_card_benefits_.push_back(std::move(benefit));
 }
 
 bool PersonalDataManager::IsDataLoaded() const {
@@ -1541,7 +1487,7 @@ PersonalDataManager::GetVirtualCardUsageData() const {
 }
 
 void PersonalDataManager::Refresh() {
-  LoadProfiles();
+  address_data_manager_->LoadProfiles();
   LoadCreditCards();
   LoadCreditCardCloudTokenData();
   LoadIbans();
@@ -1693,8 +1639,10 @@ void PersonalDataManager::FetchImagesForURLs(
 
 const std::string& PersonalDataManager::GetDefaultCountryCodeForNewAddress()
     const {
-  if (default_country_code_.empty())
-    default_country_code_ = MostCommonCountryCodeFromProfiles();
+  if (default_country_code_.empty() && IsAutofillEnabled()) {
+    default_country_code_ =
+        address_data_manager_->MostCommonCountryCodeFromProfiles();
+  }
 
   // Failing that, use the country code determined for experiment groups.
   if (default_country_code_.empty())
@@ -1953,6 +1901,11 @@ bool PersonalDataManager::IsPaymentCvcStorageEnabled() {
          prefs::IsPaymentCvcStorageEnabled(pref_service_);
 }
 
+bool PersonalDataManager::IsPaymentCardBenefitsEnabled() {
+  return base::FeatureList::IsEnabled(features::kAutofillEnableCardBenefits) &&
+         prefs::IsPaymentCardBenefitsEnabled(pref_service_);
+}
+
 AutofillImageFetcherBase* PersonalDataManager::GetImageFetcher() const {
   return image_fetcher_;
 }
@@ -2097,10 +2050,6 @@ void PersonalDataManager::SetCreditCards(
 
   // Refresh our local cache and send notifications to observers.
   Refresh();
-}
-
-void PersonalDataManager::LoadProfiles() {
-  address_data_manager_->LoadProfiles();
 }
 
 void PersonalDataManager::LoadCreditCards() {
@@ -2255,7 +2204,7 @@ std::string PersonalDataManager::OnAcceptedLocalIbanSave(Iban imported_iban) {
   // database as of `Refresh()` which will be called by both `UpdateIban()` and
   // `AddAsLocalIban()`.
   for (auto& iban : local_ibans_) {
-    if (iban->value().compare(imported_iban.value()) == 0) {
+    if (iban->value() == imported_iban.value()) {
       // Set the GUID of the IBAN to the one that matches it in
       // `local_ibans_` so that UpdateIban() will be able to update the
       // specific IBAN.
@@ -2324,33 +2273,6 @@ void PersonalDataManager::LogStoredPaymentsDataMetrics() const {
   autofill_metrics::LogStoredOfferMetrics(autofill_offer_data_);
   autofill_metrics::LogStoredVirtualCardUsageCount(
       autofill_virtual_card_usage_data_.size());
-}
-
-std::string PersonalDataManager::MostCommonCountryCodeFromProfiles() const {
-  if (!IsAutofillEnabled())
-    return std::string();
-
-  // Count up country codes from existing profiles.
-  std::map<std::string, int> votes;
-  const std::vector<AutofillProfile*>& profiles = GetProfiles();
-  const std::vector<std::string>& country_codes =
-      CountryDataMap::GetInstance()->country_codes();
-  for (const AutofillProfile* profile : profiles) {
-    std::string country_code = base::ToUpperASCII(
-        base::UTF16ToASCII(profile->GetRawInfo(ADDRESS_HOME_COUNTRY)));
-    if (base::Contains(country_codes, country_code)) {
-      votes[country_code]++;
-    }
-  }
-
-  // Take the most common country code.
-  if (!votes.empty()) {
-    return base::ranges::max_element(
-               votes, [](auto& a, auto& b) { return a.second < b.second; })
-        ->first;
-  }
-
-  return std::string();
 }
 
 void PersonalDataManager::EnableAutofillPrefChanged() {
@@ -2464,17 +2386,16 @@ void PersonalDataManager::OnUserAcceptedUpstreamOffer() {
 }
 
 void PersonalDataManager::NotifyPersonalDataObserver() {
-  bool pending_changes =
-      IsAwaitingPendingAddressChanges() || HasPendingPaymentQueries();
+  if (IsAwaitingPendingAddressChanges() || HasPendingPaymentQueries()) {
+    return;
+  }
   for (PersonalDataManagerObserver& observer : observers_) {
     observer.OnPersonalDataChanged();
   }
-  if (!pending_changes) {
-    // Call `OnPersonalDataFinishedProfileTasks()` in a separate loop as
-    // the observers might have removed themselves in OnPersonalDataChanged
-    for (PersonalDataManagerObserver& observer : observers_) {
-      observer.OnPersonalDataFinishedProfileTasks();
-    }
+  // Call `OnPersonalDataFinishedProfileTasks()` in a separate loop as
+  // the observers might have removed themselves in OnPersonalDataChanged
+  for (PersonalDataManagerObserver& observer : observers_) {
+    observer.OnPersonalDataFinishedProfileTasks();
   }
 }
 

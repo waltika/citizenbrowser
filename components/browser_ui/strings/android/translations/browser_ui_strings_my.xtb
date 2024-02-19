@@ -21,7 +21,6 @@
 <translation id="1383876407941801731">ရှာဖွေမှု</translation>
 <translation id="1384959399684842514">ဒေါင်းလုဒ်လုပ်မှု ဆိုင်းငံ့ထားသည်</translation>
 <translation id="1415402041810619267">URL ကို ဖြတ်လိုက်သည်</translation>
-<translation id="1434873037477293673">လျှော့ဈေးကတ်</translation>
 <translation id="1448064542941920355">ဇူးမ်ချုံ့ရန်</translation>
 <translation id="146867109637325312">{COUNT,plural, =1{ဝဘ်ဆိုက် <ph name="SITE_COUNT" /> ခု}other{ဝဘ်ဆိုက် <ph name="SITE_COUNT" /> ခု}}</translation>
 <translation id="1510341833810331442">ဝဘ်ဆိုက်များကို သင့်စက်တွင် ဒေတာသိမ်းရန် ခွင့်ပြုမထားပါ</translation>
@@ -212,6 +211,7 @@
 <translation id="4566417217121906555">မိုက်ခရိုဖုန်းကို အသံပိတ်ရန်</translation>
 <translation id="4570913071927164677">အသေးစိတ်</translation>
 <translation id="4598549027014564149">ရုပ်ဖျက်မုဒ် ဖွင့်ထားချိန်၌ ဝဘ်ဆိုက်များသည် ဆက်စပ်သည့်ဝဘ်ဆိုက်များအပါအဝင် ဝဘ်ဆိုက်များရှိ သင့်ကြည့်ရှုမှုများကို ကြည့်ရန် သင်၏ကွတ်ကီးများအား အသုံးမပြုနိုင်ပါ။ သင့်ကြည့်ရှုမှုများကို ကြော်ငြာများ ပုဂ္ဂိုလ်ရေးသီးသန့်ပြုလုပ်ခြင်းကဲ့သို့ အရာများအတွက် အသုံးမပြုပါ။ ဝဘ်ဆိုက်အချို့ရှိ ဝန်ဆောင်မှုများ အလုပ်မလုပ်နိုင်ပါ။</translation>
+<translation id="4619615317237390068">အခြားစက်ပစ္စည်းများမှ တဘ်များ</translation>
 <translation id="4644713492825682049">ဖျက်ပြီး ပြင်ဆင်သတ်မှတ်ရန်</translation>
 <translation id="4645575059429386691">သင့်မိဘမှ စီမံသည်</translation>
 <translation id="4670064810192446073">ပကတိအသွင်</translation>
@@ -366,7 +366,6 @@
 <translation id="7053983685419859001">ပိတ်ဆို့ရန်</translation>
 <translation id="7066151586745993502">{NUM_SELECTED,plural, =1{1 ခု ရွေးထားသည်}other{# ခု ရွေးထားသည်}}</translation>
 <translation id="7087918508125750058"><ph name="ITEM_COUNT" /> ခု ရွေးထားသည်။ မျက်နှာပြင်၏ ထိပ်နားတွင် ရွေးချယ်စရာများ ရှိသည်</translation>
-<translation id="7137403271056944713">MIDI စက်ထိန်းစနစ် / ပရိုဂရမ်ပြန်လုပ်ခြင်း</translation>
 <translation id="7141896414559753902">ပေါ့ပ်အပ်နှင့် တစ်ဆင့်ပြန်ညွှန်ချက်များကို မဖော်ပြနိုင်စေရန် ဝဘ်ဆိုက်များအား ပိတ်ပါ (အကြံပြုထားသည်)</translation>
 <translation id="7176368934862295254"><ph name="KILOBYTES" /> KB</translation>
 <translation id="7180611975245234373">ပြန်လည်စတင်ရန်</translation>
@@ -402,6 +401,7 @@
 <translation id="7667547420449112975">Oz ၏အံ့ဖွယ်ဝိဇ္ဇာ</translation>
 <translation id="7684642910516280563">ပြင်ပကုမ္ပဏီ၏ကွတ်ကီးများ သုံးရန် ဝဘ်ဆိုက်ကို ခွင့်မပြုပါနှင့်</translation>
 <translation id="7719367874908701697">စာမျက်နှာဇူးမ်</translation>
+<translation id="7759147511335618829">MIDI စက်စီမံခြင်း၊ ပရိုဂရမ်ပြန်လုပ်ခြင်း</translation>
 <translation id="7781829728241885113">မနေ့က</translation>
 <translation id="7791543448312431591">ထည့်ရန်</translation>
 <translation id="7801888679188438140">{TILE_COUNT,plural, =1{ဤတဘ်ဖြင့် ရှေ့ဆက်ရန်}other{ဤတဘ်များဖြင့် ရှေ့ဆက်ရန်}}</translation>

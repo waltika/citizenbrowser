@@ -54,8 +54,10 @@ extern NSString* const kToolbarShadowColor;
 extern NSString* const kOmniboxKeyboardButtonColor;
 // Color for separator between omnibox suggestions.
 extern NSString* const kOmniboxSuggestionRowSeparatorColor;
-// Background color for the tab strip surface.
-extern NSString* const kTabStripBackgroundColor;
+// Color for separator between omnibox popout suggestions.
+extern NSString* const kOmniboxPopoutSuggestionRowSeparatorColor;
+// Background colorfor the tab group favicon views.
+extern NSString* const kTabGroupFaviconBackgroundColor;
 
 // ***************
 // Standard Colors

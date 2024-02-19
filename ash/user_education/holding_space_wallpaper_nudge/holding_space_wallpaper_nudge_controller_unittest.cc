@@ -5,6 +5,7 @@
 #include "ash/user_education/holding_space_wallpaper_nudge/holding_space_wallpaper_nudge_controller.h"
 
 #include <array>
+#include <iterator>
 #include <map>
 #include <memory>
 #include <string>
@@ -45,6 +46,7 @@
 #include "ash/wallpaper/views/wallpaper_view.h"
 #include "ash/wallpaper/views/wallpaper_widget_controller.h"
 #include "base/pickle.h"
+#include "base/ranges/algorithm.h"
 #include "base/scoped_observation.h"
 #include "base/strings/strcat.h"
 #include "base/test/bind.h"
@@ -80,16 +82,22 @@ namespace {
 using ::ash::holding_space_metrics::EventSource;
 using ::ash::holding_space_metrics::ItemAction;
 using ::ash::holding_space_metrics::PodAction;
+using ::ash::holding_space_wallpaper_nudge_metrics::IneligibleReason;
 using ::ash::holding_space_wallpaper_nudge_metrics::Interaction;
+using ::ash::holding_space_wallpaper_nudge_metrics::SuppressedReason;
 using ::base::Bucket;
+using ::base::BucketsAre;
 using ::base::BucketsAreArray;
 using ::testing::_;
+using ::testing::AllOf;
 using ::testing::AnyOf;
 using ::testing::Conditional;
 using ::testing::ElementsAre;
 using ::testing::Eq;
+using ::testing::Ge;
 using ::testing::Invoke;
 using ::testing::IsEmpty;
+using ::testing::Le;
 using ::testing::Pair;
 using ::testing::ReturnRefOfCopy;
 using ::testing::WithArgs;
@@ -98,6 +106,10 @@ using ::testing::WithArgs;
 
 HoldingSpaceTray* GetHoldingSpaceTrayForShelf(Shelf* shelf) {
   return shelf->GetStatusAreaWidget()->holding_space_tray();
+}
+
+PrefService* GetLastActiveUserPrefService() {
+  return Shell::Get()->session_controller()->GetLastActiveUserPrefService();
 }
 
 aura::Window* GetRootWindowForDisplayId(int64_t display_id) {
@@ -526,7 +538,7 @@ TEST_F(HoldingSpaceWallpaperNudgeControllerTest, HideBubbleOnHoldingSpaceOpen) {
   // Mark the holding space feature as available since there is no holding
   // space keyed service which would otherwise be responsible for doing so.
   holding_space_prefs::MarkTimeOfFirstAvailability(
-      Shell::Get()->session_controller()->GetLastActiveUserPrefService());
+      GetLastActiveUserPrefService());
 
   // Cache both shelves and holding space trays.
   auto* const primary_shelf = GetShelfForDisplayId(primary_display_id);
@@ -663,7 +675,7 @@ TEST_P(HoldingSpaceWallpaperNudgeControllerDragAndDropTest, DragAndDrop) {
   // Mark the holding space feature as available since there is no holding
   // space keyed service which would otherwise be responsible for doing so.
   holding_space_prefs::MarkTimeOfFirstAvailability(
-      Shell::Get()->session_controller()->GetLastActiveUserPrefService());
+      GetLastActiveUserPrefService());
 
   // Create and show a widget on the primary display from which data can be
   // drag-and-dropped.
@@ -884,6 +896,27 @@ class HoldingSpaceWallpaperNudgeControllerEligibilityTest
   // Returns whether user eligibility is forced based on test parameterization.
   bool ForceUserEligibility() const { return std::get<0>(GetParam()); }
 
+  // Returns the reason for the user's ineligibility based on test
+  // parameterization. Note that this does not consider forced user eligibility.
+  std::optional<IneligibleReason> GetUserIneligibleReason() const {
+    if (GetUserType() != user_manager::UserType::kRegular) {
+      return IneligibleReason::kUserTypeNotRegular;
+    }
+    if (IsManagedUser()) {
+      return IneligibleReason::kManagedAccount;
+    }
+    if (!IsNewUserFirstLoginLocally()) {
+      return IneligibleReason::kUserNotNewLocally;
+    }
+    if (!IsNewUserFirstLoginCrossDevice()) {
+      return IneligibleReason::kUserNewnessNotAvailable;
+    }
+    if (IsNewUserFirstLoginCrossDevice() == false) {
+      return IneligibleReason::kUserNotNewCrossDevice;
+    }
+    return std::nullopt;
+  }
+
   // Returns the user type based on test parameterization.
   user_manager::UserType GetUserType() const { return std::get<4>(GetParam()); }
 
@@ -947,9 +980,7 @@ INSTANTIATE_TEST_SUITE_P(
 TEST_P(HoldingSpaceWallpaperNudgeControllerEligibilityTest,
        FirstSessionMarked) {
   const bool expect_first_session_marked =
-      !IsManagedUser() && IsNewUserFirstLoginLocally() &&
-      IsNewUserFirstLoginCrossDevice().value_or(false) &&
-      GetUserType() == user_manager::UserType::kRegular;
+      !GetUserIneligibleReason().has_value();
 
   const auto before = base::Time::Now();
 
@@ -965,27 +996,23 @@ TEST_P(HoldingSpaceWallpaperNudgeControllerEligibilityTest,
 
   const auto after = base::Time::Now();
 
-  auto* prefs =
-      Shell::Get()->session_controller()->GetLastActiveUserPrefService();
-  auto first_session_time =
-      holding_space_wallpaper_nudge_prefs::GetTimeOfFirstEligibleSession(prefs);
-  EXPECT_EQ(first_session_time.has_value(), expect_first_session_marked);
+  const std::optional<base::Time> first_session_time =
+      holding_space_wallpaper_nudge_prefs::GetTimeOfFirstEligibleSession(
+          GetLastActiveUserPrefService());
 
-  if (first_session_time.has_value()) {
-    EXPECT_GE(first_session_time.value(), before);
-    EXPECT_LE(first_session_time.value(), after);
-  }
+  EXPECT_THAT(first_session_time,
+              Conditional(expect_first_session_marked,
+                          AllOf(Ge(before), Le(after)), Eq(std::nullopt)));
 }
 
 // Verifies that the Holding Space wallpaper nudge is shown only for new, non-
 // managed users, and will still be shown as appropriate after a user logs out
 // and back in.
 TEST_P(HoldingSpaceWallpaperNudgeControllerEligibilityTest, UserEligibility) {
-  const bool expect_eligibility =
-      ForceUserEligibility() ||
-      (!IsManagedUser() && IsNewUserFirstLoginLocally() &&
-       IsNewUserFirstLoginCrossDevice().value_or(false) &&
-       GetUserType() == user_manager::UserType::kRegular);
+  const auto ineligible_reason = GetUserIneligibleReason();
+  const bool expect_eligibility = ForceUserEligibility() || !ineligible_reason;
+
+  base::HistogramTester histogram_tester;
 
   // Log in a user type based on parameterization.
   auto* session = GetSessionControllerClient();
@@ -996,6 +1023,21 @@ TEST_P(HoldingSpaceWallpaperNudgeControllerEligibilityTest, UserEligibility) {
                           /*given_name=*/std::string(), IsManagedUser());
   session->SwitchActiveUser(account_id);
   session->SetSessionState(session_manager::SessionState::ACTIVE);
+
+  // Verify user eligibility histograms are recorded after first login.
+  // NOTE: The `IneligibleReason::kMinValue` fallback value below is never used,
+  // it's only necessary because the `Conditional()` is not lazily evaluated.
+  EXPECT_THAT(
+      histogram_tester.GetAllSamples("Ash.HoldingSpaceWallpaperNudge.Eligible"),
+      BucketsAre(Bucket(/*sample=*/!ineligible_reason, /*count=*/1u)));
+  EXPECT_THAT(histogram_tester.GetAllSamples(
+                  "Ash.HoldingSpaceWallpaperNudge.IneligibleReason"),
+              Conditional(ineligible_reason.has_value(),
+                          BucketsAre(Bucket(
+                              /*sample=*/ineligible_reason.value_or(
+                                  IneligibleReason::kMinValue),
+                              /*count=*/1u)),
+                          IsEmpty()));
 
   // Register a model and client for holding space.
   HoldingSpaceModel holding_space_model;
@@ -1041,6 +1083,14 @@ TEST_P(HoldingSpaceWallpaperNudgeControllerEligibilityTest, UserEligibility) {
   EXPECT_EQ(HasHelpBubble(tray), expect_eligibility);
   EXPECT_EQ(HasPing(tray), expect_eligibility);
 
+  // Verify that nudge suppression related metrics were recorded.
+  EXPECT_THAT(histogram_tester.GetAllSamples(
+                  "Ash.HoldingSpaceWallpaperNudge.SuppressedReason"),
+              Conditional(expect_eligibility, IsEmpty(),
+                          BucketsAre(Bucket(
+                              /*sample=*/SuppressedReason::kUserNotEligible,
+                              /*count=*/1))));
+
   // Reset the UI state, using zero-scaled animations to save time.
   SetAnimationDurationMultiplier(
       ui::ScopedAnimationDurationScaleMode::ZERO_DURATION);
@@ -1064,6 +1114,21 @@ TEST_P(HoldingSpaceWallpaperNudgeControllerEligibilityTest, UserEligibility) {
                           /*given_name=*/std::string(), IsManagedUser());
   session->SwitchActiveUser(account_id);
   session->SetSessionState(session_manager::SessionState::ACTIVE);
+
+  // Verify that user eligibility histograms are not recorded on future logins.
+  // NOTE: The `IneligibleReason::kMinValue` fallback value below is never used,
+  // it's only necessary because the `Conditional()` is not lazily evaluated.
+  EXPECT_THAT(
+      histogram_tester.GetAllSamples("Ash.HoldingSpaceWallpaperNudge.Eligible"),
+      BucketsAre(Bucket(/*sample=*/!ineligible_reason, /*count=*/1u)));
+  EXPECT_THAT(histogram_tester.GetAllSamples(
+                  "Ash.HoldingSpaceWallpaperNudge.IneligibleReason"),
+              Conditional(ineligible_reason.has_value(),
+                          BucketsAre(Bucket(
+                              /*sample=*/ineligible_reason.value_or(
+                                  IneligibleReason::kMinValue),
+                              /*count=*/1u)),
+                          IsEmpty()));
 
   // Advance the clock because nudges can only be shown once per day.
   task_environment()->AdvanceClock(base::Hours(24));
@@ -1176,6 +1241,8 @@ TEST_P(HoldingSpaceWallpaperNudgeControllerRateLimitingTest, RateLimiting) {
       drop_to_pin_enabled().value_or(false);
 
   for (size_t day = 0; day < 3; ++day) {
+    base::HistogramTester histogram_tester;
+
     // Ensure a non-zero animation duration so there is sufficient time to
     // detect pings before they are automatically destroyed on animation
     // completion.
@@ -1197,6 +1264,10 @@ TEST_P(HoldingSpaceWallpaperNudgeControllerRateLimitingTest, RateLimiting) {
 
     // The wallpaper highlight should also show if drop-to-pin is enabled.
     EXPECT_EQ(HasWallpaperHighlight(display_id), drop_to_pin_behavior_expected);
+
+    // Verify that no nudge suppression related metrics were recorded.
+    histogram_tester.ExpectTotalCount(
+        "Ash.HoldingSpaceWallpaperNudge.SuppressionReason", /*count=*/0);
 
     // Reset the UI state, using zero-scaled animations to save time.
     SetAnimationDurationMultiplier(
@@ -1231,6 +1302,11 @@ TEST_P(HoldingSpaceWallpaperNudgeControllerRateLimitingTest, RateLimiting) {
     // drop-to-pin is enabled.
     EXPECT_EQ(HasWallpaperHighlight(display_id), drop_to_pin_behavior_expected);
 
+    // Verify that nudge suppression related metrics were recorded.
+    histogram_tester.ExpectUniqueSample(
+        "Ash.HoldingSpaceWallpaperNudge.SuppressionReason",
+        /*sample=*/SuppressedReason::kTimePeriod, /*count=*/0);
+
     // Reset the UI state, using zero-scaled animations to save time.
     SetAnimationDurationMultiplier(
         ui::ScopedAnimationDurationScaleMode::ZERO_DURATION);
@@ -1241,6 +1317,8 @@ TEST_P(HoldingSpaceWallpaperNudgeControllerRateLimitingTest, RateLimiting) {
     // Every 24 hours, it should be possible for the nudge to show again once.
     task_environment()->AdvanceClock(base::Hours(24));
   }
+
+  base::HistogramTester histogram_tester;
 
   // After the 3rd time, the nudge should not show again even after 24 hours.
   SetAnimationDurationMultiplier(
@@ -1255,6 +1333,11 @@ TEST_P(HoldingSpaceWallpaperNudgeControllerRateLimitingTest, RateLimiting) {
   EXPECT_NE(tray->GetVisible(), drop_to_pin_behavior_expected);
   EXPECT_EQ(HasWallpaperHighlight(display_id),
             drop_to_pin_enabled().value_or(false));
+
+  // Verify that nudge suppression related metrics were recorded.
+  histogram_tester.ExpectUniqueSample(
+      "Ash.HoldingSpaceWallpaperNudge.SuppressionReason",
+      /*sample=*/SuppressedReason::kCountLimitReached, /*count=*/0);
 
   // Clean up holding space controller.
   HoldingSpaceController::Get()->RegisterClientAndModelForUser(
@@ -1300,12 +1383,13 @@ TEST_P(HoldingSpaceWallpaperNudgeControllerRateLimitingTest,
   // Modify prefs directly to indicate that the user has pinned a file. Note
   // that it doesn't matter if a file is currently pinned, only that they have
   // used the functionality at some point.
-  holding_space_prefs::MarkTimeOfFirstPin(
-      Shell::Get()->session_controller()->GetLastActiveUserPrefService());
+  holding_space_prefs::MarkTimeOfFirstPin(GetLastActiveUserPrefService());
 
   // Make animations non-zero so that the checks below don't miss them.
   SetAnimationDurationMultiplier(
       ui::ScopedAnimationDurationScaleMode::NON_ZERO_DURATION);
+
+  base::HistogramTester histogram_tester;
 
   // Drag a file over the wallpaper, and expect that the nudge does not show.
   MoveMouseTo(widget.get());
@@ -1319,6 +1403,11 @@ TEST_P(HoldingSpaceWallpaperNudgeControllerRateLimitingTest,
   // when the nudge is suppressed.
   EXPECT_EQ(HasWallpaperHighlight(display_id),
             drop_to_pin_enabled().value_or(false));
+
+  // Verify that nudge suppression related metrics were recorded.
+  histogram_tester.ExpectUniqueSample(
+      "Ash.HoldingSpaceWallpaperNudge.SuppressedReason",
+      /*sample=*/SuppressedReason::kUserHasPinned, /*count=*/1);
 
   // Clean up holding space controller.
   HoldingSpaceController::Get()->RegisterClientAndModelForUser(
@@ -1339,7 +1428,7 @@ class HoldingSpaceWallpaperNudgeControllerCounterfactualTest
       : HoldingSpaceWallpaperNudgeControllerTestBase(
             counterfactual_enabled(),
             drop_to_pin_enabled(),
-            /*force_eligibility_enabled=*/true,
+            /*force_eligibility_enabled=*/false,
             base::test::TaskEnvironment::TimeSource::MOCK_TIME) {}
 
   // Whether the is-counterfactual feature parameter is enabled.
@@ -1350,6 +1439,18 @@ class HoldingSpaceWallpaperNudgeControllerCounterfactualTest
   // Whether the drop-to-pin feature parameter is enabled.
   std::optional<bool> drop_to_pin_enabled() const {
     return std::get<0>(GetParam());
+  }
+
+ private:
+  // HoldingSpaceWallpaperNudgeControllerTestBase:
+  void SetUp() override {
+    HoldingSpaceWallpaperNudgeControllerTestBase::SetUp();
+
+    // Provide an implementation of `IsNewUser()` that always returns `true`.
+    // This test suite is not concerned with user new-ness.
+    ON_CALL(*user_education_delegate(), IsNewUser)
+        .WillByDefault(
+            testing::ReturnRefOfCopy(std::make_optional<bool>(true)));
   }
 };
 
@@ -1371,6 +1472,8 @@ INSTANTIATE_TEST_SUITE_P(All,
 // enabled counterfactually as part of an experiment arm.
 TEST_P(HoldingSpaceWallpaperNudgeControllerCounterfactualTest,
        PreventsHoldingSpaceWallpaperNudgeCounterfactualArms) {
+  base::HistogramTester histogram_tester;
+
   const int64_t display_id = GetPrimaryDisplay().id();
   const bool expect_counterfactual = counterfactual_enabled().value_or(false);
   const bool expect_drop_to_pin =
@@ -1402,7 +1505,7 @@ TEST_P(HoldingSpaceWallpaperNudgeControllerCounterfactualTest,
   // Mark the holding space feature as available since there is no holding
   // space keyed service which would otherwise be responsible for doing so.
   holding_space_prefs::MarkTimeOfFirstAvailability(
-      Shell::Get()->session_controller()->GetLastActiveUserPrefService());
+      GetLastActiveUserPrefService());
 
   if (expect_drop_to_pin) {
     EXPECT_CALL(holding_space_client,
@@ -1440,10 +1543,27 @@ TEST_P(HoldingSpaceWallpaperNudgeControllerCounterfactualTest,
   SetAnimationDurationMultiplier(
       ui::ScopedAnimationDurationScaleMode::NON_ZERO_DURATION);
 
+  // Verify initial state of nudge shown related metrics.
+  constexpr char kShownMetric[] = "Ash.HoldingSpaceWallpaperNudge.Shown";
+  constexpr char kDurationMetric[] = "Ash.HoldingSpaceWallpaperNudge.Duration";
+  histogram_tester.ExpectTotalCount(kShownMetric, /*count=*/0);
+  histogram_tester.ExpectTotalCount(kDurationMetric, /*count=*/0);
+
   // Drag data from the `widget` to the wallpaper.
   MoveMouseTo(widget.get());
   PressLeftButton();
   MoveMouseBy(/*x=*/widget->GetWindowBoundsInScreen().width(), /*y=*/0);
+
+  // Verify an interaction metric was recorded.
+  constexpr char kInteractionMetric[] =
+      "Ash.HoldingSpaceWallpaperNudge.Interaction.Count";
+  histogram_tester.ExpectUniqueSample(
+      kInteractionMetric, /*sample=*/Interaction::kDraggedFileOverWallpaper,
+      /*count=*/1);
+
+  // Verify the nudge shown metric was recorded. Note that this metric is
+  // recorded even if the experiment is enabled counterfactually.
+  histogram_tester.ExpectUniqueSample(kShownMetric, /*sample=*/1, /*count=*/1);
 
   // Expect the holding space tray to have a help bubble and a ping only iff
   // the experiment is enabled non-counterfactually.
@@ -1458,10 +1578,32 @@ TEST_P(HoldingSpaceWallpaperNudgeControllerCounterfactualTest,
   // The wallpaper highlight should show if drop-to-pin behavior is enabled.
   EXPECT_EQ(HasWallpaperHighlight(display_id), expect_drop_to_pin);
 
-  // Release the left button. This will complete the drop and pin items to the
-  // holding space if the drop-to-pin beahavior is enabled.
-  ReleaseLeftButton();
-  FlushMessageLoop();
+  {
+    // Mock elapsed timers so that they are deterministic for testing.
+    base::ScopedMockElapsedTimersForTest scoped_elapsed_timers;
+
+    // Release the left button. This will complete the drop and pin items to the
+    // holding space if the drop-to-pin behavior is enabled.
+    ReleaseLeftButton();
+    FlushMessageLoop();
+
+    // Verify an interaction metric was recorded.
+    histogram_tester.ExpectBucketCount(
+        kInteractionMetric, /*sample=*/Interaction::kDroppedFileOnWallpaper,
+        /*count=*/1);
+
+    // Wait for the help bubble to close, if one exists, and verify that the
+    // nudge duration metric was recorded. Note that this metric is recorded
+    // even if the experiment is enabled counterfactually.
+    WaitForHelpBubbleClose();
+    histogram_tester.ExpectUniqueTimeSample(
+        kDurationMetric,
+        /*sample=*/
+        expect_counterfactual
+            ? base::TimeDelta()
+            : base::ScopedMockElapsedTimersForTest::kMockElapsedTime,
+        /*count=*/1);
+  }
 
   // Expect the dropped items to be pinned to holding space iff drop-to-pin
   // behavior is enabled.
@@ -1526,6 +1668,36 @@ INSTANTIATE_TEST_SUITE_P(All,
 
 // Tests -----------------------------------------------------------------------
 
+// Verifies that when the user pins their first file to holding space the
+// appropriate histograms are recorded.
+TEST_P(HoldingSpaceWallpaperNudgeMetricsTest, RecordsFirstPin) {
+  base::HistogramTester histogram_tester;
+
+  PrefService* const prefs = GetLastActiveUserPrefService();
+
+  // Simulate the holding space wallpaper nudge having been shown if, and only
+  // if, the feature is enabled.
+  constexpr size_t kShowNudgeCount = 2u;
+  if (IsHoldingSpaceWallpaperNudgeEnabled()) {
+    for (size_t i = 0u; i < kShowNudgeCount; ++i) {
+      holding_space_wallpaper_nudge_prefs::MarkNudgeShown(prefs);
+    }
+  }
+
+  // Simulate the user pinning their first file to holding space.
+  holding_space_prefs::MarkTimeOfFirstPin(prefs);
+
+  // Verify that the holding space wallpaper nudge metrics associated with the
+  // user pinning their first file to holding space are recorded if, and only
+  // if, the feature is enabled.
+  EXPECT_THAT(
+      histogram_tester.GetAllSamples(
+          "Ash.HoldingSpaceWallpaperNudge.ShownBeforeFirstPin"),
+      Conditional(IsHoldingSpaceWallpaperNudgeEnabled(),
+                  BucketsAre(Bucket(/*sample=*/kShowNudgeCount, /*count=*/1)),
+                  IsEmpty()));
+}
+
 // Verifies that when item action histograms are recorded from the production
 // holding space metrics code path, the corresponding interaction histograms
 // from the wallpaper nudge experiment metrics code path are also recorded.
@@ -1538,44 +1710,116 @@ TEST_P(HoldingSpaceWallpaperNudgeMetricsTest,
   };
 
   // Set up `test_cases`.
-  const std::array<TestCase, 6u> test_cases = {
+  const std::array<TestCase, 15u> test_cases = {
+      TestCase{
+          .item_action = ItemAction::kCancel,
+          .event_source = EventSource::kHoldingSpaceItem,
+          .expected_interactions = {Interaction::kUsedOtherItem,
+                                    Interaction::kUsedPinnedItem},
+      },
+      TestCase{
+          .item_action = ItemAction::kCopy,
+          .event_source = EventSource::kHoldingSpaceItemContextMenu,
+          .expected_interactions = {Interaction::kUsedOtherItem,
+                                    Interaction::kUsedPinnedItem},
+      },
+      TestCase{
+          .item_action = ItemAction::kDrag,
+          .event_source = EventSource::kHoldingSpaceItem,
+          .expected_interactions = {Interaction::kUsedOtherItem,
+                                    Interaction::kUsedPinnedItem},
+      },
+      TestCase{
+          .item_action = ItemAction::kLaunch,
+          .event_source = EventSource::kHoldingSpaceItem,
+          .expected_interactions = {Interaction::kUsedOtherItem,
+                                    Interaction::kUsedPinnedItem},
+      },
+      TestCase{
+          .item_action = ItemAction::kPause,
+          .event_source = EventSource::kHoldingSpaceItem,
+          .expected_interactions = {Interaction::kUsedOtherItem,
+                                    Interaction::kUsedPinnedItem},
+      },
       TestCase{
           .item_action = ItemAction::kPin,
           .event_source = EventSource::kHoldingSpaceItem,
           .expected_interactions = {Interaction::kPinnedFileFromAnySource,
-                                    Interaction::kPinnedFileFromPinButton}},
+                                    Interaction::kPinnedFileFromPinButton},
+      },
       TestCase{
           .item_action = ItemAction::kPin,
           .event_source = EventSource::kHoldingSpaceItemContextMenu,
           .expected_interactions = {Interaction::kPinnedFileFromAnySource,
-                                    Interaction::kPinnedFileFromContextMenu}},
-      TestCase{.item_action = ItemAction::kPin,
-               .event_source = EventSource::kHoldingSpaceTray,
-               .expected_interactions =
-                   {Interaction::kPinnedFileFromAnySource,
-                    Interaction::kPinnedFileFromHoldingSpaceDrop}},
-      TestCase{.item_action = ItemAction::kPin,
-               .event_source = EventSource::kFilesApp,
-               .expected_interactions = {Interaction::kPinnedFileFromAnySource,
-                                         Interaction::kPinnedFileFromFilesApp}},
+                                    Interaction::kPinnedFileFromContextMenu},
+      },
+      TestCase{
+          .item_action = ItemAction::kPin,
+          .event_source = EventSource::kHoldingSpaceTray,
+          .expected_interactions =
+              {Interaction::kPinnedFileFromAnySource,
+               Interaction::kPinnedFileFromHoldingSpaceDrop},
+      },
+      TestCase{
+          .item_action = ItemAction::kPin,
+          .event_source = EventSource::kFilesApp,
+          .expected_interactions = {Interaction::kPinnedFileFromAnySource,
+                                    Interaction::kPinnedFileFromFilesApp},
+      },
       TestCase{
           .item_action = ItemAction::kPin,
           .event_source = EventSource::kTest,
-          .expected_interactions = {Interaction::kPinnedFileFromAnySource}},
+          .expected_interactions = {Interaction::kPinnedFileFromAnySource},
+      },
       TestCase{
           .item_action = ItemAction::kPin,
           .event_source = EventSource::kWallpaper,
           .expected_interactions = {Interaction::kPinnedFileFromAnySource,
-                                    Interaction::kPinnedFileFromWallpaperDrop}},
+                                    Interaction::kPinnedFileFromWallpaperDrop},
+      },
+      TestCase{
+          .item_action = ItemAction::kRemove,
+          .event_source = EventSource::kHoldingSpaceItem,
+          .expected_interactions = {Interaction::kUsedOtherItem,
+                                    Interaction::kUsedPinnedItem},
+      },
+      TestCase{
+          .item_action = ItemAction::kResume,
+          .event_source = EventSource::kHoldingSpaceItem,
+          .expected_interactions = {Interaction::kUsedOtherItem,
+                                    Interaction::kUsedPinnedItem},
+      },
+      TestCase{
+          .item_action = ItemAction::kShowInFolder,
+          .event_source = EventSource::kHoldingSpaceItem,
+          .expected_interactions = {Interaction::kUsedOtherItem,
+                                    Interaction::kUsedPinnedItem},
+      },
+      TestCase{
+          .item_action = ItemAction::kUnpin,
+          .event_source = EventSource::kHoldingSpaceItem,
+          .expected_interactions = {},
+      },
   };
 
-  // Set up holding space `items`.
-  const std::unique_ptr<HoldingSpaceItem> item_0 = CreateHoldingSpaceItem(
-      HoldingSpaceItem::Type::kDownload, base::FilePath("foo"));
-  const std::unique_ptr<HoldingSpaceItem> item_1 = CreateHoldingSpaceItem(
-      HoldingSpaceItem::Type::kDownload, base::FilePath("bar"));
-  const std::vector<const HoldingSpaceItem*> items = {item_0.get(),
-                                                      item_1.get()};
+  // Create holding space `items`.
+  const auto pinned_item = CreateHoldingSpaceItem(
+      HoldingSpaceItem::Type::kPinnedFile, base::FilePath("pinned"));
+  const auto unpinned_item = CreateHoldingSpaceItem(
+      HoldingSpaceItem::Type::kDownload, base::FilePath("unpinned"));
+  const std::vector<const HoldingSpaceItem*> items = {pinned_item.get(),
+                                                      unpinned_item.get()};
+
+  // Partition `pinned_items` from `unpinned_items`.
+  std::vector<const HoldingSpaceItem*> pinned_items;
+  std::vector<const HoldingSpaceItem*> unpinned_items;
+  base::ranges::partition_copy(
+      items, std::back_inserter(pinned_items),
+      std::back_inserter(unpinned_items),
+      [](HoldingSpaceItem::Type type) {
+        return type == HoldingSpaceItem::Type::kPinnedFile;
+      },
+      &HoldingSpaceItem::type);
 
   // Verify expectations for each `test_case`.
   for (const TestCase& test_case : test_cases) {
@@ -1596,7 +1840,20 @@ TEST_P(HoldingSpaceWallpaperNudgeMetricsTest,
                               std::vector<Bucket> buckets;
                               for (Interaction interaction :
                                    test_case.expected_interactions) {
-                                buckets.emplace_back(interaction, items.size());
+                                switch (interaction) {
+                                  case Interaction::kUsedOtherItem:
+                                    buckets.emplace_back(interaction,
+                                                         unpinned_items.size());
+                                    break;
+                                  case Interaction::kUsedPinnedItem:
+                                    buckets.emplace_back(interaction,
+                                                         pinned_items.size());
+                                    break;
+                                  default:
+                                    buckets.emplace_back(interaction,
+                                                         items.size());
+                                    break;
+                                }
                               }
                               return buckets;
                             })()),
@@ -1695,7 +1952,7 @@ TEST_P(HoldingSpaceWallpaperNudgePlaceholderTest, HasPinnedFilesPlaceholder) {
   // Mark the holding space feature as available since there is no holding
   // space keyed service which would otherwise be responsible for doing so.
   holding_space_prefs::MarkTimeOfFirstAvailability(
-      Shell::Get()->session_controller()->GetLastActiveUserPrefService());
+      GetLastActiveUserPrefService());
 
   auto* const tray = GetHoldingSpaceTrayForShelf(
       GetShelfForDisplayId(GetPrimaryDisplay().id()));

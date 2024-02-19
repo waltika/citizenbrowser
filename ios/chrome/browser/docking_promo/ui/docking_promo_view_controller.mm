@@ -5,6 +5,7 @@
 #import "ios/chrome/browser/docking_promo/ui/docking_promo_view_controller.h"
 
 #import "base/check.h"
+#import "ios/chrome/browser/docking_promo/ui/docking_promo_metrics.h"
 #import "ios/chrome/browser/shared/ui/elements/instruction_view.h"
 #import "ios/chrome/common/ui/colors/semantic_color_names.h"
 #import "ios/chrome/common/ui/confirmation_alert/confirmation_alert_view_controller.h"
@@ -17,6 +18,7 @@
 namespace {
 constexpr CGFloat kCustomSpacingAtTopIfNoNavigationBar = 24;
 constexpr CGFloat kCustomSpacingAfterImageWithoutAnimation = 0;
+constexpr CGFloat kCustomSpacing = 20;
 NSString* const kDarkModeAnimationSuffix = @"_darkmode";
 NSString* const kEditHomeScreenKeypath = @"edit_home_screen";
 NSString* const kDockingPromoAccessibilityId = @"kDockingPromoAccessibilityId";
@@ -60,6 +62,12 @@ NSString* const kDockingPromoAccessibilityId = @"kDockingPromoAccessibilityId";
 // the animations accordingly.
 - (void)traitCollectionDidChange:(UITraitCollection*)previousTraitCollection {
   [super traitCollectionDidChange:previousTraitCollection];
+
+  if (self.traitCollection.userInterfaceStyle !=
+      previousTraitCollection.userInterfaceStyle) {
+    RecordDockingPromoAction(IOSDockingPromoAction::kToggleAppearance);
+  }
+
   BOOL darkModeEnabled =
       (self.traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark);
   BOOL hidden = ![self shouldShowAnimation];
@@ -122,6 +130,7 @@ NSString* const kDockingPromoAccessibilityId = @"kDockingPromoAccessibilityId";
   self.alertScreen.showDismissBarButton = NO;
   self.alertScreen.titleTextStyle = UIFontTextStyleTitle2;
   self.alertScreen.topAlignedLayout = YES;
+  self.alertScreen.customSpacing = kCustomSpacing;
 
   if (self.shouldShowAnimation) {
     self.alertScreen.customSpacingBeforeImageIfNoNavigationBar =

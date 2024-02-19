@@ -120,3 +120,54 @@ void use_concept() {
   // an implementation detail of the matching type.
   Concept auto c = &x;
 }
+
+template <class T>
+T auto_function_return_alias_with_ptr() {
+  return return_alias_with_ptr();
+}
+
+void template_function() {
+  // The auto is a type alias that was provided as a template parameter. Simple
+  // repro of things like std::find().
+  auto auto_alias = auto_function_return_alias_with_ptr<AliasWithPtr>();
+}
+
+template <class T>
+using AliasOfT = T;
+
+template <class T>
+AliasOfT<T> auto_function_return_elaborated_alias_with_ptr() {
+  return return_alias_with_ptr();
+}
+
+void alias_template_specialization_function() {
+  // The auto is a type alias that was provided as a template parameter, but
+  // returned as another alias (an "ElaboratedType" in this case).
+  auto auto_alias =
+      auto_function_return_elaborated_alias_with_ptr<AliasWithPtr>();
+}
+
+struct auto_type_level_three {
+  template <class T>
+  inline auto foo() const {
+    return T();
+  }
+};
+
+constexpr auto auto_type_level_two = auto_type_level_three{};
+
+template <typename T>
+constexpr auto auto_type_level_one() {
+  return auto_type_level_two.foo<T>();
+}
+
+void nested_auto_function() {
+  // This test function returns a type that has `AutoType` nested multiple
+  // times. Something like:
+  // AutoType 0x157941d90 'int *' sugar
+  // `-AutoType 0x157941d90 'int *' sugar
+  //   `-AutoType 0x157940b30 'int *' sugar
+  //     `-SubstTemplateTypeParmType 0x157940a20 'int *' sugar
+  //       `-PointerType 0x15790b7c0 'int *'
+  auto x = auto_type_level_one<AliasWithPtr>();
+}

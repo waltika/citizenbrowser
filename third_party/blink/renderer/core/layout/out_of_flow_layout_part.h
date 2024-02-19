@@ -127,20 +127,14 @@ class CORE_EXPORT OutOfFlowLayoutPart {
   // This stores the information needed to update a multicol child inside an
   // existing multicol fragment. This is used during nested fragmentation of an
   // OOF positioned element.
+  //
+  // TODO(layout-dev): Remove? This class now only holds a break token pointer,
+  // so things can most likely be simplified.
   struct MulticolChildInfo {
     DISALLOW_NEW();
 
    public:
-    // The mutable link of a multicol child.
-    PhysicalFragmentLink* mutable_link;
-
-    // The multicol break token that stores a reference to |mutable_link|'s
-    // break token in its list of child break tokens.
     Member<const BlockBreakToken> parent_break_token;
-
-    explicit MulticolChildInfo(PhysicalFragmentLink* mutable_link,
-                               BlockBreakToken* parent_break_token = nullptr)
-        : mutable_link(mutable_link), parent_break_token(parent_break_token) {}
 
     void Trace(Visitor* visitor) const;
   };
@@ -385,15 +379,6 @@ class CORE_EXPORT OutOfFlowLayoutPart {
                              bool* has_actual_break_inside,
                              SimplifiedOofLayoutAlgorithm* algorithm,
                              HeapVector<NodeToLayout>* fragmented_descendants);
-  void ReplaceFragmentainer(wtf_size_t index,
-                            LogicalOffset offset,
-                            bool create_new_fragment,
-                            const PhysicalBoxFragment& new_fragmentainer);
-  LogicalOffset UpdatedFragmentainerOffset(
-      LogicalOffset offset,
-      wtf_size_t index,
-      LogicalOffset fragmentainer_progression,
-      bool create_new_fragment);
   ConstraintSpace GetFragmentainerConstraintSpace(wtf_size_t index);
   void ComputeStartFragmentIndexAndRelativeOffset(
       WritingMode default_writing_mode,
@@ -401,10 +386,6 @@ class CORE_EXPORT OutOfFlowLayoutPart {
       std::optional<LayoutUnit> clipped_container_block_offset,
       wtf_size_t* start_index,
       LogicalOffset* offset) const;
-
-  void ReplaceFragment(const LayoutResult* new_result,
-                       const PhysicalBoxFragment& old_fragment,
-                       wtf_size_t index);
 
   // This saves the static-position for an OOF-positioned object into its
   // paint-layer.
@@ -441,10 +422,6 @@ class CORE_EXPORT OutOfFlowLayoutPart {
   // will affect column balancing, if any, without actually adding the OOFs to
   // the associated columns.
   ColumnBalancingInfo* column_balancing_info_ = nullptr;
-  // The block size of the multi-column (before adjustment for spanners, etc.)
-  // This is used to calculate the column size of any newly added proxy
-  // fragments when handling fragmentation for abspos elements.
-  LayoutUnit original_column_block_size_ = kIndefiniteSize;
   // The consumed block size of previous fragmentainers. This is accumulated and
   // used as we add OOF elements to fragmentainers.
   LayoutUnit fragmentainer_consumed_block_size_;

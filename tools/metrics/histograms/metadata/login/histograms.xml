@@ -37,16 +37,6 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
-<histogram name="Login.ArcContinueBootImpulseStatus"
-    enum="ArcContinueBootImpulseStatus" expires_after="2024-02-25">
-  <owner>vsomani@google.com</owner>
-  <owner>arc-core@google.com</owner>
-  <summary>
-    Records the status of Arc continue boot impulse. This is emitted every time
-    we upgrade from a mini to full container.
-  </summary>
-</histogram>
-
 <histogram name="Login.BrowserShutdownTime" units="ms"
     expires_after="2024-07-21">
   <owner>xiyuan@chromium.org</owner>
@@ -96,7 +86,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Login.DevicePolicyState" enum="DevicePoliciesState"
-    expires_after="2024-06-09">
+    expires_after="2024-08-11">
   <owner>igorcov@chromium.org</owner>
   <owner>chromeos-commercial-remote-management@chromium.org</owner>
   <summary>

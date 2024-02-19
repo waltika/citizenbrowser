@@ -336,17 +336,15 @@ class WindowTreeHostWithReleaseTest : public test::AuraTestBase {
  public:
   // AuraTestBase:
   void SetUp() override {
-#if BUILDFLAG(IS_WIN)
     // Disable the headless check as the bots run with CHROME_HEADLESS set.
     NativeWindowOcclusionTracker::SetHeadlessCheckEnabled(false);
-#endif
     scoped_feature_list_.InitWithFeaturesAndParameters(
         {
 #if BUILDFLAG(IS_WIN)
             {features::kCalculateNativeWinOcclusion, {}},
 #endif
             {features::kApplyNativeOcclusionToCompositor,
-             {{features::kApplyNativeOcclusionToCompositorType,
+             {{features::kApplyNativeOcclusionToCompositorType.name,
                features::kApplyNativeOcclusionToCompositorTypeRelease}}},
         },
         {});
@@ -355,9 +353,7 @@ class WindowTreeHostWithReleaseTest : public test::AuraTestBase {
 
   void TearDown() override {
     test::AuraTestBase::TearDown();
-#if BUILDFLAG(IS_WIN)
     NativeWindowOcclusionTracker::SetHeadlessCheckEnabled(true);
-#endif
   }
 
  private:
@@ -416,17 +412,15 @@ class WindowTreeHostWithThrottleTest : public test::AuraTestBase {
  public:
   // AuraTestBase:
   void SetUp() override {
-#if BUILDFLAG(IS_WIN)
     // Disable the headless check as the bots run with CHROME_HEADLESS set.
     NativeWindowOcclusionTracker::SetHeadlessCheckEnabled(false);
-#endif
     scoped_feature_list_.InitWithFeaturesAndParameters(
         {
 #if BUILDFLAG(IS_WIN)
             {features::kCalculateNativeWinOcclusion, {}},
 #endif
             {features::kApplyNativeOcclusionToCompositor,
-             {{features::kApplyNativeOcclusionToCompositorType,
+             {{features::kApplyNativeOcclusionToCompositorType.name,
                features::kApplyNativeOcclusionToCompositorTypeThrottle}}},
         },
         {});
@@ -435,9 +429,7 @@ class WindowTreeHostWithThrottleTest : public test::AuraTestBase {
 
   void TearDown() override {
     test::AuraTestBase::TearDown();
-#if BUILDFLAG(IS_WIN)
     NativeWindowOcclusionTracker::SetHeadlessCheckEnabled(true);
-#endif
   }
 
  private:
@@ -482,17 +474,15 @@ class WindowTreeHostWithThrottleAndReleaseTest : public test::AuraTestBase {
  public:
   // AuraTestBase:
   void SetUp() override {
-#if BUILDFLAG(IS_WIN)
     // Disable the headless check as the bots run with CHROME_HEADLESS set.
     NativeWindowOcclusionTracker::SetHeadlessCheckEnabled(false);
-#endif
     scoped_feature_list_.InitWithFeaturesAndParameters(
         {
 #if BUILDFLAG(IS_WIN)
             {features::kCalculateNativeWinOcclusion, {}},
 #endif
             {features::kApplyNativeOcclusionToCompositor,
-             {{features::kApplyNativeOcclusionToCompositorType,
+             {{features::kApplyNativeOcclusionToCompositorType.name,
                features::
                    kApplyNativeOcclusionToCompositorTypeThrottleAndRelease}}},
         },
@@ -502,9 +492,7 @@ class WindowTreeHostWithThrottleAndReleaseTest : public test::AuraTestBase {
 
   void TearDown() override {
     test::AuraTestBase::TearDown();
-#if BUILDFLAG(IS_WIN)
     NativeWindowOcclusionTracker::SetHeadlessCheckEnabled(true);
-#endif
   }
 
  private:
@@ -541,6 +529,20 @@ TEST_F(WindowTreeHostWithThrottleAndReleaseTest, ToggleHidden) {
   host()->SetNativeWindowOcclusionState(Window::OcclusionState::VISIBLE, {});
   EXPECT_TRUE(host()->compositor()->IsVisible());
   EXPECT_TRUE(test::GetThrottledHosts().empty());
+}
+
+TEST_F(WindowTreeHostWithThrottleAndReleaseTest, DestroyWhileThrottled) {
+  host()->Show();
+  // This test needs to drive native occlusion. If native occlusion is
+  // used, it'll conflict with this test.
+  NativeWindowOcclusionTracker::DisableNativeWindowOcclusionTracking(host());
+  ASSERT_TRUE(NativeWindowOcclusionTracker::
+                  IsNativeWindowOcclusionTrackingAlwaysEnabled(host()));
+  EXPECT_TRUE(test::GetThrottledHosts().empty());
+  host()->SetNativeWindowOcclusionState(Window::OcclusionState::OCCLUDED, {});
+  EXPECT_FALSE(host()->compositor()->IsVisible());
+  EXPECT_TRUE(base::Contains(test::GetThrottledHosts(), host()));
+  // Expect not to crash after destroying WindowTreeHost after this.
 }
 
 TEST_F(WindowTreeHostWithThrottleAndReleaseTest,

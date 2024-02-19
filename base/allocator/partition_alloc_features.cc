@@ -8,6 +8,7 @@
 #include "base/allocator/partition_allocator/src/partition_alloc/partition_alloc_base/time/time.h"
 #include "base/allocator/partition_allocator/src/partition_alloc/partition_alloc_buildflags.h"
 #include "base/allocator/partition_allocator/src/partition_alloc/partition_root.h"
+#include "base/allocator/partition_allocator/src/partition_alloc/shim/allocator_shim_dispatch_to_noop_on_free.h"
 #include "base/allocator/partition_allocator/src/partition_alloc/thread_cache.h"
 #include "base/base_export.h"
 #include "base/feature_list.h"
@@ -150,26 +151,10 @@ const base::FeatureParam<BackupRefPtrEnabledProcesses>
         BackupRefPtrEnabledProcesses::kNonRenderer,
         &kBackupRefPtrEnabledProcessesOptions};
 
-// Map *-with-memory-reclaimer modes onto their counterpars without the suffix.
-// They are the same, as memory reclaimer is now controlled independently.
-//
-// Similarly, map disabled-but-*-way-split onto plain disabled, as we are done
-// experimenting with partition split.
-//
-// We need to keep those option strings, as there is a long tail of clients that
-// may have an old field trial config, which used these modes.
-//
-// DO NOT USE *-with-memory-reclaimer and disabled-but-*-way-split modes in new
-// configs!
 constexpr FeatureParam<BackupRefPtrMode>::Option kBackupRefPtrModeOptions[] = {
     {BackupRefPtrMode::kDisabled, "disabled"},
     {BackupRefPtrMode::kEnabled, "enabled"},
-    {BackupRefPtrMode::kEnabled, "enabled-with-memory-reclaimer"},
     {BackupRefPtrMode::kEnabledInSameSlotMode, "enabled-in-same-slot-mode"},
-    {BackupRefPtrMode::kDisabled, "disabled-but-2-way-split"},
-    {BackupRefPtrMode::kDisabled,
-     "disabled-but-2-way-split-with-memory-reclaimer"},
-    {BackupRefPtrMode::kDisabled, "disabled-but-3-way-split"},
 };
 
 const base::FeatureParam<BackupRefPtrMode> kBackupRefPtrModeParam{
@@ -178,14 +163,24 @@ const base::FeatureParam<BackupRefPtrMode> kBackupRefPtrModeParam{
 
 BASE_FEATURE(kPartitionAllocMemoryTagging,
              "PartitionAllocMemoryTagging",
-             FEATURE_DISABLED_BY_DEFAULT);
+#if BUILDFLAG(USE_FULL_MTE)
+             FEATURE_ENABLED_BY_DEFAULT
+#else
+             FEATURE_DISABLED_BY_DEFAULT
+#endif
+);
 
 constexpr FeatureParam<MemtagMode>::Option kMemtagModeOptions[] = {
     {MemtagMode::kSync, "sync"},
     {MemtagMode::kAsync, "async"}};
 
 const base::FeatureParam<MemtagMode> kMemtagModeParam{
-    &kPartitionAllocMemoryTagging, "memtag-mode", MemtagMode::kAsync,
+    &kPartitionAllocMemoryTagging, "memtag-mode",
+#if BUILDFLAG(USE_FULL_MTE)
+    MemtagMode::kSync,
+#else
+    MemtagMode::kAsync,
+#endif
     &kMemtagModeOptions};
 
 constexpr FeatureParam<MemoryTaggingEnabledProcesses>::Option
@@ -197,7 +192,11 @@ constexpr FeatureParam<MemoryTaggingEnabledProcesses>::Option
 const base::FeatureParam<MemoryTaggingEnabledProcesses>
     kMemoryTaggingEnabledProcessesParam{
         &kPartitionAllocMemoryTagging, "enabled-processes",
+#if BUILDFLAG(USE_FULL_MTE)
+        MemoryTaggingEnabledProcesses::kAllProcesses,
+#else
         MemoryTaggingEnabledProcesses::kBrowserOnly,
+#endif
         &kMemoryTaggingEnabledProcessesOptions};
 
 BASE_FEATURE(kKillPartitionAllocMemoryTagging,
@@ -207,7 +206,13 @@ BASE_FEATURE(kKillPartitionAllocMemoryTagging,
 BASE_EXPORT BASE_DECLARE_FEATURE(kPartitionAllocPermissiveMte);
 BASE_FEATURE(kPartitionAllocPermissiveMte,
              "PartitionAllocPermissiveMte",
-             FEATURE_ENABLED_BY_DEFAULT);
+#if BUILDFLAG(USE_FULL_MTE)
+             // We want to actually crash if USE_FULL_MTE is enabled.
+             FEATURE_DISABLED_BY_DEFAULT
+#else
+             FEATURE_ENABLED_BY_DEFAULT
+#endif
+);
 
 const base::FeatureParam<bool> kBackupRefPtrAsanEnableDereferenceCheckParam{
     &kPartitionAllocBackupRefPtr, "asan-enable-dereference-check", true};
@@ -431,6 +436,52 @@ BASE_FEATURE(kUsePoolOffsetFreelists,
              "PartitionAllocUsePoolOffsetFreelists",
              base::FEATURE_DISABLED_BY_DEFAULT);
 #endif
+
+BASE_FEATURE(kPartitionAllocMakeFreeNoOpOnShutdown,
+             "PartitionAllocMakeFreeNoOpOnShutdown",
+             FEATURE_DISABLED_BY_DEFAULT);
+
+constexpr FeatureParam<WhenFreeBecomesNoOp>::Option
+    kPartitionAllocMakeFreeNoOpOnShutdownOptions[] = {
+        {
+            WhenFreeBecomesNoOp::kBeforeShutDownThreads,
+            "before-shutdown-threads",
+        },
+        {
+            WhenFreeBecomesNoOp::kInShutDownThreads,
+            "in-shutdown-threads",
+        },
+        {
+            WhenFreeBecomesNoOp::kAfterShutDownThreads,
+            "after-shutdown-threads",
+        },
+};
+
+const base::FeatureParam<WhenFreeBecomesNoOp>
+    kPartitionAllocMakeFreeNoOpOnShutdownParam{
+        &kPartitionAllocMakeFreeNoOpOnShutdown, "callsite",
+        WhenFreeBecomesNoOp::kBeforeShutDownThreads,
+        &kPartitionAllocMakeFreeNoOpOnShutdownOptions};
+
+void MakeFreeNoOp(WhenFreeBecomesNoOp callsite) {
+  CHECK(base::FeatureList::GetInstance());
+  // Ignoring `free()` during Shutdown would allow developers to introduce new
+  // dangling pointers. So we want to avoid ignoring free when it is enabled.
+  // Note: For now, the DanglingPointerDetector is only enabled on 5 bots, and
+  // on linux non-official configuration.
+  // TODO(b/40802063): Reconsider this decision after the experiment.
+#if BUILDFLAG(ENABLE_DANGLING_RAW_PTR_CHECKS)
+  if (base::FeatureList::IsEnabled(features::kPartitionAllocDanglingPtr)) {
+    return;
+  }
+#endif  // BUILDFLAG(ENABLE_DANGLING_RAW_PTR_CHECKS)
+#if BUILDFLAG(USE_ALLOCATOR_SHIM)
+  if (base::FeatureList::IsEnabled(kPartitionAllocMakeFreeNoOpOnShutdown) &&
+      kPartitionAllocMakeFreeNoOpOnShutdownParam.Get() == callsite) {
+    allocator_shim::InsertNoOpOnFreeAllocatorShimOnShutDown();
+  }
+#endif  // BUILDFLAG(USE_ALLOCATOR_SHIM)
+}
 
 }  // namespace features
 }  // namespace base

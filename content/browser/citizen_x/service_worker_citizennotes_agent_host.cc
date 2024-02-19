@@ -397,7 +397,8 @@ ServiceWorkerCitizenNotesAgentHost::CreateNetworkFactoryParamsForCitizenNotes() 
       NetworkServiceDevToolsObserver::MakeSelfOwned(GetId()),
       NetworkServiceCitizenNotesObserver::MakeSelfOwned(GetId()),
       /*client_security_state=*/nullptr,
-      /*debug_tag=*/"SWDTAH::CreateNetworkFactoryParamsForCitizenNotes");
+      /*debug_tag=*/"SWDTAH::CreateNetworkFactoryParamsForCitizenNotes",
+      /*require_cross_site_request_for_cookies=*/false);
   return {url::Origin::Create(GetURL()), net::SiteForCookies::FromUrl(GetURL()),
           std::move(factory)};
 }

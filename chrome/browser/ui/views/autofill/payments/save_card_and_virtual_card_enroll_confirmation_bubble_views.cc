@@ -16,10 +16,15 @@ SaveCardAndVirtualCardEnrollConfirmationBubbleViews::
         views::View* anchor_view,
         content::WebContents* web_contents,
         base::OnceCallback<void(PaymentsBubbleClosedReason)>
-            controller_hide_callback)
+            controller_hide_callback,
+        SaveCardAndVirtualCardEnrollConfirmationUiParams ui_params)
     : LocationBarBubbleDelegateView(anchor_view, web_contents),
-      controller_hide_callback_(std::move(controller_hide_callback)) {
+      controller_hide_callback_(std::move(controller_hide_callback)),
+      ui_params_(std::move(ui_params)) {
   SetButtons(ui::DIALOG_BUTTON_NONE);
+  SetShowCloseButton(true);
+  set_fixed_width(views::LayoutProvider::Get()->GetDistanceMetric(
+      views::DISTANCE_BUBBLE_PREFERRED_WIDTH));
 }
 
 void SaveCardAndVirtualCardEnrollConfirmationBubbleViews::Hide() {

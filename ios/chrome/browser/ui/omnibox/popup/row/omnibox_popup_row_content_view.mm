@@ -9,6 +9,7 @@
 #import "ios/chrome/browser/shared/ui/elements/extended_touch_target_button.h"
 #import "ios/chrome/browser/shared/ui/elements/fade_truncating_label.h"
 #import "ios/chrome/browser/shared/ui/util/attributed_string_util.h"
+#import "ios/chrome/browser/ui/omnibox/omnibox_ui_features.h"
 #import "ios/chrome/browser/ui/omnibox/popup/omnibox_icon_view.h"
 #import "ios/chrome/browser/ui/omnibox/popup/row/omnibox_popup_row_delegate.h"
 #import "ios/chrome/browser/ui/omnibox/popup/row/omnibox_popup_row_util.h"
@@ -97,19 +98,28 @@ const char kOmniboxSearchSuggestionNumberOfLines[] =
     [_primaryLabel
         setContentCompressionResistancePriority:UILayoutPriorityDefaultHigh + 1
                                         forAxis:UILayoutConstraintAxisVertical];
+    [_primaryLabel setContentHuggingPriority:UILayoutPriorityRequired
+                                     forAxis:UILayoutConstraintAxisVertical];
     _primaryLabel.lineSpacing = kMultilineLineSpacing;
 
     // Secondary Label Fading.
     _secondaryLabelFading = [[FadeTruncatingLabel alloc] init];
     _secondaryLabelFading.translatesAutoresizingMaskIntoConstraints = NO;
     _secondaryLabelFading.hidden = YES;
+    [_secondaryLabelFading
+        setContentHuggingPriority:UILayoutPriorityRequired
+                          forAxis:UILayoutConstraintAxisVertical];
 
     // Secondary Label Truncating.
     _secondaryLabelTruncating = [[UILabel alloc] init];
     _secondaryLabelTruncating.translatesAutoresizingMaskIntoConstraints = NO;
     _secondaryLabelTruncating.lineBreakMode = NSLineBreakByTruncatingTail;
     _secondaryLabelTruncating.hidden = YES;
+    [_secondaryLabelTruncating
+        setContentHuggingPriority:UILayoutPriorityRequired
+                          forAxis:UILayoutConstraintAxisVertical];
 
+    // Text Stack View.
     _textStackView = [[UIStackView alloc] initWithArrangedSubviews:@[
       _primaryLabel, _secondaryLabelFading, _secondaryLabelTruncating
     ]];
@@ -135,7 +145,9 @@ const char kOmniboxSearchSuggestionNumberOfLines[] =
     _separator.translatesAutoresizingMaskIntoConstraints = NO;
     _separator.hidden = YES;
     _separator.backgroundColor =
-        [UIColor colorNamed:kOmniboxSuggestionRowSeparatorColor];
+        [UIColor colorNamed:IsIpadPopoutOmniboxEnabled()
+                                ? kOmniboxPopoutSuggestionRowSeparatorColor
+                                : kOmniboxSuggestionRowSeparatorColor];
     [self addSubview:_separator];
 
     NSLayoutAnchor* leadingAnchor = CanUseOmniboxLayoutGuide()

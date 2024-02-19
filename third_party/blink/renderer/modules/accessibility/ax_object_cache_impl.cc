@@ -41,8 +41,10 @@
 #include "third_party/blink/public/mojom/render_accessibility.mojom-blink.h"
 #include "third_party/blink/public/platform/task_type.h"
 #include "third_party/blink/public/web/web_local_frame_client.h"
+#include "third_party/blink/public/web/web_plugin_container.h"
 #include "third_party/blink/renderer/core/accessibility/scoped_blink_ax_event_intent.h"
 #include "third_party/blink/renderer/core/aom/accessible_node.h"
+#include "third_party/blink/renderer/core/aom/computed_accessible_node.h"
 #include "third_party/blink/renderer/core/display_lock/display_lock_utilities.h"
 #include "third_party/blink/renderer/core/dom/document.h"
 #include "third_party/blink/renderer/core/dom/document_lifecycle.h"
@@ -2131,6 +2133,8 @@ void AXObjectCacheImpl::RemoveReferencesToAXID(AXID obj_id) {
   autofill_suggestion_availability_map_.erase(obj_id);
   fixed_or_sticky_node_ids_.erase(obj_id);
   cached_bounding_boxes_.erase(obj_id);
+  computed_node_mapping_.erase(obj_id);
+
   // Clear id from relation cache.
   if (relation_cache_) {
     relation_cache_->RemoveAXID(obj_id);
@@ -3274,7 +3278,7 @@ void AXObjectCacheImpl::ProcessDeferredAccessibilityEvents(Document& document,
       // embedding token, which may not be present when the cache is first
       // initialized.
       if (GetDocument().GetFrame()) {
-        const absl::optional<base::UnguessableToken>& embedding_token =
+        const std::optional<base::UnguessableToken>& embedding_token =
             GetDocument().GetFrame()->GetEmbeddingToken();
         if (embedding_token && !embedding_token->is_empty()) {
           if (auto* client = GetWebLocalFrameClient()) {
@@ -4773,9 +4777,14 @@ void AXObjectCacheImpl::MarkAXObjectDirtyWithCleanLayoutHelper(
                                      event_intents);
 
   obj->UpdateCachedAttributeValuesIfNeeded(true);
+
+  computed_node_mapping_.erase(obj->AXObjectID());
 }
 
 void AXObjectCacheImpl::MarkAXObjectDirtyWithCleanLayout(AXObject* obj) {
+  if (!obj) {
+    return;
+  }
   MarkAXObjectDirtyWithCleanLayoutHelper(obj, active_event_from_,
                                          active_event_from_action_);
   for (auto agent : agents_) {
@@ -4806,6 +4815,9 @@ void AXObjectCacheImpl::NotifySubtreeDirty(AXObject* obj) {
 }
 
 void AXObjectCacheImpl::MarkAXSubtreeDirtyWithCleanLayout(AXObject* obj) {
+  if (!obj) {
+    return;
+  }
   MarkAXObjectDirtyWithCleanLayoutHelper(obj, active_event_from_,
                                          active_event_from_action_);
   NotifySubtreeDirty(obj);
@@ -4821,7 +4833,7 @@ void AXObjectCacheImpl::MarkAXSubtreeDirty(AXObject* obj) {
 void AXObjectCacheImpl::MarkSubtreeDirty(Node* node) {
   if (AXObject* obj = Get(node)) {
     MarkAXSubtreeDirty(obj);
-  } else {
+  } else if (node) {
     // There is no AXObject, so there is no subtree to mark dirty.
     MarkElementDirty(node);
   }
@@ -5123,15 +5135,22 @@ void AXObjectCacheImpl::AddDirtyObjectToSerializationQueue(
   // SerializeDirtyObjectsAndEvents().
   dirty_objects_.push_back(
       AXDirtyObject::Create(obj, event_from, event_from_action, event_intents));
+
+  // ensure there is a document lifecycle update scheduled for plugin
+  // containers.
+  if (obj->GetElement() && DynamicTo<HTMLPlugInElement>(obj->GetElement())) {
+    ScheduleImmediateSerialization();
+  }
 }
 
 void AXObjectCacheImpl::SerializeDirtyObjectsAndEvents(
-    bool has_plugin_tree_source,
+    WebPluginContainer* plugin_container,
     std::vector<ui::AXTreeUpdate>& updates,
     std::vector<ui::AXEvent>& events,
     bool& had_end_of_test_event,
     bool& had_load_complete_messages,
-    bool& need_to_send_location_changes) {
+    bool& need_to_send_location_changes,
+    bool& should_reset_plugin_serializer) {
   HashSet<int32_t> already_serialized_ids;
   int redundant_serialization_count = 0;
 
@@ -5180,8 +5199,14 @@ void AXObjectCacheImpl::SerializeDirtyObjectsAndEvents(
 
     // If there's a plugin, force the tree data to be generated in every
     // message so the plugin can merge its own tree data changes.
-    if (has_plugin_tree_source)
+    if (plugin_container) {
       update.has_tree_data = true;
+
+      if (!ax_tree_serializer_->IsInClientTree(
+              Get(plugin_container->GetElement()))) {
+        should_reset_plugin_serializer = true;
+      }
+    }
 
     bool success = ax_tree_serializer_->SerializeChanges(obj, &update);
 
@@ -5713,6 +5738,20 @@ void AXObjectCacheImpl::OnPermissionStatusChange(
   accessibility_event_permission_ = status;
 }
 
+ComputedAccessibleNode* AXObjectCacheImpl::GetOrCreateComputedAccessibleNode(
+    AXID axid) {
+  auto iter = computed_node_mapping_.find(axid);
+  if (iter != computed_node_mapping_.end()) {
+    return iter->value;
+  }
+
+  ComputedAccessibleNode* ax_node =
+      MakeGarbageCollected<ComputedAccessibleNode>(axid, document_);
+  computed_node_mapping_.insert(axid, ax_node);
+
+  return ax_node;
+}
+
 bool AXObjectCacheImpl::CanCallAOMEventListeners() const {
   return accessibility_event_permission_ == mojom::PermissionStatus::GRANTED;
 }
@@ -5734,6 +5773,7 @@ void AXObjectCacheImpl::RequestAOMEventListenerPermission() {
 
 void AXObjectCacheImpl::Trace(Visitor* visitor) const {
   visitor->Trace(agents_);
+  visitor->Trace(computed_node_mapping_);
   visitor->Trace(document_);
   visitor->Trace(popup_document_);
   visitor->Trace(last_selected_from_active_descendant_);

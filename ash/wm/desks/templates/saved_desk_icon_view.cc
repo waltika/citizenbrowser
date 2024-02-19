@@ -118,7 +118,7 @@ void SavedDeskIconView::CreateCountLabelChildView(bool show_plus,
                        .Build());
 }
 
-BEGIN_METADATA(SavedDeskIconView, views::View)
+BEGIN_METADATA(SavedDeskIconView)
 END_METADATA
 
 // -----------------------------------------------------------------------------
@@ -206,7 +206,7 @@ void SavedDeskRegularIconView::CreateChildViews(
       delegate->MaybeRetrieveIconForSpecialIdentifier(
           icon_identifier_, incognito_window_color_provider);
 
-  icon_view_->GetViewAccessibility().OverrideRole(ax::mojom::Role::kImage);
+  icon_view_->GetViewAccessibility().SetRole(ax::mojom::Role::kImage);
   if (!app_title.empty())
     icon_view_->GetViewAccessibility().OverrideName(app_title);
 
@@ -277,7 +277,7 @@ void SavedDeskRegularIconView::LoadDefaultIcon() {
   }
 }
 
-BEGIN_METADATA(SavedDeskRegularIconView, views::View)
+BEGIN_METADATA(SavedDeskRegularIconView)
 END_METADATA
 
 // -----------------------------------------------------------------------------
@@ -322,7 +322,7 @@ bool SavedDeskOverflowIconView::IsOverflowIcon() const {
   return true;
 }
 
-BEGIN_METADATA(SavedDeskOverflowIconView, views::View)
+BEGIN_METADATA(SavedDeskOverflowIconView)
 END_METADATA
 
 }  // namespace ash

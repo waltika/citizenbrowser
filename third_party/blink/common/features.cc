@@ -89,6 +89,10 @@ const base::FeatureParam<AlignFontDisplayAutoTimeoutWithLCPGoalMode>
         AlignFontDisplayAutoTimeoutWithLCPGoalMode::kToSwapPeriod,
         &align_font_display_auto_timeout_with_lcp_goal_modes};
 
+BASE_FEATURE(kAllowDatapipeDrainedAsBytesConsumerInBFCache,
+             "AllowDatapipeDrainedAsBytesConsumerInBFCache",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
 BASE_FEATURE(kAllowDevToolsMainThreadDebuggerForMultipleMainFrames,
              "AllowDevToolsMainThreadDebuggerForMultipleMainFrames",
              base::FEATURE_ENABLED_BY_DEFAULT);
@@ -157,6 +161,15 @@ BASE_FEATURE(kAudioWorkletThreadRealtimePriority,
 // inside Shadow DOM.
 BASE_FEATURE(kAutofillIncludeShadowDomInUnassociatedListedElements,
              "AutofillIncludeShadowDomInUnassociatedListedElements",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+// When enabled, Autofill extracts all top level shadow DOM form elements of a
+// document. Additionally, the shadow-tree-including form control elements of a
+// form `f` include all descendants that are form controls - even those whose
+// closest shadow-tree-including form ancestor is a different form `f2` (which
+// itself is a descendant of `f`).
+BASE_FEATURE(kAutofillIncludeFormElementsInShadowDom,
+             "AutofillIncludeFormElementsInShadowDom",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 // If disabled (default for many years), autofilling triggers KeyDown and
@@ -800,6 +813,12 @@ BASE_FEATURE(kEstablishGpuChannelAsync,
 #endif
 );
 
+// Exposes Event Timing keyboard InteractionId of composition and keypress
+// events.
+BASE_FEATURE(kEventTimingKeypressAndCompositionInteractionId,
+             "EventTimingKeypressAndCompositionInteractionId",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
 // Enables unload handler deprecation via Permissions-Policy.
 // https://crbug.com/1324111
 BASE_FEATURE(kDeprecateUnload,
@@ -824,10 +843,22 @@ BASE_FEATURE(kDeprecateUnloadByAllowList,
 const base::FeatureParam<std::string> kDeprecateUnloadAllowlist{
     &kDeprecateUnloadByAllowList, "allowlist", ""};
 
+// Enables using a 'deprecatedRenderURLReplacements' field within the a
+// Protected Audience ad auction config.
+BASE_FEATURE(kEnableDeprecatedRenderURLReplacements,
+             "EnableDeprecatedRenderURLReplacements",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
 // Enables using a base::ProtectedMemory<bool> value to provide extra protection
 // against MojoJS bindings being enabled via a data-only attack.
 BASE_FEATURE(kEnableMojoJSProtectedMemory,
              "EnableMojoJSProtectedMemory",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+// Enable reporting the modal dialog start time as an alternative end time for
+// duration measurement in performance event timing.
+BASE_FEATURE(kEventTimingFallbackToModalDialogStart,
+             "EventTimingFallbackToModalDialogStart",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 // Controls whether LCP calculations should exclude low-entropy images. If
@@ -885,7 +916,7 @@ BASE_FEATURE(kFencedFramesReportingAttestationsChanges,
 // that sets the automatic beacon data.
 BASE_FEATURE(kFencedFramesCrossOriginAutomaticBeacons,
              "FencedFramesCrossOriginAutomaticBeacons",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // Temporarily un-disable credentials on fenced frame automatic beacons until
 // third party cookie deprecation.
@@ -1195,8 +1226,8 @@ BASE_FEATURE(kLCPCriticalPathPredictor,
              "LCPCriticalPathPredictor",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-const base::FeatureParam<bool> kLCPCriticalPathPredictorDryRun{
-    &kLCPCriticalPathPredictor, "lcpp_dry_run", false};
+const base::FeatureParam<bool> kLCPCriticalPathAdjustImageLoadPriority{
+    &kLCPCriticalPathPredictor, "lcpp_adjust_image_load_priority", false};
 
 const base::FeatureParam<int> kLCPCriticalPathPredictorMaxElementLocatorLength{
     &kLCPCriticalPathPredictor, "lcpp_max_element_locator_length", 1024};
@@ -1222,11 +1253,6 @@ const base::FeatureParam<LcppResourceLoadPriority>
         &kLCPCriticalPathPredictor, "lcpp_image_load_priority",
         LcppResourceLoadPriority::kVeryHigh, &lcpp_resource_load_priorities};
 
-const base::FeatureParam<LcppResourceLoadPriority>
-    kLCPCriticalPathPredictorInfluencerScriptLoadPriority{
-        &kLCPCriticalPathPredictor, "lcpp_script_load_priority",
-        LcppResourceLoadPriority::kVeryHigh, &lcpp_resource_load_priorities};
-
 const base::FeatureParam<bool>
     kLCPCriticalPathPredictorEnableElementLocatorPerformanceImprovements{
         &kLCPCriticalPathPredictor, "lcpp_enable_perf_improvements", true};
@@ -1240,11 +1266,25 @@ BASE_FEATURE(kLCPScriptObserver,
              "LCPScriptObserver",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
+const base::FeatureParam<LcppResourceLoadPriority>
+    kLCPScriptObserverScriptLoadPriority{
+        &kLCPScriptObserver, "lcpscriptobserver_script_load_priority",
+        LcppResourceLoadPriority::kVeryHigh, &lcpp_resource_load_priorities};
+
+const base::FeatureParam<LcppResourceLoadPriority>
+    kLCPScriptObserverImageLoadPriority{
+        &kLCPScriptObserver, "lcpscriptobserver_image_load_priority",
+        LcppResourceLoadPriority::kVeryHigh, &lcpp_resource_load_priorities};
+
 const base::FeatureParam<int> kLCPScriptObserverMaxUrlLength{
-    &kLCPScriptObserver, "lcpp_max_url_length", 1024};
+    &kLCPScriptObserver, "lcpscriptobserver_script_max_url_length", 1024};
 
 const base::FeatureParam<int> kLCPScriptObserverMaxUrlCountPerOrigin{
-    &kLCPScriptObserver, "lcpp_max_url_count_per_origin", 5};
+    &kLCPScriptObserver, "lcpscriptobserver_script_max_url_count_per_origin",
+    5};
+
+const base::FeatureParam<bool> kLCPScriptObserverAdjustImageLoadPriority{
+    &kLCPScriptObserver, "lcpscriptobserver_adjust_image_load_priority", false};
 
 BASE_FEATURE(kLCPPAutoPreconnectLcpOrigin,
              "LCPPAutoPreconnectLcpOrigin",
@@ -1348,9 +1388,9 @@ BASE_FEATURE(kLogUnexpectedIPCPostedToBackForwardCachedDocuments,
              "LogUnexpectedIPCPostedToBackForwardCachedDocuments",
              base::FEATURE_ENABLED_BY_DEFAULT);
 
-// Enables the use of GpuMemoryBuffer images for low latency 2d canvas.
-// TODO(khushalsagar): Enable this if we're using SurfaceControl and GMBs allow
-// us to overlay these resources.
+// Allow low latency canvas 2D to be in overlay (generally meaning scanned out
+// directly to display), even if regular canvas are not in overlay
+// (Canvas2DImageChromium is disabled).
 BASE_FEATURE(kLowLatencyCanvas2dImageChromium,
              "LowLatencyCanvas2dImageChromium",
 #if BUILDFLAG(IS_CHROMEOS_ASH)
@@ -1359,6 +1399,13 @@ BASE_FEATURE(kLowLatencyCanvas2dImageChromium,
              base::FEATURE_DISABLED_BY_DEFAULT
 #endif  // BUILDFLAG(IS_CHROMEOS)
 );
+
+// Allow low latency WebGL to be in overlay (generally meaning scanned out
+// directly to display), even if regular canvas are not in overlay
+// (WebGLImageChromium is disabled).
+BASE_FEATURE(kLowLatencyWebGLImageChromium,
+             "kLowLatencyWebGLImageChromium",
+             base::FEATURE_DISABLED_BY_DEFAULT);
 
 BASE_FEATURE(kLowPriorityAsyncScriptExecution,
              "LowPriorityAsyncScriptExecution",

@@ -88,10 +88,9 @@ constexpr char kMakeCredentialRequestJson[] = R"({
 
 // Hex outputs are encoded CBOR serializations of test responses.
 constexpr char kGetAssertionHexResponse[] =
-    "81A1626F6BA168726573706F6E7365A3697369676E61747572656655326C6E62676A757365"
-    "7248616E646C65635957497161757468656E74696361746F72446174617832455A51696A61"
-    "6A39766537394A687658746C6C635F58436C44584447514876504154337062553737463934"
-    "42414141414F77";
+    "81A1626F6BA168726573706F6E7365A3697369676E6174757265445369676E6A7573657248"
+    "616E646C654261627161757468656E74696361746F724461746158251194228DA8FDBDEEFD"
+    "261BD7B6595CFD70A50D70C6407BCF013DE96D4EFB17DE010000003B";
 constexpr char kMakeCredentialHexResponse[] =
     "81A1626F6BA3677075625F6B657944050607086776657273696F6E0169656E637279707465"
     "644401020304";
@@ -134,16 +133,19 @@ sync_pb::WebauthnCredentialSpecifics PasskeyEntity() {
   return entity;
 }
 
-enclave::ClientSignature FakeSigningCallback(
-    base::span<const uint8_t> to_be_signed) {
-  EXPECT_EQ(fido_parsing_utils::Materialize(to_be_signed.first(32u)),
+void FakeSigningCallback(
+    enclave::SignedMessage to_be_signed,
+    base::OnceCallback<void(std::optional<enclave::ClientSignature>)>
+        callback) {
+  base::span<const uint8_t> message_span = to_be_signed;
+  EXPECT_EQ(fido_parsing_utils::Materialize(message_span.first(32u)),
             fido_parsing_utils::Materialize(kHandshakeHash));
 
   enclave::ClientSignature ret;
   ret.device_id = fido_parsing_utils::Materialize(kDeviceId);
   ret.signature = fido_parsing_utils::Materialize(kSignature);
   ret.key_type = enclave::ClientKeyType::kHardware;
-  return ret;
+  std::move(callback).Run(std::move(ret));
 }
 
 // Class to receive the result of a BuildCommandRequestBody call. Only usable
@@ -256,7 +258,7 @@ TEST_F(EnclaveProtocolUtilsTest, BuildGetAssertionRequest_Success) {
   BuildCommandRequestBody(
       BuildGetAssertionCommand(std::move(entity), json_request, kClientDataJson,
                                wrapped_secrets()),
-      base::BindRepeating(&FakeSigningCallback), handshake_hash(),
+      base::BindOnce(&FakeSigningCallback), handshake_hash(),
       base::BindOnce(&BuildCommandCompletionWaiter::CompletionCallback,
                      base::Unretained(&waiter)));
 
@@ -298,7 +300,7 @@ TEST_F(EnclaveProtocolUtilsTest, BuildMakeCredentialRequest_Success) {
       base::MakeRefCounted<JSONRequest>(std::move(*parsed_json));
   BuildCommandRequestBody(
       BuildMakeCredentialCommand(json_request, wrapped_secret()),
-      base::BindRepeating(&FakeSigningCallback), handshake_hash(),
+      base::BindOnce(&FakeSigningCallback), handshake_hash(),
       base::BindOnce(&BuildCommandCompletionWaiter::CompletionCallback,
                      base::Unretained(&waiter)));
 

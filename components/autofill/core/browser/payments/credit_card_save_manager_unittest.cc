@@ -410,12 +410,10 @@ class CreditCardSaveManagerTest : public testing::Test {
         *autofill_client_.GetPersonalDataManager());
   }
   payments::TestPaymentsNetworkInterface& payments_network_interface() {
-    return static_cast<payments::TestPaymentsNetworkInterface&>(
-        *autofill_client_.GetPaymentsNetworkInterface());
+    return *autofill_client_.GetPaymentsNetworkInterface();
   }
   TestStrikeDatabase& strike_database() {
-    return static_cast<TestStrikeDatabase&>(
-        *autofill_client_.GetStrikeDatabase());
+    return *autofill_client_.GetStrikeDatabase();
   }
 
   base::test::TaskEnvironment task_environment_;
@@ -580,9 +578,16 @@ TEST_F(CreditCardSaveManagerTest, UploadCreditCard_OnlyCountryInAddresses) {
   EXPECT_FALSE(autofill_client_.ConfirmSaveCardLocallyWasCalled());
   EXPECT_TRUE(credit_card_save_manager_->CreditCardWasUploaded());
 #if BUILDFLAG(IS_ANDROID)
-  EXPECT_THAT(
-      payments_network_interface().client_behavior_signals_in_request(),
-      ElementsAre(ClientBehaviorConstants::kShowAccountEmailInLegalMessage));
+  if (base::FeatureList::IsEnabled(
+          features::kAutofillEnablePaymentsAndroidBottomSheetAccountEmail)) {
+    EXPECT_THAT(
+        payments_network_interface().client_behavior_signals_in_request(),
+        ElementsAre(ClientBehaviorConstants::kShowAccountEmailInLegalMessage));
+  } else {
+    EXPECT_TRUE(payments_network_interface()
+                    .client_behavior_signals_in_request()
+                    .empty());
+  }
 #else
   EXPECT_TRUE(payments_network_interface()
                   .client_behavior_signals_in_request()

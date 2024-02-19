@@ -410,6 +410,7 @@ chromium-metrics-reviews@google.com.
   <int value="56" label="Tab organization"/>
   <int value="57" label="Save to Drive iOS"/>
   <int value="58" label="Tips Notification on iOS"/>
+  <int value="59" label="Notifications Opt-In Screen Content Toggle"/>
 </enum>
 
 <enum name="SigninAccountReconcilorState">
@@ -512,6 +513,7 @@ chromium-metrics-reviews@google.com.
   <int value="3" label="Not displayed"/>
   <int value="4" label="Deprecated(10/23): Accepted with Guest"/>
   <int value="5" label="Accepted with existing profile"/>
+  <int value="6" label="Dismissed by user without explicit user response"/>
 </enum>
 
 <enum name="SigninInvalidGaiaCredentialsReason">
@@ -713,6 +715,11 @@ chromium-metrics-reviews@google.com.
     turn on sync, but cancelled the sync confirmation dialog so they are
     reverted to the initial state: signed out in the profile but keeping the
     account on the web only.
+  </int>
+  <int value="31" label="IdleTimeout policy triggered signout">
+    The enterprise policy IdleTimeout was set, and the IdleTimeoutActions list
+    value included `sign_out`. When the user has been idle for the time
+    specified in the policy value, they will be signed out.
   </int>
 </enum>
 

@@ -21,7 +21,6 @@
 <translation id="1383876407941801731">Търсене</translation>
 <translation id="1384959399684842514">Изтеглянето е на пауза</translation>
 <translation id="1415402041810619267">URL адресът е съкратен</translation>
-<translation id="1434873037477293673">карта за понижение на цената</translation>
 <translation id="1448064542941920355">Намаляване на нивото на мащаба</translation>
 <translation id="146867109637325312">{COUNT,plural, =1{<ph name="SITE_COUNT" /> сайт}other{<ph name="SITE_COUNT" /> сайта}}</translation>
 <translation id="1510341833810331442">Сайтовете нямат разрешение да запазват данни на устройството ви</translation>
@@ -212,6 +211,7 @@
 <translation id="4566417217121906555">Заглушаване на микрофона</translation>
 <translation id="4570913071927164677">Подробности</translation>
 <translation id="4598549027014564149">Докато сте в режим „инкогнито“, сайтовете не могат да използват „бисквитките“ ви, за да виждат активността ви при сърфиране в други сайтове, дори да са сродни. Активността ви при сърфиране не се използва за неща като персонализиране на рекламите. Функциите в някои сайтове може да не работят.</translation>
+<translation id="4619615317237390068">Раздели от други устройства</translation>
 <translation id="4644713492825682049">Изтриване и нулиране</translation>
 <translation id="4645575059429386691">Управлява се от ваш родител</translation>
 <translation id="4670064810192446073">Виртуална реалност</translation>
@@ -366,7 +366,6 @@
 <translation id="7053983685419859001">Блокиране</translation>
 <translation id="7066151586745993502">{NUM_SELECTED,plural, =1{Избран е 1}other{Избрани са #}}</translation>
 <translation id="7087918508125750058">Избрани: <ph name="ITEM_COUNT" />. Налице са опции близо до горната част на екрана</translation>
-<translation id="7137403271056944713">Управл./препрограм. на MIDI у-ва</translation>
 <translation id="7141896414559753902">Блокиране на показването на изскачащи прозорци и пренасочвания от сайтовете (препоръчително)</translation>
 <translation id="7176368934862295254"><ph name="KILOBYTES" /> КБ</translation>
 <translation id="7180611975245234373">Опресняване</translation>
@@ -402,6 +401,7 @@
 <translation id="7667547420449112975">Вълшебникът от Оз</translation>
 <translation id="7684642910516280563">Забраняване на даден сайт да използва „бисквитки“ на трети страни</translation>
 <translation id="7719367874908701697">Промяна на мащаба на страницата</translation>
+<translation id="7759147511335618829">MIDI у-ва: Контрол. и препрогр.</translation>
 <translation id="7781829728241885113">Вчера</translation>
 <translation id="7791543448312431591">Добавяне</translation>
 <translation id="7801888679188438140">{TILE_COUNT,plural, =1{Продължаване с този раздел}other{Продължаване с тези раздели}}</translation>

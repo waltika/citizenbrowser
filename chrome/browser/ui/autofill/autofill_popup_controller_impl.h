@@ -11,25 +11,16 @@
 
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
-#include "base/scoped_observation.h"
 #include "base/time/time.h"
-#include "chrome/browser/picture_in_picture/picture_in_picture_window_manager.h"
 #include "chrome/browser/ui/autofill/autofill_popup_controller.h"
 #include "chrome/browser/ui/autofill/autofill_popup_hide_helper.h"
 #include "chrome/browser/ui/autofill/next_idle_time_ticks.h"
 #include "chrome/browser/ui/autofill/popup_controller_common.h"
-#include "components/autofill/content/browser/scoped_autofill_managers_observation.h"
-#include "components/autofill/core/browser/autofill_manager.h"
 #include "components/autofill/core/browser/ui/popup_hiding_reasons.h"
 #include "components/autofill/core/common/aliases.h"
 #include "components/password_manager/core/browser/password_manager_metrics_util.h"
 #include "content/public/browser/render_widget_host.h"
-#include "content/public/browser/web_contents_observer.h"
 #include "third_party/abseil-cpp/absl/types/variant.h"
-
-#if !BUILDFLAG(IS_ANDROID)
-#include "components/zoom/zoom_observer.h"
-#endif  // BUILDFLAG(IS_ANDROID)
 
 class Profile;
 
@@ -76,9 +67,6 @@ class ExpandablePopupParentControllerImpl {
 // other, public functions are available to its instantiator.
 class AutofillPopupControllerImpl
     : public AutofillPopupController,
-      public content::WebContentsObserver,
-      public AutofillManager::Observer,
-      public PictureInPictureWindowManager::Observer,
       public ExpandablePopupParentControllerImpl {
  public:
   AutofillPopupControllerImpl(const AutofillPopupControllerImpl&) = delete;
@@ -151,9 +139,6 @@ class AutofillPopupControllerImpl
       const override;
   void HideSubPopup() override;
 
-  // PictureInPictureWindowManager::Observer
-  void OnEnterPictureInPicture() override;
-
   void KeepPopupOpenForTesting() { keep_popup_open_for_testing_ = true; }
 
   // Disables show thresholds. See the documentation of the member for details.
@@ -183,10 +168,6 @@ class AutofillPopupControllerImpl
       std::optional<base::WeakPtr<ExpandablePopupParentControllerImpl>> parent);
   ~AutofillPopupControllerImpl() override;
 
-  void CreatePopupHideHelper(
-      content::WebContents* web_contents,
-      AutofillPopupHideHelper::HidingCallback hiding_callback);
-
   gfx::NativeView container_view() const override;
   content::WebContents* GetWebContents() const override;
   const gfx::RectF& element_bounds() const override;
@@ -215,16 +196,6 @@ class AutofillPopupControllerImpl
   virtual void HideViewAndDie();
 
  private:
-  // content::WebContentsObserver:
-  void RenderFrameDeleted(content::RenderFrameHost* render_frame_host) override;
-  void DidFinishNavigation(
-      content::NavigationHandle* navigation_handle) override;
-
-  // AutofillManager::Observer:
-  void OnBeforeTextFieldDidChange(AutofillManager& manager,
-                                  FormGlobalId form,
-                                  FieldGlobalId field) override;
-
   // Clear the internal state of the controller. This is needed to ensure that
   // when the popup is reused it doesn't leak values between uses.
   void ClearState();
@@ -242,6 +213,7 @@ class AutofillPopupControllerImpl
   // Returns `true` if this popup has no parent, and `false` for sub-popups.
   bool IsRootPopup() const;
 
+  raw_ptr<content::WebContents> web_contents_;
   PopupControllerCommon controller_common_;
   base::WeakPtr<AutofillPopupView> view_;
   base::WeakPtr<AutofillPopupDelegate> delegate_;
@@ -253,7 +225,6 @@ class AutofillPopupControllerImpl
     explicit KeyPressObserver(AutofillPopupControllerImpl* observer);
     ~KeyPressObserver();
 
-    bool IsObserving(content::GlobalRenderFrameHostId rfh) const;
     void Observe(content::RenderFrameHost* rfh);
     void Reset();
 
@@ -287,16 +258,6 @@ class AutofillPopupControllerImpl
   // If set to true, the popup will stay open regardless of external changes on
   // the machine that would normally cause the popup to be hidden.
   bool keep_popup_open_for_testing_ = false;
-
-  // Observer needed to check autofill popup overlap with picture-in-picture
-  // window. It is guaranteed that there can only be one
-  // PictureInPictureWindowManager per Chrome instance, therefore, it is also
-  // guaranteed that PictureInPictureWindowManager would outlive its observers.
-  base::ScopedObservation<PictureInPictureWindowManager,
-                          PictureInPictureWindowManager::Observer>
-      picture_in_picture_window_observation_{this};
-
-  ScopedAutofillManagersObservation autofill_managers_observation_{this};
 
   // Callback invoked to try to show the password migration warning on Android.
   // Used to facilitate testing.

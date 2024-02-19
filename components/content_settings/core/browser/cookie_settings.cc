@@ -71,6 +71,12 @@ CookieSettings::CookieSettings(
                           base::Unretained(this)));
   OnCookiePreferencesChanged();
   OnBlockAllThirdPartyCookiesChanged();
+
+  if (base::FeatureList::IsEnabled(features::kHostIndexedMetadataGrants)) {
+    settings_for_3pcd_metadata_grants_ = HostIndexedContentSettings();
+  } else {
+    settings_for_3pcd_metadata_grants_ = ContentSettingsForOneType();
+  }
 }
 
 ContentSetting CookieSettings::GetDefaultCookieSetting(
@@ -105,9 +111,9 @@ void CookieSettings::SetCookieSetting(const GURL& primary_url,
       primary_url, GURL(), ContentSettingsType::COOKIES, setting);
 }
 
-bool CookieSettings::IsAllowedByTpcdMetadataGrant(
-    const GURL& url,
-    const GURL& first_party_url) const {
+bool CookieSettings::IsAllowedByTpcdMetadataGrant(const GURL& url,
+                                                  const GURL& first_party_url,
+                                                  SettingInfo* out_info) const {
   if (!ShouldConsider3pcdMetadataGrantsSettings(
           net::CookieSettingOverrides())) {
     return false;
@@ -116,21 +122,29 @@ bool CookieSettings::IsAllowedByTpcdMetadataGrant(
       "ContentSettings.IsAllowedByTpcdMetadataGrant.Duration");
   base::AutoLock lock(tpcd_lock_);
   ContentSetting result = CONTENT_SETTING_DEFAULT;
-  if (base::FeatureList::IsEnabled(features::kHostIndexedMetadataGrants) &&
-      std::cmp_greater_equal(settings_for_3pcd_metadata_grants_.size(),
-                             features::kMetadataGrantsThreshold.Get())) {
-    indexed_settings_for_3pcd_metadata_grants_.DcheckSameResultAsLinearLookup(
-        url, first_party_url, settings_for_3pcd_metadata_grants_);
-    auto* found =
-        indexed_settings_for_3pcd_metadata_grants_.Find(url, first_party_url);
+  if (base::FeatureList::IsEnabled(features::kHostIndexedMetadataGrants)) {
+    auto* found = absl::get<HostIndexedContentSettings>(
+                      settings_for_3pcd_metadata_grants_)
+                      .Find(url, first_party_url);
     if (found) {
       result = ValueToContentSetting(found->second.value);
+      if (out_info) {
+        out_info->primary_pattern = found->first.primary_pattern;
+        out_info->secondary_pattern = found->first.secondary_pattern;
+        out_info->metadata = found->second.metadata;
+      }
     }
   } else {
     auto* found = FindContentSetting(url, first_party_url,
-                                     settings_for_3pcd_metadata_grants_);
+                                     absl::get<ContentSettingsForOneType>(
+                                         settings_for_3pcd_metadata_grants_));
     if (found) {
       result = found->GetContentSetting();
+      if (out_info) {
+        out_info->primary_pattern = found->primary_pattern;
+        out_info->secondary_pattern = found->secondary_pattern;
+        out_info->metadata = found->metadata;
+      }
     }
   }
   return result == CONTENT_SETTING_ALLOW;
@@ -338,7 +352,7 @@ ContentSetting CookieSettings::GetContentSetting(
     ContentSettingsType content_type,
     content_settings::SettingInfo* info) const {
   if (content_type == ContentSettingsType::TPCD_METADATA_GRANTS) {
-    return IsAllowedByTpcdMetadataGrant(primary_url, secondary_url)
+    return IsAllowedByTpcdMetadataGrant(primary_url, secondary_url, info)
                ? CONTENT_SETTING_ALLOW
                : CONTENT_SETTING_BLOCK;
   }

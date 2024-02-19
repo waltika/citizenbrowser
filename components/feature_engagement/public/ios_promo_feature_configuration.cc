@@ -203,6 +203,22 @@ std::optional<FeatureConfig> GetStandardPromoConfig(
                                   feature_engagement::kMaxStoragePeriod);
   }
 
+  if (kIPHiOSPostDefaultAbandonmentPromoFeature.name == feature->name) {
+    config = FeatureConfig();
+    config->valid = true;
+    config->availability = Comparator(ANY, 0);
+    config->session_rate = Comparator(ANY, 0);
+    config->groups.push_back(kiOSFullscreenPromosGroup.name);
+    config->groups.push_back(kiOSDefaultBrowserPromosGroup.name);
+    config->used = EventConfig("post_default_abandonment_promo_used",
+                               Comparator(ANY, 0), 365, 365);
+    config->trigger =
+        EventConfig("post_default_abandonment_promo_trigger",
+                    Comparator(EQUAL, 0), feature_engagement::kMaxStoragePeriod,
+                    feature_engagement::kMaxStoragePeriod);
+    return config;
+  }
+
   // All standard promos can only be shown once per month.
   if (config) {
     config->event_configs.insert(
@@ -302,10 +318,12 @@ std::optional<FeatureConfig> GetCustomConfig(const base::Feature* feature) {
     config->availability = Comparator(ANY, 0);
     config->session_rate = Comparator(ANY, 0);
     config->used = EventConfig("docking_promo_remind_me_later_used",
-                               Comparator(ANY, 0), 3650, 3650);
-    // Should not be subject to impression limits.
+                               Comparator(ANY, 0), 365, 365);
     config->trigger = EventConfig("docking_promo_remind_me_later_trigger",
-                                  Comparator(ANY, 0), 3650, 3650);
+                                  Comparator(ANY, 0), 365, 365);
+    config->event_configs.insert(
+        EventConfig(feature_engagement::events::kDockingPromoRemindMeLater,
+                    Comparator(LESS_THAN, 1), 3, 365));
     return config;
   }
 

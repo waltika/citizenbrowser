@@ -447,10 +447,8 @@
 #endif
 
 #if BUILDFLAG(ENABLE_COMPOSE)
-#include "chrome/browser/compose/compose_enabling.h"
-#include "chrome/browser/ui/webui/compose/compose_ui.h"
+#include "chrome/browser/ui/webui/compose/compose_untrusted_ui.h"
 #include "chrome/common/compose/compose.mojom.h"
-#include "components/compose/core/browser/compose_features.h"  // nogncheck crbug.com/1125897
 #endif
 
 #if BUILDFLAG(ENABLE_PRINT_PREVIEW)
@@ -1171,9 +1169,7 @@ void PopulateChromeWebUIFrameBinders(
       ash::cloud_upload::CloudUploadUI, ash::office_fallback::OfficeFallbackUI,
       ash::multidevice_setup::MultiDeviceSetupDialogUI, ash::ParentAccessUI,
       ash::EmojiUI, ash::RemoteMaintenanceCurtainUI,
-#endif
-#if BUILDFLAG(ENABLE_COMPOSE)
-      ComposeUI,
+      ash::app_install::AppInstallDialogUI,
 #endif
       NewTabPageUI, OmniboxPopupUI, BookmarksSidePanelUI, CustomizeChromeUI,
       InternalsUI, ReadingListUI, TabSearchUI, WebuiGalleryUI,
@@ -1752,14 +1748,6 @@ void PopulateChromeWebUIFrameBinders(
   }
 #endif
 
-#if BUILDFLAG(ENABLE_COMPOSE)
-  if (ComposeEnabling::IsEnabledForProfile(Profile::FromBrowserContext(
-          render_frame_host->GetBrowserContext()))) {
-    RegisterWebUIControllerInterfaceBinder<
-        compose::mojom::ComposeSessionPageHandlerFactory, ComposeUI>(map);
-  }
-#endif  // BUILDFLAG(ENABLE_COMPOSE)
-
   if (base::FeatureList::IsEnabled(
           privacy_sandbox::kPrivacySandboxInternalsDevUI)) {
     RegisterWebUIControllerInterfaceBinder<
@@ -1840,6 +1828,11 @@ void PopulateChromeWebUIFrameInterfaceBrokers(
   registry.ForWebUI<feed::FeedUI>()
       .Add<feed::mojom::FeedSidePanelHandlerFactory>();
 #endif  // !BUILDFLAG(IS_ANDROID)
+#if BUILDFLAG(ENABLE_COMPOSE)
+  registry.ForWebUI<ComposeUntrustedUI>()
+      .Add<color_change_listener::mojom::PageHandler>()
+      .Add<compose::mojom::ComposeSessionUntrustedPageHandlerFactory>();
+#endif  // BUILDFLAG(ENABLE_COMPOSE)
 #if !BUILDFLAG(IS_ANDROID)
   if (companion::IsCompanionFeatureEnabled()) {
     registry.ForWebUI<CompanionSidePanelUntrustedUI>()

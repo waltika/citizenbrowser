@@ -1137,12 +1137,6 @@
                   'chrome/browser/feed/|' \
                   'components/feed/'
     },
-    'feedback': {
-      'filepath': 'chrome/browser/extensions/api/feedback_private/|' \
-                  'chrome/browser/feedback/|' \
-                  'components/feedback/|' \
-                  'extensions/browser/api/feedback_private/'
-    },
     'fileapi': {
       'filepath': 'file_system/|' \
                   'fileapi/'
@@ -1253,9 +1247,6 @@
     },
     'hashprefix_realtime': {
       'filepath': 'components/safe_browsing/core/browser/hashprefix_realtime/'
-    },
-    'hats': {
-      'filepath': 'chrome/browser/ash/hats/',
     },
     'headless': {
       'filepath': 'headless/'
@@ -2727,7 +2718,7 @@
     'chromeos_lkgm': ['achuith+watch@chromium.org'],
     'chromeos_login': ['alemate+watch@chromium.org',
                        'tbarzic+watch@chromium.org',
-		       'rrsilva+watch@chromium.org'],
+		       'rrsilva+watch-chromium@google.com'],
     'chromeos_media_app': ['cros-essential-apps-dev-watch@chromium.org'],
     'chromeos_net': ['andrewdear+watch-network@google.com',
                      'azeemarshad+watch-network@chromium.org',
@@ -2745,7 +2736,7 @@
                               'chrome-os-gardeners+watch@google.com'],
     'chromeos_timezone': ['alemate+watch@chromium.org'],
     'chromeos_webui': ['alemate+watch@chromium.org',
-                       'rrsilva+watch@chromium.org'],
+                       'rrsilva+watch-chromium@google.com'],
     'chromeos_wifi_sync': ['ajayramamurthy+watch@google.com',
                            'jonmann+watch@chromium.org',
                            'stevenjb+watch@chromium.org'],
@@ -2883,7 +2874,6 @@
              'harringtond+watch@chromium.org',
              'petewil+watch@chromium.org',
              'iwells+watch@chromium.org'],
-    'feedback': ['cros-telemetry+feedback@google.com'],
     'fileapi': ['kinuko+fileapi@chromium.org'],
     'filebrowse': ['rginda+watch@chromium.org'],
     'filesapp': ['filesapp-reviews@chromium.org',
@@ -2915,7 +2905,6 @@
     'guest_view': ['mcnee@chromium.org',
                    'wjmaclean@chromium.org'],
     'hashprefix_realtime': ['thefrog+watch@chromium.org'],
-    'hats': ['cros-telemetry+hats@google.com'],
     'headless': ['headless-reviews@chromium.org'],
     'heap_mojo': ['chikamune+watch@chromium.org'],
     'holding_space': ['tote-eng+reviews@google.com'],
@@ -2946,8 +2935,7 @@
     'ios_credential_provider': ['rkgibson+watch@chromium.org'],
     'ios_flags': ['noyau+watch@chromium.org'],
     'ios_ntp': ['thegreenfrog+watch@chromium.org'],
-    'ios_transactions': ['sebsg+transactions-watch@chromium.org',
-                         'tmartino+transactions-watch@chromium.org'],
+    'ios_transactions': ['tmartino+transactions-watch@chromium.org'],
     'ios_web': ['ios-reviews+web@chromium.org'],
     'ios_widget_kit': ['rkgibson+watch@chromium.org'],
     'ip_protection': ['djmitche@chromium.org',
@@ -3005,8 +2993,7 @@
     'metrics_perf': ['cwp-reviews+chromium@google.com'],
     'midi': ['toyoshim+midi@chromium.org'],
     'minidump_tests': ['bsheedy@chromium.org'],
-    'multi_apps': ['samicolon+watch@google.com',
-                   'giovax+watch@chromium.org',
+    'multi_apps': ['giovax+watch@chromium.org',
                    'phweiss+watch@chromium.org'],
     'multidevice': ['ajayramamurthy+watch-multidevice@google.com',
                     'hansberry+watch-multidevice@chromium.org',

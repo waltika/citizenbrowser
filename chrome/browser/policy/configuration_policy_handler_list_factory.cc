@@ -39,7 +39,6 @@
 #include "chrome/browser/policy/webhid_device_policy_handler.h"
 #include "chrome/browser/policy/webusb_allow_devices_for_urls_policy_handler.h"
 #include "chrome/browser/prefetch/pref_names.h"
-#include "chrome/browser/profiles/allowed_domains_for_apps_policy_handler.h"
 #include "chrome/browser/profiles/force_safe_search_policy_handler.h"
 #include "chrome/browser/profiles/force_youtube_safety_mode_policy_handler.h"
 #include "chrome/browser/profiles/guest_mode_policy_handler.h"
@@ -195,6 +194,7 @@
 #include "chromeos/ash/services/multidevice_setup/public/cpp/prefs.h"
 #include "chromeos/components/disks/disks_prefs.h"
 #include "chromeos/components/quick_answers/public/cpp/quick_answers_prefs.h"
+#include "chromeos/constants/pref_names.h"
 #include "chromeos/dbus/power/power_policy_controller.h"
 #include "components/account_manager_core/pref_names.h"
 #include "components/drive/drive_pref_names.h"  // nogncheck crbug.com/1125897
@@ -810,6 +810,9 @@ const PolicyToPreferenceMapEntry kSimplePolicyMap[] = {
   { key::kEssentialSearchEnabled,
     prefs::kEssentialSearchEnabled,
     base::Value::Type::BOOLEAN },
+  { key::kSubAppsAPIsAllowedWithoutGestureAndAuthorizationForOrigins,
+    prefs::kSubAppsAPIsAllowedWithoutGestureAndAuthorizationForOrigins,
+    base::Value::Type::LIST },
 #endif  // BUILDFLAG(IS_CHROMEOS)
   { key::kForceYouTubeRestrict,
     policy::policy_prefs::kForceYouTubeRestrict,
@@ -913,6 +916,9 @@ const PolicyToPreferenceMapEntry kSimplePolicyMap[] = {
   { key::kSSLErrorOverrideAllowedForOrigins,
     prefs::kSSLErrorOverrideAllowedForOrigins,
     base::Value::Type::LIST },
+  { key::kAllowedDomainsForApps,
+    prefs::kAllowedDomainsForApps,
+    base::Value::Type::STRING },
   { key::kEnableMediaRouter,
     prefs::kEnableMediaRouter,
     base::Value::Type::BOOLEAN },
@@ -995,7 +1001,19 @@ const PolicyToPreferenceMapEntry kSimplePolicyMap[] = {
     base::Value::Type::BOOLEAN },
   { key::kAlwaysOnVpnPreConnectUrlAllowlist,
     policy_prefs::kAlwaysOnVpnPreConnectUrlAllowlist,
-    base::Value::Type::LIST
+    base::Value::Type::LIST },
+  { key::kDefaultWebPrintingSetting,
+    prefs::kManagedDefaultWebPrintingSetting,
+    base::Value::Type::INTEGER },
+  { key::kWebPrintingAllowedForUrls,
+    prefs::kManagedWebPrintingAllowedForUrls,
+    base::Value::Type::LIST },
+  { key::kWebPrintingBlockedForUrls,
+    prefs::kManagedWebPrintingBlockedForUrls,
+    base::Value::Type::LIST },
+  { key::kFloatingWorkspaceEnabled,
+    policy_prefs::kFloatingWorkspaceEnabled,
+    base::Value::Type::BOOLEAN
   },
 #endif  // BUILDFLAG(IS_CHROMEOS)
 
@@ -1239,7 +1257,7 @@ const PolicyToPreferenceMapEntry kSimplePolicyMap[] = {
     ash::multidevice_setup::kEcheAllowedPrefName,
     base::Value::Type::BOOLEAN },
   { key::kCaptivePortalAuthenticationIgnoresProxy,
-    prefs::kCaptivePortalAuthenticationIgnoresProxy,
+    chromeos::prefs::kCaptivePortalAuthenticationIgnoresProxy,
     base::Value::Type::BOOLEAN },
   { key::kUnifiedDesktopEnabledByDefault,
     prefs::kUnifiedDesktopEnabledByDefault,
@@ -1517,9 +1535,6 @@ const PolicyToPreferenceMapEntry kSimplePolicyMap[] = {
   { key::kProjectorDogfoodForFamilyLinkEnabled,
     ash::prefs::kProjectorDogfoodForFamilyLinkEnabled,
     base::Value::Type::BOOLEAN },
-  { key::kFloatingWorkspaceEnabled,
-    ash::prefs::kFloatingWorkspaceEnabled,
-    base::Value::Type::BOOLEAN },
   { key::kFloatingWorkspaceV2Enabled,
     ash::prefs::kFloatingWorkspaceV2Enabled,
     base::Value::Type::BOOLEAN },
@@ -1616,6 +1631,10 @@ const PolicyToPreferenceMapEntry kSimplePolicyMap[] = {
   {key::kGoogleLocationServicesEnabled,
     ash::prefs::kUserGeolocationAccessLevel,
     base::Value::Type::INTEGER},
+  { key::kLocalUserFilesAllowed,
+    prefs::kLocalUserFilesAllowed,
+    base::Value::Type::BOOLEAN
+  },
 #endif // BUILDFLAG(IS_CHROMEOS_ASH)
 
 #if BUILDFLAG(IS_LINUX)
@@ -2520,6 +2539,9 @@ std::unique_ptr<ConfigurationPolicyHandlerList> BuildHandlerList(
       chrome_schema, SCHEMA_ALLOW_UNKNOWN_AND_INVALID_LIST_ENTRY,
       SimpleSchemaValidatingPolicyHandler::RECOMMENDED_PROHIBITED,
       SimpleSchemaValidatingPolicyHandler::MANDATORY_ALLOWED));
+  handlers->AddHandler(std::make_unique<extensions::ExtensionListPolicyHandler>(
+      key::kDocumentScanAPITrustedExtensions,
+      prefs::kDocumentScanAPITrustedExtensions, /*allow_wildcards=*/false));
   handlers->AddHandler(std::make_unique<SimpleSchemaValidatingPolicyHandler>(
       key::kIsolatedWebAppInstallForceList,
       prefs::kIsolatedWebAppInstallForceList, chrome_schema,
@@ -2954,8 +2976,6 @@ std::unique_ptr<ConfigurationPolicyHandlerList> BuildHandlerList(
       std::make_unique<DeviceWeeklyScheduledSuspendPolicyHandler>(
           chrome_schema));
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
-
-  handlers->AddHandler(std::make_unique<AllowedDomainsForAppsPolicyHandler>());
 
   return handlers;
 }

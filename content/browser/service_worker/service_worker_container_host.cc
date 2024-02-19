@@ -629,10 +629,12 @@ void ServiceWorkerContainerHost::CountFeature(
     return;
 
   // `container_` shouldn't be disconnected during the lifetime of `this` but
-  // there seems a situation where `container_` is disconnected.
-  // TODO(crbug.com/1136843): Figure out the cause and remove this check.
-  if (!container_.is_connected())
+  // there seems a situation where `container_` is disconnected or unbound.
+  // TODO(crbug.com/1136843, crbug.com/40918057): Figure out the cause and
+  // remove this check.
+  if (!container_.is_bound() || !container_.is_connected()) {
     return;
+  }
 
   container_->CountFeature(feature);
 }
@@ -699,12 +701,20 @@ void ServiceWorkerContainerHost::SendSetControllerServiceWorker(
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   DCHECK(IsContainerForClient());
 
-  if (!controller_) {
+  if (!controller_ || !context_) {
     // Do not set |fetch_request_window_id| when |controller_| is not available.
     // Setting |fetch_request_window_id| should not affect correctness, however,
     // we have the extensions bug, https://crbug.com/963748, which we don't yet
     // understand.  That is why we don't set |fetch_request_window_id| if there
     // is no controller, at least, until we can fix the extension bug.
+    //
+    // Also check if |context_| is not null. This is a speculative fix for
+    // crbug.com/324559079. When |controller_info->fetch_request_window_id|
+    // is set, the renderer expects that |controller_info->object_info| is also
+    // set as a controller. |controller_info->object_info| is set in
+    // `GetOrCreateServiceWorkerObjectHost()`, but that may return null if
+    // |context_| does not exist. To avoid the potential inconsistency with the
+    // renderer side, setController as no-controller.
     auto controller_info = blink::mojom::ControllerServiceWorkerInfo::New();
     controller_info->client_id = client_uuid();
     container_->SetController(std::move(controller_info),
@@ -1946,6 +1956,7 @@ ServiceWorkerContainerHost::MaybeCreateSubresourceLoaderParams(
     params.controller_service_worker_info->object_info =
         object_host->CreateIncompleteObjectInfo();
   }
+  params.container_host = container_host->GetWeakPtr();
 
   return params;
 }

@@ -16,6 +16,7 @@
 #include "chrome/browser/ash/app_list/search/essential_search/socs_cookie_fetcher.h"
 #include "components/prefs/pref_change_registrar.h"
 #include "net/base/backoff_entry.h"
+#include "net/cookies/canonical_cookie.h"
 #include "net/cookies/cookie_access_result.h"
 
 class Profile;
@@ -46,14 +47,27 @@ class EssentialSearchManager : public ash::SessionObserver,
 
   // SessionObserver:
   void OnSessionStateChanged(session_manager::SessionState state) override;
-  void OnChromeTerminating() override;
 
   // SocsCookieFetcher::Consumer
   void OnCookieFetched(const std::string& socs_cookie) override;
   void OnApiCallFailed(SocsCookieFetcher::Status status) override;
 
+  // Returns whether search suggest should be disabled.
+  // Search suggestions will be temporarily disabled until SOCS cookie is
+  // fetched. This affects only managed users on chromeos that have
+  // EssentialSearchEnabled policy set.
+  bool ShouldDisableSearchSuggest() const;
+
  private:
   void MaybeFetchSocsCookie();
+
+  // Sets flag that control search suggest.
+  void MaybeDisableSearchSuggest();
+
+  // Callback function to be called after Cookies are retrieved from user's
+  // profile.
+  void OnCookiesRetrieved(const net::CookieAccessResultList& list,
+                          const net::CookieAccessResultList& excluded_list);
 
   // Callback function to be called after when a SOCS cookie is added to a
   // user's profile.
@@ -69,9 +83,8 @@ class EssentialSearchManager : public ash::SessionObserver,
   // Cancel all active requests
   void CancelPendingRequests();
 
-  // Used to observe the change in session state.
-  base::ScopedObservation<ash::SessionController, ash::SessionObserver>
-      scoped_observation_{this};
+  // Flag to disable search suggest while fetching SOCS cookie.
+  bool temporary_disable_search_suggest_ = false;
 
   // Observer for EssentialSearch-related prefs.
   std::unique_ptr<PrefChangeRegistrar> pref_change_registrar_;

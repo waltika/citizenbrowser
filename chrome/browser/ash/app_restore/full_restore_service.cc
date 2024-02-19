@@ -15,7 +15,7 @@
 #include "ash/webui/settings/public/constants/setting.mojom-shared.h"
 #include "ash/wm/desks/templates/saved_desk_controller.h"
 #include "ash/wm/window_restore/pine_contents_data.h"
-#include "ash/wm/window_restore/window_restore_controller.h"
+#include "ash/wm/window_restore/pine_controller.h"
 #include "ash/wm/window_restore/window_restore_util.h"
 #include "base/command_line.h"
 #include "base/metrics/histogram_functions.h"
@@ -131,16 +131,20 @@ class DelegateImpl : public FullRestoreService::Delegate {
   ~DelegateImpl() override = default;
 
   void MaybeStartPineOverviewSession(
-      std::unique_ptr<::app_restore::RestoreData> restore_data) override {
+      std::unique_ptr<PineContentsData> pine_contents_data) override {
     // A unit test that does not override this default delegate may not have ash
     // shell.
     if (Shell::HasInstance()) {
-      // TODO(sammiequon): Instead of passing the whole restore data, we should
-      // pull out the data we need.
-      auto pine_contents_data = std::make_unique<PineContentsData>();
-      pine_contents_data->restore_data = std::move(restore_data);
-      Shell::Get()->window_restore_controller()->MaybeStartPineOverviewSession(
+      Shell::Get()->pine_controller()->MaybeStartPineOverviewSession(
           std::move(pine_contents_data));
+    }
+  }
+
+  void MaybeEndPineOverviewSession() override {
+    // A unit test that does not override this default delegate may not have ash
+    // shell.
+    if (Shell::HasInstance()) {
+      Shell::Get()->pine_controller()->MaybeEndPineOverviewSession();
     }
   }
 };
@@ -386,15 +390,6 @@ void FullRestoreService::Click(const std::optional<int>& button_index,
   MaybeCloseNotification();
 }
 
-void FullRestoreService::OnAppTerminating() {
-  if (auto* arc_task_handler =
-          app_restore::AppRestoreArcTaskHandler::GetForProfile(profile_)) {
-    arc_task_handler->Shutdown();
-  }
-  app_launch_handler_.reset();
-  ::full_restore::FullRestoreSaveHandler::GetInstance()->SetShutDown();
-}
-
 void FullRestoreService::OnActionPerformed(AcceleratorAction action) {
   switch (action) {
     case AcceleratorAction::kNewIncognitoWindow:
@@ -424,7 +419,7 @@ void FullRestoreService::Shutdown() {
   is_shut_down_ = true;
 }
 
-bool FullRestoreService::CanBeInited() {
+bool FullRestoreService::CanBeInited() const {
   auto* user_manager = user_manager::UserManager::Get();
   DCHECK(user_manager);
   DCHECK(user_manager->GetActiveUser());
@@ -480,8 +475,10 @@ void FullRestoreService::MaybeShowRestoreNotification(const std::string& id,
   // session restore to help set the browser saving flag.
   ExitTypeService* exit_type_service =
       ExitTypeService::GetInstanceForProfile(profile_);
-  if (id == kRestoreForCrashNotificationId && exit_type_service)
+  const bool last_session_crashed = id == kRestoreForCrashNotificationId;
+  if (last_session_crashed && exit_type_service) {
     crashed_lock_ = exit_type_service->CreateCrashedLock();
+  }
 
   if (Shell::HasInstance()) {
     Shell::Get()
@@ -491,8 +488,8 @@ void FullRestoreService::MaybeShowRestoreNotification(const std::string& id,
 
   if (features::IsForestFeatureEnabled()) {
     CHECK(delegate_);
-    delegate_->MaybeStartPineOverviewSession(
-        app_launch_handler_->restore_data()->Clone());
+    delegate_->MaybeStartPineOverviewSession(CreatePineContentsData(
+        app_launch_handler_->restore_data(), last_session_crashed));
     // Set to true as we might want to show the post reboot notification.
     show_notification = true;
     return;
@@ -583,9 +580,58 @@ void FullRestoreService::OnPreferenceChanged(const std::string& pref_name) {
   }
 }
 
-bool FullRestoreService::ShouldShowNotification() {
+bool FullRestoreService::ShouldShowNotification() const {
   return app_launch_handler_ && app_launch_handler_->HasRestoreData() &&
          !::first_run::IsChromeFirstRun() && !close_notification_;
+}
+
+void FullRestoreService::OnAppTerminating() {
+  if (auto* arc_task_handler =
+          app_restore::AppRestoreArcTaskHandler::GetForProfile(profile_)) {
+    arc_task_handler->Shutdown();
+  }
+  app_launch_handler_.reset();
+  ::full_restore::FullRestoreSaveHandler::GetInstance()->SetShutDown();
+}
+
+void FullRestoreService::RestoreForForest() {
+  VLOG(1) << "The restore button is clicked for " << profile_->GetPath();
+
+  Restore();
+  delegate_->MaybeEndPineOverviewSession();
+}
+
+void FullRestoreService::CancelForForest() {
+  ::full_restore::FullRestoreSaveHandler::GetInstance()->AllowSave();
+  delegate_->MaybeEndPineOverviewSession();
+}
+
+std::unique_ptr<PineContentsData> FullRestoreService::CreatePineContentsData(
+    ::app_restore::RestoreData* restore_data,
+    bool last_session_crashed) {
+  auto pine_contents_data = std::make_unique<PineContentsData>();
+  pine_contents_data->last_session_crashed = last_session_crashed;
+  pine_contents_data->restore_callback = base::BindOnce(
+      &FullRestoreService::RestoreForForest, weak_ptr_factory_.GetWeakPtr());
+  pine_contents_data->cancel_callback = base::BindOnce(
+      &FullRestoreService::CancelForForest, weak_ptr_factory_.GetWeakPtr());
+
+  // Retrieve app id's from `restore_data`. There can be multiple entries with
+  // the same app id, these denote different windows.
+  // TODO(sammiequon): App id's for PWAs are stored in the full restore file
+  // with the chrome browser app id. We need to get the app name from the
+  // session restore.
+  // TODO(sammiequon): Retrieve the browser tab info from session restore.
+  // TODO(sammiequon): Order these by activation index.
+  for (const auto& [app_id, launch_list] :
+       restore_data->app_id_to_launch_list()) {
+    for (size_t i = 0; i < launch_list.size(); ++i) {
+      pine_contents_data->apps_infos.emplace_back(
+          app_id, /*tab_title=*/"",
+          /*tab_urls=*/std::vector<std::string>());
+    }
+  }
+  return pine_contents_data;
 }
 
 ScopedRestoreForTesting::ScopedRestoreForTesting() {

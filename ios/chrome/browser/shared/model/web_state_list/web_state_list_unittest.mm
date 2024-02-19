@@ -8,7 +8,9 @@
 #import "base/scoped_multi_source_observation.h"
 #import "base/scoped_observation.h"
 #import "base/supports_user_data.h"
+#import "components/tab_groups/tab_group_color.h"
 #import "ios/chrome/browser/shared/model/web_state_list/removing_indexes.h"
+#import "ios/chrome/browser/shared/model/web_state_list/tab_group.h"
 #import "ios/chrome/browser/shared/model/web_state_list/test/fake_web_state_list_delegate.h"
 #import "ios/chrome/browser/shared/model/web_state_list/web_state_list_observer.h"
 #import "ios/chrome/browser/shared/model/web_state_list/web_state_opener.h"
@@ -18,6 +20,8 @@
 #import "testing/gtest/include/gtest/gtest.h"
 #import "testing/platform_test.h"
 #import "url/gurl.h"
+
+using tab_groups::TabGroupVisualData;
 
 namespace {
 const char kURL0[] = "https://chromium.org/0";
@@ -126,7 +130,9 @@ class WebStateListTestObserver : public WebStateListObserver {
                              const WebStateListStatus& status) override {
     switch (change.type()) {
       case WebStateListChange::Type::kStatusOnly: {
-        if (status.pinned_state_change) {
+        const WebStateListChangeStatusOnly& statusOnlyChange =
+            change.As<WebStateListChangeStatusOnly>();
+        if (statusOnlyChange.pinned_state_changed()) {
           ++pinned_state_changed_count_;
         }
         // The activation is handled after this switch statement.
@@ -260,6 +266,55 @@ class TestWebStateListDelegate final : public WebStateListDelegate {
 };
 
 }  // namespace
+
+using WebStateListRangeTest = PlatformTest;
+
+TEST_F(WebStateListRangeTest, InvalidRange) {
+  WebStateList::Range range = WebStateList::Range::InvalidRange();
+
+  EXPECT_FALSE(range.IsValid());
+}
+
+TEST_F(WebStateListRangeTest, ZeroRange) {
+  WebStateList::Range range(0, 0);
+
+  EXPECT_TRUE(range.IsValid());
+  EXPECT_EQ(0, range.start());
+  EXPECT_EQ(0, range.count());
+  EXPECT_EQ(0, range.end());
+
+  EXPECT_FALSE(range.contains(-1));
+  EXPECT_FALSE(range.contains(0));
+  EXPECT_FALSE(range.contains(1));
+
+  EXPECT_EQ(WebStateList::Range(0, 0), range);
+  EXPECT_NE(WebStateList::Range(0, 1), range);
+  EXPECT_NE(WebStateList::Range(1, 0), range);
+  EXPECT_NE(WebStateList::Range(1, 1), range);
+  EXPECT_NE(WebStateList::Range::InvalidRange(), range);
+}
+
+TEST_F(WebStateListRangeTest, SomeRange) {
+  WebStateList::Range range(1, 2);
+
+  EXPECT_TRUE(range.IsValid());
+  EXPECT_EQ(1, range.start());
+  EXPECT_EQ(2, range.count());
+  EXPECT_EQ(3, range.end());
+
+  EXPECT_FALSE(range.contains(-1));
+  EXPECT_FALSE(range.contains(0));
+  EXPECT_TRUE(range.contains(1));
+  EXPECT_TRUE(range.contains(2));
+  EXPECT_FALSE(range.contains(3));
+
+  EXPECT_NE(WebStateList::Range(0, 0), range);
+  EXPECT_NE(WebStateList::Range(0, 1), range);
+  EXPECT_NE(WebStateList::Range(1, 0), range);
+  EXPECT_NE(WebStateList::Range(1, 1), range);
+  EXPECT_EQ(WebStateList::Range(1, 2), range);
+  EXPECT_NE(WebStateList::Range::InvalidRange(), range);
+}
 
 class WebStateListTest : public PlatformTest {
  public:
@@ -835,7 +890,7 @@ TEST_F(WebStateListTest, CloseAllNonPinnedWebStates_PinnedWebStatesPresent) {
   EXPECT_TRUE(observer_.pinned_state_changed());
 
   observer_.ResetStatistics();
-  web_state_list_.CloseAllNonPinnedWebStates(WebStateList::CLOSE_USER_ACTION);
+  CloseAllNonPinnedWebStates(web_state_list_, WebStateList::CLOSE_USER_ACTION);
 
   EXPECT_EQ(1, web_state_list_.count());
   EXPECT_TRUE(web_state_list_.IsWebStatePinnedAt(0));
@@ -864,7 +919,7 @@ TEST_F(WebStateListTest,
   EXPECT_TRUE(observer_.pinned_state_changed());
 
   observer_.ResetStatistics();
-  web_state_list_.CloseAllNonPinnedWebStates(WebStateList::CLOSE_USER_ACTION);
+  CloseAllNonPinnedWebStates(web_state_list_, WebStateList::CLOSE_USER_ACTION);
 
   EXPECT_EQ(3, web_state_list_.count());
   EXPECT_TRUE(web_state_list_.IsWebStatePinnedAt(0));
@@ -886,7 +941,7 @@ TEST_F(WebStateListTest, CloseAllNonPinnedWebStates_PinnedWebStatesNotPresent) {
   EXPECT_EQ(3, web_state_list_.count());
 
   observer_.ResetStatistics();
-  web_state_list_.CloseAllNonPinnedWebStates(WebStateList::CLOSE_USER_ACTION);
+  CloseAllNonPinnedWebStates(web_state_list_, WebStateList::CLOSE_USER_ACTION);
 
   EXPECT_EQ(0, web_state_list_.count());
 
@@ -912,7 +967,7 @@ TEST_F(WebStateListTest,
   EXPECT_TRUE(observer_.pinned_state_changed());
 
   observer_.ResetStatistics();
-  web_state_list_.CloseAllNonPinnedWebStates(WebStateList::CLOSE_USER_ACTION);
+  CloseAllNonPinnedWebStates(web_state_list_, WebStateList::CLOSE_USER_ACTION);
 
   EXPECT_EQ(1, web_state_list_.count());
   EXPECT_EQ(0, web_state_list_.active_index());
@@ -942,7 +997,7 @@ TEST_F(WebStateListTest,
   EXPECT_TRUE(observer_.pinned_state_changed());
 
   observer_.ResetStatistics();
-  web_state_list_.CloseAllNonPinnedWebStates(WebStateList::CLOSE_USER_ACTION);
+  CloseAllNonPinnedWebStates(web_state_list_, WebStateList::CLOSE_USER_ACTION);
 
   EXPECT_EQ(1, web_state_list_.count());
   EXPECT_EQ(0, web_state_list_.active_index());
@@ -970,7 +1025,7 @@ TEST_F(WebStateListTest, CloseAllWebStates_PinnedNonPinned) {
   EXPECT_TRUE(observer_.pinned_state_changed());
 
   observer_.ResetStatistics();
-  web_state_list_.CloseAllWebStates(WebStateList::CLOSE_USER_ACTION);
+  CloseAllWebStates(web_state_list_, WebStateList::CLOSE_USER_ACTION);
 
   EXPECT_EQ(0, web_state_list_.count());
 
@@ -989,7 +1044,7 @@ TEST_F(WebStateListTest, CloseAllWebStates_NonPinned) {
   EXPECT_EQ(3, web_state_list_.count());
 
   observer_.ResetStatistics();
-  web_state_list_.CloseAllWebStates(WebStateList::CLOSE_USER_ACTION);
+  CloseAllWebStates(web_state_list_, WebStateList::CLOSE_USER_ACTION);
 
   EXPECT_EQ(0, web_state_list_.count());
 
@@ -1014,7 +1069,7 @@ TEST_F(WebStateListTest, CloseAllWebStates_PinnedNonPinnedWithActiveWebState) {
   EXPECT_TRUE(observer_.pinned_state_changed());
 
   observer_.ResetStatistics();
-  web_state_list_.CloseAllWebStates(WebStateList::CLOSE_USER_ACTION);
+  CloseAllWebStates(web_state_list_, WebStateList::CLOSE_USER_ACTION);
 
   EXPECT_EQ(0, web_state_list_.count());
   EXPECT_EQ(WebStateList::kInvalidIndex, web_state_list_.active_index());
@@ -1049,7 +1104,7 @@ TEST_F(WebStateListTest, CloseAllWebStates_ObserverNotificationOrder) {
 
   EXPECT_CALL(observer1, WebStateDestroyed(web_state1))
       .WillOnce([&](web::WebState*) {
-        // All webstates should be dettached before invoking WebStateDestroyed
+        // All webstates should be detached before invoking WebStateDestroyed
         // for any of them.
         EXPECT_EQ(0, web_state_list_.count());
         EXPECT_TRUE(observer_.web_state_detached());
@@ -1060,7 +1115,7 @@ TEST_F(WebStateListTest, CloseAllWebStates_ObserverNotificationOrder) {
 
   EXPECT_CALL(observer2, WebStateDestroyed(web_state2))
       .WillOnce([&](web::WebState*) {
-        // All webstates should be dettached before invoking WebStateDestroyed
+        // All webstates should be detached before invoking WebStateDestroyed
         // for any of them.
         EXPECT_EQ(0, web_state_list_.count());
         EXPECT_TRUE(observer_.web_state_detached());
@@ -1069,7 +1124,7 @@ TEST_F(WebStateListTest, CloseAllWebStates_ObserverNotificationOrder) {
         observation2.Reset();
       });
 
-  web_state_list_.CloseAllWebStates(WebStateList::CLOSE_USER_ACTION);
+  CloseAllWebStates(web_state_list_, WebStateList::CLOSE_USER_ACTION);
 
   EXPECT_TRUE(observer_.batch_operation_ended());
 }
@@ -1425,51 +1480,174 @@ TEST_F(WebStateListTest, WebStateListAsWeakPtr) {
   EXPECT_FALSE(weak_web_state_list);
 }
 
-using WebStateListRangeTest = PlatformTest;
+TEST_F(WebStateListTest, GetGroupOfUngroupedWebState) {
+  EXPECT_TRUE(web_state_list_.empty());
 
-TEST_F(WebStateListRangeTest, InvalidRange) {
-  WebStateList::Range range = WebStateList::Range::InvalidRange();
+  AppendNewWebState(kURL0);
 
-  EXPECT_FALSE(range.IsValid());
+  EXPECT_EQ(nullptr, web_state_list_.GetGroupOfWebStateAt(0));
 }
 
-TEST_F(WebStateListRangeTest, ZeroRange) {
-  WebStateList::Range range(0, 0);
+TEST_F(WebStateListTest, InsertWebState_NoGroup) {
+  EXPECT_TRUE(web_state_list_.empty());
+  AppendNewWebState(kURL0);
 
-  EXPECT_TRUE(range.IsValid());
-  EXPECT_EQ(0, range.start());
-  EXPECT_EQ(0, range.count());
-  EXPECT_EQ(0, range.end());
+  web_state_list_.InsertWebState(CreateWebState(kURL1));
 
-  EXPECT_FALSE(range.contains(-1));
-  EXPECT_FALSE(range.contains(0));
-  EXPECT_FALSE(range.contains(1));
-
-  EXPECT_EQ(WebStateList::Range(0, 0), range);
-  EXPECT_NE(WebStateList::Range(0, 1), range);
-  EXPECT_NE(WebStateList::Range(1, 0), range);
-  EXPECT_NE(WebStateList::Range(1, 1), range);
-  EXPECT_NE(WebStateList::Range::InvalidRange(), range);
+  EXPECT_EQ(nullptr, web_state_list_.GetGroupOfWebStateAt(0));
+  EXPECT_EQ(nullptr, web_state_list_.GetGroupOfWebStateAt(1));
 }
 
-TEST_F(WebStateListRangeTest, SomeRange) {
-  WebStateList::Range range(1, 2);
+TEST_F(WebStateListTest, MoveWebStateAt_NoGroup) {
+  EXPECT_TRUE(web_state_list_.empty());
+  AppendNewWebState(kURL0);
+  AppendNewWebState(kURL1);
+  AppendNewWebState(kURL2);
+  AppendNewWebState(kURL3);
 
-  EXPECT_TRUE(range.IsValid());
-  EXPECT_EQ(1, range.start());
-  EXPECT_EQ(2, range.count());
-  EXPECT_EQ(3, range.end());
+  web_state_list_.MoveWebStateAt(1, 3);
 
-  EXPECT_FALSE(range.contains(-1));
-  EXPECT_FALSE(range.contains(0));
-  EXPECT_TRUE(range.contains(1));
-  EXPECT_TRUE(range.contains(2));
-  EXPECT_FALSE(range.contains(3));
+  EXPECT_EQ(web_state_list_.GetWebStateAt(0)->GetVisibleURL().spec(), kURL0);
+  EXPECT_EQ(nullptr, web_state_list_.GetGroupOfWebStateAt(0));
 
-  EXPECT_NE(WebStateList::Range(0, 0), range);
-  EXPECT_NE(WebStateList::Range(0, 1), range);
-  EXPECT_NE(WebStateList::Range(1, 0), range);
-  EXPECT_NE(WebStateList::Range(1, 1), range);
-  EXPECT_EQ(WebStateList::Range(1, 2), range);
-  EXPECT_NE(WebStateList::Range::InvalidRange(), range);
+  EXPECT_EQ(web_state_list_.GetWebStateAt(1)->GetVisibleURL().spec(), kURL2);
+  EXPECT_EQ(nullptr, web_state_list_.GetGroupOfWebStateAt(1));
+
+  EXPECT_EQ(web_state_list_.GetWebStateAt(2)->GetVisibleURL().spec(), kURL3);
+  EXPECT_EQ(nullptr, web_state_list_.GetGroupOfWebStateAt(2));
+
+  EXPECT_EQ(web_state_list_.GetWebStateAt(3)->GetVisibleURL().spec(), kURL1);
+  EXPECT_EQ(nullptr, web_state_list_.GetGroupOfWebStateAt(3));
+}
+
+TEST_F(WebStateListTest, ReplaceWebStateAt_NoGroup) {
+  EXPECT_TRUE(web_state_list_.empty());
+  AppendNewWebState(kURL0);
+
+  web_state_list_.ReplaceWebStateAt(0, CreateWebState(kURL1));
+
+  EXPECT_EQ(web_state_list_.GetWebStateAt(0)->GetVisibleURL().spec(), kURL1);
+  EXPECT_EQ(nullptr, web_state_list_.GetGroupOfWebStateAt(0));
+}
+
+TEST_F(WebStateListTest, CreateGroup_OneTab) {
+  EXPECT_TRUE(web_state_list_.empty());
+  AppendNewWebState(kURL0);
+  TabGroupVisualData visual_data =
+      TabGroupVisualData(u"Group A", tab_groups::TabGroupColorId::kGrey);
+
+  const TabGroup* group = web_state_list_.CreateGroup({0}, visual_data);
+
+  EXPECT_EQ(1, web_state_list_.count());
+  EXPECT_EQ(group, web_state_list_.GetGroupOfWebStateAt(0));
+  EXPECT_EQ(WebStateList::Range(0, 1), web_state_list_.GetWebStates(group));
+}
+
+TEST_F(WebStateListTest, CreateGroup_SeveralTabs) {
+  EXPECT_TRUE(web_state_list_.empty());
+  AppendNewWebState(kURL0);
+  AppendNewWebState(kURL1);
+  AppendNewWebState(kURL2);
+  AppendNewWebState(kURL3);
+  AppendNewWebState(kURL4);
+  TabGroupVisualData visual_data =
+      TabGroupVisualData(u"Group A", tab_groups::TabGroupColorId::kGrey);
+
+  const TabGroup* group = web_state_list_.CreateGroup({0, 2, 4}, visual_data);
+
+  EXPECT_EQ(5, web_state_list_.count());
+
+  EXPECT_EQ(web_state_list_.GetWebStateAt(0)->GetVisibleURL().spec(), kURL0);
+  EXPECT_EQ(group, web_state_list_.GetGroupOfWebStateAt(0));
+
+  EXPECT_EQ(web_state_list_.GetWebStateAt(1)->GetVisibleURL().spec(), kURL2);
+  EXPECT_EQ(group, web_state_list_.GetGroupOfWebStateAt(1));
+
+  EXPECT_EQ(web_state_list_.GetWebStateAt(2)->GetVisibleURL().spec(), kURL4);
+  EXPECT_EQ(group, web_state_list_.GetGroupOfWebStateAt(2));
+
+  EXPECT_EQ(web_state_list_.GetWebStateAt(3)->GetVisibleURL().spec(), kURL1);
+  EXPECT_EQ(nullptr, web_state_list_.GetGroupOfWebStateAt(3));
+
+  EXPECT_EQ(web_state_list_.GetWebStateAt(4)->GetVisibleURL().spec(), kURL3);
+  EXPECT_EQ(nullptr, web_state_list_.GetGroupOfWebStateAt(4));
+
+  EXPECT_EQ(WebStateList::Range(0, 3), web_state_list_.GetWebStates(group));
+}
+
+TEST_F(WebStateListTest, CreateGroup_SeveralTabs_SomePinned) {
+  EXPECT_TRUE(web_state_list_.empty());
+  AppendNewWebState(kURL0);
+  web_state_list_.SetWebStatePinnedAt(0, true);
+  AppendNewWebState(kURL1);
+  web_state_list_.SetWebStatePinnedAt(1, true);
+  AppendNewWebState(kURL2);
+  web_state_list_.SetWebStatePinnedAt(2, true);
+  AppendNewWebState(kURL3);
+  AppendNewWebState(kURL4);
+  TabGroupVisualData visual_data =
+      TabGroupVisualData(u"Group A", tab_groups::TabGroupColorId::kGrey);
+
+  const TabGroup* group = web_state_list_.CreateGroup({1, 3}, visual_data);
+
+  EXPECT_EQ(5, web_state_list_.count());
+
+  EXPECT_EQ(web_state_list_.GetWebStateAt(0)->GetVisibleURL().spec(), kURL0);
+  EXPECT_EQ(nullptr, web_state_list_.GetGroupOfWebStateAt(0));
+  EXPECT_TRUE(web_state_list_.IsWebStatePinnedAt(0));
+
+  EXPECT_EQ(web_state_list_.GetWebStateAt(1)->GetVisibleURL().spec(), kURL2);
+  EXPECT_EQ(nullptr, web_state_list_.GetGroupOfWebStateAt(1));
+  EXPECT_TRUE(web_state_list_.IsWebStatePinnedAt(1));
+
+  EXPECT_EQ(web_state_list_.GetWebStateAt(2)->GetVisibleURL().spec(), kURL1);
+  EXPECT_EQ(group, web_state_list_.GetGroupOfWebStateAt(2));
+  EXPECT_FALSE(web_state_list_.IsWebStatePinnedAt(2));
+
+  EXPECT_EQ(web_state_list_.GetWebStateAt(3)->GetVisibleURL().spec(), kURL3);
+  EXPECT_EQ(group, web_state_list_.GetGroupOfWebStateAt(3));
+  EXPECT_FALSE(web_state_list_.IsWebStatePinnedAt(3));
+
+  EXPECT_EQ(web_state_list_.GetWebStateAt(4)->GetVisibleURL().spec(), kURL4);
+  EXPECT_EQ(nullptr, web_state_list_.GetGroupOfWebStateAt(4));
+  EXPECT_FALSE(web_state_list_.IsWebStatePinnedAt(4));
+
+  EXPECT_EQ(WebStateList::Range(2, 2), web_state_list_.GetWebStates(group));
+}
+
+TEST_F(WebStateListTest, CreateGroup_SeveralTabs_SomeGrouped) {
+  EXPECT_TRUE(web_state_list_.empty());
+  AppendNewWebState(kURL0);
+  AppendNewWebState(kURL1);
+  AppendNewWebState(kURL2);
+  AppendNewWebState(kURL3);
+  AppendNewWebState(kURL4);
+  TabGroupVisualData visual_data_a =
+      TabGroupVisualData(u"Group A", tab_groups::TabGroupColorId::kGrey);
+  const TabGroup* group_a =
+      web_state_list_.CreateGroup({0, 1, 2}, visual_data_a);
+
+  TabGroupVisualData visual_data_b =
+      TabGroupVisualData(u"Group B", tab_groups::TabGroupColorId::kBlue);
+  const TabGroup* group_b = web_state_list_.CreateGroup({1, 3}, visual_data_b);
+
+  EXPECT_EQ(5, web_state_list_.count());
+
+  EXPECT_EQ(web_state_list_.GetWebStateAt(0)->GetVisibleURL().spec(), kURL0);
+  EXPECT_EQ(group_a, web_state_list_.GetGroupOfWebStateAt(0));
+
+  EXPECT_EQ(web_state_list_.GetWebStateAt(1)->GetVisibleURL().spec(), kURL2);
+  EXPECT_EQ(group_a, web_state_list_.GetGroupOfWebStateAt(1));
+
+  EXPECT_EQ(web_state_list_.GetWebStateAt(2)->GetVisibleURL().spec(), kURL1);
+  EXPECT_EQ(group_b, web_state_list_.GetGroupOfWebStateAt(2));
+
+  EXPECT_EQ(web_state_list_.GetWebStateAt(3)->GetVisibleURL().spec(), kURL3);
+  EXPECT_EQ(group_b, web_state_list_.GetGroupOfWebStateAt(3));
+
+  EXPECT_EQ(web_state_list_.GetWebStateAt(4)->GetVisibleURL().spec(), kURL4);
+  EXPECT_EQ(nullptr, web_state_list_.GetGroupOfWebStateAt(4));
+
+  EXPECT_EQ(WebStateList::Range(0, 2), web_state_list_.GetWebStates(group_a));
+  EXPECT_EQ(WebStateList::Range(2, 2), web_state_list_.GetWebStates(group_b));
 }

@@ -6,6 +6,7 @@
 
 #include <memory>
 
+#include "ash/ash_element_identifiers.h"
 #include "ash/bubble/bubble_event_filter.h"
 #include "ash/picker/model/picker_category.h"
 #include "ash/picker/model/picker_search_results.h"
@@ -22,6 +23,7 @@
 #include "base/functional/bind.h"
 #include "ui/base/accelerators/accelerator.h"
 #include "ui/base/emoji/emoji_panel_helper.h"
+#include "ui/base/interaction/element_identifier.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/base/ui_base_types.h"
 #include "ui/chromeos/styles/cros_tokens_color_mappings.h"
@@ -39,6 +41,7 @@
 #include "ui/views/highlight_border.h"
 #include "ui/views/layout/fill_layout.h"
 #include "ui/views/layout/flex_layout.h"
+#include "ui/views/view_class_properties.h"
 #include "ui/views/view_utils.h"
 #include "ui/views/widget/unique_widget_ptr.h"
 #include "ui/views/widget/widget.h"
@@ -52,6 +55,11 @@ constexpr int kBorderRadius = 12;
 constexpr SystemShadow::Type kShadowType = SystemShadow::Type::kElevation12;
 constexpr ui::ColorId kBackgroundColor =
     cros_tokens::kCrosSysSystemBaseElevated;
+
+// Padding to separate the Picker window from the caret.
+constexpr gfx::Outsets kPaddingAroundCaret(4);
+// Padding to separate the Picker window from the screen edge.
+constexpr gfx::Insets kPaddingFromScreenEdge(16);
 
 std::unique_ptr<views::BubbleBorder> CreateBorder() {
   auto border = std::make_unique<views::BubbleBorder>(
@@ -74,10 +82,14 @@ std::unique_ptr<views::Separator> CreateSeparator() {
 gfx::Rect GetPickerAnchorBounds(const gfx::Rect& caret_bounds,
                                 const gfx::Point& cursor_point,
                                 const gfx::Rect& focused_window_bounds) {
-  return caret_bounds != gfx::Rect() &&
-                 focused_window_bounds.Contains(caret_bounds)
-             ? caret_bounds
-             : gfx::Rect(cursor_point, gfx::Size());
+  if (caret_bounds != gfx::Rect() &&
+      focused_window_bounds.Contains(caret_bounds)) {
+    gfx::Rect anchor_rect = caret_bounds;
+    anchor_rect.Outset(kPaddingAroundCaret);
+    return anchor_rect;
+  } else {
+    return gfx::Rect(cursor_point, gfx::Size());
+  }
 }
 
 // Gets the preferred layout to use given `anchor_bounds` in screen coordinates.
@@ -102,9 +114,10 @@ gfx::Rect GetPickerViewBounds(const gfx::Rect& anchor_bounds,
                               PickerView::PickerLayoutType layout_type,
                               const gfx::Size& picker_view_size,
                               int picker_view_search_field_vertical_offset) {
-  const gfx::Rect screen_work_area = display::Screen::GetScreen()
-                                         ->GetDisplayMatching(anchor_bounds)
-                                         .work_area();
+  gfx::Rect screen_work_area = display::Screen::GetScreen()
+                                   ->GetDisplayMatching(anchor_bounds)
+                                   .work_area();
+  screen_work_area.Inset(kPaddingFromScreenEdge);
   gfx::Rect picker_view_bounds(picker_view_size);
   if (anchor_bounds.right() + picker_view_size.width() <=
       screen_work_area.right()) {
@@ -154,6 +167,7 @@ PickerView::PickerView(PickerViewDelegate* delegate,
       SystemShadow::CreateShadowOnNinePatchLayerForView(this, kShadowType);
   shadow_->SetRoundedCornerRadius(kBorderRadius);
   SetPreferredSize(kPickerSize);
+  SetProperty(views::kElementIdentifierKey, kPickerElementId);
 
   SetLayoutManager(std::make_unique<views::FlexLayout>())
       ->SetOrientation(views::LayoutOrientation::kVertical);
@@ -218,12 +232,6 @@ bool PickerView::AcceleratorPressed(const ui::Accelerator& accelerator) {
     widget->CloseWithReason(views::Widget::ClosedReason::kEscKeyPressed);
   }
   return true;
-}
-
-void PickerView::PaintChildren(const views::PaintInfo& paint_info) {
-  if (delegate_->ShouldPaint()) {
-    views::View::PaintChildren(paint_info);
-  }
 }
 
 std::unique_ptr<views::NonClientFrameView> PickerView::CreateNonClientFrameView(

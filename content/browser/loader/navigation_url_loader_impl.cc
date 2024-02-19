@@ -721,11 +721,7 @@ void NavigationURLLoaderImpl::StartNonInterceptedRequest(
 }
 
 void NavigationURLLoaderImpl::FallbackToNonInterceptedRequest(
-    bool reset_subresource_loader_params,
     ResponseHeadUpdateParams head_update_params) {
-  if (reset_subresource_loader_params)
-    subresource_loader_params_ = {};
-
   head_update_params_ = std::move(head_update_params);
   scoped_refptr<network::SharedURLLoaderFactory> factory =
       PrepareForNonInterceptedRequest();
@@ -1410,7 +1406,8 @@ NavigationURLLoaderImpl::NavigationURLLoaderImpl(
         ContentBrowserClient::URLLoaderFactoryType::kNavigation,
         url_loader_factory::TerminalParams::ForNonNetwork(
             CreateWebUIURLLoaderFactory(frame_tree_node->current_frame_host(),
-                                        scheme, {})),
+                                        scheme, {}),
+            network::mojom::kBrowserProcessId),
         url_loader_factory::ContentClientParams(
             browser_context_, frame_tree_node->current_frame_host(),
             frame_tree_node->current_frame_host()->GetProcess()->GetID(),
@@ -1632,6 +1629,22 @@ void NavigationURLLoaderImpl::NotifyResponseStarted(
     }
   }
 
+  // When dispatching a ServiceWorker fetch event failed, controller is marked
+  // lost in `ServiceWorkerMainResourceLoader::DidDispatchFetchEvent`. In this
+  // case, the main resource loading should have already been fallen back to the
+  // network, and ServiceWorker subresource interception is reset here by
+  // detecting the controller lost, to completely cancel the ServiceWorker
+  // interception initially set in `MaybeCreateLoader()`.
+  //
+  // There might be other cases where the controller is lost here, but probably
+  // it's fine to reset ServiceWorker subresource interception as well, as the
+  // controller is anyway lost.
+  if (!subresource_loader_params_.container_host ||
+      !subresource_loader_params_.container_host->controller()) {
+    subresource_loader_params_.controller_service_worker_info = nullptr;
+    subresource_loader_params_.controller_service_worker_object_host = nullptr;
+  }
+
   // TODO(scottmg): This needs to do more of what
   // NavigationResourceHandler::OnResponseStarted() does.
   delegate_->OnResponseStarted(
@@ -1680,7 +1693,7 @@ NavigationURLLoaderImpl::CreateURLLoaderFactoryWithHeaderClient(
   params->header_client = std::move(header_client);
   params->process_id = network::mojom::kBrowserProcessId;
   params->is_trusted = true;
-  params->is_corb_enabled = false;
+  params->is_orb_enabled = false;
   params->disable_web_security =
       base::CommandLine::ForCurrentProcess()->HasSwitch(
           switches::kDisableWebSecurity);
@@ -1726,7 +1739,8 @@ void NavigationURLLoaderImpl::
   url_loader_factory::CreateAndConnectToPendingReceiver(
       std::move(factory_receiver),
       ContentBrowserClient::URLLoaderFactoryType::kNavigation,
-      url_loader_factory::TerminalParams::ForNonNetwork(std::move(terminal)),
+      url_loader_factory::TerminalParams::ForNonNetwork(
+          std::move(terminal), network::mojom::kBrowserProcessId),
       url_loader_factory::ContentClientParams(
           frame->GetSiteInstance()->GetBrowserContext(), frame,
           frame->GetProcess()->GetID(), url::Origin(),

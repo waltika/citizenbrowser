@@ -15,14 +15,17 @@
 #include "ash/metrics/histogram_macros.h"
 #include "ash/public/cpp/metrics_util.h"
 #include "ash/public/cpp/saved_desk_delegate.h"
+#include "ash/public/cpp/shelf_types.h"
 #include "ash/public/cpp/window_properties.h"
 #include "ash/resources/vector_icons/vector_icons.h"
 #include "ash/rotator/screen_rotation_animator.h"
 #include "ash/screen_util.h"
+#include "ash/shelf/shelf.h"
 #include "ash/shell.h"
 #include "ash/shell_delegate.h"
 #include "ash/strings/grit/ash_strings.h"
 #include "ash/style/ash_color_id.h"
+#include "ash/style/typography.h"
 #include "ash/system/toast/toast_manager_impl.h"
 #include "ash/wallpaper/wallpaper_controller_impl.h"
 #include "ash/wm/desks/default_desk_button.h"
@@ -118,6 +121,10 @@ constexpr int kSaveDeskAsTemplateOverviewItemSpacingDp = 45;
 // splitscreen toast widget.
 constexpr int kFasterSplitScreenToastSpacingDp = 40;
 
+// Distance between the bottom of the toast and the bottom of the work area
+// which will be the top edge of the shelf if it is shown.
+constexpr int kMinimumDistanceBetweenToastAndWorkAreaDp = 8;
+
 // Windows are not allowed to get taller than this.
 constexpr int kMaxHeight = 512;
 
@@ -133,6 +140,21 @@ constexpr int kScrollingLayoutRow = 2;
 constexpr int kMinimumItemsForScrollingLayout = 6;
 
 constexpr int kTabletModeOverviewItemTopPaddingDp = 16;
+
+// The padding applied to the side of the effective bounds without neighboring
+// widget.
+constexpr int kSpaciousPaddingForEffectiveBounds = 32;
+// The padding applied to the side of the effective bounds with neighboring
+// widget.
+constexpr int kCompactPaddingForEffectiveBounds = 16;
+
+// The horizontal and vertical distance from the bottom left corner of the grid
+// area to the origin of the `feedback_widget_`.
+constexpr int kFeedbackCornerSpacing = 30;
+
+// The minimum height of the grid area in order for the feedback button to be
+// visible.
+constexpr int kFeedbackGridMinHeight = 100;
 
 // Wait a while before unpausing the occlusion tracker after a scroll has
 // completed as the user may start another scroll.
@@ -690,7 +712,15 @@ void OverviewGrid::PositionWindows(
     bool animate,
     const base::flat_set<OverviewItemBase*>& ignored_items,
     OverviewTransition transition) {
-  if (!overview_session_ || suspend_reposition_ || item_list_.empty()) {
+  if (!overview_session_ || suspend_reposition_) {
+    return;
+  }
+
+  // Create a feedback button that shows even when no items are present (e.g.,
+  // for Pine).
+  UpdateFeedbackButton();
+
+  if (item_list_.empty()) {
     return;
   }
 
@@ -1532,7 +1562,46 @@ gfx::Rect OverviewGrid::GetGridEffectiveBounds() const {
 
   gfx::Rect effective_bounds = bounds_;
   effective_bounds.Inset(gfx::Insets::TLBR(GetDesksBarHeight(), 0, 0, 0));
+  effective_bounds.Inset(GetGridEffectiveBoundsPaddings());
   return effective_bounds;
+}
+
+gfx::Insets OverviewGrid::GetGridEffectiveBoundsPaddings() const {
+  if (!features::IsForestFeatureEnabled() || InTabletMode()) {
+    return gfx::Insets();
+  }
+
+  // Use compact paddings for partial overview.
+  if (SplitViewController::Get(root_window_)->InSplitViewMode()) {
+    return gfx::Insets(kCompactPaddingForEffectiveBounds);
+  }
+
+  gfx::Insets paddings;
+
+  // Use compact top padding for expanded desks bar and no padding for zero
+  // state.
+  const DeskBarViewBase::State state =
+      desks_bar_view_ ? desks_bar_view_->state()
+                      : LegacyDeskBarView::GetPerferredState(
+                            LegacyDeskBarView::Type::kOverview);
+  paddings.set_top(state == DeskBarViewBase::State::kZero
+                       ? 0
+                       : kCompactPaddingForEffectiveBounds);
+
+  // Use compact paddings for the side with shelf and spacious padding
+  // otherwise.
+  const ShelfAlignment alignment = Shelf::ForWindow(root_window_)->alignment();
+  paddings.set_left(alignment == ShelfAlignment::kLeft
+                        ? kCompactPaddingForEffectiveBounds
+                        : kSpaciousPaddingForEffectiveBounds);
+  paddings.set_right(alignment == ShelfAlignment::kRight
+                         ? kCompactPaddingForEffectiveBounds
+                         : kSpaciousPaddingForEffectiveBounds);
+  paddings.set_bottom(alignment == ShelfAlignment::kBottom ||
+                              alignment == ShelfAlignment::kBottomLocked
+                          ? kCompactPaddingForEffectiveBounds
+                          : kSpaciousPaddingForEffectiveBounds);
+  return paddings;
 }
 
 gfx::Insets OverviewGrid::GetGridInsets() const {
@@ -2008,7 +2077,6 @@ void OverviewGrid::UpdateNoWindowsWidget(bool no_items,
   // 2. In faster split screen setup, the `no_windows_widget_` show to indicate
   // either no windows available to pair or select a window to complete the
   // window layout.
-  // TODO(b/323199185): Move this to its own function.
   if (window_util::IsInFasterSplitScreenSetupSession(root_window_)) {
     UpdateFasterSplitViewWidget();
     return;
@@ -2249,6 +2317,13 @@ bool OverviewGrid::IsSaveDeskForLaterButtonVisible() const {
          container->save_desk_for_later_button()->GetVisible();
 }
 
+void OverviewGrid::OnTabletModeChanged() {
+  // We may not show virtual desk bar in clamshell mode such as in faster split
+  // screen setup session, and the desk bar will be created in tablet mode
+  // either. In this case, we may need to init the virtual desk bar.
+  MaybeInitDesksWidget();
+}
+
 size_t OverviewGrid::GetNumWindows() const {
   size_t size = 0u;
   for (const std::unique_ptr<OverviewItemBase>& item : item_list_) {
@@ -2311,8 +2386,7 @@ void OverviewGrid::OnSplitViewStateChanged(
   if (state == SplitViewController::State::kBothSnapped ||
       unsnappable_window_activated ||
       (split_view_controller->InClamshellSplitViewMode() &&
-       overview_session_->IsEmpty() &&
-       !window_util::IsInFasterSplitScreenSetupSession(root_window_))) {
+       overview_session_->IsEmpty())) {
     overview_session_->RestoreWindowActivation(false);
     overview_controller->EndOverview(
         state == SplitViewController::State::kBothSnapped
@@ -2913,9 +2987,8 @@ void OverviewGrid::UpdateFasterSplitViewWidget() {
     faster_splitview_widget_->Show();
   }
 
-  // TODO(b/323199185): UX needs to decide where to position this.
-
-  gfx::Rect centered_bounds(GetGridEffectiveBounds());
+  const gfx::Rect grid_bounds = GetGridEffectiveBounds();
+  gfx::Rect centered_bounds(grid_bounds);
   const gfx::Size preferred_size =
       faster_splitview_widget_->GetContentsView()->GetPreferredSize();
   centered_bounds.ClampToCenteredSize(preferred_size);
@@ -2928,13 +3001,69 @@ void OverviewGrid::UpdateFasterSplitViewWidget() {
 
   // Position the widget under the bottom of the last overview item, but
   // centered horizontally.
-  const gfx::RectF last_overview_item_bounds =
-      item_list_.back()->target_bounds();
-  centered_bounds.set_y(last_overview_item_bounds.bottom() +
-                        kFasterSplitScreenToastSpacingDp);
+  const int last_overview_item_bottom =
+      item_list_.back()->target_bounds().bottom();
+
+  // We need to maintain a minimum distance between the bottom of the toast and
+  // the bottom of the grid bounds so that it won't be hidden by other UI
+  // elements such as shelf. Under extreme condition, which should rarely
+  // happen, if the bottom are of the partial overview grids is too small to
+  // accommodate for both `kMinimumDistanceBetweenToastAndWorkAreaDp` and
+  // `kFasterSplitScreenToastSpacingDp`. We will prioritize the minimum
+  // distance, under which condition the toast and settings button may appear
+  // above the overview items.
+  const int toast_y = std::min(
+      last_overview_item_bottom + kFasterSplitScreenToastSpacingDp,
+      grid_bounds.bottom() - kMinimumDistanceBetweenToastAndWorkAreaDp -
+          preferred_size.height());
+
+  centered_bounds.set_y(toast_y);
   faster_splitview_widget_->SetBounds(centered_bounds);
 
   overview_session_->UpdateAccessibilityFocus();
+}
+
+void OverviewGrid::UpdateFeedbackButton() {
+  if (SplitViewController::Get(root_window_)->InSplitViewMode()) {
+    feedback_widget_.reset();
+    return;
+  }
+
+  // We don't want the feedback button to overlap the desk bar.
+  gfx::Rect grid_bounds = GetGridEffectiveBounds();
+  if (grid_bounds.height() < kFeedbackGridMinHeight) {
+    return;
+  }
+
+  if (!feedback_widget_) {
+    auto contents_view = std::make_unique<PillButton>(
+        // TODO(hewer): Add callback to open a feedback page.
+        views::Button::PressedCallback(), u"Send Feedback",
+        PillButton::Type::kDefaultWithIconLeading, &kFeedbackIcon);
+
+    views::Widget::InitParams params;
+    params.init_properties_container.SetProperty(kHideInDeskMiniViewKey, true);
+    params.init_properties_container.SetProperty(kOverviewUiKey, true);
+    params.name = "PineFeedbackButton";
+    params.ownership = views::Widget::InitParams::WIDGET_OWNS_NATIVE_WIDGET;
+    params.parent = desks_util::GetActiveDeskContainerForRoot(root_window_);
+    params.type = views::Widget::InitParams::TYPE_POPUP;
+
+    feedback_widget_ = std::make_unique<views::Widget>(std::move(params));
+    feedback_widget_->SetContentsView(std::move(contents_view));
+    feedback_widget_->ShowInactive();
+  }
+
+  const gfx::Size contents_size =
+      feedback_widget_->GetContentsView()->GetPreferredSize();
+
+  // TODO(hewer): Change the fixed distance of the button from the corner once
+  // the crop area is implemented.
+  feedback_widget_->SetBounds(
+      gfx::Rect(grid_bounds.bottom_left().x() + kFeedbackCornerSpacing,
+                grid_bounds.bottom_left().y() - kFeedbackCornerSpacing -
+                    contents_size.height(),
+                contents_size.width(), contents_size.height()));
 }
 
 }  // namespace ash

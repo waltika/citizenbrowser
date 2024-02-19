@@ -56,13 +56,13 @@ class UrlLoadingBrowserAgent;
 - (void)disconnect;
 
 // Returns the parcel tracking items to show.
-- (NSArray<ParcelTrackingItem*>*)parcelTrackingItemsToShow;
+- (ParcelTrackingItem*)parcelTrackingItemToShow;
 
 // Returns all parcel tracking items received.
 - (NSArray<ParcelTrackingItem*>*)allParcelTrackingItems;
 
 // Disables and hides the parcel tracking module.
-- (void)disableParcelTracking;
+- (void)disableModule;
 
 // Indicates that `parcelID` should be untracked.
 - (void)untrackParcel:(NSString*)parcelID;

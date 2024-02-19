@@ -476,7 +476,9 @@ class DesksTest : public AshTestBase,
 
     scoped_feature_list_.InitWithFeatureStates(
         {{features::kFeatureManagement16Desks, GetParam().use_16_desks},
-         {features::kPerDeskShelf, GetParam().per_desk_shelf}});
+         {features::kPerDeskShelf, GetParam().per_desk_shelf},
+         {features::kFasterSplitScreenSetup, true},
+         {features::kOsSettingsRevampWayfinding, true}});
 
     AshTestBase::SetUp();
     SetVirtualKeyboardEnabled(true);
@@ -552,6 +554,33 @@ TEST_P(DesksTest, DesksCreationAndRemoval) {
   EXPECT_TRUE(observer.desks().empty());
 
   controller->RemoveObserver(&observer);
+}
+
+TEST_P(DesksTest, DeskRemovalLifetimeHistogram) {
+  base::HistogramTester histogram_tester;
+
+  constexpr std::string_view kHistogramNames[] = {
+      "Ash.Desks.DeskLifetime_2", "Ash.Desks.DeskLifetime_Profile_2"};
+
+  auto* controller = DesksController::Get();
+
+  for (bool set_lacros_profile : {false, true}) {
+    std::string_view histogram = kHistogramNames[set_lacros_profile];
+    SCOPED_TRACE(histogram);
+
+    // Create a new desk and give it a creation time in the past.
+    NewDesk();
+    auto* desk = controller->desks().back().get();
+    desk->set_creation_time(base::Time::Now() - base::Hours(8));
+
+    if (set_lacros_profile) {
+      desk->SetLacrosProfileId(GetDummyLacrosDeskProfileId(0),
+                               /*source=*/std::nullopt);
+    }
+
+    RemoveDesk(desk);
+    histogram_tester.ExpectBucketCount(histogram, 8, 1);
+  }
 }
 
 // Regression test for a crash reported at https://crbug.com/1267069. If a
@@ -11068,20 +11097,13 @@ class DeskButtonTest
 
 // Tests functionalities for `DeskSwitchButton`s.
 TEST_P(DeskButtonTest, DeskSwitchButtons) {
-  // With only one desk, the previous desk button is hidden and the next
-  // desk button is visible but disabled.
+  // With only one desk, both switch buttons are hidden.
   views::ImageButton* prev_desk_button = GetPrevDeskButton();
   views::ImageButton* next_desk_button = GetNextDeskButton();
   ASSERT_TRUE(prev_desk_button);
   ASSERT_TRUE(next_desk_button);
-  if (GetParam().alignment == ShelfAlignment::kBottom) {
-    EXPECT_FALSE(prev_desk_button->GetVisible());
-    EXPECT_TRUE(next_desk_button->GetVisible());
-    EXPECT_FALSE(next_desk_button->GetEnabled());
-  } else {
-    EXPECT_FALSE(prev_desk_button->GetVisible());
-    EXPECT_FALSE(next_desk_button->GetVisible());
-  }
+  EXPECT_FALSE(prev_desk_button->GetVisible());
+  EXPECT_FALSE(next_desk_button->GetVisible());
 
   // Create a new desk. The previous desk button should be hidden and
   // the next desk button should be enabled.

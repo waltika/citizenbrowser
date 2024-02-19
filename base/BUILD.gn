@@ -44,6 +44,11 @@ import("//build_overrides/build.gni")
 import("//testing/libfuzzer/fuzzer_test.gni")
 import("//testing/test.gni")
 
+if (is_ios) {
+  # Used to access ios_is_app_extension variable definition.
+  import("//build/config/ios/ios_sdk.gni")
+}
+
 if (is_mac) {
   # Used to generate fuzzer corpus :base_mach_port_rendezvous_convert_corpus.
   import("//third_party/protobuf/proto_library.gni")
@@ -916,6 +921,8 @@ component("base") {
     "trace_event/heap_profiler_allocation_context_tracker.h",
     "trace_event/memory_allocator_dump_guid.cc",
     "trace_event/memory_allocator_dump_guid.h",
+    "trace_event/named_trigger.cc",
+    "trace_event/named_trigger.h",
     "trace_event/trace_id_helper.cc",
     "trace_event/trace_id_helper.h",
     "traits_bag.h",
@@ -1057,6 +1064,7 @@ component("base") {
     "//base/third_party/dynamic_annotations",
     "//build:blink_buildflags",
     "//build:branding_buildflags",
+    "//build:ios_buildflags",
     "//build/config/compiler:compiler_buildflags",
     "//third_party/modp_b64",
   ]
@@ -1321,6 +1329,7 @@ component("base") {
       "android/jni_array.h",
       "android/jni_bytebuffer.cc",
       "android/jni_bytebuffer.h",
+      "android/jni_conversions.cc",
       "android/jni_registrar.cc",
       "android/jni_registrar.h",
       "android/jni_string.cc",
@@ -1671,6 +1680,8 @@ component("base") {
       sources += [
         "memory/discardable_shared_memory.cc",
         "memory/discardable_shared_memory.h",
+        "memory/shared_memory_switch.cc",
+        "memory/shared_memory_switch.h",
         "metrics/histogram_shared_memory.cc",
         "metrics/histogram_shared_memory.h",
         "process/kill.cc",
@@ -2100,7 +2111,6 @@ component("base") {
     sources += [
       "base_paths_ios.h",
       "base_paths_ios.mm",
-      "critical_closure_internal_ios.mm",
       "ios/block_types.h",
       "ios/crb_protocol_observers.h",
       "ios/crb_protocol_observers.mm",
@@ -2111,8 +2121,6 @@ component("base") {
       "ios/ns_error_util.h",
       "ios/ns_error_util.mm",
       "ios/ns_range.h",
-      "ios/scoped_critical_action.h",
-      "ios/scoped_critical_action.mm",
       "native_library_ios.mm",
       "power_monitor/power_monitor_device_source_ios.mm",
       "process/process_metrics_ios.cc",
@@ -2120,6 +2128,14 @@ component("base") {
       "profiler/stack_sampler_ios.cc",
       "system/sys_info_ios.mm",
     ]
+
+    if (!ios_is_app_extension) {
+      sources += [
+        "critical_closure_internal_ios.mm",
+        "ios/scoped_critical_action.h",
+        "ios/scoped_critical_action.mm",
+      ]
+    }
 
     if (use_blink) {
       sources += [
@@ -3147,7 +3163,6 @@ test("base_unittests") {
     "command_line_unittest.cc",
     "component_export_unittest.cc",
     "containers/adapters_unittest.cc",
-    "containers/buffer_iterator_unittest.cc",
     "containers/checked_iterators_unittest.cc",
     "containers/circular_deque_unittest.cc",
     "containers/contains_unittest.cc",
@@ -3496,7 +3511,10 @@ test("base_unittests") {
   ]
 
   if (use_blink) {
-    sources += [ "metrics/histogram_shared_memory_unittest.cc" ]
+    sources += [
+      "memory/shared_memory_switch_unittest.cc",
+      "metrics/histogram_shared_memory_unittest.cc",
+    ]
   }
 
   if (!is_cronet_build) {
@@ -4154,7 +4172,10 @@ source_set("base_unsafe_buffers_unittest_sources") {
   testonly = true
   visibility = [ ":*" ]
   configs += [ "//build/config/compiler:unsafe_buffer_warning" ]
-  sources = [ "unsafe_buffers_unittest.cc" ]
+  sources = [
+    "containers/buffer_iterator_unittest.cc",
+    "unsafe_buffers_unittest.cc",
+  ]
   deps = [
     "//base",
     "//testing/gtest",
@@ -4192,7 +4213,6 @@ if (enable_nocompile_tests) {
       "allocator/partition_allocator/src/partition_alloc/pointers/raw_ptr_nocompile.nc",
       "allocator/partition_allocator/src/partition_alloc/pointers/raw_ref_nocompile.nc",
       "callback_list_nocompile.nc",
-      "containers/buffer_iterator_nocompile.nc",
       "containers/checked_iterators_nocompile.nc",
       "containers/contains_nocompile.nc",
       "containers/enum_set_nocompile.nc",
@@ -4227,7 +4247,10 @@ if (enable_nocompile_tests) {
 
   nocompile_source_set("base_unsafe_buffers_nocompile_tests") {
     configs = [ "//build/config/compiler:unsafe_buffer_warning" ]
-    sources = [ "unsafe_buffers_nocompile.nc" ]
+    sources = [
+      "containers/buffer_iterator_nocompile.nc",
+      "unsafe_buffers_nocompile.nc",
+    ]
     deps = [ ":base" ]
   }
 }
@@ -4625,7 +4648,6 @@ if (is_android) {
       "android/javatests/src/org/chromium/base/AdvancedMockContextTest.java",
       "android/javatests/src/org/chromium/base/AssertsTest.java",
       "android/javatests/src/org/chromium/base/CommandLineFlagsTest.java",
-      "android/javatests/src/org/chromium/base/CommandLineInitUtilTest.java",
       "android/javatests/src/org/chromium/base/CommandLineTest.java",
       "android/javatests/src/org/chromium/base/EarlyTraceEventTest.java",
       "android/javatests/src/org/chromium/base/IntentUtilsTest.java",

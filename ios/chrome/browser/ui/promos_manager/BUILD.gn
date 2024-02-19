@@ -72,6 +72,7 @@ source_set("promos_manager") {
     "//ios/chrome/browser/promos_manager/model:types",
     "//ios/chrome/browser/shared/coordinator/chrome_coordinator",
     "//ios/chrome/browser/sync/model",
+    "//ios/chrome/browser/ui/default_promo",
     "//ios/public/provider/chrome/browser/signin:choice_api",
   ]
   deps = [
@@ -90,6 +91,8 @@ source_set("promos_manager") {
     "//ios/chrome/browser/ui/app_store_rating",
     "//ios/chrome/browser/ui/app_store_rating:features",
     "//ios/chrome/browser/ui/credential_provider_promo",
+    "//ios/chrome/browser/ui/default_promo/post_default_abandonment",
+    "//ios/chrome/browser/ui/default_promo/post_default_abandonment:features",
     "//ios/chrome/browser/ui/default_promo/post_restore:features",
     "//ios/chrome/browser/ui/default_promo/post_restore:post_restore_default_browser",
     "//ios/chrome/browser/ui/default_promo/promo_handler",

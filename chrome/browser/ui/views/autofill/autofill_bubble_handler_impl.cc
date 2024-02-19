@@ -277,6 +277,24 @@ AutofillBubbleBase* AutofillBubbleHandlerImpl::ShowVirtualCardEnrollBubble(
   return bubble;
 }
 
+AutofillBubbleBase*
+AutofillBubbleHandlerImpl::ShowVirtualCardEnrollConfirmationBubble(
+    content::WebContents* web_contents,
+    VirtualCardEnrollBubbleController* controller) {
+  views::View* anchor_view = toolbar_button_provider_->GetAnchorView(
+      PageActionIconType::kVirtualCardEnroll);
+  base::OnceCallback<void(PaymentsBubbleClosedReason)> callback =
+      controller->GetOnBubbleClosedCallback();
+  PageActionIconView* icon_view =
+      toolbar_button_provider_->GetPageActionIconView(
+          PageActionIconType::kVirtualCardEnroll);
+  const SaveCardAndVirtualCardEnrollConfirmationUiParams& ui_params =
+      controller->GetConfirmationUiParams();
+
+  return ShowSaveCardAndVirtualCardEnrollConfirmationBubble(
+      anchor_view, web_contents, std::move(callback), icon_view, ui_params);
+}
+
 AutofillBubbleBase* AutofillBubbleHandlerImpl::ShowMandatoryReauthBubble(
     content::WebContents* web_contents,
     MandatoryReauthBubbleController* controller,
@@ -325,9 +343,11 @@ AutofillBubbleBase* AutofillBubbleHandlerImpl::ShowSaveCardConfirmationBubble(
   PageActionIconView* icon_view =
       toolbar_button_provider_->GetPageActionIconView(
           PageActionIconType::kSaveCard);
+  const SaveCardAndVirtualCardEnrollConfirmationUiParams& ui_params =
+      controller->GetConfirmationUiParams();
 
   return ShowSaveCardAndVirtualCardEnrollConfirmationBubble(
-      anchor_view, web_contents, std::move(callback), icon_view);
+      anchor_view, web_contents, std::move(callback), icon_view, ui_params);
 }
 
 AutofillBubbleBase*
@@ -336,10 +356,12 @@ AutofillBubbleHandlerImpl::ShowSaveCardAndVirtualCardEnrollConfirmationBubble(
     content::WebContents* web_contents,
     base::OnceCallback<void(PaymentsBubbleClosedReason)>
         controller_hide_callback,
-    PageActionIconView* icon_view) {
+    PageActionIconView* icon_view,
+    SaveCardAndVirtualCardEnrollConfirmationUiParams ui_params) {
   SaveCardAndVirtualCardEnrollConfirmationBubbleViews* bubble =
       new SaveCardAndVirtualCardEnrollConfirmationBubbleViews(
-          anchor_view, web_contents, std::move(controller_hide_callback));
+          anchor_view, web_contents, std::move(controller_hide_callback),
+          std::move(ui_params));
 
   bubble->SetHighlightedButton(icon_view);
   views::BubbleDialogDelegateView::CreateBubble(bubble);

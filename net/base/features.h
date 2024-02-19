@@ -428,10 +428,6 @@ NET_EXPORT extern const base::FeatureParam<std::string>
 // connections that _would_ have been proxied, but were not.
 NET_EXPORT extern const base::FeatureParam<bool> kIpPrivacyDirectOnly;
 
-// Controls whether the BlindSignAuth library used by IP Protection should use
-// the privacy pass token format.
-NET_EXPORT extern const base::FeatureParam<bool> kIpPrivacyBsaEnablePrivacyPass;
-
 // The PSK added to connections to proxyB with `Proxy-Authorization: Preshared
 // $PSK`.
 NET_EXPORT extern const base::FeatureParam<std::string> kIpPrivacyProxyBPsk;
@@ -445,6 +441,12 @@ NET_EXPORT extern const base::FeatureParam<bool>
 // network requests.
 NET_EXPORT extern const base::FeatureParam<bool>
     kIpPrivacyAddHeaderToProxiedRequests;
+
+// Token expirations will have a random time between 5 seconds and this delta
+// subtracted from their expiration, in order to even out the load on the token
+// servers.
+NET_EXPORT extern const base::FeatureParam<base::TimeDelta>
+    kIpPrivacyExpirationFuzz;
 
 // Whether QuicParams::migrate_sessions_on_network_change_v2 defaults to true or
 // false. This is needed as a workaround to set this value to true on Android

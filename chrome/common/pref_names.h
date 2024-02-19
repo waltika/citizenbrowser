@@ -646,13 +646,6 @@ inline constexpr char kTouchVirtualKeyboardEnabled[] =
 inline constexpr char kVirtualKeyboardSmartVisibilityEnabled[] =
     "ui.virtual_keyboard_smart_visibility_enabled";
 
-// This is the policy CaptivePortalAuthenticationIgnoresProxy that allows to
-// open captive portal authentication pages in a separate window under
-// a temporary incognito profile ("signin profile" is used for this purpose),
-// which allows to bypass the user's proxy for captive portal authentication.
-inline constexpr char kCaptivePortalAuthenticationIgnoresProxy[] =
-    "proxy.captive_portal_ignores_proxy";
-
 // A dictionary pref mapping public keys that identify platform keys to its
 // properties like whether it's meant for corporate usage.
 inline constexpr char kPlatformKeys[] = "platform_keys";
@@ -2587,6 +2580,14 @@ inline constexpr char kKerberosEnabled[] = "kerberos.enabled";
 // Isolated Web App,
 inline constexpr char kIsolatedWebAppInstallForceList[] =
     "profile.isolated_web_app.install.forcelist";
+
+// Holds URL patterns that specify origins that will be allowed to call
+// `subApps.{add|remove|list}())` without prior user gesture and that will skip
+// the user dialog authorization.
+inline constexpr char
+    kSubAppsAPIsAllowedWithoutGestureAndAuthorizationForOrigins[] =
+        "profile.isolated_web_app.sub_apps_allowed_without_user_gesture_and_"
+        "authorization";
 #endif  // BUILDFLAG(IS_CHROMEOS)
 
 #if BUILDFLAG(IS_WIN)
@@ -2945,6 +2946,10 @@ inline constexpr char
 // set for child users only, and kept on the known user storage.
 inline constexpr char kKnownUserParentAccessCodeConfig[] =
     "child_user.parent_access_code.config";
+
+// Pref that contains the value of the LocalUserFilesAllowed policy.
+inline constexpr char kLocalUserFilesAllowed[] =
+    "filebrowser.local_user_files_allowed";
 #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
 // String which specifies where to store the disk cache.
@@ -4010,6 +4015,10 @@ inline constexpr char kHttpsUpgradesEnabled[] =
 // Whether the hovercard image previews is enabled
 inline constexpr char kHoverCardImagesEnabled[] =
     "browser.hovercard.image_previews_enabled";
+
+// Whether hovercard memory usage is enabled
+inline constexpr char kHoverCardMemoryUsageEnabled[] =
+    "browser.hovercard.memory_usage_enabled";
 
 // Boolean that specifies whether Compression Dictionary Transport is enabled.
 inline constexpr char kCompressionDictionaryTransportEnabled[] =

@@ -53,7 +53,7 @@ chromium-metrics-reviews@google.com.
 </variants>
 
 <histogram name="Settings.AdvancedSpellcheck.OnStartup2" enum="BooleanEnabled"
-    expires_after="2024-06-09">
+    expires_after="2024-08-11">
   <owner>harrisonsean@chromium.org</owner>
   <owner>chrome-privacy-controls@google.com</owner>
   <summary>
@@ -309,28 +309,6 @@ chromium-metrics-reviews@google.com.
   <summary>
     Records the startup state of the ad measurement API for Privacy Sandbox GA
     M1. This is recorded during the profile start up.
-  </summary>
-</histogram>
-
-<histogram
-    name="Settings.PrivacySandbox.CanNonNormalBrowserWindowFitConsentWidth"
-    enum="Boolean" expires_after="2024-08-25">
-  <owner>boujane@google.com</owner>
-  <owner>koilos@google.com</owner>
-  <summary>
-    In case of non normal browser(Pop up or PIP for example), Records whether
-    the window width was too small to fit the consent dialog.
-  </summary>
-</histogram>
-
-<histogram
-    name="Settings.PrivacySandbox.CanNonNormalBrowserWindowFitNoticeWidth"
-    enum="Boolean" expires_after="2024-08-25">
-  <owner>boujane@google.com</owner>
-  <owner>koilos@google.com</owner>
-  <summary>
-    In case of non normal browser(Pop up or PIP for example), Records whether
-    the window width was too small to fit the notice dialog.
   </summary>
 </histogram>
 

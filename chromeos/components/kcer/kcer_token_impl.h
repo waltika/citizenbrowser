@@ -5,8 +5,6 @@
 #ifndef CHROMEOS_COMPONENTS_KCER_KCER_TOKEN_IMPL_H_
 #define CHROMEOS_COMPONENTS_KCER_KCER_TOKEN_IMPL_H_
 
-#include "chromeos/components/kcer/kcer_token.h"
-
 #include <stdint.h>
 
 #include <deque>
@@ -19,6 +17,9 @@
 #include "chromeos/components/kcer/attributes.pb.h"
 #include "chromeos/components/kcer/chaps/high_level_chaps_client.h"
 #include "chromeos/components/kcer/chaps/session_chaps_client.h"
+#include "chromeos/components/kcer/helpers/pkcs12_reader.h"
+#include "chromeos/components/kcer/kcer_token.h"
+#include "chromeos/components/kcer/kcer_token_utils.h"
 
 namespace kcer::internal {
 
@@ -106,10 +107,6 @@ class COMPONENT_EXPORT(KCER) KcerTokenImpl : public KcerToken {
   // Immediately unblocks the queue and attempts to perform the next task.
   void UnblockQueueProcessNextTask();
 
-  void FindPrivateKey(
-      Pkcs11Id id,
-      base::OnceCallback<void(std::vector<ObjectHandle>, uint32_t)> callback);
-
   struct GenerateRsaKeyTask {
     GenerateRsaKeyTask(RsaModulusLength in_modulus_length_bits,
                        bool in_hardware_backed,
@@ -166,6 +163,30 @@ class COMPONENT_EXPORT(KCER) KcerTokenImpl : public KcerToken {
                         PublicKey kcer_public_key,
                         uint32_t result_code);
 
+  struct ImportCertFromBytesTask {
+    ImportCertFromBytesTask(CertDer in_cert_der,
+                            Kcer::StatusCallback in_callback);
+    ImportCertFromBytesTask(ImportCertFromBytesTask&& other);
+    ~ImportCertFromBytesTask();
+
+    const CertDer cert_der;
+    Kcer::StatusCallback callback;
+    int attemps_left = kDefaultAttempts;
+  };
+  void ImportCertFromBytesImpl(ImportCertFromBytesTask task);
+  void ImportCertFromBytesWithExistingCerts(
+      ImportCertFromBytesTask task,
+      std::vector<ObjectHandle> existing_certs,
+      uint32_t result_code);
+  void ImportCertFromBytesWithKeyHandle(ImportCertFromBytesTask task,
+                                        Pkcs11Id pkcs11_id,
+                                        std::vector<ObjectHandle> key_handles,
+                                        uint32_t result_code);
+  void DidImportCertFromBytes(ImportCertFromBytesTask task,
+                              std::optional<Error> kcer_error,
+                              ObjectHandle cert_handle,
+                              uint32_t result_code);
+
   struct RemoveKeyAndCertsTask {
     RemoveKeyAndCertsTask(PrivateKeyHandle in_key,
                           Kcer::StatusCallback in_callback);
@@ -181,6 +202,22 @@ class COMPONENT_EXPORT(KCER) KcerTokenImpl : public KcerToken {
                                           std::vector<ObjectHandle> handles,
                                           uint32_t result_code);
   void DidRemoveKeyAndCerts(RemoveKeyAndCertsTask task, uint32_t result_code);
+
+  struct RemoveCertTask {
+    RemoveCertTask(scoped_refptr<const Cert> in_cert,
+                   Kcer::StatusCallback in_callback);
+    RemoveCertTask(RemoveCertTask&& other);
+    ~RemoveCertTask();
+
+    const scoped_refptr<const Cert> cert;
+    Kcer::StatusCallback callback;
+    int attemps_left = kDefaultAttempts;
+  };
+  void RemoveCertImpl(RemoveCertTask task);
+  void RemoveCertWithHandles(RemoveCertTask task,
+                             std::vector<ObjectHandle> handles,
+                             uint32_t result_code);
+  void DidRemoveCert(RemoveCertTask task, uint32_t result_code);
 
   struct ListKeysTask {
     explicit ListKeysTask(TokenListKeysCallback in_callback);
@@ -223,6 +260,30 @@ class COMPONENT_EXPORT(KCER) KcerTokenImpl : public KcerToken {
       PublicKey current_public_key,
       std::vector<ObjectHandle> private_key_handles,
       uint32_t result_code);
+
+  struct ListCertsTask {
+    explicit ListCertsTask(TokenListCertsCallback in_callback);
+    ListCertsTask(ListCertsTask&& other);
+    ~ListCertsTask();
+
+    TokenListCertsCallback callback;
+    int attemps_left = kDefaultAttempts;
+  };
+  void ListCertsImpl(ListCertsTask task);
+  void ListCertsWithCertHandles(ListCertsTask task,
+                                std::vector<ObjectHandle> handles,
+                                uint32_t result_code);
+  void ListCertsGetOneCert(ListCertsTask task,
+                           std::vector<ObjectHandle> handles,
+                           std::vector<scoped_refptr<const Cert>> certs);
+  void ListCertsDidGetOneCert(ListCertsTask task,
+                              std::vector<ObjectHandle> handles,
+                              std::vector<scoped_refptr<const Cert>> certs,
+                              chaps::AttributeList attributes,
+                              uint32_t result_code);
+  void DidListCerts(ListCertsTask task,
+                    std::vector<ObjectHandle> object_list,
+                    uint32_t result_code);
 
   struct DoesPrivateKeyExistTask {
     DoesPrivateKeyExistTask(PrivateKeyHandle in_key,
@@ -405,6 +466,7 @@ class COMPONENT_EXPORT(KCER) KcerTokenImpl : public KcerToken {
   std::deque<base::OnceClosure> task_queue_;
 
   const raw_ptr<HighLevelChapsClient> chaps_client_;
+  KcerTokenUtils kcer_utils_;
   base::WeakPtrFactory<KcerTokenImpl> weak_factory_{this};
 };
 

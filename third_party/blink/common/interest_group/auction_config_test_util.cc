@@ -26,12 +26,14 @@ AuctionConfig CreateFullAuctionConfig() {
   AuctionConfig auction_config = CreateBasicAuctionConfig();
 
   auction_config.trusted_scoring_signals_url = GURL("https://seller.test/bar");
-  auction_config.max_trusted_scoring_signals_url_length = 2560;
   auction_config.seller_experiment_group_id = 1;
   auction_config.all_buyer_experiment_group_id = 2;
 
   const url::Origin buyer = url::Origin::Create(GURL("https://buyer.test"));
   auction_config.per_buyer_experiment_group_ids[buyer] = 3;
+
+  auction_config.deprecated_render_url_replacements = blink::AuctionConfig::
+      MaybePromiseDeprecatedRenderURLReplacements::FromValue({});
 
   AuctionConfig::NonSharedParams& non_shared_params =
       auction_config.non_shared_params;
@@ -104,10 +106,13 @@ AuctionConfig CreateFullAuctionConfig() {
       AdSize(55.5, AdSize::LengthUnit::kScreenWidth, 50.5,
              AdSize::LengthUnit::kPixels),
   };
+  non_shared_params.per_buyer_multi_bid_limits[buyer] = 10;
+  non_shared_params.all_buyers_multi_bid_limit = 5;
   non_shared_params.required_seller_capabilities = {
       SellerCapabilities::kLatencyStats};
 
   non_shared_params.auction_nonce = base::Uuid::GenerateRandomV4();
+  non_shared_params.max_trusted_scoring_signals_url_length = 2560;
 
   DirectFromSellerSignalsSubresource
       direct_from_seller_signals_per_buyer_signals_buyer;

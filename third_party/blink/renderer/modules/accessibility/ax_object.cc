@@ -1367,8 +1367,7 @@ void AXObject::Serialize(ui::AXNodeData* node_data,
   if (AccessibilityIsIgnored()) {
     node_data->AddState(ax::mojom::blink::State::kIgnored);
     // Early return for ignored, unfocusable nodes, avoiding unnecessary work.
-    if (!is_focusable &&
-        !RuntimeEnabledFeatures::AccessibilityExposeIgnoredNodesEnabled()) {
+    if (!is_focusable) {
       // The name is important for exposing the selection around ignored nodes.
       // TODO(accessibility) Remove this and still pass this
       // content_browsertest:
@@ -1889,15 +1888,17 @@ void AXObject::SerializeOtherScreenReaderAttributes(
     node_data->SetDefaultActionVerb(Action());
   }
 
-  if (NextOnLine() && !NextOnLine()->IsDetached()) {
+  if (AXObject* next_on_line = NextOnLine()) {
+    CHECK(!next_on_line->IsDetached());
     node_data->AddIntAttribute(ax::mojom::blink::IntAttribute::kNextOnLineId,
-                               NextOnLine()->AXObjectID());
+                               next_on_line->AXObjectID());
   }
 
-  if (PreviousOnLine() && !PreviousOnLine()->IsDetached()) {
+  if (AXObject* prev_on_line = PreviousOnLine()) {
+    CHECK(!prev_on_line->IsDetached());
     node_data->AddIntAttribute(
         ax::mojom::blink::IntAttribute::kPreviousOnLineId,
-        PreviousOnLine()->AXObjectID());
+        prev_on_line->AXObjectID());
   }
 
   AXObjectVector error_messages = ErrorMessage();
@@ -3760,10 +3761,6 @@ bool AXObject::IsExcludedByFormControlsFilter() const {
 }
 
 bool AXObject::ComputeAccessibilityIsIgnoredButIncludedInTree() const {
-  // TODO(accessibility) Remove this flag, we never want to expose all nodes.
-  if (RuntimeEnabledFeatures::AccessibilityExposeIgnoredNodesEnabled())
-    return true;
-
   // If an inline text box is ignored, it is never included in the tree.
   if (IsAXInlineTextBox()) {
     return false;
@@ -7968,8 +7965,9 @@ String AXObject::ToString(bool verbose, bool cached_values_only) const {
     if (!cached_values_only && !CanHaveChildren()) {
       string_builder = string_builder + " cannotHaveChildren";
     }
-    if (!GetLayoutObject())
+    if (!GetLayoutObject() && !IsAXInlineTextBox()) {
       string_builder = string_builder + " missingLayout";
+    }
 
     if (cached_values_only ? cached_is_used_for_label_or_description_
                            : IsUsedForLabelOrDescription()) {

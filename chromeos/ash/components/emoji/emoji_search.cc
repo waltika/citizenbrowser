@@ -5,9 +5,13 @@
 #include "chromeos/ash/components/emoji/emoji_search.h"
 
 #include <memory>
+#include <string>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
+#include "base/check_is_test.h"
 #include "base/containers/cxx20_erase.h"
 #include "base/containers/span.h"
 #include "base/i18n/case_conversion.h"
@@ -18,7 +22,6 @@
 #include "base/strings/string_split.h"
 #include "base/strings/string_util.h"
 #include "base/strings/utf_string_conversions.h"
-#include "chromeos/ash/components/emoji/emoji_search.mojom.h"
 #include "chromeos/ash/components/emoji/grit/emoji.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/base/resource/resource_bundle.h"
@@ -60,6 +63,12 @@ void AddDataFromFileToMap(
   std::string json_string =
       ui::ResourceBundle::GetSharedInstance().LoadDataResourceString(
           file_id_in_resources);
+  // Can be empty in certain test environments.
+  if (json_string.empty()) {
+    CHECK_IS_TEST();
+    return;
+  }
+
   // TODO(b/309343774): switch to JSON reading service
   absl::optional<base::Value> json = base::JSONReader::Read(json_string);
   CHECK(json) << "parse failed for " << file_id_in_resources << ":"
@@ -168,26 +177,30 @@ std::vector<std::string> GetResultsFromMap(
 
 }  // namespace
 
+EmojiSearchResult::EmojiSearchResult(std::vector<std::string> emojis,
+                                     std::vector<std::string> symbols,
+                                     std::vector<std::string> emoticons)
+    : emojis(std::move(emojis)),
+      symbols(std::move(symbols)),
+      emoticons(std::move(emoticons)) {}
+
+EmojiSearchResult::~EmojiSearchResult() = default;
+
 EmojiSearch::EmojiSearch() {
   AddDataFromFileToMap(IDR_EMOJI_PICKER_EMOJI_15_0_ORDERING_JSON_REMAINING,
                        emojis_);
   AddDataFromFileToMap(IDR_EMOJI_PICKER_EMOJI_15_0_ORDERING_JSON_START,
                        emojis_);
   AddDataFromFileToMap(IDR_EMOJI_PICKER_SYMBOL_ORDERING_JSON, symbols_);
-  AddDataFromFileToMap(IDR_EMOJI_PICKER_EMOTICON_ORDERING_JSON, symbols_);
+  AddDataFromFileToMap(IDR_EMOJI_PICKER_EMOTICON_ORDERING_JSON, emoticons_);
 }
 
 EmojiSearch::~EmojiSearch() = default;
 
-void EmojiSearch::SearchEmoji(
-    const std::string_view query,
-    emoji_search::mojom::EmojiSearch::SearchEmojiCallback callback) {
-  std::move(callback).Run(emoji_search::mojom::SearchResults::New(
-                              GetResultsFromMap(emojis_, query)),
-                          emoji_search::mojom::SearchResults::New(
-                              GetResultsFromMap(symbols_, query)),
-                          emoji_search::mojom::SearchResults::New(
-                              GetResultsFromMap(emoticons_, query)));
+EmojiSearchResult EmojiSearch::SearchEmoji(const std::string_view query) {
+  return EmojiSearchResult(GetResultsFromMap(emojis_, query),
+                           GetResultsFromMap(symbols_, query),
+                           GetResultsFromMap(emoticons_, query));
 }
 
 std::vector<std::string> EmojiSearch::AllResultsForTesting(

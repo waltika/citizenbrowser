@@ -12,8 +12,10 @@
 #import "ios/chrome/browser/signin/model/fake_system_identity.h"
 #import "ios/chrome/browser/ui/authentication/signin_earl_grey.h"
 #import "ios/chrome/browser/ui/authentication/signin_earl_grey_ui_test_util.h"
+#import "ios/chrome/browser/ui/settings/settings_table_view_controller_constants.h"
 #import "ios/chrome/common/string_util.h"
 #import "ios/chrome/test/earl_grey/chrome_actions.h"
+#import "ios/chrome/test/earl_grey/chrome_actions_app_interface.h"
 #import "ios/chrome/test/earl_grey/chrome_earl_grey.h"
 #import "ios/chrome/test/earl_grey/chrome_earl_grey_app_interface.h"
 #import "ios/chrome/test/earl_grey/chrome_earl_grey_ui.h"
@@ -79,7 +81,7 @@ void ExpectModalTimeSample(
   // Ensure a fake identity is available, as this is required by the
   // plus_addresses feature.
   _fakeIdentity = [FakeSystemIdentity fakeIdentity1];
-  [SigninEarlGreyUI signinWithFakeIdentity:_fakeIdentity];
+  [SigninEarlGrey signinWithFakeIdentity:_fakeIdentity];
 
   [self loadPlusAddressEligiblePage];
 }
@@ -304,6 +306,24 @@ id<GREYMatcher> GetMatcherForErrorReportLink() {
       plus_addresses::PlusAddressMetrics::PlusAddressModalCompletionStatus::
           kReservePlusAddressError,
       1);
+}
+
+// A test to ensure that a row in the settings view shows up for
+// plus_addresses, and that tapping it opens a new tab for its settings, which
+// are managed externally.
+- (void)testSettings {
+  [ChromeEarlGreyUI openSettingsMenu];
+  // Take note of how many tabs are open before clicking the link in settings,
+  // which should simply open a new tab.
+  NSUInteger oldRegularTabCount = [ChromeEarlGreyAppInterface mainTabCount];
+  NSUInteger oldIncognitoTabCount =
+      [ChromeEarlGreyAppInterface incognitoTabCount];
+  [ChromeEarlGreyUI
+      tapSettingsMenuButton:grey_accessibilityID(kSettingsPlusAddressesId)];
+
+  // A new tab should open after tapping the link.
+  [ChromeEarlGrey waitForMainTabCount:oldRegularTabCount + 1];
+  [ChromeEarlGrey waitForIncognitoTabCount:oldIncognitoTabCount];
 }
 
 @end

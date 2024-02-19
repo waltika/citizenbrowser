@@ -57,8 +57,6 @@
 
 namespace {
 
-const char kComposeURL[] = "chrome://compose/";
-
 bool ShouldResumeSessionFromEntryPoint(
     ChromeComposeClient::EntryPoint entry_point) {
   switch (entry_point) {
@@ -113,16 +111,18 @@ ChromeComposeClient::ChromeComposeClient(content::WebContents* web_contents)
 ChromeComposeClient::~ChromeComposeClient() = default;
 
 void ChromeComposeClient::BindComposeDialog(
-    mojo::PendingReceiver<compose::mojom::ComposeClientPageHandler>
+    mojo::PendingReceiver<compose::mojom::ComposeClientUntrustedPageHandler>
         client_handler,
-    mojo::PendingReceiver<compose::mojom::ComposeSessionPageHandler> handler,
-    mojo::PendingRemote<compose::mojom::ComposeDialog> dialog) {
+    mojo::PendingReceiver<compose::mojom::ComposeSessionUntrustedPageHandler>
+        handler,
+    mojo::PendingRemote<compose::mojom::ComposeUntrustedDialog> dialog) {
   client_page_receiver_.reset();
   client_page_receiver_.Bind(std::move(client_handler));
 
   url::Origin origin =
       GetWebContents().GetPrimaryMainFrame()->GetLastCommittedOrigin();
-  if (origin == url::Origin::Create(GURL(kComposeURL))) {
+  if (origin ==
+      url::Origin::Create(GURL(chrome::kChromeUIUntrustedComposeUrl))) {
     debug_session_ = std::make_unique<ComposeSession>(
         &GetWebContents(), GetModelExecutor(), GetModelQualityLogsUploader(),
         GetSessionId(), GetInnerTextProvider(), autofill::FieldRendererId(-1));

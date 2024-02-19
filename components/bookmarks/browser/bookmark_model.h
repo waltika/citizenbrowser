@@ -458,6 +458,15 @@ class BookmarkModel final : public BookmarkUndoProvider,
   // cleanly first.
   void CommitPendingWriteForTest();
 
+  // Returns whether pending writes are pending/scheduled.
+  bool LocalOrSyncableStorageHasPendingWriteForTest() const;
+  bool AccountStorageHasPendingWriteForTest() const;
+
+  // Mimics `LoadAccountBookmarksFileAsLocalOrSyncableBookmarks()` having been
+  // used instead of `Load()`, for the purpose of logging metrics. For
+  // unit-tests only.
+  void SetLoadedAccountBookmarksFileAsLocalOrSyncableBookmarksForUmaForTest();
+
  private:
   friend class BookmarkCodecTest;
   friend class BookmarkModelFaviconTest;
@@ -565,11 +574,29 @@ class BookmarkModel final : public BookmarkUndoProvider,
                                          const base::Time delete_begin,
                                          const base::Time delete_end);
 
-  // Schedules saving the bookmark model to disk.
-  void ScheduleSave();
+  // Schedules saving the bookmark model to disk as a result of `node` having
+  // changed. When multiple BookmarkStorage instances are involved, `node`
+  // allows determining which of the two needs to be persisted.
+  void ScheduleSaveForNode(const BookmarkNode* node);
+
+  // Returns which BookmakStorage instance is used to persist `node` to disk.
+  // The returned value will be either `local_or_syncable_store_` or
+  // `account_store_`. It may return null in tests.
+  BookmarkStorage* GetStorageForNode(const BookmarkNode* node);
+
+  // Returns an enum representing how metrics associated to `node` should be
+  // suffixed with for the purpose of metric breakdowns.
+  metrics::StorageStateForUma GetStorageStateForUma(
+      const BookmarkNode* node) const;
 
   // Whether the initial set of data has been loaded.
   bool loaded_ = false;
+
+  // Whether or not loading was invoked via
+  // `LoadAccountBookmarksFileAsLocalOrSyncableBookmarks()`, remembered for the
+  // purpose of metrics.
+  bool loaded_account_bookmarks_file_as_local_or_syncable_bookmarks_for_uma_ =
+      false;
 
   // See `root_` for details.
   std::unique_ptr<BookmarkNode> owned_root_;

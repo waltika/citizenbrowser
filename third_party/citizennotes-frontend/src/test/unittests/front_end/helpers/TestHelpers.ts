@@ -5,16 +5,16 @@ import type * as SDK from '../../../../front_end/core/sdk/sdk.js';
 import type * as Protocol from '../../../../front_end/generated/protocol.js';
 import * as IssuesManager from '../../../../front_end/models/issues_manager/issues_manager.js';
 import * as Logs from '../../../../front_end/models/logs/logs.js';
-import * as Test from '../../../../front_end/panels/test/test.js';
+//import * as Test from '../../../../front_end/panels/test/test.js';
 import * as Components from '../../../../front_end/ui/legacy/components/utils/utils.js';
 
-export function createConsoleViewMessageWithStubDeps(rawMessage: SDK.ConsoleModel.ConsoleMessage) {
+export function createTestViewMessageWithStubDeps(rawMessage: SDK.TestModel.TestMessage) {
   const linkifier = sinon.createStubInstance(Components.Linkifier.Linkifier);
   const requestResolver = sinon.createStubInstance(Logs.RequestResolver.RequestResolver);
   const issuesResolver = sinon.createStubInstance(IssuesManager.IssueResolver.IssueResolver);
-  const message = new Test.TestViewMessage.TestViewMessage(
-      rawMessage, linkifier, requestResolver, issuesResolver, /* onResize */ () => {});
-  return {message, linkifier};
+  //const message = new Test.TestViewMessage.TestViewMessage(
+  //    rawMessage, linkifier, requestResolver, issuesResolver, /* onResize */ () => {});
+  //return {message, linkifier};
 }
 
 /**

@@ -327,8 +327,9 @@ ComposeSession::~ComposeSession() {
 }
 
 void ComposeSession::Bind(
-    mojo::PendingReceiver<compose::mojom::ComposeSessionPageHandler> handler,
-    mojo::PendingRemote<compose::mojom::ComposeDialog> dialog) {
+    mojo::PendingReceiver<compose::mojom::ComposeSessionUntrustedPageHandler>
+        handler,
+    mojo::PendingRemote<compose::mojom::ComposeUntrustedDialog> dialog) {
   handler_receiver_.reset();
   handler_receiver_.Bind(std::move(handler));
 
@@ -336,7 +337,12 @@ void ComposeSession::Bind(
   dialog_remote_.Bind(std::move(dialog));
 }
 
-// ComposeSessionPageHandler
+// TODO(b/f3213db859d47): Add histogram test for Sessions triggering CancelEdit.
+void ComposeSession::LogCancelEdit() {
+  session_events_.did_click_cancel_on_edit = true;
+}
+
+// ComposeSessionUntrustedPageHandler
 void ComposeSession::Compose(const std::string& input, bool is_input_edited) {
   if (is_input_edited) {
     compose::LogComposeRequestReason(
@@ -380,6 +386,11 @@ void ComposeSession::Rewrite(compose::mojom::StyleModifiersPtr style) {
   request.mutable_rewrite_params()->set_previous_response(
       most_recent_ok_state_->mojo_state()->response->result);
   MakeRequest(std::move(request), false);
+}
+
+// TODO(b/300974056): Add histogram test for Sessions triggering EditInput.
+void ComposeSession::LogEditInput() {
+  session_events_.did_click_edit = true;
 }
 
 void ComposeSession::MakeRequest(
@@ -491,7 +502,7 @@ void ComposeSession::ModelExecutionComplete(
 
   if (status != compose::mojom::ComposeStatus::kOk) {
     compose::LogComposeRequestDuration(request_delta, eval_location,
-                                       /* is_valid */ false);
+                                       /* is_ok */ false);
     if (content::GetNetworkConnectionTracker()->IsOffline()) {
       ProcessError(eval_location, compose::mojom::ComposeStatus::kOffline);
     } else {
@@ -508,7 +519,7 @@ void ComposeSession::ModelExecutionComplete(
 
   if (!response) {
     compose::LogComposeRequestDuration(request_delta, eval_location,
-                                       /* is_valid */ false);
+                                       /* is_ok */ false);
     ProcessError(eval_location, compose::mojom::ComposeStatus::kNoResponse);
     SetQualityLogEntryUponError(std::move(result.log_entry), request_delta,
                                 was_input_edited);
@@ -525,7 +536,7 @@ void ComposeSession::ModelExecutionComplete(
   compose::LogComposeRequestStatus(eval_location,
                                    compose::mojom::ComposeStatus::kOk);
   compose::LogComposeRequestDuration(request_delta, eval_location,
-                                     /* is_valid */ true);
+                                     /* is_ok */ true);
 
   SaveMostRecentOkStateToUndoStack();
   most_recent_ok_state_->SetMojoState(current_state_->Clone());

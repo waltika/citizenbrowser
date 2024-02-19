@@ -3588,6 +3588,117 @@ TEST_P(OverviewSessionTest, TabbingDuringExitAnimation) {
   SendKey(ui::VKEY_TAB);
 }
 
+TEST_P(OverviewSessionTest,
+       OcclusionUpdatedOnOverviewToggleForVirtualDeskPreviewsSingleWindow) {
+  using OcclusionState = aura::Window::OcclusionState;
+
+  // We don't need to worry about virtual desk previews not showing up if we
+  // have snapshots, so this test tests the case where we don't have snapshots.
+  Shell::Get()->overview_controller()->set_windows_have_snapshot_for_test(
+      false);
+  ui::ScopedAnimationDurationScaleMode test_duration_mode(
+      ui::ScopedAnimationDurationScaleMode::NON_ZERO_DURATION);
+
+  // First ensure there are two desks.
+  auto* controller = DesksController::Get();
+  controller->NewDesk(DesksCreationRemovalSource::kKeyboard);
+  ASSERT_EQ(2u, controller->desks().size());
+
+  Desk* desk1 = controller->desks()[0].get();
+  Desk* desk2 = controller->desks()[1].get();
+
+  // Create one window on an inactive desk.
+  std::unique_ptr<aura::Window> window(CreateAppWindow(gfx::Rect(100, 100)));
+  controller->SendToDeskAtIndex(window.get(), 1);
+  EXPECT_TRUE(base::Contains(desk2->windows(), window.get()));
+  EXPECT_TRUE(desk1->is_active());
+  window->TrackOcclusionState();
+
+  // Window should be hidden on an inactive desk.
+  EXPECT_EQ(OcclusionState::HIDDEN, window->GetOcclusionState());
+
+  // Enter overview mode.
+  ToggleOverview();
+
+  // Window should immediately be marked as visible.
+  EXPECT_EQ(OcclusionState::VISIBLE, window->GetOcclusionState());
+  WaitForOverviewEnterAnimation();
+
+  // Window should stay visible.
+  EXPECT_EQ(OcclusionState::VISIBLE, window->GetOcclusionState());
+
+  // Exit overview mode.
+  ToggleOverview();
+
+  // Window should still be visible until the animation finishes.
+  EXPECT_EQ(OcclusionState::VISIBLE, window->GetOcclusionState());
+  WaitForOverviewExitAnimation();
+
+  // Overview mode pauses occlusion on exit for a while, so wait for this state.
+  WaitForOcclusionStateChange(window.get(), OcclusionState::HIDDEN);
+}
+
+TEST_P(OverviewSessionTest,
+       OcclusionUpdatedOnOverviewToggleForVirtualDeskPreviewsTwoWindows) {
+  using OcclusionState = aura::Window::OcclusionState;
+
+  // We don't need to worry about virtual desk previews not showing up if we
+  // have snapshots, so this test tests the case where we don't have snapshots.
+  Shell::Get()->overview_controller()->set_windows_have_snapshot_for_test(
+      false);
+  ui::ScopedAnimationDurationScaleMode test_duration_mode(
+      ui::ScopedAnimationDurationScaleMode::NON_ZERO_DURATION);
+
+  // First ensure there are two desks.
+  auto* controller = DesksController::Get();
+  controller->NewDesk(DesksCreationRemovalSource::kKeyboard);
+  ASSERT_EQ(2u, controller->desks().size());
+
+  Desk* desk1 = controller->desks()[0].get();
+  Desk* desk2 = controller->desks()[1].get();
+
+  // Create one window on the active desk.
+  std::unique_ptr<aura::Window> window1(CreateAppWindow(gfx::Rect(100, 100)));
+  controller->SendToDeskAtIndex(window1.get(), 0);
+  EXPECT_TRUE(base::Contains(desk1->windows(), window1.get()));
+  window1->TrackOcclusionState();
+
+  // Create one window on an inactive desk.
+  std::unique_ptr<aura::Window> window2(CreateAppWindow(gfx::Rect(100, 100)));
+  controller->SendToDeskAtIndex(window2.get(), 1);
+  EXPECT_TRUE(base::Contains(desk2->windows(), window2.get()));
+  EXPECT_TRUE(desk1->is_active());
+  window2->TrackOcclusionState();
+
+  // `window2` should be hidden on an inactive desk.
+  EXPECT_EQ(OcclusionState::VISIBLE, window1->GetOcclusionState());
+  EXPECT_EQ(OcclusionState::HIDDEN, window2->GetOcclusionState());
+
+  // Enter overview mode.
+  ToggleOverview();
+
+  // `window2` will not immediately be marked as visible, because the desks
+  // widget is only shown after the animation finishes.
+  EXPECT_EQ(OcclusionState::VISIBLE, window1->GetOcclusionState());
+  WaitForOverviewEnterAnimation();
+
+  // `window2` should stay visible.
+  EXPECT_EQ(OcclusionState::VISIBLE, window1->GetOcclusionState());
+  EXPECT_EQ(OcclusionState::VISIBLE, window2->GetOcclusionState());
+
+  // Exit overview mode.
+  ToggleOverview();
+
+  // `window2` should still be visible until the animation finishes.
+  EXPECT_EQ(OcclusionState::VISIBLE, window1->GetOcclusionState());
+  EXPECT_EQ(OcclusionState::VISIBLE, window2->GetOcclusionState());
+  WaitForOverviewExitAnimation();
+
+  // Overview mode pauses occlusion on exit for a while, so wait for this state.
+  WaitForOcclusionStateChange(window2.get(), OcclusionState::HIDDEN);
+  EXPECT_EQ(OcclusionState::VISIBLE, window1->GetOcclusionState());
+}
+
 // If you update the parameterisation of OverviewSessionTest also update the
 // parameterisation of OverviewRasterScaleTest below.
 INSTANTIATE_TEST_SUITE_P(/*no prefix*/,
@@ -6698,7 +6809,12 @@ TEST_F(TabletModeOverviewSessionTest, AvoidUaFOnCompleteDrag) {
 // Test the split view and overview functionalities in tablet mode.
 class SplitViewOverviewSessionTest : public OverviewTestBase {
  public:
-  SplitViewOverviewSessionTest() = default;
+  SplitViewOverviewSessionTest() {
+    scoped_feature_list_.InitWithFeatures(
+        /*enabled_features=*/{features::kFasterSplitScreenSetup,
+                              features::kOsSettingsRevampWayfinding},
+        /*disabled_features=*/{});
+  }
 
   SplitViewOverviewSessionTest(const SplitViewOverviewSessionTest&) = delete;
   SplitViewOverviewSessionTest& operator=(const SplitViewOverviewSessionTest&) =
@@ -6897,6 +7013,8 @@ class SplitViewOverviewSessionTest : public OverviewTestBase {
     void OnWindowDestroying(aura::Window* window) override { window->Hide(); }
     void OnWindowDestroyed(aura::Window* window) override { delete this; }
   };
+
+  base::test::ScopedFeatureList scoped_feature_list_;
 };
 
 // Tests that dragging an overview item to the edge of the screen snaps the
@@ -7845,18 +7963,9 @@ TEST_F(SplitViewOverviewSessionTest, SelectUnsnappableWindowInSplitView) {
 
 // Verify that when in overview mode, the selector items unsnappable indicator
 // shows up when expected.
-// TODO(crbug.com/324024580): Re-enable this test. Causes build failures on
-// MSAN/ASAN on CrOS.
-#if BUILDFLAG(IS_CHROMEOS) && \
-    (defined(MEMORY_SANITIZER) || defined(ADDRESS_SANITIZER))
-#define MAYBE_OverviewUnsnappableIndicatorVisibility \
-  DISABLED_OverviewUnsnappableIndicatorVisibility
-#else
-#define MAYBE_OverviewUnsnappableIndicatorVisibility \
-  OverviewUnsnappableIndicatorVisibility
-#endif
+// TODO(crbug.com/324024580): Re-enable this flaky test.
 TEST_F(SplitViewOverviewSessionTest,
-       MAYBE_OverviewUnsnappableIndicatorVisibility) {
+       DISABLED_OverviewUnsnappableIndicatorVisibility) {
   // Create three windows; two normal and one unsnappable, so that when after
   // snapping |window1| to enter split view we can test the state of each normal
   // and unsnappable windows.
@@ -8305,18 +8414,9 @@ TEST_F(SplitViewOverviewSessionTest, SnappedWindowBoundsWithMinimumSizeTest) {
 // Verify that if the split view divider is dragged all the way to the edge, the
 // window being dragged gets returned to the overview list, if overview mode is
 // still active.
-// TODO(crbug.com/324024580): Re-enable this test. Causes build failures on
-// MSAN/ASAN on CrOS.
-#if BUILDFLAG(IS_CHROMEOS) && \
-    (defined(MEMORY_SANITIZER) || defined(ADDRESS_SANITIZER))
-#define MAYBE_DividerDraggedToEdgeReturnsWindowToOverviewList \
-  DISABLED_DividerDraggedToEdgeReturnsWindowToOverviewList
-#else
-#define MAYBE_DividerDraggedToEdgeReturnsWindowToOverviewList \
-  DividerDraggedToEdgeReturnsWindowToOverviewList
-#endif
+// TODO(crbug.com/324024580): Re-enable this flaky test.
 TEST_F(SplitViewOverviewSessionTest,
-       MAYBE_DividerDraggedToEdgeReturnsWindowToOverviewList) {
+       DISABLED_DividerDraggedToEdgeReturnsWindowToOverviewList) {
   const gfx::Rect bounds(400, 400);
   std::unique_ptr<aura::Window> window1(CreateWindow(bounds));
   std::unique_ptr<aura::Window> window2(CreateWindow(bounds));
@@ -8361,19 +8461,10 @@ TEST_F(SplitViewOverviewSessionTest,
 // all the way to the opposite edge, then the split view window is reinserted
 // into the overview grid at the correct position according to MRU order, and
 // the stacking order is also correct.
-// TODO(crbug.com/324024580): Re-enable this test. Causes build failures on
-// MSAN/ASAN on CrOS.
-#if BUILDFLAG(IS_CHROMEOS) && \
-    (defined(MEMORY_SANITIZER) || defined(ADDRESS_SANITIZER))
-#define MAYBE_SplitViewWindowReinsertedToOverviewAtCorrectPositionWhenSplitViewIsEnded \
-  DISABLED_SplitViewWindowReinsertedToOverviewAtCorrectPositionWhenSplitViewIsEnded
-#else
-#define MAYBE_SplitViewWindowReinsertedToOverviewAtCorrectPositionWhenSplitViewIsEnded \
-  SplitViewWindowReinsertedToOverviewAtCorrectPositionWhenSplitViewIsEnded
-#endif
+// TODO(crbug.com/324024580): Re-enable this flaky test.
 TEST_F(
     SplitViewOverviewSessionTest,
-    MAYBE_SplitViewWindowReinsertedToOverviewAtCorrectPositionWhenSplitViewIsEnded) {
+    DISABLED_SplitViewWindowReinsertedToOverviewAtCorrectPositionWhenSplitViewIsEnded) {
   const gfx::Rect bounds(400, 400);
   std::unique_ptr<aura::Window> window1(CreateWindow(bounds));
   std::unique_ptr<aura::Window> window2(CreateWindow(bounds));
@@ -9354,6 +9445,53 @@ TEST_F(SplitViewOverviewSessionInClamshellTest,
                                            1);
   EXPECT_TRUE(GetOverviewController()->InOverviewSession());
   EXPECT_FALSE(split_view_controller()->InSplitViewMode());
+}
+
+// Tests that there will be no crash when dragging a snapped window in overview
+// toward the edge. In this case, the overview components will become too small
+// to meet the minimum requirement of the fundamental UI layers such as virtual
+// desk bar, shadow. See the regression behavior in http://b/324478757.
+TEST_F(SplitViewOverviewSessionInClamshellTest,
+       NoCrashWhenDraggingSnappedWindowToEdge) {
+  ui::ScopedAnimationDurationScaleMode animation_scale(
+      ui::ScopedAnimationDurationScaleMode::SLOW_DURATION);
+
+  // Create another desk to ensure the desk bar shows in overview.
+  auto* desks_controller = DesksController::Get();
+  desks_controller->NewDesk(DesksCreationRemovalSource::kButton);
+  ASSERT_EQ(2u, desks_controller->desks().size());
+
+  ToggleOverview();
+  WaitForOverviewEnterAnimation();
+  EXPECT_TRUE(IsInOverviewSession());
+  std::unique_ptr<aura::Window> window1(
+      CreateAppWindow(gfx::Rect(0, 0, 200, 100)));
+  std::unique_ptr<aura::Window> window2(
+      CreateAppWindow(gfx::Rect(100, 100, 200, 100)));
+  const WindowSnapWMEvent event(
+      WM_EVENT_SNAP_PRIMARY, chromeos::kDefaultSnapRatio,
+      WindowSnapActionSource::kSnapByWindowLayoutMenu);
+  auto* window1_state = WindowState::Get(window1.get());
+  window1_state->OnWMEvent(&event);
+  WaitForOverviewEntered();
+  EXPECT_TRUE(window1_state->IsSnapped());
+  EXPECT_TRUE(IsInOverviewSession());
+
+  auto* event_generator = GetEventGenerator();
+  event_generator->set_current_screen_location(
+      window1.get()->GetBoundsInScreen().right_center());
+  gfx::Point drag_end_point = GetWorkAreaInScreen(window1.get()).right_center();
+  drag_end_point.Offset(/*delta_x=*/-10, 0);
+  event_generator->PressLeftButton();
+  event_generator->MoveMouseTo(drag_end_point);
+  EXPECT_TRUE(IsInOverviewSession());
+  EXPECT_TRUE(WindowState::Get(window1.get())->is_dragged());
+
+  // Verify that shadow is applied on the overview item.
+  auto* overview_item2 = GetOverviewItemForWindow(window2.get());
+  const auto shadow_content_bounds =
+      overview_item2->get_shadow_content_bounds_for_testing();
+  EXPECT_FALSE(shadow_content_bounds.IsEmpty());
 }
 
 // Tests that when a split view window carries over to clamshell split view

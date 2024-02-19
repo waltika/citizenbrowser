@@ -502,7 +502,7 @@ CalendarView::CalendarView(bool for_glanceables_container)
 
   // Focusable nodes must have an accessible name and valid role.
   // TODO(crbug.com/1348930): Review the accessible name and role.
-  GetViewAccessibility().OverrideRole(ax::mojom::Role::kPane);
+  GetViewAccessibility().SetRole(ax::mojom::Role::kPane);
   GetViewAccessibility().OverrideName(GetClassName());
 
   views::View* calendar_header_view = nullptr;
@@ -568,7 +568,7 @@ CalendarView::CalendarView(bool for_glanceables_container)
 
   // Focusable nodes must have an accessible name and valid role.
   // TODO(crbug.com/1348930): Review the accessible name and role.
-  content_view_->GetViewAccessibility().OverrideRole(ax::mojom::Role::kPane);
+  content_view_->GetViewAccessibility().SetRole(ax::mojom::Role::kPane);
   content_view_->GetViewAccessibility().OverrideName(GetClassName());
   content_view_->SetFocusBehavior(FocusBehavior::ALWAYS);
 
@@ -711,6 +711,8 @@ void CalendarView::CreateCalendarTitleRow() {
   DCHECK(!settings_button_);
   settings_button_ = new IconButton(
       base::BindRepeating([]() {
+        calendar_metrics::RecordSettingsButtonPressed();
+
         ClockModel* model = Shell::Get()->system_tray_model()->clock();
 
         if (Shell::Get()->session_controller()->ShouldEnableSettings()) {
@@ -863,6 +865,8 @@ void CalendarView::ResetToTodayWithAnimation() {
   if (!should_months_animate_) {
     return;
   }
+  calendar_metrics::RecordResetToTodayPressed();
+
   SetShouldMonthsAnimateAndScrollEnabled(/*enabled=*/false);
 
   auto content_reporter = calendar_metrics::CreateAnimationReporter(
@@ -1433,6 +1437,8 @@ void CalendarView::CloseEventList() {
     return;
   }
 
+  calendar_metrics::RecordEventListClosed();
+
   // Updates `scroll_view_`'s accessible name without the selected date.
   scroll_view_->GetViewAccessibility().OverrideName(l10n_util::GetStringFUTF16(
       IDS_ASH_CALENDAR_BUBBLE_ACCESSIBLE_DESCRIPTION,
@@ -1973,7 +1979,7 @@ void CalendarView::AdjustDateCellVoxBounds() {
   // height, which is `scroll_view_->GetVisibleRect().y()` should also be added.
   // Otherwise the position of the Chrome Vox box is off.
   gfx::Rect bounds = focused_view->GetBoundsInScreen();
-  focused_view->GetViewAccessibility().OverrideBounds(
+  focused_view->GetViewAccessibility().SetBounds(
       gfx::RectF(bounds.x(), bounds.y() + scroll_view_->GetVisibleRect().y(),
                  bounds.width(), bounds.height()));
 }
@@ -2284,6 +2290,8 @@ void CalendarView::RemoveUpNextView() {
 }
 
 void CalendarView::OpenEventListForTodaysDate() {
+  calendar_metrics::RecordEventListForTodayActivated();
+
   const auto upcoming_events = calendar_view_controller_->UpcomingEvents();
   const base::Time upcoming_event_start_time =
       !upcoming_events.empty() ? upcoming_events.back().start_time().date_time()

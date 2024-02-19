@@ -259,6 +259,25 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
+<histogram base="true"
+    name="PageLoad.AdPaintTiming.TopFrameNavigationToFirstContentfulPaint"
+    units="ms" expires_after="2024-10-12">
+  <owner>jkarlin@chromium.org</owner>
+  <owner>johnidel@chromium.org</owner>
+  <summary>
+    Records the time from top frame navigation start to FirstContentfulPaint of
+    each ad frame that receives a FirstContentfulPaint. The time could be quite
+    large, as some ads don't paint until they're scrolled into view. But the
+    metric is still useful in aggregate.
+
+    Recorded for all ad frames with non-zero bytes or cpu usage that receive a
+    FirstContentfulPaint. Recorded when the ad frame or page is destroyed.
+
+    Changes to how cross-origin content is loaded (e.g., security policies,
+    network prioritization) or to iframes can certainly affect this metric.
+  </summary>
+</histogram>
+
 <histogram name="PageLoad.BackForwardCache.Event"
     enum="PageLoadBackForwardCacheEvent" expires_after="2024-06-30">
   <owner>altimin@chromium.org</owner>
@@ -286,6 +305,19 @@ chromium-metrics-reviews@google.com.
 
     Warning: This metric expired around 01/2023 and was unexpired 07/2023. Data
     may be missing.
+  </summary>
+</histogram>
+
+<histogram
+    name="PageLoad.Clients.Ads.AdPaintTiming.TopFrameNavigationToFirstAdFirstContentfulPaint"
+    units="ms" expires_after="2024-10-12">
+  <owner>jkarlin@chromium.org</owner>
+  <owner>johnidel@chromium.org</owner>
+  <owner>chrome-analysis-team@google.com</owner>
+  <summary>
+    Records the time from the top frame navigation until the first ad-frame on
+    the page reaches FirstContentfulPaint. Note that offscreen iframes don't
+    reach FCP until they're scrolled into view, so it can be long.
   </summary>
 </histogram>
 
@@ -346,7 +378,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="PageLoad.Clients.Ads.HeavyAds.DisallowedByBlocklist"
-    enum="BooleanBlocked" expires_after="2024-04-17">
+    enum="BooleanBlocked" expires_after="2024-08-11">
   <owner>johnidel@chromium.org</owner>
   <owner>jkarlin@chromium.org</owner>
   <owner>chrome-ads-histograms@google.com</owner>
@@ -1443,7 +1475,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram
-    name="PageLoad.Clients.TPCD.CookieAccess.ThirdPartyCookieAllowMechanism"
+    name="PageLoad.Clients.TPCD.CookieAccess.ThirdPartyCookieAllowMechanism2"
     enum="ThirdPartyCookieAllowMechanism" expires_after="2024-07-01">
   <owner>victortan@chromium.org</owner>
   <owner>src/chrome/browser/tpcd/OWNERS</owner>
@@ -1451,6 +1483,9 @@ chromium-metrics-reviews@google.com.
     Record the different mechanisms to re-enable third party cookie access when
     a third party accesses(read|change) cookies either via resource request
     headers or document.cookie.
+
+    All other mechanisms are made sure to take precedence over
+    r`ThirdPartyCookieAllowMechanism::kAllowBy3PCDMetadata.*` mechanisms.
   </summary>
 </histogram>
 
@@ -2633,7 +2668,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram name="PageLoad.Internal.SoftNavigationFromStartInvalidTiming"
     enum="SoftNavigationFromStartInvalidTimingReasons"
-    expires_after="2024-04-23">
+    expires_after="2024-08-11">
   <owner>haoliuk@chromium.org</owner>
   <owner>speed-metrics-dev@chromium.org</owner>
   <summary>

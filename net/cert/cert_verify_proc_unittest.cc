@@ -148,7 +148,8 @@ class MockCertVerifyProc : public CertVerifyProc {
                      const std::string& sct_list,
                      int flags,
                      CertVerifyResult* verify_result,
-                     const NetLogWithSource& net_log) override;
+                     const NetLogWithSource& net_log,
+                     std::optional<base::Time> time_now) override;
 
   const CertVerifyResult result_;
   const int error_ = OK;
@@ -160,7 +161,8 @@ int MockCertVerifyProc::VerifyInternal(X509Certificate* cert,
                                        const std::string& sct_list,
                                        int flags,
                                        CertVerifyResult* verify_result,
-                                       const NetLogWithSource& net_log) {
+                                       const NetLogWithSource& net_log,
+                                       std::optional<base::Time> time_now) {
   *verify_result = result_;
   verify_result->verified_cert = cert;
   return error_;
@@ -356,8 +358,7 @@ class CertVerifyProcInternalTest
 #if BUILDFLAG(IS_IOS)
     // Beginning with iOS 13, the minimum key size for RSA/DSA algorithms is
     // 2048 bits. See https://support.apple.com/en-us/HT210176
-    if (verify_proc_type() == CERT_VERIFY_PROC_IOS &&
-        base::ios::IsRunningOnIOS13OrLater()) {
+    if (verify_proc_type() == CERT_VERIFY_PROC_IOS) {
       return size < 2048;
     }
 #endif
@@ -369,15 +370,13 @@ class CertVerifyProcInternalTest
   // current platform.
   bool IsInvalidRsaDsaKeySize(int size) const {
 #if BUILDFLAG(IS_IOS)
-    if (base::ios::IsRunningOnIOS12OrLater()) {
-      // On iOS using SecTrustEvaluateWithError it is not possible to
-      // distinguish between weak and invalid key sizes.
-      return IsWeakRsaDsaKeySize(size);
-    }
-#endif
-
+    // On iOS using SecTrustEvaluateWithError it is not possible to
+    // distinguish between weak and invalid key sizes.
+    return IsWeakRsaDsaKeySize(size);
+#else
     // This platform does not mark certificates with weak keys as invalid.
     return false;
+#endif
   }
 
   static bool ParseKeyType(const std::string& key_type,
@@ -449,12 +448,6 @@ class CertVerifyProcInternalTest
   }
 
   bool VerifyProcTypeIsIOSAtMostOS14() const {
-#if BUILDFLAG(IS_IOS)
-    if (verify_proc_type() == CERT_VERIFY_PROC_IOS &&
-        !base::ios::IsRunningOnIOS15OrLater()) {
-      return true;
-    }
-#endif
     return false;
   }
 
@@ -1185,14 +1178,13 @@ class CertVerifyProcInspectSignatureAlgorithmsTest : public ::testing::Test {
 
     bool unused;
     if (!tbs_certificate.SkipOptionalTag(
-            bssl::der::kTagConstructed | bssl::der::kTagContextSpecific | 0,
-            &unused)) {
+            CBS_ASN1_CONSTRUCTED | CBS_ASN1_CONTEXT_SPECIFIC | 0, &unused)) {
       return false;
     }
 
     // serialNumber
     bssl::der::Input serial_value_der;
-    if (!tbs_certificate.ReadTag(bssl::der::kInteger, &serial_value_der)) {
+    if (!tbs_certificate.ReadTag(CBS_ASN1_INTEGER, &serial_value_der)) {
       return false;
     }
 

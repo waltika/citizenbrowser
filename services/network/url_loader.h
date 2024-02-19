@@ -539,7 +539,7 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) URLLoader
 
   void CompleteBlockedResponse(
       int error_code,
-      bool should_report_corb_blocking,
+      bool should_report_orb_blocking,
       std::optional<mojom::BlockedByResponseReason> reason = std::nullopt);
 
   enum BlockResponseForCorbResult {
@@ -596,7 +596,6 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) URLLoader
   DeleteCallback delete_callback_;
 
   int32_t options_;
-  const bool corb_detachable_;
   const int resource_type_;
   const bool is_load_timing_enabled_;
   bool has_received_response_ = false;

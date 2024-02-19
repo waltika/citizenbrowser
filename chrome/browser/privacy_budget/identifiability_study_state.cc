@@ -27,10 +27,13 @@
 #include "chrome/browser/privacy_budget/representative_surface_set.h"
 #include "chrome/browser/privacy_budget/surface_set_equivalence.h"
 #include "chrome/common/privacy_budget/field_trial_param_conversions.h"
+#include "chrome/common/privacy_budget/identifiability_study_configurator.mojom.h"
 #include "chrome/common/privacy_budget/privacy_budget_features.h"
 #include "chrome/common/privacy_budget/privacy_budget_settings_provider.h"
 #include "chrome/common/privacy_budget/types.h"
 #include "components/prefs/pref_service.h"
+#include "content/public/browser/render_process_host.h"
+#include "ipc/ipc_channel_proxy.h"
 #include "services/metrics/public/cpp/ukm_source_id.h"
 #include "third_party/blink/public/common/privacy_budget/identifiability_study_settings.h"
 #include "third_party/blink/public/common/privacy_budget/identifiability_study_settings_provider.h"
@@ -63,7 +66,8 @@ IdentifiabilityStudyState::IdentifiabilityStudyState(PrefService* pref_service)
               // bigger than 0.
               : 1,
           kMesaDistributionRatio,
-          kMesaDistributionGeometricDistributionParam) {
+          kMesaDistributionGeometricDistributionParam),
+      meta_experiment_active_(false) {
   InitializeGlobalStudySettings();
   InitFromPrefs();
 }
@@ -77,12 +81,17 @@ int IdentifiabilityStudyState::generation() const {
 bool IdentifiabilityStudyState::ShouldRecordSurface(
     blink::IdentifiableSurface surface) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  if (LIKELY(!settings_.enabled()))
+  if (LIKELY(!settings_.enabled() && !meta_experiment_active_)) {
     return false;
+  }
 
   // We always record surfaces of type zero.
   if (surface.GetType() == blink::IdentifiableSurface::Type::kReservedInternal)
     return true;
+
+  if (LIKELY(!settings_.enabled())) {
+    return false;
+  }
 
   // All other surfaces should be recorded only when sampling.
   if (!settings_.IsUsingSamplingOfSurfaces())
@@ -120,10 +129,23 @@ void IdentifiabilityStudyState::ResetGlobalStudySettingsForTesting() {
   blink::IdentifiabilityStudySettings::ResetStateForTesting();
 }
 
-// static
 void IdentifiabilityStudyState::InitializeGlobalStudySettings() {
   blink::IdentifiabilityStudySettings::SetGlobalProvider(
-      std::make_unique<PrivacyBudgetSettingsProvider>());
+      std::make_unique<PrivacyBudgetSettingsProvider>(meta_experiment_active_));
+}
+
+void IdentifiabilityStudyState::InitializeRenderer(
+    content::RenderProcessHost* render_process_host) {
+  IPC::ChannelProxy* channel = render_process_host->GetChannel();
+  if (!channel) {
+    return;
+  }
+
+  mojo::AssociatedRemote<chrome::mojom::IdentifiabilityStudyConfigurator>
+      identifiability_study_configurator;
+  channel->GetRemoteAssociatedInterface(&identifiability_study_configurator);
+  identifiability_study_configurator->ConfigureIdentifiabilityStudy(
+      /*meta_experiment_active=*/meta_experiment_active_);
 }
 
 bool IdentifiabilityStudyState::DecideInclusionForNewSurface(

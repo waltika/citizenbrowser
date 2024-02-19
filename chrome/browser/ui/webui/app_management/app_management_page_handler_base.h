@@ -22,10 +22,6 @@
 #include "ui/gfx/native_widget_types.h"
 #include "ui/webui/resources/cr_components/app_management/app_management.mojom.h"
 
-#if BUILDFLAG(IS_CHROMEOS_ASH)
-#include "chrome/browser/ui/webui/app_management/app_management_shelf_delegate_chromeos.h"
-#endif
-
 class Profile;
 
 class AppManagementPageHandlerBase : public app_management::mojom::PageHandler,
@@ -49,8 +45,6 @@ class AppManagementPageHandlerBase : public app_management::mojom::PageHandler,
 
   ~AppManagementPageHandlerBase() override;
 
-  void OnPinnedChanged(const std::string& app_id, bool pinned);
-
   // app_management::mojom::PageHandler:
   void GetApps(GetAppsCallback callback) override;
   void GetApp(const std::string& app_id, GetAppCallback callback) override;
@@ -58,7 +52,6 @@ class AppManagementPageHandlerBase : public app_management::mojom::PageHandler,
   void GetExtensionAppPermissionMessages(
       const std::string& app_id,
       GetExtensionAppPermissionMessagesCallback callback) override;
-  void SetPinned(const std::string& app_id, bool pinned) override;
   void SetPermission(const std::string& app_id,
                      apps::PermissionPtr permission) override;
   void Uninstall(const std::string& app_id) override;
@@ -73,6 +66,11 @@ class AppManagementPageHandlerBase : public app_management::mojom::PageHandler,
       Profile* profile,
       Delegate& delegate);
 
+  // Creates an AppPtr for the given `app_id`. Can be overridden to add
+  // additional platform-specific data to the App. Returns nullptr if the given
+  // app is not installed or should not be shown in App Management.
+  virtual app_management::mojom::AppPtr CreateApp(const std::string& app_id);
+
   // Notify the WebUI frontend that the app with a given `app_id` has changed on
   // the backend. Will generate a new AppPtr and send it to the frontend.
   void NotifyAppChanged(const std::string& app_id);
@@ -80,7 +78,8 @@ class AppManagementPageHandlerBase : public app_management::mojom::PageHandler,
   Profile* profile() { return profile_; }
 
  private:
-  app_management::mojom::AppPtr CreateUIAppPtr(const apps::AppUpdate& update);
+  app_management::mojom::AppPtr CreateAppFromAppUpdate(
+      const apps::AppUpdate& update);
 
   // apps::AppRegistryCache::Observer overrides:
   void OnAppUpdate(const apps::AppUpdate& update) override;
@@ -92,10 +91,6 @@ class AppManagementPageHandlerBase : public app_management::mojom::PageHandler,
   mojo::Remote<app_management::mojom::Page> page_;
 
   raw_ptr<Profile> profile_;
-
-#if BUILDFLAG(IS_CHROMEOS_ASH)
-  AppManagementShelfDelegate shelf_delegate_;
-#endif  // BUILDFLAG(IS_CHROMEOS_ASH)
 
   const raw_ref<Delegate> delegate_;
 

@@ -1008,11 +1008,11 @@ void FederatedAuthRequestImpl::SetIdpSigninStatus(
     return;
   }
   // We only allow setting the IDP signin status when the subresource is loaded
-  // from the same origin as the document, and the document is same-origin with
+  // from the same site as the document, and the document is same site with
   // all ancestors. This is to protect from an RP embedding a tracker resource
   // that would set this signin status for the tracker, enabling the FedCM
   // request.
-  if (!webid::IsSameOriginWithAncestors(idp_origin, &render_frame_host())) {
+  if (!webid::IsSameSiteWithAncestors(idp_origin, &render_frame_host())) {
     RecordSetLoginStatusIgnoredReason(
         FedCmSetLoginStatusIgnoredReason::kCrossOrigin);
     return;
@@ -1347,12 +1347,32 @@ void FederatedAuthRequestImpl::MaybeShowAccountsDialog() {
   // Account" flow or the IDP login mismatch in multiple IDP case.
   idp_data_for_display_.clear();
 
+  // If this method call occurs after a login, we'd like to show the account
+  // that was logged in.
+  std::optional<IdentityProviderData> new_account_idp;
   for (const auto& idp : idp_order_) {
     auto idp_info_it = idp_infos_.find(idp);
     if (idp_info_it != idp_infos_.end() && idp_info_it->second->data) {
       idp_data_for_display_.push_back(*idp_info_it->second->data);
     }
+    if (IsFedCmAddAccountEnabled()) {
+      if (!login_url_.is_empty() &&
+          login_url_ == idp_info_it->second->metadata.idp_login_url) {
+        new_account_idp = idp_info_it->second->data;
+        new_account_idp->accounts.clear();
+        for (const auto& account : idp_info_it->second->data->accounts) {
+          if (!account_ids_before_login_.contains(account.id)) {
+            // Even though it is theoretically possible for more than one
+            // account to be new, just show the first one we encounter.
+            new_account_idp->accounts = {account};
+            break;
+          }
+        }
+        account_ids_before_login_.clear();
+      }
+    }
   }
+
   // We want to show IDPs in the following order in the UI:
   // 1. IDPs for which there was a mismatch.
   // 2. IDPs for which there were returning accounts.
@@ -1503,10 +1523,6 @@ void FederatedAuthRequestImpl::MaybeShowAccountsDialog() {
   // RenderFrameHost should be in the primary page (ex not in the BFCache).
   DCHECK(render_frame_host().GetPage().IsPrimary());
 
-  // TODO(crbug.com/1408520): opt-out affordance is not included in the origin
-  // trial. Should revisit based on the OT feedback.
-  bool show_auto_reauthn_checkbox = false;
-
   bool intercept = false;
   // In tests (content_shell or when --use-fake-ui-for-fedcm is used), the
   // dialog controller will immediately select an account. But if browser
@@ -1535,7 +1551,7 @@ void FederatedAuthRequestImpl::MaybeShowAccountsDialog() {
       idp_data_for_display_,
       identity_selection_type_ == kExplicit ? SignInMode::kExplicit
                                             : SignInMode::kAuto,
-      rp_mode_, show_auto_reauthn_checkbox,
+      rp_mode_, new_account_idp,
       base::BindOnce(&FederatedAuthRequestImpl::OnAccountSelected,
                      weak_ptr_factory_.GetWeakPtr()),
       base::BindOnce(&FederatedAuthRequestImpl::LoginToIdP,
@@ -2418,6 +2434,7 @@ void FederatedAuthRequestImpl::CleanUp() {
   idp_login_infos_.clear();
   idp_infos_.clear();
   idp_data_for_display_.clear();
+  account_ids_before_login_.clear();
   fetch_data_ = FetchData();
   idp_order_.clear();
   metrics_endpoints_.clear();
@@ -2774,6 +2791,20 @@ void FederatedAuthRequestImpl::LoginToIdP(bool can_append_hints,
     MaybeAppendQueryParameters(it->second, &login_url);
   }
   permission_delegate_->AddIdpSigninStatusObserver(this);
+
+  if (IsFedCmAddAccountEnabled()) {
+    account_ids_before_login_.clear();
+    for (const auto& idp_data : idp_data_for_display_) {
+      if (idp_data.idp_metadata.idp_login_url == login_url) {
+        for (const auto& account : idp_data.accounts) {
+          account_ids_before_login_.insert(account.id);
+        }
+        break;
+      }
+    }
+  }
+
+  login_url_ = login_url;
   ShowModalDialog(idp_config_url, login_url);
 }
 

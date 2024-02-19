@@ -133,7 +133,7 @@ const url::SchemeHostPort kDefaultDestination{
     url::kHttpsScheme, kDefaultServerHostName, kDefaultServerPort};
 
 // Run QuicSessionPoolTest instances with all value combinations of version
-// and enable_connection_racting.
+// and the `PriorityHeader` feature.
 struct TestParams {
   quic::ParsedQuicVersion version;
   bool priority_header_enabled;
@@ -375,7 +375,7 @@ class QuicSessionPoolTestBase : public WithTaskEnvironment {
     url::SchemeHostPort destination = kDefaultDestination;
     quic::ParsedQuicVersion quic_version;
     ProxyChain proxy_chain = ProxyChain::Direct();
-    absl::optional<NetworkTrafficAnnotationTag> proxy_annotation_tag =
+    std::optional<NetworkTrafficAnnotationTag> proxy_annotation_tag =
         TRAFFIC_ANNOTATION_FOR_TESTS;
     SessionUsage session_usage = SessionUsage::kDestination;
     PrivacyMode privacy_mode = PRIVACY_MODE_DISABLED;
@@ -12492,7 +12492,7 @@ enum DestinationType {
 };
 
 // Run QuicSessionPoolWithDestinationTest instances with all value
-// combinations of version, enable_connection_racting, and destination_type.
+// combinations of version and destination_type.
 struct PoolingTestParams {
   quic::ParsedQuicVersion version;
   DestinationType destination_type;

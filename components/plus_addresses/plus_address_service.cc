@@ -4,11 +4,18 @@
 
 #include "components/plus_addresses/plus_address_service.h"
 
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "base/scoped_observation.h"
 #include "base/strings/string_split.h"
 #include "base/strings/utf_string_conversions.h"
+#include "components/autofill/core/browser/data_model/borrowed_transliterator.h"
+#include "components/autofill/core/browser/ui/popup_item_ids.h"
+#include "components/autofill/core/browser/ui/suggestion.h"
 #include "components/plus_addresses/features.h"
-#include "components/plus_addresses/plus_address_client.h"
+#include "components/plus_addresses/plus_address_http_client.h"
 #include "components/plus_addresses/plus_address_metrics.h"
 #include "components/plus_addresses/plus_address_prefs.h"
 #include "components/plus_addresses/plus_address_types.h"
@@ -24,12 +31,17 @@
 namespace plus_addresses {
 
 namespace {
+
+using autofill::PopupItemId;
+using autofill::Suggestion;
+
 // Get the ETLD+1 of `origin`, which means any subdomain is treated
 // equivalently.
 std::string GetEtldPlusOne(const url::Origin origin) {
   return net::registry_controlled_domains::GetDomainAndRegistry(
       origin, net::registry_controlled_domains::INCLUDE_PRIVATE_REGISTRIES);
 }
+
 }  // namespace
 
 PlusAddressService::PlusAddressService(
@@ -37,21 +49,22 @@ PlusAddressService::PlusAddressService(
     : PlusAddressService(
           identity_manager,
           /*pref_service=*/nullptr,
-          PlusAddressClient(identity_manager, /*url_loader_factory=*/nullptr)) {
-}
+          PlusAddressHttpClient(identity_manager,
+                                /*url_loader_factory=*/nullptr)) {}
 
 PlusAddressService::PlusAddressService()
-    : PlusAddressService(/*identity_manager=*/nullptr,
-                         /*pref_service=*/nullptr,
-                         PlusAddressClient(/*identity_manager=*/nullptr,
-                                           /*url_loader_factory=*/nullptr)) {}
+    : PlusAddressService(
+          /*identity_manager=*/nullptr,
+          /*pref_service=*/nullptr,
+          PlusAddressHttpClient(/*identity_manager=*/nullptr,
+                                /*url_loader_factory=*/nullptr)) {}
 
 PlusAddressService::~PlusAddressService() = default;
 
 PlusAddressService::PlusAddressService(
     signin::IdentityManager* identity_manager,
     PrefService* pref_service,
-    PlusAddressClient plus_address_client)
+    PlusAddressHttpClient plus_address_client)
     : identity_manager_(identity_manager),
       pref_service_(pref_service),
       plus_address_client_(std::move(plus_address_client)),
@@ -85,7 +98,7 @@ bool PlusAddressService::SupportsPlusAddresses(const url::Origin& origin,
   }
   // Prerequisites are met, but it's an off-the-record session. If there's an
   // existing plus_address, it's supported, otherwise it is not.
-  return GetPlusAddress(origin).has_value();
+  return GetPlusProfile(origin).has_value();
 }
 
 std::optional<std::string> PlusAddressService::GetPlusAddress(
@@ -125,6 +138,44 @@ bool PlusAddressService::IsPlusAddress(
   return plus_addresses_.contains(potential_plus_address);
 }
 
+std::vector<Suggestion> PlusAddressService::GetSuggestions(
+    const url::Origin& last_committed_primary_main_frame_origin,
+    bool is_off_the_record,
+    std::u16string_view focused_field_value) {
+  if (!SupportsPlusAddresses(last_committed_primary_main_frame_origin,
+                             is_off_the_record)) {
+    return {};
+  }
+
+  const std::u16string normalized_field_value =
+      autofill::RemoveDiacriticsAndConvertToLowerCase(focused_field_value);
+  std::optional<std::string> maybe_address =
+      GetPlusAddress(last_committed_primary_main_frame_origin);
+  if (maybe_address == std::nullopt) {
+    if (!normalized_field_value.empty()) {
+      return {};
+    }
+    Suggestion create_plus_address_suggestion(
+        GetCreateSuggestionLabel(), PopupItemId::kCreateNewPlusAddress);
+    RecordAutofillSuggestionEvent(AutofillPlusAddressDelegate::SuggestionEvent::
+                                      kCreateNewPlusAddressSuggested);
+    create_plus_address_suggestion.icon = Suggestion::Icon::kPlusAddress;
+    return {std::move(create_plus_address_suggestion)};
+  }
+
+  // Only suggest filling a plus address whose prefix matches the field's value.
+  std::u16string address = base::UTF8ToUTF16(*maybe_address);
+  if (!address.starts_with(normalized_field_value)) {
+    return {};
+  }
+  Suggestion existing_plus_address_suggestion(
+      std::move(address), PopupItemId::kFillExistingPlusAddress);
+  RecordAutofillSuggestionEvent(AutofillPlusAddressDelegate::SuggestionEvent::
+                                    kExistingPlusAddressSuggested);
+  existing_plus_address_suggestion.icon = Suggestion::Icon::kPlusAddress;
+  return {std::move(existing_plus_address_suggestion)};
+}
+
 void PlusAddressService::ReservePlusAddress(
     const url::Origin& origin,
     PlusAddressRequestCallback on_completed) {
@@ -146,7 +197,7 @@ void PlusAddressService::ReservePlusAddress(
             std::move(callback).Run(maybe_profile);
           },
           // base::Unretained is safe here since PlusAddressService owns
-          // the PlusAddressClient and they will have the same lifetime.
+          // the PlusAddressHttpClient and they will have the same lifetime.
           base::Unretained(this), origin, std::move(on_completed)));
 }
 
@@ -178,7 +229,7 @@ void PlusAddressService::ConfirmPlusAddress(
             std::move(callback).Run(maybe_profile);
           },
           // base::Unretained is safe here since PlusAddressService owns
-          // the PlusAddressClient and they will have the same lifetime.
+          // the PlusAddressHttpClient and they will have the same lifetime.
           base::Unretained(this), origin, std::move(on_completed)));
 }
 
@@ -249,7 +300,7 @@ void PlusAddressService::SyncPlusAddressMapping() {
         }
       },
       // base::Unretained is safe here since PlusAddressService owns
-      // the PlusAddressClient and they have the same lifetime.
+      // the PlusAddressHttpClient and they have the same lifetime.
       base::Unretained(this)));
 }
 
@@ -270,7 +321,8 @@ void PlusAddressService::HandlePollingError(PlusAddressRequestError error) {
     return;
   }
   if (!account_is_forbidden_.has_value() &&
-      error.http_response_code() == net::HTTP_FORBIDDEN) {
+      error.http_response_code().has_value() &&
+      error.http_response_code().value() == net::HTTP_FORBIDDEN) {
     // Only retry failed 403s up to the limit.
     if (initial_poll_retry_attempt_ < MAX_INITIAL_POLL_RETRY_ATTEMPTS) {
       initial_poll_retry_attempt_++;

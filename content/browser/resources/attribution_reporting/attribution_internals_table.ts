@@ -7,9 +7,6 @@ import {CustomElement} from 'chrome://resources/js/custom_element.js';
 import {getTemplate} from './attribution_internals_table.html.js';
 import type {TableModel} from './table_model.js';
 
-/**
- * Helper function for setting sort attributes on |th|.
- */
 function setSortAttrs(th: HTMLElement, sortDesc: boolean|null): void {
   let nextDir;
   if (sortDesc === null) {
@@ -27,6 +24,16 @@ function setSortAttrs(th: HTMLElement, sortDesc: boolean|null): void {
   button.title = `Sort by ${button.innerText} ${nextDir}`;
 }
 
+export type RenderFunc<T> = (e: HTMLElement, data: T) => void;
+
+export interface Column<T> {
+  compare?(a: T, b: T): number;
+
+  render(td: HTMLElement, row: T): void;
+
+  renderHeader(th: HTMLElement): void;
+}
+
 /**
  * Table abstracts the logic for rendering and sorting a table. The table's
  * columns are supplied by a TableModel. Each Column knows how to render the
@@ -39,14 +46,23 @@ export class AttributionInternalsTableElement<T> extends CustomElement {
   }
 
   private model_?: TableModel<T>;
+  private cols_?: ReadonlyArray<Column<T>>;
+  private sortIdx_: number = -1;
   private sortDesc_: boolean = false;
+  private styleRow_: RenderFunc<T> = () => {};
 
-  setModel(model: TableModel<T>): void {
+  init(
+      model: TableModel<T>,
+      cols: ReadonlyArray<Column<T>&{defaultSort?: boolean}>,
+      styleRow: RenderFunc<T> = () => {}): void {
     this.model_ = model;
+    this.cols_ = cols;
+    this.sortIdx_ = -1;
     this.sortDesc_ = false;
+    this.styleRow_ = styleRow;
 
     const tr = this.$<HTMLElement>('thead > tr')!;
-    model.cols.forEach((col, idx) => {
+    cols.forEach((col, idx) => {
       const th = document.createElement('th');
       th.scope = 'col';
 
@@ -54,8 +70,11 @@ export class AttributionInternalsTableElement<T> extends CustomElement {
         const button = document.createElement('button');
         col.renderHeader(button);
         th.append(button);
-        setSortAttrs(th, idx === model.sortIdx ? this.sortDesc_ : null);
+        setSortAttrs(th, col.defaultSort ? this.sortDesc_ : null);
         button.addEventListener('click', () => this.changeSortHeader_(idx));
+        if (col.defaultSort) {
+          this.sortIdx_ = idx;
+        }
       } else {
         col.renderHeader(th);
       }
@@ -63,44 +82,44 @@ export class AttributionInternalsTableElement<T> extends CustomElement {
       tr.append(th);
     });
 
-    this.addSpanningText_();
-    this.model_.rowsChangedListeners.add(() => this.updateTbody_());
+    this.updateRowCount_();
+
+    this.model_.rowsChangedListeners.add(() => {
+      this.updateRowCount_();
+      this.updateTbody_();
+    });
   }
 
-  private addSpanningText_(): void {
-    const td = document.createElement('td');
-    td.innerText = this.model_!.emptyRowText;
-    td.colSpan = this.model_!.cols.length;
-    const tr = document.createElement('tr');
-    tr.append(td);
-    const tbody = this.$<HTMLElement>('tbody')!;
-    tbody.append(tr);
+  private updateRowCount_(): void {
+    const td = this.$<HTMLTableCellElement>('tfoot td')!;
+    td.colSpan = this.cols_!.length;
+    td.innerText = `Rows: ${this.model_!.rowCount()}`;
   }
 
   private changeSortHeader_(idx: number): void {
     const ths = this.$all<HTMLElement>('thead > tr > th');
 
-    if (idx === this.model_!.sortIdx) {
+    if (idx === this.sortIdx_) {
       this.sortDesc_ = !this.sortDesc_;
     } else {
       this.sortDesc_ = false;
-      if (this.model_!.sortIdx >= 0) {
-        setSortAttrs(ths[this.model_!.sortIdx]!, /*descending=*/ null);
+      if (this.sortIdx_ >= 0) {
+        setSortAttrs(ths[this.sortIdx_]!, /*descending=*/ null);
       }
     }
 
-    this.model_!.sortIdx = idx;
-    setSortAttrs(ths[this.model_!.sortIdx]!, this.sortDesc_);
+    this.sortIdx_ = idx;
+    setSortAttrs(ths[this.sortIdx_]!, this.sortDesc_);
     this.updateTbody_();
   }
 
   private sort_(rows: T[]): void {
-    if (this.model_!.sortIdx < 0) {
+    if (this.sortIdx_ < 0) {
       return;
     }
 
     const multiplier = this.sortDesc_ ? -1 : 1;
-    const sortCol = this.model_!.cols[this.model_!.sortIdx]!;
+    const sortCol = this.cols_![this.sortIdx_]!;
     rows.sort((a, b) => multiplier * sortCol.compare!(a, b));
   }
 
@@ -110,7 +129,6 @@ export class AttributionInternalsTableElement<T> extends CustomElement {
 
     const rows = this.model_!.getRows();
     if (rows.length === 0) {
-      this.addSpanningText_();
       return;
     }
 
@@ -118,12 +136,10 @@ export class AttributionInternalsTableElement<T> extends CustomElement {
 
     for (const row of rows) {
       const tr = document.createElement('tr');
-      for (const col of this.model_!.cols) {
-        const td = document.createElement('td');
-        col.render(td, row);
-        tr.append(td);
+      for (const col of this.cols_!) {
+        col.render(tr.insertCell(), row);
       }
-      this.model_!.styleRow(tr, row);
+      this.styleRow_(tr, row);
       tbody.append(tr);
     }
   }

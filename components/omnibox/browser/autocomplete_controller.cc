@@ -75,6 +75,7 @@
 #include "components/omnibox/browser/zero_suggest_verbatim_match_provider.h"
 #include "components/omnibox/common/omnibox_features.h"
 #include "components/open_from_clipboard/clipboard_recent_content.h"
+#include "components/search_engines/search_engine_type.h"
 #include "components/search_engines/template_url.h"
 #include "components/search_engines/template_url_service.h"
 #include "components/search_engines/template_url_starter_pack_data.h"
@@ -814,9 +815,14 @@ void AutocompleteController::
 void AutocompleteController::SetMatchDestinationURL(
     AutocompleteMatch* match) const {
   TRACE_EVENT0("omnibox", "AutocompleteController::SetMatchDestinationURL");
-  auto url = ComputeURLFromSearchTermsArgs(
-      match->GetTemplateURL(template_url_service_, false),
-      *match->search_terms_args);
+  const TemplateURL* turl = match->GetTemplateURL(template_url_service_, false);
+  // Append an extra header to navigations from the AskGoogle built-in keyword.
+  if (turl &&
+      turl->GetBuiltinEngineType() == KEYWORD_MODE_STARTER_PACK_ASK_GOOGLE) {
+    match->extra_headers = kOmniboxGeminiHeader;
+  }
+
+  auto url = ComputeURLFromSearchTermsArgs(turl, *match->search_terms_args);
   if (url.is_valid()) {
     match->destination_url = std::move(url);
   }
@@ -826,7 +832,7 @@ void AutocompleteController::SetMatchDestinationURL(
 }
 
 GURL AutocompleteController::ComputeURLFromSearchTermsArgs(
-    TemplateURL* template_url,
+    const TemplateURL* template_url,
     const TemplateURLRef::SearchTermsArgs& search_terms_args) const {
   if (!template_url) {
     return GURL();
@@ -1423,17 +1429,20 @@ void AutocompleteController::UpdateSearchboxStats(AutocompleteResult* result) {
     auto subtypes = match->subtypes;
     ExtendMatchSubtypes(*match, &subtypes);
 
-    // Count any suggestions that constitute zero-prefix suggestions.
-    if (subtypes.contains(omnibox::SUBTYPE_ZERO_PREFIX_LOCAL_HISTORY) ||
-        subtypes.contains(omnibox::SUBTYPE_ZERO_PREFIX_LOCAL_FREQUENT_URLS) ||
-        subtypes.contains(
-            omnibox::SUBTYPE_ZERO_PREFIX_LOCAL_FREQUENT_QUERIES) ||
-        subtypes.contains(omnibox::SUBTYPE_ZERO_PREFIX) ||
-        subtypes.contains(omnibox::SUBTYPE_CLIPBOARD_IMAGE) ||
-        subtypes.contains(omnibox::SUBTYPE_CLIPBOARD_TEXT) ||
-        subtypes.contains(omnibox::SUBTYPE_CLIPBOARD_URL) ||
-        subtypes.contains(omnibox::SUBTYPE_ZERO_PREFIX_QUERY_TILE)) {
-      num_zero_prefix_suggestions_shown++;
+    if (input_.IsZeroSuggest()) {
+      result->set_zero_prefix_enabled_in_session(true);
+      // Count any suggestions that constitute zero-prefix suggestions.
+      if (subtypes.contains(omnibox::SUBTYPE_ZERO_PREFIX_LOCAL_HISTORY) ||
+          subtypes.contains(omnibox::SUBTYPE_ZERO_PREFIX_LOCAL_FREQUENT_URLS) ||
+          subtypes.contains(
+              omnibox::SUBTYPE_ZERO_PREFIX_LOCAL_FREQUENT_QUERIES) ||
+          subtypes.contains(omnibox::SUBTYPE_ZERO_PREFIX) ||
+          subtypes.contains(omnibox::SUBTYPE_CLIPBOARD_IMAGE) ||
+          subtypes.contains(omnibox::SUBTYPE_CLIPBOARD_TEXT) ||
+          subtypes.contains(omnibox::SUBTYPE_CLIPBOARD_URL) ||
+          subtypes.contains(omnibox::SUBTYPE_ZERO_PREFIX_QUERY_TILE)) {
+        num_zero_prefix_suggestions_shown++;
+      }
     }
 
     auto* available_suggestion = searchbox_stats.add_available_suggestions();
@@ -1473,7 +1482,9 @@ void AutocompleteController::UpdateSearchboxStats(AutocompleteResult* result) {
           ? result->num_zero_prefix_suggestions_shown_in_session()
           : num_zero_prefix_suggestions_shown);
   searchbox_stats.set_zero_prefix_enabled(
-      searchbox_stats.num_zero_prefix_suggestions_shown() > 0);
+      omnibox_feature_configs::ReportNumZPSInSession::Get().enabled
+          ? result->zero_prefix_enabled_in_session()
+          : searchbox_stats.num_zero_prefix_suggestions_shown() > 0);
 
   // Go over all matches and set searchbox stats if the match supports it.
   for (size_t index = 0; index < result->size(); ++index) {
@@ -1683,7 +1694,7 @@ AutocompleteController::GetOmniboxPositionExperimentStatsV2() const {
 
 bool AutocompleteController::ShouldRunProvider(
     AutocompleteProvider* provider) const {
-  if (provider->InKeywordMode(input_)) {
+  if (input_.InKeywordMode()) {
     // Only a subset of providers are run when we're in a starter pack keyword
     // mode. Try to grab the TemplateURL to determine if we're in starter pack
     // mode and whether this provider should be run.
@@ -1741,6 +1752,11 @@ bool AutocompleteController::ShouldRunProvider(
                  base::StartsWith(keyword_turl->url(),
                                   "https://drive.google.com",
                                   base::CompareCase::INSENSITIVE_ASCII);
+
+        // Don't run on device head provider.
+        case AutocompleteProvider::TYPE_ON_DEVICE_HEAD:
+          return !(omnibox_feature_configs::LimitKeywordModeSuggestions::Get()
+                       .limit_on_device_head_suggestions);
 
         // Otherwise, all other providers should still run.
         default:

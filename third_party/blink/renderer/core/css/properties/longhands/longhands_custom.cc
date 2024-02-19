@@ -1535,17 +1535,6 @@ const CSSValue* Bottom::CSSValueFromComputedStyleInternal(
                                                     layout_object);
 }
 
-void Bottom::ApplyValue(StyleResolverState& state,
-                        const CSSValue& value,
-                        ValueMode) const {
-  Length length = StyleBuilderConverter::ConvertLengthOrAuto(state, value);
-  if (state.IsResolvingPositionFallbackStyle() &&
-      length.HasAutoAnchorPositioning()) {
-    state.StyleBuilder().SetHasAutoAnchorPositioningInYAxisFromTryBlock();
-  }
-  state.StyleBuilder().SetBottom(std::move(length));
-}
-
 const CSSValue* BoxShadow::ParseSingleValue(
     CSSParserTokenRange& range,
     const CSSParserContext& context,
@@ -1747,20 +1736,9 @@ const CSSValue* ClipPath::ParseSingleValue(CSSParserTokenRange& range,
     return url;
   }
 
-  CSSValue* geometry_box = nullptr;
-  if (RuntimeEnabledFeatures::ClipPathGeometryBoxEnabled()) {
-    geometry_box = css_parsing_utils::ConsumeGeometryBox(range);
-  }
-  CSSValue* basic_shape = css_parsing_utils::ConsumeBasicShape(
-      range, context, css_parsing_utils::AllowPathValue::kAllow,
-      RuntimeEnabledFeatures::ClipPathXYWHAndRectEnabled()
-          ? css_parsing_utils::AllowBasicShapeRectValue::kAllow
-          : css_parsing_utils::AllowBasicShapeRectValue::kForbid,
-      RuntimeEnabledFeatures::ClipPathXYWHAndRectEnabled()
-          ? css_parsing_utils::AllowBasicShapeXYWHValue::kAllow
-          : css_parsing_utils::AllowBasicShapeXYWHValue::kForbid);
-  if (basic_shape && !geometry_box &&
-      RuntimeEnabledFeatures::ClipPathGeometryBoxEnabled()) {
+  CSSValue* geometry_box = css_parsing_utils::ConsumeGeometryBox(range);
+  CSSValue* basic_shape = css_parsing_utils::ConsumeBasicShape(range, context);
+  if (basic_shape && !geometry_box) {
     geometry_box = css_parsing_utils::ConsumeGeometryBox(range);
   }
   if (basic_shape || geometry_box) {
@@ -5282,17 +5260,6 @@ const CSSValue* Left::CSSValueFromComputedStyleInternal(
                                                     layout_object);
 }
 
-void Left::ApplyValue(StyleResolverState& state,
-                      const CSSValue& value,
-                      ValueMode) const {
-  Length length = StyleBuilderConverter::ConvertLengthOrAuto(state, value);
-  if (state.IsResolvingPositionFallbackStyle() &&
-      length.HasAutoAnchorPositioning()) {
-    state.StyleBuilder().SetHasAutoAnchorPositioningInXAxisFromTryBlock();
-  }
-  state.StyleBuilder().SetLeft(std::move(length));
-}
-
 const CSSValue* LetterSpacing::ParseSingleValue(
     CSSParserTokenRange& range,
     const CSSParserContext& context,
@@ -5881,9 +5848,7 @@ const CSSValue* ObjectViewBox::ParseSingleValue(
     return css_parsing_utils::ConsumeIdent(range);
   }
   auto* css_value = css_parsing_utils::ConsumeBasicShape(
-      range, context, css_parsing_utils::AllowPathValue::kForbid,
-      css_parsing_utils::AllowBasicShapeRectValue::kAllow,
-      css_parsing_utils::AllowBasicShapeXYWHValue::kAllow);
+      range, context, css_parsing_utils::AllowPathValue::kForbid);
 
   if (!css_value || css_value->IsBasicShapeInsetValue() ||
       css_value->IsBasicShapeRectValue() ||
@@ -6869,13 +6834,7 @@ const CSSValue* PositionTryOptions::ParseSingleValue(
     CSSParserTokenRange& range,
     const CSSParserContext& context,
     const CSSParserLocalContext&) const {
-  // position-try-options: none | [ <dashed-ident> | <try-tactic> ]#
-  // <try-tactic> = flip-block || flip-inline || flip-start
-  if (range.Peek().Id() == CSSValueID::kNone) {
-    return css_parsing_utils::ConsumeIdent(range);
-  }
-  return css_parsing_utils::ConsumeCommaSeparatedList(
-      css_parsing_utils::ConsumeSinglePositionTryOption, range, context);
+  return css_parsing_utils::ConsumePositionTryOptions(range, context);
 }
 
 const CSSValue* PositionTryOptions::CSSValueFromComputedStyleInternal(
@@ -6950,6 +6909,10 @@ void PositionTryOptions::ApplyValue(StyleResolverState& state,
   DCHECK(!options.empty());
   state.StyleBuilder().SetPositionTryOptions(
       MakeGarbageCollected<blink::PositionTryOptions>(options));
+}
+
+const CSSValue* PositionTryOrder::InitialValue() const {
+  return CSSIdentifierValue::Create(CSSValueID::kNormal);
 }
 
 const CSSValue* PositionTryOrder::CSSValueFromComputedStyleInternal(
@@ -7063,17 +7026,6 @@ const CSSValue* Right::CSSValueFromComputedStyleInternal(
     bool allow_visited_style) const {
   return ComputedStyleUtils::ValueForPositionOffset(style, *this,
                                                     layout_object);
-}
-
-void Right::ApplyValue(StyleResolverState& state,
-                       const CSSValue& value,
-                       ValueMode) const {
-  Length length = StyleBuilderConverter::ConvertLengthOrAuto(state, value);
-  if (state.IsResolvingPositionFallbackStyle() &&
-      length.HasAutoAnchorPositioning()) {
-    state.StyleBuilder().SetHasAutoAnchorPositioningInXAxisFromTryBlock();
-  }
-  state.StyleBuilder().SetRight(std::move(length));
 }
 
 const CSSValue* Rotate::ParseSingleValue(CSSParserTokenRange& range,
@@ -7811,7 +7763,9 @@ const CSSValue* ShapeOutside::ParseSingleValue(
   CSSValueList* list = CSSValueList::CreateSpaceSeparated();
   CSSValue* box_value = css_parsing_utils::ConsumeShapeBox(range);
   CSSValue* shape_value = css_parsing_utils::ConsumeBasicShape(
-      range, context, css_parsing_utils::AllowPathValue::kForbid);
+      range, context, css_parsing_utils::AllowPathValue::kForbid,
+      css_parsing_utils::AllowBasicShapeRectValue::kForbid,
+      css_parsing_utils::AllowBasicShapeXYWHValue::kForbid);
   if (shape_value) {
     list->Append(*shape_value);
     if (!box_value) {
@@ -8660,17 +8614,6 @@ const CSSValue* Top::CSSValueFromComputedStyleInternal(
     bool allow_visited_style) const {
   return ComputedStyleUtils::ValueForPositionOffset(style, *this,
                                                     layout_object);
-}
-
-void Top::ApplyValue(StyleResolverState& state,
-                     const CSSValue& value,
-                     ValueMode) const {
-  Length length = StyleBuilderConverter::ConvertLengthOrAuto(state, value);
-  if (state.IsResolvingPositionFallbackStyle() &&
-      length.HasAutoAnchorPositioning()) {
-    state.StyleBuilder().SetHasAutoAnchorPositioningInYAxisFromTryBlock();
-  }
-  state.StyleBuilder().SetTop(std::move(length));
 }
 
 namespace {

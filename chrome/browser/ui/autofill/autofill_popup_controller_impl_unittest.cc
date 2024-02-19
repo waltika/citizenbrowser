@@ -72,11 +72,11 @@
 #endif  // !BUILDFLAG(IS_CHROMEOS_ASH)
 
 #if BUILDFLAG(IS_ANDROID)
-#include "chrome/browser/autofill/manual_filling_controller_impl.h"
-#include "chrome/browser/autofill/mock_address_accessory_controller.h"
-#include "chrome/browser/autofill/mock_credit_card_accessory_controller.h"
 #include "chrome/browser/autofill/mock_manual_filling_view.h"
-#include "chrome/browser/autofill/mock_password_accessory_controller.h"
+#include "chrome/browser/keyboard_accessory/android/manual_filling_controller_impl.h"
+#include "chrome/browser/keyboard_accessory/test_utils/android/mock_address_accessory_controller.h"
+#include "chrome/browser/keyboard_accessory/test_utils/android/mock_credit_card_accessory_controller.h"
+#include "chrome/browser/keyboard_accessory/test_utils/android/mock_password_accessory_controller.h"
 #endif  // BUILDFLAG(IS_ANDROID)
 
 namespace autofill {
@@ -197,15 +197,7 @@ class TestAutofillPopupController : public AutofillPopupControllerImpl {
             element_bounds,
             base::i18n::UNKNOWN_DIRECTION,
             std::move(show_pwd_migration_warning_callback),
-            parent) {
-    // This is done in order to set the callback to
-    // `TestAutofillPopupController::Hide` (which is mocked below). Otherwise,
-    // it would be set to `AutofillPopupController::Hide()`, which is not
-    // mocked.
-    CreatePopupHideHelper(
-        web_contents, base::BindRepeating(&TestAutofillPopupController::Hide,
-                                          base::Unretained(this)));
-  }
+            parent) {}
   ~TestAutofillPopupController() override = default;
 
   // Making protected functions public for testing
@@ -1061,9 +1053,8 @@ TEST_F(AutofillPopupControllerImplTest,
 // picture-in-picture window.
 TEST_F(AutofillPopupControllerImplTest,
        CheckBoundsOverlapWithPictureInPicture) {
-  client().popup_controller(manager());  // Creates the controller.
-  EXPECT_CALL(client().popup_view(), OverlapsWithPictureInPictureWindow)
-      .Times(1);
+  ShowSuggestions(manager(), {PopupItemId::kAddressEntry});
+  EXPECT_CALL(client().popup_view(), OverlapsWithPictureInPictureWindow);
   PictureInPictureWindowManager* picture_in_picture_window_manager =
       PictureInPictureWindowManager::GetInstance();
   picture_in_picture_window_manager->EnterVideoPictureInPicture(web_contents());

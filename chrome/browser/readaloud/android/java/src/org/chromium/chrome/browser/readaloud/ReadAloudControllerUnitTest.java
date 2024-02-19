@@ -45,6 +45,7 @@ import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowLooper;
 
 import org.chromium.base.ApplicationState;
+import org.chromium.base.Promise;
 import org.chromium.base.supplier.ObservableSupplierImpl;
 import org.chromium.base.test.BaseRobolectricTestRunner;
 import org.chromium.base.test.util.Features;
@@ -78,6 +79,7 @@ import org.chromium.chrome.modules.readaloud.PlaybackListener;
 import org.chromium.chrome.modules.readaloud.PlaybackListener.PlaybackData;
 import org.chromium.chrome.modules.readaloud.Player;
 import org.chromium.chrome.modules.readaloud.ReadAloudPlaybackHooks;
+import org.chromium.chrome.modules.readaloud.contentjs.Extractor;
 import org.chromium.chrome.modules.readaloud.contentjs.Highlighter;
 import org.chromium.chrome.test.util.browser.tabmodel.MockTabModelSelector;
 import org.chromium.components.browser_ui.bottomsheet.BottomSheetController;
@@ -121,6 +123,7 @@ public class ReadAloudControllerUnitTest {
     @Mock private ReadAloudPlaybackHooks mPlaybackHooks;
     @Mock private Player mPlayerCoordinator;
     @Mock private BottomSheetController mBottomSheetController;
+    @Mock private Extractor mExtractor;
     @Mock private Highlighter mHighlighter;
     @Mock private PlaybackListener.PhraseTiming mPhraseTiming;
     @Mock private BrowserControlsSizer mBrowserControlsSizer;
@@ -147,6 +150,7 @@ public class ReadAloudControllerUnitTest {
     private GlobalRenderFrameHostId mGlobalRenderFrameHostId = new GlobalRenderFrameHostId(1, 1);
     public UserActionTester mUserActionTester;
     private HistogramWatcher mHighlightingEnabledOnStartupHistogram;
+    private Promise<Long> mExtractorPromise;
 
     @Before
     public void setUp() {
@@ -227,12 +231,16 @@ public class ReadAloudControllerUnitTest {
         when(mWebContents.getMainFrame()).thenReturn(mRenderFrameHost);
         when(mRenderFrameHost.getGlobalRenderFrameHostId()).thenReturn(mGlobalRenderFrameHostId);
         mController.setHighlighterForTests(mHighlighter);
+        when(mPlaybackHooks.createExtractor()).thenReturn(mExtractor);
 
         doReturn(false).when(mPlaybackHooks).voicesInitialized();
         doReturn(List.of(new PlaybackVoice("en", "voiceA", "")))
                 .when(mPlaybackHooks)
                 .getVoicesFor(anyString());
         mUserActionTester = new UserActionTester();
+        mExtractorPromise = new Promise<Long>();
+        when(mExtractor.getDateModified(any())).thenReturn(mExtractorPromise);
+        mExtractorPromise.fulfill(1234567123456L);
     }
 
     @After
@@ -292,6 +300,7 @@ public class ReadAloudControllerUnitTest {
 
         // now start playing a tab
         mController.playTab(mTab);
+        resolvePromises();
         verify(mPlaybackHooks, times(1))
                 .createPlayback(Mockito.any(), mPlaybackCallbackCaptor.capture());
         onPlaybackSuccess(mPlayback);
@@ -323,6 +332,8 @@ public class ReadAloudControllerUnitTest {
 
         // now start playing a tab
         mController.playTab(mTab);
+        resolvePromises();
+
         verify(mPlaybackHooks, times(1))
                 .createPlayback(Mockito.any(), mPlaybackCallbackCaptor.capture());
         onPlaybackSuccess(mPlayback);
@@ -347,9 +358,56 @@ public class ReadAloudControllerUnitTest {
     }
 
     @Test
+    public void testOnActivityAttachmentChanged_saveAndRestoreState() {
+        // start playing a tab
+        mController.playTab(mTab);
+        resolvePromises();
+
+        verify(mPlaybackHooks, times(1))
+                .createPlayback(Mockito.any(), mPlaybackCallbackCaptor.capture());
+        onPlaybackSuccess(mPlayback);
+
+        // now detach the playing tab
+        mController
+                .getTabModelTabObserverforTests()
+                .onActivityAttachmentChanged(mTab, /* window= */ null);
+
+        verify(mPlayerCoordinator).dismissPlayers();
+        verify(mPlayback).release();
+
+        // Load a different tab. Playback shouldn't be restored
+        // Load the previously playing tab. Saved playback state should be restored.
+        Tab tab = mTabModelSelector.addMockTab();
+        TabModelUtils.selectTabById(
+                mTabModelSelector,
+                tab.getId(),
+                TabSelectionType.FROM_NEW,
+                /* skipLoadingTab= */ true);
+
+        verify(mPlaybackHooks, times(1)).createPlayback(any(), mPlaybackCallbackCaptor.capture());
+
+        // Load the previously playing tab. Saved playback state should be restored.
+        TabModelUtils.selectTabById(
+                mTabModelSelector,
+                mTab.getId(),
+                TabSelectionType.FROM_NEW,
+                /* skipLoadingTab= */ true);
+        verify(mPlaybackHooks, times(2)).createPlayback(any(), mPlaybackCallbackCaptor.capture());
+
+        // Loading the same tab should not re-trigger playback
+        TabModelUtils.selectTabById(
+                mTabModelSelector,
+                mTab.getId(),
+                TabSelectionType.FROM_NEW,
+                /* skipLoadingTab= */ true);
+        verify(mPlaybackHooks, times(2)).createPlayback(any(), mPlaybackCallbackCaptor.capture());
+    }
+
+    @Test
     public void testReloadPage_errorUiDismissed() {
         // start a playback with an error
         mController.playTab(mTab);
+        resolvePromises();
         verify(mPlaybackHooks, times(1))
                 .createPlayback(Mockito.any(), mPlaybackCallbackCaptor.capture());
         mPlaybackCallbackCaptor.getValue().onFailure(new Exception("Very bad error"));
@@ -372,6 +430,7 @@ public class ReadAloudControllerUnitTest {
 
         // now start playing a tab
         mController.playTab(mTab);
+        resolvePromises();
         verify(mPlaybackHooks, times(1))
                 .createPlayback(Mockito.any(), mPlaybackCallbackCaptor.capture());
         onPlaybackSuccess(mPlayback);
@@ -395,6 +454,7 @@ public class ReadAloudControllerUnitTest {
     public void testClosingTab_errorUiDismissed() {
         // start a playback with an error
         mController.playTab(mTab);
+        resolvePromises();
         verify(mPlaybackHooks, times(1))
                 .createPlayback(Mockito.any(), mPlaybackCallbackCaptor.capture());
         mPlaybackCallbackCaptor.getValue().onFailure(new Exception("Very bad error"));
@@ -550,6 +610,7 @@ public class ReadAloudControllerUnitTest {
         mFakeTranslateBridge.setCurrentLanguage("en");
         mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
         mController.playTab(mTab);
+        resolvePromises();
 
         verify(mPlaybackHooks, times(1))
                 .createPlayback(Mockito.any(), mPlaybackCallbackCaptor.capture());
@@ -563,6 +624,7 @@ public class ReadAloudControllerUnitTest {
         MockTab newTab = mTabModelSelector.addMockTab();
         newTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Alphabet_Inc."));
         mController.playTab(newTab);
+        resolvePromises();
         verify(mPlayback, times(1)).release();
     }
 
@@ -571,6 +633,7 @@ public class ReadAloudControllerUnitTest {
         mFakeTranslateBridge.setCurrentLanguage("en");
         mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
         mController.playTab(mTab);
+        resolvePromises();
 
         verify(mPlaybackHooks)
                 .createPlayback(mPlaybackArgsCaptor.capture(), mPlaybackCallbackCaptor.capture());
@@ -588,6 +651,7 @@ public class ReadAloudControllerUnitTest {
         mFakeTranslateBridge.setCurrentLanguage("en");
         mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
         mController.playTab(mTab);
+        resolvePromises();
 
         verify(mPlaybackHooks)
                 .createPlayback(mPlaybackArgsCaptor.capture(), mPlaybackCallbackCaptor.capture());
@@ -614,6 +678,7 @@ public class ReadAloudControllerUnitTest {
         mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
 
         mController.playTab(mTab);
+        resolvePromises();
 
         verify(mPlaybackHooks, times(1)).initVoices();
         verify(mPlaybackHooks, times(1)).createPlayback(mPlaybackArgsCaptor.capture(), any());
@@ -638,6 +703,7 @@ public class ReadAloudControllerUnitTest {
         mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
 
         mController.playTab(mTab);
+        resolvePromises();
 
         verify(mPlaybackHooks).createPlayback(mPlaybackArgsCaptor.capture(), any());
         assertEquals("fr", mPlaybackArgsCaptor.getValue().getLanguage());
@@ -650,6 +716,7 @@ public class ReadAloudControllerUnitTest {
         mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
 
         mController.playTab(mTab);
+        resolvePromises();
 
         verify(mPlaybackHooks, never()).createPlayback(mPlaybackArgsCaptor.capture(), any());
         verify(mPlayerCoordinator).playbackFailed();
@@ -664,6 +731,7 @@ public class ReadAloudControllerUnitTest {
         mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
 
         mController.playTab(mTab);
+        resolvePromises();
 
         verify(mPlaybackHooks).createPlayback(mPlaybackArgsCaptor.capture(), any());
         assertEquals("fr", mPlaybackArgsCaptor.getValue().getLanguage());
@@ -678,6 +746,7 @@ public class ReadAloudControllerUnitTest {
         mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
 
         mController.playTab(mTab);
+        resolvePromises();
 
         verify(mPlaybackHooks).createPlayback(mPlaybackArgsCaptor.capture(), any());
         assertEquals(null, mPlaybackArgsCaptor.getValue().getLanguage());
@@ -697,6 +766,7 @@ public class ReadAloudControllerUnitTest {
         mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
 
         mController.playTab(mTab);
+        resolvePromises();
 
         verify(mPlaybackHooks)
                 .createPlayback(mPlaybackArgsCaptor.capture(), mPlaybackCallbackCaptor.capture());
@@ -721,6 +791,7 @@ public class ReadAloudControllerUnitTest {
         mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
 
         mController.playTab(mTab);
+        resolvePromises();
 
         verify(mPlaybackHooks)
                 .createPlayback(mPlaybackArgsCaptor.capture(), mPlaybackCallbackCaptor.capture());
@@ -746,6 +817,7 @@ public class ReadAloudControllerUnitTest {
         mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
 
         mController.playTab(mTab);
+        resolvePromises();
 
         verify(mPlaybackHooks)
                 .createPlayback(mPlaybackArgsCaptor.capture(), mPlaybackCallbackCaptor.capture());
@@ -760,6 +832,7 @@ public class ReadAloudControllerUnitTest {
         mFakeTranslateBridge.setCurrentLanguage("en");
         mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
         mController.playTab(mTab);
+        resolvePromises();
 
         verify(mPlaybackHooks, times(1))
                 .createPlayback(Mockito.any(), mPlaybackCallbackCaptor.capture());
@@ -775,6 +848,7 @@ public class ReadAloudControllerUnitTest {
         mFakeTranslateBridge.setCurrentLanguage("en");
         mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
         mController.playTab(mTab);
+        resolvePromises();
 
         verify(mPlaybackHooks, times(1))
                 .createPlayback(Mockito.any(), mPlaybackCallbackCaptor.capture());
@@ -796,6 +870,7 @@ public class ReadAloudControllerUnitTest {
                 .getVoicesFor(anyString());
         // Subsequent playTab() should play without trying to release anything.
         mController.playTab(mTab);
+        resolvePromises();
         verify(mPlaybackHooks).createPlayback(any(), any());
         verify(mPlayback, never()).release();
     }
@@ -805,6 +880,7 @@ public class ReadAloudControllerUnitTest {
         // set up the highlighter
         mController.setTimepointsSupportedForTest(mTab.getUrl().getSpec(), true);
         mController.playTab(mTab);
+        resolvePromises();
         verify(mPlaybackHooks, times(1))
                 .createPlayback(Mockito.any(), mPlaybackCallbackCaptor.capture());
         onPlaybackSuccess(mPlayback);
@@ -834,6 +910,7 @@ public class ReadAloudControllerUnitTest {
         // set up the highlighter
         mController.setTimepointsSupportedForTest(mTab.getUrl().getSpec(), true);
         mController.playTab(mTab);
+        resolvePromises();
         verify(mPlaybackHooks, times(1))
                 .createPlayback(Mockito.any(), mPlaybackCallbackCaptor.capture());
         onPlaybackSuccess(mPlayback);
@@ -850,6 +927,7 @@ public class ReadAloudControllerUnitTest {
         // set up the highlighter
         mController.setTimepointsSupportedForTest(mTab.getUrl().getSpec(), true);
         mController.playTab(mTab);
+        resolvePromises();
         verify(mPlaybackHooks, times(1))
                 .createPlayback(Mockito.any(), mPlaybackCallbackCaptor.capture());
         onPlaybackSuccess(mPlayback);
@@ -868,6 +946,7 @@ public class ReadAloudControllerUnitTest {
         // set up the highlighter
         mController.setTimepointsSupportedForTest(mTab.getUrl().getSpec(), true);
         mController.playTab(mTab);
+        resolvePromises();
         verify(mPlaybackHooks, times(1))
                 .createPlayback(Mockito.any(), mPlaybackCallbackCaptor.capture());
         onPlaybackSuccess(mPlayback);
@@ -904,6 +983,7 @@ public class ReadAloudControllerUnitTest {
 
         mController.setTimepointsSupportedForTest(mTab.getUrl().getSpec(), true);
         mController.playTab(mTab);
+        resolvePromises();
         verify(mPlaybackHooks, times(1))
                 .createPlayback(Mockito.any(), mPlaybackCallbackCaptor.capture());
         onPlaybackSuccess(mPlayback);
@@ -929,6 +1009,7 @@ public class ReadAloudControllerUnitTest {
         mFakeTranslateBridge.setCurrentLanguage("en");
         mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
         mController.playTab(mTab);
+        resolvePromises();
 
         // Verify the original voice list.
         verify(mPlaybackHooks, times(1))
@@ -973,6 +1054,7 @@ public class ReadAloudControllerUnitTest {
     public void testSetVoiceWhilePaused() {
         // Play tab.
         mController.playTab(mTab);
+        resolvePromises();
         verify(mPlaybackHooks).createPlayback(any(), mPlaybackCallbackCaptor.capture());
         onPlaybackSuccess(mPlayback);
         verify(mPlayback).addListener(mPlaybackListenerCaptor.capture());
@@ -1113,7 +1195,8 @@ public class ReadAloudControllerUnitTest {
     @Test
     public void testPreviewVoice_closeVoiceMenu() {
         // Set up playback and restorable state.
-        mController.playTab(mTab);
+        requestAndStartPlayback();
+        verify(mPlayback).play();
         reset(mPlaybackHooks);
         doReturn(List.of(new PlaybackVoice("en", "voiceA", "")))
                 .when(mPlaybackHooks)
@@ -1142,10 +1225,12 @@ public class ReadAloudControllerUnitTest {
         verify(previewPlayback).release();
 
         // Tab audio should be loaded and played. Position should be restored.
-        verify(mPlaybackHooks).createPlayback(any(), mPlaybackCallbackCaptor.capture());
+        verify(mPlaybackHooks)
+                .createPlayback(mPlaybackArgsCaptor.capture(), mPlaybackCallbackCaptor.capture());
+        assertEquals(1234567123456L, mPlaybackArgsCaptor.getValue().getDateModifiedMsSinceEpoch());
         onPlaybackSuccess(mPlayback);
         // Don't play, because original state was STOPPED.
-        verify(mPlayback, never()).play();
+        verify(mPlayback, times(1)).play();
         verify(mPlayback).seekToParagraph(eq(99), eq(0L));
     }
 
@@ -1175,6 +1260,7 @@ public class ReadAloudControllerUnitTest {
     public void testRestorePlaybackState_whileLoading() {
         // Request playback but don't succeed yet.
         mController.playTab(mTab);
+        resolvePromises();
         verify(mPlaybackHooks).createPlayback(any(), mPlaybackCallbackCaptor.capture());
         reset(mPlaybackHooks);
         doReturn(List.of(new PlaybackVoice("en", "voiceA", "")))
@@ -1299,6 +1385,7 @@ public class ReadAloudControllerUnitTest {
         mFakeTranslateBridge.setIsPageTranslated(true);
         mController.setTimepointsSupportedForTest(mTab.getUrl().getSpec(), true);
         mController.playTab(mTab);
+        resolvePromises();
 
         assertFalse(mController.isHighlightingSupported());
     }
@@ -1308,6 +1395,7 @@ public class ReadAloudControllerUnitTest {
         mFakeTranslateBridge.setIsPageTranslated(false);
         mController.setTimepointsSupportedForTest(mTab.getUrl().getSpec(), false);
         mController.playTab(mTab);
+        resolvePromises();
 
         assertFalse(mController.isHighlightingSupported());
     }
@@ -1317,6 +1405,7 @@ public class ReadAloudControllerUnitTest {
         mFakeTranslateBridge.setIsPageTranslated(false);
         mController.setTimepointsSupportedForTest(mTab.getUrl().getSpec(), true);
         mController.playTab(mTab);
+        resolvePromises();
 
         assertTrue(mController.isHighlightingSupported());
     }
@@ -1460,6 +1549,7 @@ public class ReadAloudControllerUnitTest {
 
         var histogram = HistogramWatcher.newSingleRecordWatcher(histogramName, true);
         mController.playTab(mTab);
+        resolvePromises();
         verify(mPlaybackHooks, times(1))
                 .createPlayback(Mockito.any(), mPlaybackCallbackCaptor.capture());
         onPlaybackSuccess(mPlayback);
@@ -1472,6 +1562,7 @@ public class ReadAloudControllerUnitTest {
 
         var histogram = HistogramWatcher.newSingleRecordWatcher(histogramName, false);
         mController.playTab(mTab);
+        resolvePromises();
         verify(mPlaybackHooks, times(1))
                 .createPlayback(Mockito.any(), mPlaybackCallbackCaptor.capture());
         mPlaybackCallbackCaptor.getValue().onFailure(new Exception("Very bad error"));
@@ -1486,6 +1577,7 @@ public class ReadAloudControllerUnitTest {
 
         // Play tab to set up playbackhooks
         mController.playTab(mTab);
+        resolvePromises();
 
         // Preview a voice.
         var voice = new PlaybackVoice("en", "asdf", "");
@@ -1514,6 +1606,7 @@ public class ReadAloudControllerUnitTest {
         var histogram = HistogramWatcher.newSingleRecordWatcher(histogramName, true);
 
         mController.playTab(mTab);
+        resolvePromises();
 
         verify(mPlaybackHooks, times(1))
                 .createPlayback(Mockito.any(), mPlaybackCallbackCaptor.capture());
@@ -1531,6 +1624,7 @@ public class ReadAloudControllerUnitTest {
         var histogram = HistogramWatcher.newSingleRecordWatcher(histogramName, false);
 
         mController.playTab(mTab);
+        resolvePromises();
 
         verify(mPlaybackHooks, times(1))
                 .createPlayback(Mockito.any(), mPlaybackCallbackCaptor.capture());
@@ -1548,6 +1642,7 @@ public class ReadAloudControllerUnitTest {
         mFakeTranslateBridge.setCurrentLanguage("en");
         mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
         mController.playTab(mTab);
+        resolvePromises();
         verify(mPlaybackHooks).createPlayback(any(), mPlaybackCallbackCaptor.capture());
         onPlaybackSuccess(mPlayback);
         verify(mPlayback, times(1)).play();
@@ -1632,6 +1727,7 @@ public class ReadAloudControllerUnitTest {
         mFakeTranslateBridge.setCurrentLanguage("en");
         mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
         mController.playTab(mTab);
+        resolvePromises();
         verify(mPlaybackHooks).createPlayback(any(), mPlaybackCallbackCaptor.capture());
         onPlaybackSuccess(mPlayback);
 
@@ -1733,6 +1829,7 @@ public class ReadAloudControllerUnitTest {
         mFakeTranslateBridge.setCurrentLanguage("en");
         mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
         mController.playTab(mTab);
+        resolvePromises();
         // No playback request should be made.
         verify(mPlaybackHooks, never()).createPlayback(any(), any());
     }
@@ -1797,10 +1894,59 @@ public class ReadAloudControllerUnitTest {
         verify(mPlayback, never()).pause();
     }
 
+    @Test
+    public void testPlayTabWithDateExtraction() {
+        mFakeTranslateBridge.setCurrentLanguage("en");
+
+        mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
+        mController.playTab(mTab);
+
+        resolvePromises();
+
+        verify(mPlaybackHooks, times(1))
+                .createPlayback(Mockito.any(), mPlaybackCallbackCaptor.capture());
+
+        onPlaybackSuccess(mPlayback);
+        verify(mPlayerCoordinator, times(1))
+                .playbackReady(eq(mPlayback), eq(PlaybackListener.State.PLAYING));
+        verify(mPlayerCoordinator).addObserver(mController);
+
+        verify(mPlaybackHooks, times(1)).createPlayback(mPlaybackArgsCaptor.capture(), any());
+
+        assertEquals(1234567123456L, mPlaybackArgsCaptor.getValue().getDateModifiedMsSinceEpoch());
+    }
+
+    @Test
+    public void testLogDateExtraction_hasDateModified() {
+        mFakeTranslateBridge.setCurrentLanguage("en");
+        var histogram = HistogramWatcher.newSingleRecordWatcher("ReadAloud.HasDateModified", true);
+        mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
+        mController.playTab(mTab);
+        resolvePromises();
+
+        histogram.assertExpected();
+    }
+
+    @Test
+    public void testLogDateExtraction_noDateModified() {
+        mFakeTranslateBridge.setCurrentLanguage("en");
+        var failedPromise = new Promise<Long>();
+        when(mExtractor.getDateModified(any())).thenReturn(failedPromise);
+        failedPromise.reject(new Exception(""));
+
+        var histogram = HistogramWatcher.newSingleRecordWatcher("ReadAloud.HasDateModified", false);
+        mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
+        mController.playTab(mTab);
+
+        resolvePromises();
+        histogram.assertExpected();
+    }
+
     private void requestAndStartPlayback() {
         mFakeTranslateBridge.setCurrentLanguage("en");
         mTab.setGurlOverrideForTesting(new GURL("https://en.wikipedia.org/wiki/Google"));
         mController.playTab(mTab);
+        resolvePromises();
 
         verify(mPlaybackHooks, times(1))
                 .createPlayback(Mockito.any(), mPlaybackCallbackCaptor.capture());

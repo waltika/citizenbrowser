@@ -426,6 +426,21 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram
+    name="Compositing.Display.OverlayProcessorUsingStrategy.FramesWith{Catcher}"
+    enum="Boolean" expires_after="2024-08-30">
+  <owner>zoraiznaeem@chromium.org</owner>
+  <owner>graphics-dev@chromium.org</owner>
+  <summary>
+    Records zero or once per frame, wether a frame has a {Catcher}.
+  </summary>
+  <token key="Catcher">
+    <variant name="MaskCandidates" summary="mask candidates."/>
+    <variant name="MaskCandidatesRequireOverlays"
+        summary="a mask candidate that should be promoted to overlay."/>
+  </token>
+</histogram>
+
+<histogram
     name="Compositing.Display.OverlayProcessorUsingStrategy.NumOverlays{Counted}"
     units="overlay candidates" expires_after="2024-06-30">
   <owner>khaslett@chromium.org</owner>
@@ -465,6 +480,17 @@ chromium-metrics-reviews@google.com.
   <summary>
     Logged zero or one times per frame, whether we're using the
     AttemptingMultipleOverlays codepath this frame or why we arent.
+  </summary>
+</histogram>
+
+<histogram
+    name="Compositing.Display.OverlayProcessorUsingStrategy.ShouldPromoteCandidatesWithMasks"
+    enum="PromotingMaskCandidates" expires_after="2024-08-30">
+  <owner>zoraiznaeem@chromium.org</owner>
+  <owner>graphics-dev@chromium.org</owner>
+  <summary>
+    Logged for each mask candidate whether it was promoted or why it was not
+    promoted.
   </summary>
 </histogram>
 
@@ -909,7 +935,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="CompositorLatency.IpcThread.{LatencyType}"
-    units="microseconds" expires_after="2024-06-12">
+    units="microseconds" expires_after="2024-08-11">
   <owner>jonross@chromium.org</owner>
   <owner>graphics-dev@chromium.org</owner>
   <summary>
@@ -1046,6 +1072,20 @@ chromium-metrics-reviews@google.com.
   </token>
 </histogram>
 
+<histogram name="Graphics.Exo.Smoothness.BeginFrameArrivalToSubmission"
+    units="microseconds" expires_after="2024-12-31">
+  <owner>jonross@chromium.org</owner>
+  <owner>yzshen@chromium.org</owner>
+  <owner>graphics-dev@chromium.org</owner>
+  <summary>
+    Measures the time duration between Exo receiving a BeginFrame and submitting
+    a frame for it. Reported for clients with high-resolution clocks.
+
+    Please note that no value is reported if a BeginFrame is responded with
+    DidNotProduceFrame.
+  </summary>
+</histogram>
+
 <histogram name="Graphics.Exo.Smoothness.DidNotProduceToFrameArrival"
     units="microseconds" expires_after="2024-05-05">
   <owner>jonross@chromium.org</owner>
@@ -1054,14 +1094,26 @@ chromium-metrics-reviews@google.com.
   <summary>
     Measures the time duration between Exo sending a DidNotProduceFrame response
     and the next frame arrival, if the next frame arrives before a new
-    BeginFrame request. Reported for clients with high-resolution clocks.
+    BeginFrame. Reported for clients with high-resolution clocks.
 
     This metric is used to measure whether the deadline Exo uses to wait for
     frames is reasonable. Please note that a value is reported for each
     DidNotProduceFrame. If (1) DidNotProduceFrame is issued when there are
-    already queued BeginFrame requests; or (2) a new BeginFrame request arrives
-    before the next frame; or (3) BeginFrame requests are paused, then the value
-    reported is 0.
+    already queued BeginFrames; or (2) a new BeginFrame arrives before the next
+    frame; or (3) BeginFrames are paused, then the value reported is 0.
+  </summary>
+</histogram>
+
+<histogram name="Graphics.Exo.Smoothness.FrameArrivalToSubmission"
+    units="microseconds" expires_after="2024-12-31">
+  <owner>jonross@chromium.org</owner>
+  <owner>yzshen@chromium.org</owner>
+  <owner>graphics-dev@chromium.org</owner>
+  <summary>
+    Measures the time duration between Exo receiving a frame and submitting it.
+    Reported for clients with high-resolution clocks.
+
+    Please note that no value is reported if a frame is discarded by Exo.
   </summary>
 </histogram>
 
@@ -1071,12 +1123,12 @@ chromium-metrics-reviews@google.com.
   <owner>yzshen@chromium.org</owner>
   <owner>graphics-dev@chromium.org</owner>
   <summary>
-    Tracks the percent of BeginFrame requests that Exo receives and responds
-    with DidNotProduceFrame.
+    Tracks the percent of BeginFrames that Exo receives and responds with
+    DidNotProduceFrame.
 
-    A new value is reported for every 100 BeginFrame requests that a shell
-    surface receives. Note that this metric is reported only when there are
-    sufficient number of BeginFrame requests (&gt;= 100).
+    A new value is reported for every 100 BeginFrames that a shell surface
+    receives. Note that this metric is reported only when there are sufficient
+    number of BeginFrames (&gt;= 100).
   </summary>
 </histogram>
 

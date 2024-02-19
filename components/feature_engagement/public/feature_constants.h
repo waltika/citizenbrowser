@@ -228,15 +228,15 @@ BASE_DECLARE_FEATURE(kIPHiOSChoiceScreenFeature);
 BASE_DECLARE_FEATURE(kIPHiOSParcelTrackingFeature);
 BASE_DECLARE_FEATURE(kIPHiOSPullToRefreshFeature);
 BASE_DECLARE_FEATURE(kIPHiOSReplaceSyncPromosWithSignInPromos);
-BASE_DECLARE_FEATURE(kIPHiOSBlueDotPromoEnhancedSafeBrowsingFeature);
-BASE_DECLARE_FEATURE(kIPHiOSInlinePromoEnhancedSafeBrowsingFeature);
-BASE_DECLARE_FEATURE(kIPHiOSTabGridSwipeLeftForIncognito);
+BASE_DECLARE_FEATURE(kIPHiOSTabGridSwipeRightForIncognito);
 BASE_DECLARE_FEATURE(kIPHiOSDockingPromoFeature);
 BASE_DECLARE_FEATURE(kIPHiOSDockingPromoRemindMeLaterFeature);
 BASE_DECLARE_FEATURE(kIPHiOSPromoAllTabsFeature);
 BASE_DECLARE_FEATURE(kIPHiOSPromoMadeForIOSFeature);
 BASE_DECLARE_FEATURE(kIPHiOSPromoStaySafeFeature);
 BASE_DECLARE_FEATURE(kIPHiOSSwipeBackForwardFeature);
+BASE_DECLARE_FEATURE(kIPHiOSSwipeToolbarToChangeTabFeature);
+BASE_DECLARE_FEATURE(kIPHiOSPostDefaultAbandonmentPromoFeature);
 
 // A feature flag to enable and parametrize the sliding window of time for a
 // user's eligibility to be shown a default browser promo. This is not an FET
@@ -248,6 +248,15 @@ BASE_DECLARE_FEATURE(kDefaultBrowserEligibilitySlidingWindow);
 // days.
 extern const base::FeatureParam<int>
     kDefaultBrowserEligibilitySlidingWindowParam;
+
+// The param name for the lifetime maximum occurrence for gesture in-product
+// help features.
+extern const char kGestureInProductHelpMaxOccurrence[];
+
+// The param name for the minimum number of days between two impressions for
+// each type of in-product help feature.
+extern const char kGestureInProductHelpDaysBetweenOccurrences[];
+
 #endif  // BUILDFLAG(IS_IOS)
 
 #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_APPLE) || BUILDFLAG(IS_LINUX) || \

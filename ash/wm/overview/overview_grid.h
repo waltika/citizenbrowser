@@ -294,6 +294,9 @@ class ASH_EXPORT OverviewGrid : public SplitViewObserver,
   // positioned, taking into account the availability of the Desks bar).
   gfx::Rect GetGridEffectiveBounds() const;
 
+  // Gets the paddings around the effective bounds (excluding the desk bar).
+  gfx::Insets GetGridEffectiveBoundsPaddings() const;
+
   // Gets the insets of the grid. Either |bounds_| or GetGridEffectiveBounds
   // does not exclude the insets from its bounds. But like PositionWindows needs
   // to position the overview windows in the bounds exclude the insets.
@@ -385,6 +388,10 @@ class ASH_EXPORT OverviewGrid : public SplitViewObserver,
   bool IsSaveDeskButtonContainerVisible() const;
   bool IsSaveDeskAsTemplateButtonVisible() const;
   bool IsSaveDeskForLaterButtonVisible() const;
+
+  // Called by `OverviewSession` when tablet mode changes to update necessary UI
+  // if needed.
+  void OnTabletModeChanged();
 
   // This is different from `item_list_.size()` which contains the drop target
   // if it exists, and if two windows are in a snap group, they are a single
@@ -481,7 +488,7 @@ class ASH_EXPORT OverviewGrid : public SplitViewObserver,
 
   const gfx::Rect bounds_for_testing() const { return bounds_; }
   float scroll_offset_for_testing() const { return scroll_offset_; }
-  views::Widget* pine_widget_for_testing() const { return pine_widget_.get(); }
+  views::Widget* pine_widget_for_testing() { return pine_widget_.get(); }
 
  private:
   friend class DesksTemplatesTest;
@@ -602,6 +609,11 @@ class ASH_EXPORT OverviewGrid : public SplitViewObserver,
   // only be shown if faster splitview setup is in session.
   void UpdateFasterSplitViewWidget();
 
+  // Updates the visibility of `feedback_widget_`. The widget is located in the
+  // bottom left corner of the grid, and contains a `PillButton` that opens up a
+  // feedback page when clicked. The widget will not show in partial overview.
+  void UpdateFeedbackButton();
+
   // The drop target is created when a window or overview item is being dragged,
   // and is destroyed when the drag ends or overview mode is ended. The drop
   // target is hidden when a snap preview area is shown. You can drop a window
@@ -680,6 +692,9 @@ class ASH_EXPORT OverviewGrid : public SplitViewObserver,
 
   // The widget that contains the `PineContentsView`.
   std::unique_ptr<views::Widget> pine_widget_;
+
+  // The widget that contains a `PillButton` to open a feedback page.
+  std::unique_ptr<views::Widget> feedback_widget_;
 
   // A widget that contains save desk buttons which save desk as template or for
   // later when pressed.

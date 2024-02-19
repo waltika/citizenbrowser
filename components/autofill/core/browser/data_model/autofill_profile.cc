@@ -499,13 +499,6 @@ std::u16string AutofillProfile::GetRawInfo(FieldType type) const {
   return form_group->GetRawInfo(type);
 }
 
-int AutofillProfile::GetRawInfoAsInt(FieldType type) const {
-  const FormGroup* form_group = FormGroupForType(AutofillType(type));
-  if (!form_group)
-    return 0;
-  return form_group->GetRawInfoAsInt(type);
-}
-
 void AutofillProfile::SetRawInfoWithVerificationStatus(
     FieldType type,
     const std::u16string& value,
@@ -513,16 +506,6 @@ void AutofillProfile::SetRawInfoWithVerificationStatus(
   FormGroup* form_group = MutableFormGroupForType(AutofillType(type));
   if (form_group) {
     form_group->SetRawInfoWithVerificationStatus(type, value, status);
-  }
-}
-
-void AutofillProfile::SetRawInfoAsIntWithVerificationStatus(
-    FieldType type,
-    int value,
-    VerificationStatus status) {
-  FormGroup* form_group = MutableFormGroupForType(AutofillType(type));
-  if (form_group) {
-    form_group->SetRawInfoAsIntWithVerificationStatus(type, value, status);
   }
 }
 
@@ -597,6 +580,7 @@ int AutofillProfile::Compare(const AutofillProfile& profile) const {
       ADDRESS_HOME_COUNTRY,
       ADDRESS_HOME_LANDMARK,
       ADDRESS_HOME_OVERFLOW,
+      ADDRESS_HOME_STREET_LOCATION_AND_LOCALITY,
       ADDRESS_HOME_BETWEEN_STREETS_OR_LANDMARK,
       ADDRESS_HOME_OVERFLOW_AND_LANDMARK,
       ADDRESS_HOME_BETWEEN_STREETS,
@@ -1290,7 +1274,6 @@ FieldTypeSet AutofillProfile::FindInaccessibleProfileValues() const {
   FieldTypeSet inaccessible_fields;
   const std::string stored_country =
       base::UTF16ToUTF8(GetRawInfo(ADDRESS_HOME_COUNTRY));
-  AutofillCountry country(stored_country.empty() ? "US" : stored_country);
   // Consider only AddressFields which are invisible in the settings for some
   // countries.
   for (const AddressField& adress_field :
@@ -1298,8 +1281,9 @@ FieldTypeSet AutofillProfile::FindInaccessibleProfileValues() const {
         AddressField::DEPENDENT_LOCALITY, AddressField::POSTAL_CODE,
         AddressField::SORTING_CODE}) {
     FieldType field_type = i18n::TypeForField(adress_field);
+    CHECK_EQ(GroupTypeOfFieldType(field_type), FieldTypeGroup::kAddress);
     if (HasRawInfo(field_type) &&
-        !country.IsAddressFieldSettingAccessible(field_type)) {
+        !GetAddress().IsAddressFieldSettingAccessible(field_type)) {
       inaccessible_fields.insert(field_type);
     }
   }

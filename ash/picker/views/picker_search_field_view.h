@@ -10,6 +10,7 @@
 #include "ash/ash_export.h"
 #include "ash/picker/metrics/picker_session_metrics.h"
 #include "base/functional/callback_forward.h"
+#include "base/time/time.h"
 #include "ui/views/controls/textfield/textfield_controller.h"
 #include "ui/views/focus/focus_manager.h"
 #include "ui/views/metadata/view_factory.h"
@@ -31,10 +32,11 @@ class ASH_EXPORT PickerSearchFieldView : public views::View,
   using SearchCallback =
       base::RepeatingCallback<void(const std::u16string& query)>;
 
-  // `search_callback` is called synchronously whenever the contents of the
-  // search field changes. It is also called synchronously with the empty string
-  // when this view is constructed.
+  // `search_callback` is called asynchronously whenever the contents of the
+  // search field changes (with debouncing logic to avoid unnecessary calls).
   // `session_metrics` must live as long as this class.
+  // `delay` is the time to wait before calling `search_callback` for
+  // debouncing.
   explicit PickerSearchFieldView(SearchCallback search_callback,
                                  PickerSessionMetrics* session_metrics);
   PickerSearchFieldView(const PickerSearchFieldView&) = delete;

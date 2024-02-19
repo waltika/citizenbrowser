@@ -23,9 +23,6 @@ class StoragePartition;
 namespace browsing_data {
 class CannedCacheStorageHelper;
 class CannedCookieHelper;
-class CannedDatabaseHelper;
-class CannedServiceWorkerHelper;
-class CannedSharedWorkerHelper;
 class CannedLocalStorageHelper;
 
 class LocalSharedObjectsContainer {
@@ -67,15 +64,8 @@ class LocalSharedObjectsContainer {
   void Reset();
 
   CannedCookieHelper* cookies() const { return cookies_.get(); }
-  CannedDatabaseHelper* databases() const { return databases_.get(); }
   CannedLocalStorageHelper* local_storages() const {
     return local_storages_.get();
-  }
-  CannedServiceWorkerHelper* service_workers() const {
-    return service_workers_.get();
-  }
-  CannedSharedWorkerHelper* shared_workers() const {
-    return shared_workers_.get();
   }
   CannedCacheStorageHelper* cache_storages() const {
     return cache_storages_.get();
@@ -88,10 +78,7 @@ class LocalSharedObjectsContainer {
   std::map<url::Origin, int> GetObjectCountPerOriginMap() const;
 
   scoped_refptr<CannedCookieHelper> cookies_;
-  scoped_refptr<CannedDatabaseHelper> databases_;
   scoped_refptr<CannedLocalStorageHelper> local_storages_;
-  scoped_refptr<CannedServiceWorkerHelper> service_workers_;
-  scoped_refptr<CannedSharedWorkerHelper> shared_workers_;
   scoped_refptr<CannedCacheStorageHelper> cache_storages_;
   scoped_refptr<CannedLocalStorageHelper> session_storages_;
 };

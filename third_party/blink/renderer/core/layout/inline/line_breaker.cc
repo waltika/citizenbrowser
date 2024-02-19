@@ -1380,7 +1380,8 @@ LineBreaker::BreakResult LineBreaker::BreakText(
                            const ShapeResult* result)
         : ShapingLineBreaker(result,
                              &line_breaker->break_iterator_,
-                             line_breaker->hyphenation_),
+                             line_breaker->hyphenation_,
+                             &item->Style()->GetFont()),
           line_breaker_(line_breaker),
           item_(item) {}
 
@@ -2379,6 +2380,14 @@ void LineBreaker::SplitTrailingBidiPreservedSpace(LineInfo* line_info) {
   }
 
   if (!node_.IsBidiEnabled()) {
+    return;
+  }
+
+  // TODO(abotella): This early return fixes a crash (crbug.com/324684931)
+  // caused by |HandleTextForFastMinContent| creating item results with null
+  // |shape_result|. This might affect hanging other space separators, but their
+  // behavior with min-content is known to have bugs even in purely LTR text.
+  if (mode_ == LineBreakerMode::kMinContent) {
     return;
   }
 

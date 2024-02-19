@@ -10,8 +10,8 @@ class Config {
   constructor() {
     /** @type {?chrome.accessibilityPrivate.ScreenPoint} */
     this.mouseLocation = null;
-    /** @type {?Map<FacialGesture, Action>} */
-    this.gestureToAction = null;
+    /** @type {?Map<FacialGesture, MacroName>} */
+    this.gestureToMacroName = null;
     /** @type {?Map<FacialGesture, number>} */
     this.gestureToConfidence = null;
     /** @type {number} */
@@ -32,11 +32,11 @@ class Config {
   }
 
   /**
-   * @param {!Map<FacialGesture, Action>} gestureToAction
+   * @param {!Map<FacialGesture, MacroName>} gestureToMacroName
    * @return {!Config}
    */
-  withGestureToAction(gestureToAction) {
-    this.gestureToAction = gestureToAction;
+  withGestureToMacroName(gestureToMacroName) {
+    this.gestureToMacroName = gestureToMacroName;
     return this;
   }
 
@@ -106,7 +106,7 @@ class MockFaceLandmarkerResult {
   }
 
   /**
-   * @param {string} name
+   * @param {MediapipeFacialGesture} name
    * @param {number} confidence
    * @return {!MockFaceLandmarkerResult}
    */
@@ -149,19 +149,13 @@ FaceGazeTestBase = class extends E2ETestBase {
       };
     }
 
-    await importModule(
-        ['Action', 'FaceGaze'], '/accessibility_common/facegaze/facegaze.js');
-    await importModule(
-        ['FacialGesture'],
-        '/accessibility_common/facegaze/gesture_detector.js');
-    await importModule(
-        ['MouseController'],
-        '/accessibility_common/facegaze/mouse_controller.js');
     assertNotNullNorUndefined(accessibilityCommon);
-    assertNotNullNorUndefined(Action);
     assertNotNullNorUndefined(FaceGaze);
     assertNotNullNorUndefined(FacialGesture);
+    assertNotNullNorUndefined(MediapipeFacialGesture);
+    assertNotNullNorUndefined(FacialGesturesToMediapipeGestures);
     assertNotNullNorUndefined(MouseController);
+    assertNotNullNorUndefined(MacroName);
     await new Promise(resolve => {
       accessibilityCommon.setFeatureLoadCallbackForTest('facegaze', resolve);
     });
@@ -205,12 +199,14 @@ FaceGazeTestBase = class extends E2ETestBase {
       faceGaze.mouseController_.mouseLocation_ = config.mouseLocation;
     }
 
-    if (config.gestureToAction) {
-      faceGaze.gestureToAction_ = new Map(config.gestureToAction);
+    if (config.gestureToMacroName) {
+      faceGaze.gestureHandler_.gestureToMacroName_ =
+          new Map(config.gestureToMacroName);
     }
 
     if (config.gestureToConfidence) {
-      faceGaze.gestureToConfidence_ = new Map(config.gestureToConfidence);
+      faceGaze.gestureHandler_.gestureToConfidence_ =
+          new Map(config.gestureToConfidence);
     }
 
     if (config.bufferSize !== -1) {

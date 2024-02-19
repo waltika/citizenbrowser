@@ -45,6 +45,7 @@
 #include "base/types/optional_ref.h"
 #include "base/uuid.h"
 #include "content/browser/devtools/devtools_instrumentation.h"
+#include "content/browser/fenced_frame/fenced_frame_config.h"
 #include "content/browser/interest_group/ad_auction_page_data.h"
 #include "content/browser/interest_group/additional_bid_result.h"
 #include "content/browser/interest_group/additional_bids_util.h"
@@ -883,9 +884,6 @@ InterestGroupAuction::BidState::~BidState() {
   if (trace_id.has_value()) {
     EndTracing();
   }
-  if (trace_id_for_kanon_scoring.has_value()) {
-    EndTracingKAnonScoring();
-  }
 }
 
 InterestGroupAuction::BidState::BidState(BidState&&) = default;
@@ -910,26 +908,6 @@ void InterestGroupAuction::BidState::EndTracing() {
 
   TRACE_EVENT_NESTABLE_ASYNC_END0("fledge", "bid", *trace_id);
   trace_id = std::nullopt;
-}
-
-void InterestGroupAuction::BidState::BeginTracingKAnonScoring() {
-  DCHECK(!trace_id_for_kanon_scoring.has_value());
-
-  trace_id_for_kanon_scoring = base::trace_event::GetNextGlobalTraceId();
-
-  const blink::InterestGroup& interest_group = bidder->interest_group;
-  TRACE_EVENT_NESTABLE_ASYNC_BEGIN2("fledge", "score_kanon_enforced_ad",
-                                    *trace_id_for_kanon_scoring, "bidding_url",
-                                    interest_group.bidding_url,
-                                    "interest_group_name", interest_group.name);
-}
-
-void InterestGroupAuction::BidState::EndTracingKAnonScoring() {
-  DCHECK(trace_id_for_kanon_scoring.has_value());
-
-  TRACE_EVENT_NESTABLE_ASYNC_END0("fledge", "score_kanon_enforced_ad",
-                                  *trace_id_for_kanon_scoring);
-  trace_id_for_kanon_scoring = std::nullopt;
 }
 
 InterestGroupAuction::Bid::Bid(
@@ -965,7 +943,27 @@ InterestGroupAuction::Bid::Bid(
 
 InterestGroupAuction::Bid::Bid(Bid&) = default;
 
-InterestGroupAuction::Bid::~Bid() = default;
+InterestGroupAuction::Bid::~Bid() {
+  if (trace_id.has_value()) {
+    EndTracingForScoring();
+  }
+}
+
+void InterestGroupAuction::Bid::BeginTracingForScoring() {
+  DCHECK(!trace_id.has_value());
+
+  trace_id = base::trace_event::GetNextGlobalTraceId();
+  TRACE_EVENT_NESTABLE_ASYNC_BEGIN2(
+      "fledge", "score", *trace_id, "bidding_url", interest_group->bidding_url,
+      "interest_group_name", interest_group->name);
+}
+
+void InterestGroupAuction::Bid::EndTracingForScoring() {
+  DCHECK(trace_id.has_value());
+
+  TRACE_EVENT_NESTABLE_ASYNC_END0("fledge", "score", *trace_id);
+  trace_id = std::nullopt;
+}
 
 std::vector<GURL> InterestGroupAuction::Bid::GetAdComponentUrls() const {
   std::vector<GURL> ad_component_urls;
@@ -976,6 +974,44 @@ std::vector<GURL> InterestGroupAuction::Bid::GetAdComponentUrls() const {
         return ad_component_descriptor.url;
       });
   return ad_component_urls;
+}
+
+// If the auction config specified 'deprecatedRenderURLReplacements', this will
+// return the ad descriptor with the proper replacements.
+blink::AdDescriptor
+InterestGroupAuction::Bid::GetAdDescriptorWithReplacements() {
+  std::vector<std::pair<std::string, std::string>> local_replacements;
+  // Convert `replacements` into a vector of pairs to use within
+  // `SubstituteMappedStrings`.
+  for (const auto& replacement :
+       auction->GetDeprecatedRenderURLReplacements()) {
+    local_replacements.emplace_back(replacement.match, replacement.replacement);
+  }
+  return blink::AdDescriptor(GURL(SubstituteMappedStrings(
+                                 ad_descriptor.url.spec(), local_replacements)),
+                             ad_descriptor.size);
+}
+
+// If the auction config specified 'deprecatedRenderURLReplacements', this will
+// return the ad descriptors with the proper replacements.
+std::vector<blink::AdDescriptor>
+InterestGroupAuction::Bid::GetComponentAdDescriptorsWithReplacements() {
+  std::vector<blink::AdDescriptor> local_component_ad_descriptors;
+  std::vector<std::pair<std::string, std::string>> local_replacements;
+  // Convert `replacements` into a vector of pairs to use within
+  // `SubstituteMappedStrings`.
+  for (const auto& replacement :
+       auction->GetDeprecatedRenderURLReplacements()) {
+    local_replacements.emplace_back(replacement.match, replacement.replacement);
+  }
+
+  for (auto& ad_component_descriptor : ad_component_descriptors) {
+    local_component_ad_descriptors.emplace_back(
+        GURL(SubstituteMappedStrings(ad_component_descriptor.url.spec(),
+                                     local_replacements)),
+        ad_component_descriptor.size);
+  }
+  return local_component_ad_descriptors;
 }
 
 InterestGroupAuction::ScoredBid::ScoredBid(
@@ -1526,6 +1562,7 @@ class InterestGroupAuction::BuyerHelper
       bid_state->handled_direct_from_seller_signals_in_begin_generate_bid =
           true;
     }
+    const url::Origin& owner = bid_state->bidder->interest_group.owner;
     bid_state->worklet_handle->GetBidderWorklet()->BeginGenerateBid(
         auction_worklet::mojom::BidderWorkletNonSharedParams::New(
             interest_group.name,
@@ -1538,8 +1575,7 @@ class InterestGroupAuction::BuyerHelper
             interest_group.ad_components,
             KAnonKeysToMojom(bid_state->kanon_keys)),
         kanon_mode, bid_state->bidder->joining_origin,
-        GetDirectFromSellerPerBuyerSignals(
-            url_builder, bid_state->bidder->interest_group.owner),
+        GetDirectFromSellerPerBuyerSignals(url_builder, owner),
         GetDirectFromSellerAuctionSignals(url_builder),
         auction_->config_->seller,
         auction_->parent_ ? auction_->parent_->config_->seller
@@ -1548,7 +1584,8 @@ class InterestGroupAuction::BuyerHelper
             .RoundToMultiple(base::Milliseconds(100)),
         bid_state->bidder->bidding_browser_signals.Clone(),
         auction_->auction_start_time_, auction_->RequestedAdSize(),
-        *bid_state->trace_id, std::move(pending_remote),
+        auction_->GetBuyerMultiBidLimit(owner), *bid_state->trace_id,
+        std::move(pending_remote),
         bid_state->bid_finalizer.BindNewEndpointAndPassReceiver());
 
     // TODO(morlovich): This should arguably be merged into BeginGenerateBid
@@ -1893,19 +1930,19 @@ class InterestGroupAuction::BuyerHelper
     // to invoke its ReportWin() method.
     CloseBidStatePipes(*state);
 
-    if (!bid && !kanon_bid) {
-      if (state->trace_id.has_value()) {
-        // Might not have started it if we timed out before worklet received.
-        state->EndTracing();
-      }
-    } else {
+    // End tracing for bid portion of the work if it started; it may not have
+    // if the worklet failed before getting to `OnBidderWorkletReceived()`.
+    if (state->trace_id.has_value()) {
+      state->EndTracing();
+    }
+
+    if (bid || kanon_bid) {
       state->bidder_debug_win_report_url = debug_win_report_url;
       state->made_bid = true;
       if (bid) {
         auction_->ScoreBidIfReady(std::move(bid));
       }
       if (kanon_bid) {
-        state->BeginTracingKAnonScoring();
         auction_->ScoreBidIfReady(std::move(kanon_bid));
       }
     }
@@ -3618,6 +3655,15 @@ void InterestGroupAuction::ComputePostAuctionSignals(
   }
 }
 
+uint16_t InterestGroupAuction::GetBuyerMultiBidLimit(const url::Origin& buyer) {
+  uint16_t val = config_->non_shared_params.all_buyers_multi_bid_limit;
+  auto it = config_->non_shared_params.per_buyer_multi_bid_limits.find(buyer);
+  if (it != config_->non_shared_params.per_buyer_multi_bid_limits.end()) {
+    val = it->second;
+  }
+  return std::max(val, uint16_t{1});
+}
+
 std::optional<uint16_t> InterestGroupAuction::GetBuyerExperimentId(
     const blink::AuctionConfig& config,
     const url::Origin& buyer) {
@@ -3736,6 +3782,11 @@ std::optional<std::string>
 InterestGroupAuction::GetDirectFromSellerSellerSignalsHeaderAdSlot(
     const HeaderDirectFromSellerSignals::Result& signals) {
   return signals.seller_signals();
+}
+
+const std::vector<blink::AuctionConfig::AdKeywordReplacement>&
+InterestGroupAuction::GetDeprecatedRenderURLReplacements() {
+  return config_->deprecated_render_url_replacements.value();
 }
 
 InterestGroupAuction::LeaderInfo::LeaderInfo() = default;
@@ -3882,6 +3933,13 @@ void InterestGroupAuction::OnOneLoadCompleted() {
           num_owners_with_interest_groups_);
       auction_metrics_recorder_->SetNumSellersWithBidders(
           num_sellers_with_bidders);
+
+      // Count the owners that passed the `IsInterestGroupApiAllowedCallback`
+      // filter, but were then excluded due to having no ads or no script URL.
+      // Double counts such buyers that participate in multiple auctions.
+      CHECK_GE(num_owners_loaded_, num_owners_with_interest_groups_);
+      auction_metrics_recorder_->SetNumOwnersWithoutInterestGroups(
+          num_owners_loaded_ - num_owners_with_interest_groups_);
     }
   }
 
@@ -4001,8 +4059,8 @@ void InterestGroupAuction::ScoreQueuedBidsIfReady() {
   auto unscored_bids = std::move(unscored_bids_);
   for (auto& unscored_bid : unscored_bids) {
     TRACE_EVENT_NESTABLE_ASYNC_END1(
-        "fledge", "wait_for_seller_deps", unscored_bid->TraceId(), "data",
-        [&](perfetto::TracedValue trace_context) {
+        "fledge", "wait_for_seller_deps", unscored_bid->TraceIdForScoring(),
+        "data", [&](perfetto::TracedValue trace_context) {
           auto dict = std::move(trace_context).WriteDictionary();
           if (!unscored_bid->wait_worklet.is_zero()) {
             dict.Add("wait_worklet_ms",
@@ -4221,18 +4279,6 @@ InterestGroupAuction::CreateBidFromComponentAuctionWinner(
       scored_bid->component_auction_modified_bid_params.get();
   DCHECK(modified_bid_params);
 
-  // Create a new event for the bid, since the component auction's event for
-  // it ended after the component auction scored the bid.
-  if (bid_role == auction_worklet::mojom::BidRole::kEnforcedKAnon) {
-    if (!component_bid->bid_state->trace_id_for_kanon_scoring.has_value()) {
-      component_bid->bid_state->BeginTracingKAnonScoring();
-    }
-  } else {
-    if (!component_bid->bid_state->trace_id.has_value()) {
-      component_bid->bid_state->BeginTracing();
-    }
-  }
-
   return std::make_unique<Bid>(
       bid_role, modified_bid_params->ad,
       modified_bid_params->bid.has_value() ? modified_bid_params->bid.value()
@@ -4270,6 +4316,7 @@ void InterestGroupAuction::ScoreBidIfReady(std::unique_ptr<Bid> bid) {
   DCHECK(bid->bid_state->made_bid);
 
   any_bid_made_ = true;
+  bid->BeginTracingForScoring();
 
   // TODO(https://crbug.com/1516642): Report k-anon re-runs.
   if (IsBidRoleUsedForWinner(kanon_mode_, bid->bid_role)) {
@@ -4302,7 +4349,7 @@ void InterestGroupAuction::ScoreBidIfReady(std::unique_ptr<Bid> bid) {
   // If seller worklet hasn't been received yet, or configuration is still
   // waiting on some promises, wait till everything is ready.
   // TODO(morlovich): Tracing doesn't reflect config wait here.
-  uint64_t bid_trace_id = bid->TraceId();
+  uint64_t bid_trace_id = bid->TraceIdForScoring();
   if (!ReadyToScoreBids()) {
     bid->trace_wait_seller_deps_start = base::TimeTicks::Now();
     TRACE_EVENT_NESTABLE_ASYNC_BEGIN0("fledge", "wait_for_seller_deps",
@@ -4316,7 +4363,7 @@ void InterestGroupAuction::ScoreBidIfReady(std::unique_ptr<Bid> bid) {
 void InterestGroupAuction::ScoreBid(std::unique_ptr<Bid> bid) {
   DCHECK(ReadyToScoreBids());
 
-  uint64_t bid_trace_id = bid->TraceId();
+  uint64_t bid_trace_id = bid->TraceIdForScoring();
   TRACE_EVENT_NESTABLE_ASYNC_BEGIN1("fledge", ScoreAdTraceEventName(*bid),
                                     bid_trace_id, "decision_logic_url",
                                     config_->decision_logic_url);
@@ -4451,12 +4498,8 @@ void InterestGroupAuction::OnScoreAdComplete(
       *score_ad_dependency_latencies);
 
   TRACE_EVENT_NESTABLE_ASYNC_END0("fledge", ScoreAdTraceEventName(*bid),
-                                  bid->TraceId());
-  if (bid->bid_role == auction_worklet::mojom::BidRole::kEnforcedKAnon) {
-    bid->bid_state->EndTracingKAnonScoring();
-  } else {
-    bid->bid_state->EndTracing();
-  }
+                                  bid->TraceIdForScoring());
+  bid->EndTracingForScoring();
   bid->bid_state->pa_timings(seller_phase()).script_run_time = scoring_latency;
   bid->bid_state->pa_timings(seller_phase()).signals_fetch_time =
       score_ad_dependency_latencies->trusted_scoring_signals_latency.value_or(

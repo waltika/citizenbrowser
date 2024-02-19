@@ -41,6 +41,7 @@
 #include "chrome/browser/ui/webui/chrome_web_ui_controller_factory.h"
 #include "chrome/browser/web_applications/preinstalled_web_app_utils.h"
 #include "chrome/browser/web_applications/web_app_utils.h"
+#include "chrome/common/channel_info.h"
 #include "chromeos/ash/components/browser_context_helper/browser_context_helper.h"
 #include "chromeos/ash/components/browser_context_helper/browser_context_types.h"
 #include "chromeos/ash/components/install_attributes/install_attributes.h"
@@ -114,6 +115,7 @@
 #include "chromeos/crosapi/mojom/login.mojom.h"
 #include "chromeos/crosapi/mojom/login_screen_storage.mojom.h"
 #include "chromeos/crosapi/mojom/login_state.mojom.h"
+#include "chromeos/crosapi/mojom/mahi.mojom.h"
 #include "chromeos/crosapi/mojom/media_ui.mojom.h"
 #include "chromeos/crosapi/mojom/message_center.mojom.h"
 #include "chromeos/crosapi/mojom/metrics.mojom.h"
@@ -180,6 +182,7 @@
 #include "components/user_manager/user.h"
 #include "components/user_manager/user_manager.h"
 #include "components/user_manager/user_type.h"
+#include "components/variations/limited_entropy_mode_gate.h"
 #include "components/variations/service/limited_entropy_synthetic_trial.h"
 #include "components/version_info/version_info.h"
 #include "content/public/common/content_switches.h"
@@ -377,7 +380,7 @@ constexpr InterfaceVersionEntry MakeInterfaceVersionEntry() {
   return {T::Uuid_, T::Version_};
 }
 
-static_assert(crosapi::mojom::Crosapi::Version_ == 131,
+static_assert(crosapi::mojom::Crosapi::Version_ == 132,
               "If you add a new crosapi, please add it to "
               "kInterfaceVersionEntries below.");
 
@@ -457,6 +460,7 @@ constexpr InterfaceVersionEntry kInterfaceVersionEntries[] = {
     MakeInterfaceVersionEntry<crosapi::mojom::LoginState>(),
     MakeInterfaceVersionEntry<
         chromeos::machine_learning::mojom::MachineLearningService>(),
+    MakeInterfaceVersionEntry<crosapi::mojom::MahiBrowserDelegate>(),
     MakeInterfaceVersionEntry<crosapi::mojom::MediaUI>(),
     MakeInterfaceVersionEntry<crosapi::mojom::MessageCenter>(),
     MakeInterfaceVersionEntry<crosapi::mojom::Metrics>(),
@@ -628,9 +632,10 @@ void InjectBrowserInitParams(
   // limited entropy synthetic trial will be the same between Ash Chrome and
   // Lacros.
   // TODO(crbug.com/1508150): Remove after completing the trial.
+  variations::LimitedEntropySyntheticTrial limited_entropy_synthetic_trial(
+      local_state);
   params->limited_entropy_synthetic_trial_seed =
-      variations::LimitedEntropySyntheticTrial::GetRandomizationSeed(
-          local_state);
+      limited_entropy_synthetic_trial.GetRandomizationSeed(local_state);
 
   // |metrics_service| could be nullptr in tests.
   if (auto* metrics_service = g_browser_process->metrics_service()) {
@@ -639,10 +644,18 @@ void InjectBrowserInitParams(
     if (!client_id.empty()) {
       params->metrics_service_client_id = client_id;
     }
+
+    std::string_view limited_entropy_randomization_source;
+    if (variations::IsLimitedEntropyModeEnabled(chrome::GetChannel()) &&
+        limited_entropy_synthetic_trial.IsEnabled()) {
+      limited_entropy_randomization_source =
+          metrics_service->GetLimitedEntropyRandomizationSource();
+    }
     params->entropy_source = crosapi::mojom::EntropySource::New(
         metrics_service->GetLowEntropySource(),
         metrics_service->GetOldLowEntropySource(),
-        metrics_service->GetPseudoLowEntropySource());
+        metrics_service->GetPseudoLowEntropySource(),
+        std::string(limited_entropy_randomization_source));
   }
 
   if (auto* metrics_services_manager =

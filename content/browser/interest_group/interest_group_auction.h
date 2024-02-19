@@ -213,18 +213,12 @@ class CONTENT_EXPORT InterestGroupAuction
     BidState& operator=(BidState&) = delete;
 
     // Populates `trace_id` with a new trace ID and logs the first trace event
-    // for it.
+    // for it. This is the tracing for bid portion of the process.
     void BeginTracing();
 
     // Logs the final event for `trace_id` and clears it. Automatically called
     // on destruction so trace events are all closed if an auction is cancelled.
     void EndTracing();
-
-    // Like above but for `trace_id_for_kanon_scoring`, and used specifically
-    // for scoring of auction entries that were re-run due to k-anonymity
-    // enforcement.
-    void BeginTracingKAnonScoring();
-    void EndTracingKAnonScoring();
 
     const SingleStorageInterestGroup bidder;
 
@@ -247,20 +241,12 @@ class CONTENT_EXPORT InterestGroupAuction
     // when the worklet is requested, and ended once the bid is scored, or the
     // bidder worklet fails to bid.
     //
-    // Additionally, if the BidState is a winner of a component auction, another
-    // "Bid" trace event is created when the top-level auction scores the bid,
-    // and ends when scoring is complete.
-    //
     // Nested events are logged using this ID both by the Auction and by Mojo
     // bidder and seller worklets, potentially in another process.
     //
     // std::nullopt means no ID is currently assigned, and there's no pending
     // event.
     std::optional<uint64_t> trace_id;
-
-    // Since the k-anon-enforced scoring creates events that don't nest neatly
-    // with the regular run, it gets its own id.
-    std::optional<uint64_t> trace_id_for_kanon_scoring;
 
     // ReceiverId for use as a GenerateBidClient. Only populated while
     // generateBid() is running.
@@ -373,17 +359,24 @@ class CONTENT_EXPORT InterestGroupAuction
 
     ~Bid();
 
-    // This considers the bid_role to pick proper trace id.
-    uint64_t TraceId() {
-      return (bid_role == auction_worklet::mojom::BidRole::kEnforcedKAnon)
-                 ? *bid_state->trace_id_for_kanon_scoring
-                 : *bid_state->trace_id;
-    }
+    // Returns trace ID for the scoring portion of the process.
+    uint64_t TraceIdForScoring() { return *trace_id; }
+
+    // The trace_id in `bid_state` is used for bidding portion of the process,
+    // while the ID here is used for scoring.
+    void BeginTracingForScoring();
+    void EndTracingForScoring();
 
     // Get a vector of ad component urls. For compatible with functions
     // expecting a vector of `GURL` instead of a vector of
     // `blink::AdDescriptor`.
     std::vector<GURL> GetAdComponentUrls() const;
+
+    // These getters are necessary for handling the replacements within the
+    // interest group auction.
+    blink::AdDescriptor GetAdDescriptorWithReplacements();
+    std::vector<blink::AdDescriptor>
+    GetComponentAdDescriptorsWithReplacements();
 
     // Which auctions the bid participates in.
     auction_worklet::mojom::BidRole bid_role;
@@ -423,6 +416,9 @@ class CONTENT_EXPORT InterestGroupAuction
 
     // Time we called ScoreAd on the SellerWorklet.
     base::TimeTicks seller_worklet_score_ad_start;
+
+    // Trace ID used for scoring this particular bid.
+    std::optional<uint64_t> trace_id;
   };
 
   // Combines a Bid with seller score and seller state needed to invoke its
@@ -725,6 +721,11 @@ class CONTENT_EXPORT InterestGroupAuction
   // join the k-anon sets if it's informed the winning ad has been navigated to,
   // so there's no need for anything else to invoke this method.
   base::flat_set<std::string> GetKAnonKeysToJoin() const;
+
+  // Gets GetDeprecatedRenderURLReplacements in order to handle the
+  // ad render url replacements within the interest group auction.
+  const std::vector<blink::AuctionConfig::AdKeywordReplacement>&
+  GetDeprecatedRenderURLReplacements();
 
   BiddingAndAuctionResponse TakeBiddingAndAuctionResponse() {
     return std::move(saved_response_).value();
@@ -1070,6 +1071,10 @@ class CONTENT_EXPORT InterestGroupAuction
       PostAuctionSignals& signals_out,
       std::optional<PostAuctionSignals>& top_level_signals_out);
 
+  // Returns the multi-bid limit configured for `buyer` by `config_`,
+  // ensuring that it's at least 1.
+  uint16_t GetBuyerMultiBidLimit(const url::Origin& buyer);
+
   // -----------------------------------
   // Methods not associated with a phase
   // -----------------------------------
@@ -1354,16 +1359,15 @@ class CONTENT_EXPORT InterestGroupAuction
       direct_from_seller_signals_header_ad_slot_ =
           base::MakeRefCounted<HeaderDirectFromSellerSignals::Result>();
 
-  // The number of buyers in the AuctionConfig that passed the
-  // IsInterestGroupApiAllowedCallback filter and interest groups were found
-  // for. Includes buyers from nested component auctions. Double-counts buyers
-  // in multiple Auctions.
+  // The number of buyers in the `AuctionConfig` that passed the
+  // `IsInterestGroupApiAllowedCallback` filter. Includes buyers from nested
+  // component auctions. Double-counts buyers in multiple auctions.
   int num_owners_loaded_ = 0;
 
-  // The number of buyers with InterestGroups participating in an auction.
-  // Includes buyers from nested component auctions, but excludes buyers with
-  // no ads or no script URL. Double-counts buyers that participate in
-  // multiple Auctions.
+  // The number of buyers with `InterestGroup`s participating in an auction.
+  // Includes buyers from nested component auctions, but excludes buyers with no
+  // ads or no script URL. Double-counts buyers that participate in multiple
+  // auctions.
   int num_owners_with_interest_groups_ = 0;
 
   // A list of all buyer owners that participated in this auction and had at

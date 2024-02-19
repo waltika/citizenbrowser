@@ -69,6 +69,8 @@ constexpr base::TimeDelta kLabelAnimation = base::Milliseconds(83);
 // The delay before the indicator labels start fading in.
 constexpr base::TimeDelta kLabelAnimationDelay = base::Milliseconds(167);
 
+constexpr char kSnapWindowSuggestionsHistogramPrefix[] =
+    "Ash.SnapWindowSuggestions.";
 constexpr char kHistogramPrefix[] = "Ash.SplitViewOverviewSession.";
 
 constexpr char kWindowLayoutCompleteOnSessionExitRootWord[] =
@@ -235,12 +237,16 @@ bool IsAnotherWindowSnappedOppositeOf(aura::Window* window) {
     // The `top_window` should be excluded for occlusion check under the
     // following conditions:
     // 1. When it is the `window` itself;
-    // 2. When it is not visible or minimized;
+    // 2. When `top_window` is not on the same root window of the given
+    // `window`;
     // 3. When it is the transient child of the `window`, for example the window
     // layout menu or other bubble widget;
-    // 4. When it is a float or pip window.
+    // 4. When it is not visible or minimized;
+    // 5. When it is a float or pip window.
     const bool should_be_excluded_for_occlusion_check =
-        top_window == window || wm::GetTransientRoot(top_window) == window ||
+        top_window == window ||
+        top_window->GetRootWindow() != window->GetRootWindow() ||
+        wm::GetTransientRoot(top_window) == window ||
         !top_window->IsVisible() || top_window_state->IsMinimized() ||
         top_window_state->IsFloated() || top_window_state->IsPip();
 
@@ -267,6 +273,20 @@ bool IsAnotherWindowSnappedOppositeOf(aura::Window* window) {
   }
 
   return false;
+}
+
+// Returns true if there is no window in partial overview (excluding the given
+// `window`).
+bool IsPartialOverviewEmptyForActiveDesk(aura::Window* window) {
+  for (auto win :
+       Shell::Get()->mru_window_tracker()->BuildMruWindowList(kActiveDesk)) {
+    if (win != window && wm::GetTransientRoot(win) != window &&
+        win->GetRootWindow() == window->GetRootWindow()) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 }  // namespace
@@ -876,6 +896,21 @@ chromeos::WindowStateType GetOppositeSnapType(aura::Window* window) {
              : chromeos::WindowStateType::kPrimarySnapped;
 }
 
+bool CanSnapActionSourceStartFasterSplitView(
+    WindowSnapActionSource snap_action_source) {
+  switch (snap_action_source) {
+    case WindowSnapActionSource::kDragWindowToEdgeToSnap:
+    case WindowSnapActionSource::kSnapByWindowLayoutMenu:
+    case WindowSnapActionSource::kLongPressCaptionButtonToSnap:
+    case WindowSnapActionSource::kTest:
+    case ash::WindowSnapActionSource::kLacrosSnapButtonOrWindowLayoutMenu:
+      // We only start partial overview for the above snap sources.
+      return true;
+    default:
+      return false;
+  }
+}
+
 bool ShouldConsiderWindowForFasterSplitView(
     aura::Window* window,
     WindowSnapActionSource snap_action_source) {
@@ -883,7 +918,8 @@ bool ShouldConsiderWindowForFasterSplitView(
     return false;
   }
 
-  if (!OverviewController::Get()->CanEnterOverview()) {
+  if (!OverviewController::Get()->CanEnterOverview() ||
+      IsPartialOverviewEmptyForActiveDesk(window)) {
     return false;
   }
 
@@ -897,16 +933,8 @@ bool ShouldConsiderWindowForFasterSplitView(
       return false;
     }
 
-    switch (snap_action_source) {
-      case WindowSnapActionSource::kDragWindowToEdgeToSnap:
-      case WindowSnapActionSource::kSnapByWindowLayoutMenu:
-      case WindowSnapActionSource::kLongPressCaptionButtonToSnap:
-      case WindowSnapActionSource::kTest:
-      case ash::WindowSnapActionSource::kLacrosSnapButtonOrWindowLayoutMenu:
-        // We only start partial overview for the above snap sources.
-        break;
-      default:
-        return false;
+    if (!CanSnapActionSourceStartFasterSplitView(snap_action_source)) {
+      return false;
     }
   }
 
@@ -959,6 +987,13 @@ ASH_EXPORT std::string BuildSplitViewOverviewExitPointHistogramName(
   histogram_name.append(".");
   histogram_name.append(kExitPointRootWord);
   AppendUIModeToHistogram(histogram_name);
+  return histogram_name;
+}
+
+std::string BuildSnapWindowSuggestionsHistogramName(
+    WindowSnapActionSource snap_action_source) {
+  std::string histogram_name(kSnapWindowSuggestionsHistogramPrefix);
+  histogram_name.append(GetSnapActionSourceMetricComponent(snap_action_source));
   return histogram_name;
 }
 

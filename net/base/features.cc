@@ -410,10 +410,6 @@ const base::FeatureParam<bool> kIpPrivacyDirectOnly{
     &kEnableIpProtectionProxy, /*name=*/"IpPrivacyDirectOnly",
     /*default_value=*/false};
 
-const base::FeatureParam<bool> kIpPrivacyBsaEnablePrivacyPass{
-    &kEnableIpProtectionProxy, /*name=*/"IpPrivacyBsaEnablePrivacyPass",
-    /*default_value=*/false};
-
 const base::FeatureParam<std::string> kIpPrivacyProxyBPsk{
     &kEnableIpProtectionProxy, /*name=*/"IpPrivacyProxyBPsk",
     /*default_value=*/""};
@@ -434,6 +430,10 @@ const base::FeatureParam<std::string> kIpPrivacyProxyBHostnameOverride{
 const base::FeatureParam<bool> kIpPrivacyAddHeaderToProxiedRequests{
     &kEnableIpProtectionProxy, /*name=*/"IpPrivacyAddHeaderToProxiedRequests",
     /*default_value=*/false};
+
+const base::FeatureParam<base::TimeDelta> kIpPrivacyExpirationFuzz{
+    &kEnableIpProtectionProxy, /*name=*/"IpPrivacyExpirationFuzz",
+    /*default_value=*/base::Minutes(15)};
 
 // Network-change migration requires NetworkHandle support, which are currently
 // only supported on Android (see
@@ -493,7 +493,7 @@ BASE_FEATURE(kEnableWebTransportDraft07,
 
 BASE_FEATURE(kZstdContentEncoding,
              "ZstdContentEncoding",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 // When enabled, partitioned storage will be allowed even if third-party cookies
 // are disabled by default. Partitioned storage will not be allowed if

@@ -6,6 +6,7 @@
 #define COMPONENTS_CONTENT_SETTINGS_CORE_COMMON_HOST_INDEXED_CONTENT_SETTINGS_H_
 
 #include <iterator>
+#include <optional>
 #include <string>
 
 #include "base/memory/raw_ref.h"
@@ -24,21 +25,25 @@ class HostIndexedContentSettings {
   typedef std::map<std::string, Rules, ContentSettingsPattern::CompareDomains>
       HostToContentSettings;
 
-  HostIndexedContentSettings();
-
   // Returns a vector of indices where each index contains entries from a
   // different |source|. This keeps the order of precedence of
-  // ContentSettingsProviders. Returns at least one index.
+  // ContentSettingsProviders.
   static std::vector<HostIndexedContentSettings> Create(
       const ContentSettingsForOneType& settings);
 
-  ~HostIndexedContentSettings();
+  HostIndexedContentSettings();
+
+  // Creates an index with additional metadata about the content settings
+  // provider that the settings came from.
+  explicit HostIndexedContentSettings(std::string source, bool off_the_record);
+
   HostIndexedContentSettings(const HostIndexedContentSettings& other) = delete;
   HostIndexedContentSettings& operator=(const HostIndexedContentSettings&) =
       delete;
-
   HostIndexedContentSettings(HostIndexedContentSettings&& other);
   HostIndexedContentSettings& operator=(HostIndexedContentSettings&&);
+
+  ~HostIndexedContentSettings();
 
   struct Iterator {
     using iterator_category = std::input_iterator_tag;
@@ -47,26 +52,19 @@ class HostIndexedContentSettings {
     using pointer = const RuleEntry*;
     using reference = const RuleEntry&;
 
-    explicit Iterator(const HostIndexedContentSettings& index, bool begin);
+    Iterator(const HostIndexedContentSettings& index, bool begin);
     ~Iterator();
 
-    Iterator(Iterator&&) = delete;
+    Iterator(Iterator&&);
     Iterator& operator=(Iterator&&) = delete;
-    Iterator(const Iterator& other)
-        : index_(other.index_),
-          stage_(other.stage_),
-          next_map_iterator_(other.next_map_iterator_),
-          next_map_end_(other.next_map_end_),
-          current_iterator_(other.current_iterator_),
-          current_end_(other.current_end_) {
-      index_->iterating_++;
-    }
+    Iterator(const Iterator& other);
     Iterator& operator=(const Iterator&) = delete;
 
     reference operator*() const { return *current_iterator_; }
     pointer operator->() { return &*current_iterator_; }
 
     Iterator& operator++();
+    Iterator operator++(int);
 
     friend bool operator==(const Iterator& a, const Iterator& b) {
       return a.current_iterator_ == b.current_iterator_;
@@ -99,7 +97,13 @@ class HostIndexedContentSettings {
   Iterator begin() const;
   Iterator end() const;
 
+  // Returns the number of entries in this index.
   size_t size() const;
+
+  // Returns the source of the entries within this index.
+  const std::optional<std::string>& source() const { return source_; }
+  // Returns whether the index contains off the record entries.
+  const std::optional<bool>& off_the_record() const { return off_the_record_; }
 
   // Finds the RuleEntry with highest precedence that matches both the primary
   // and secondary urls or returns nullptr if no match is found. The pointer is
@@ -123,17 +127,12 @@ class HostIndexedContentSettings {
   // Clears the object information.
   void Clear();
 
-  // Compares the output of the previous lookup algorithm on a flat vector with
-  // the optimized indexed lookup algorithm.
-  void DcheckSameResultAsLinearLookup(
-      const GURL& primary_url,
-      const GURL& secondary_url,
-      const ContentSettingsForOneType& linear_settings) const;
-
  private:
   HostToContentSettings primary_host_indexed_;
   HostToContentSettings secondary_host_indexed_;
   Rules wildcard_settings_;
+  std::optional<std::string> source_;
+  std::optional<bool> off_the_record_;
   mutable int iterating_ = 0;
 };
 

@@ -5,6 +5,7 @@
 #include "chrome/browser/ash/file_manager/office_file_tasks.h"
 
 #include <initializer_list>
+#include <string_view>
 
 #include "base/metrics/histogram_macros.h"
 #include "base/no_destructor.h"
@@ -38,7 +39,7 @@ namespace {
 // The map with pairs Office file extensions with their corresponding
 // `OfficeOpenExtensions` enum.
 constexpr auto kExtensionToOfficeOpenExtensionsEnum =
-    base::MakeFixedFlatMap<base::StringPiece, OfficeOpenExtensions>(
+    base::MakeFixedFlatMap<std::string_view, OfficeOpenExtensions>(
         {{".doc", OfficeOpenExtensions::kDoc},
          {".docm", OfficeOpenExtensions::kDocm},
          {".docx", OfficeOpenExtensions::kDocx},
@@ -74,6 +75,25 @@ OfficeOpenExtensions GetOfficeOpenExtension(const storage::FileSystemURL& url) {
     return itr->second;
   }
   return OfficeOpenExtensions::kOther;
+}
+
+std::optional<ash::office_fallback::FallbackReason>
+DriveAvailabilityToFallbackReason(
+    drive::util::DriveAvailability drive_availability) {
+  switch (drive_availability) {
+    case drive::util::DriveAvailability::
+        kNotAvailableWhenDisableDrivePreferenceSet:
+      return ash::office_fallback::FallbackReason::kDisableDrivePreferenceSet;
+    case drive::util::DriveAvailability::kNotAvailableForAccountType:
+      return ash::office_fallback::FallbackReason::kDriveDisabledForAccountType;
+    case drive::util::DriveAvailability::
+        kNotAvailableForUninitialisedLoginState:
+    case drive::util::DriveAvailability::kNotAvailableInIncognito:
+    case drive::util::DriveAvailability::kNotAvailableForTestImage:
+      return ash::office_fallback::FallbackReason::kDriveDisabled;
+    case drive::util::DriveAvailability::kAvailable:
+      return std::nullopt;
+  }
 }
 
 std::optional<ash::office_fallback::FallbackReason>
@@ -142,16 +162,19 @@ bool ExecuteWebDriveOfficeTask(
     const TaskDescriptor& task,
     const std::vector<storage::FileSystemURL>& file_urls,
     std::unique_ptr<ash::cloud_upload::CloudOpenMetrics> cloud_open_metrics) {
-  if (!drive::util::IsDriveEnabledForProfile(profile)) {
-    return GetUserFallbackChoice(
-        profile, task, file_urls,
-        ash::office_fallback::FallbackReason::kDriveDisabled,
-        std::move(cloud_open_metrics));
+  const drive::util::DriveAvailability drive_availability =
+      drive::util::CheckDriveEnabledAndDriveAvailabilityForProfile(profile);
+  std::optional<ash::office_fallback::FallbackReason> fallback_reason =
+      DriveAvailabilityToFallbackReason(drive_availability);
+  if (fallback_reason) {
+    return GetUserFallbackChoice(profile, task, file_urls,
+                                 fallback_reason.value(),
+                                 std::move(cloud_open_metrics));
   }
 
   const drive::util::ConnectionStatus drive_connection_status =
       drive::util::GetDriveConnectionStatus(profile);
-  const std::optional<ash::office_fallback::FallbackReason> fallback_reason =
+  fallback_reason =
       DriveConnectionStatusToFallbackReason(drive_connection_status);
   if (fallback_reason &&
       (fallback_reason !=

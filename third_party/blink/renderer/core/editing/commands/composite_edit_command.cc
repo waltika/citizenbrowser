@@ -133,7 +133,7 @@ VisibleSelection CompositeEditCommand::EndingVisibleSelection() const {
 
 bool CompositeEditCommand::Apply() {
   DCHECK(!IsCommandGroupWrapper());
-  if (!IsRichlyEditablePosition(EndingVisibleSelection().Base())) {
+  if (!IsRichlyEditablePosition(EndingVisibleSelection().Anchor())) {
     switch (GetInputType()) {
       case InputEvent::InputType::kInsertText:
       case InputEvent::InputType::kInsertLineBreak:
@@ -2134,7 +2134,7 @@ void CompositeEditCommand::AppliedEditing() {
           .DidUserChangeContentEditableContent(*element);
     }
   }
-  editor.RespondToChangedContents(new_selection.Base());
+  editor.RespondToChangedContents(new_selection.Anchor());
 
   if (auto* rc = GetDocument().GetResourceCoordinator()) {
     rc->SetHadUserEdits();

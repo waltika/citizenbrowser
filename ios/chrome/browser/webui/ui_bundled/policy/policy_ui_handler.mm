@@ -137,9 +137,10 @@ void PolicyUIHandler::RegisterMessages() {
 
   policy::UserCloudPolicyManager* user_cloud_policy_manager =
       browser_state->GetUserCloudPolicyManager();
-  if (user_cloud_policy_manager && user_cloud_policy_manager->core()) {
-    signin::IdentityManager* identity_manager =
-        IdentityManagerFactory::GetForBrowserState(browser_state);
+  signin::IdentityManager* identity_manager =
+      IdentityManagerFactory::GetForBrowserState(browser_state);
+  if (user_cloud_policy_manager && user_cloud_policy_manager->core() &&
+      identity_manager) {
     user_policy_status_provider_ =
         std::make_unique<UserCloudPolicyStatusProvider>(
             this, user_cloud_policy_manager->core(), identity_manager);
@@ -267,11 +268,10 @@ void PolicyUIHandler::HandleGetPolicyLogs(const base::Value::List& args) {
 }
 
 std::string PolicyUIHandler::GetPoliciesAsJson() {
-  auto client = std::make_unique<PolicyConversionsClientIOS>(
-      ChromeBrowserState::FromWebUIIOS(web_ui()));
-
   return policy::GenerateJson(
-      /*policy_values=*/policy::DictionaryPolicyConversions(std::move(client))
+      /*policy_values=*/policy::PolicyConversions(
+          std::make_unique<PolicyConversionsClientIOS>(
+              ChromeBrowserState::FromWebUIIOS(web_ui())))
           .ToValueDict(),
       GetStatusValue(),
       policy::JsonGenerationParams()
@@ -340,11 +340,11 @@ base::Value::Dict PolicyUIHandler::GetPolicyValues() const {
   base::Value::List policy_ids;
   policy_ids.Append(policy::kChromePoliciesId);
 
-  auto client = std::make_unique<PolicyConversionsClientIOS>(
-      ChromeBrowserState::FromWebUIIOS(web_ui()));
   base::Value::Dict policy_values =
-      policy::ChromePolicyConversions(std::move(client))
+      policy::PolicyConversions(std::make_unique<PolicyConversionsClientIOS>(
+                                    ChromeBrowserState::FromWebUIIOS(web_ui())))
           .EnableConvertValues(true)
+          .UseChromePolicyConversions()
           .ToValueDict();
 
   base::Value::Dict dict;

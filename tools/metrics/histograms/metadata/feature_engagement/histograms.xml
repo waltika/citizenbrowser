@@ -202,8 +202,6 @@ chromium-metrics-reviews@google.com.
   <variant name="IPH_IncognitoWindow" summary="incognito window"/>
   <variant name="IPH_InstanceSwitcher" summary="instance switcher"/>
   <variant name="IPH_IntentChip" summary="opening a webpage in an app"/>
-  <variant name="IPH_iOSBlueDotPromoEnhancedSafeBrowsing"
-      summary="showing the Enhanced Safe Browsing Blue-dot Promo on iOS"/>
   <variant name="IPH_iOSChoiceScreenFeature"
       summary="showing the Choice screen on iOS"/>
   <variant name="IPH_iOSDefaultBrowserBadgeEligibility"
@@ -221,8 +219,6 @@ chromium-metrics-reviews@google.com.
       summary="Showing the Docking Promo (Remind Me Later version) on iOS"/>
   <variant name="IPH_iOSHistoryOnOverflowMenuFeature"
       summary="history item on the overflow menu on iOS"/>
-  <variant name="IPH_iOSInlinePromoEnhancedSafeBrowsing"
-      summary="showing the Enhanced Safe Browsing Inline Promo on iOS"/>
   <variant name="IPH_iOSNewTabToolbarItemFeature"
       summary="the new tab tool bar item (bottom on iPhone, top on iPad)"/>
   <variant name="IPH_iOSOmniboxPositionFeature"
@@ -231,6 +227,8 @@ chromium-metrics-reviews@google.com.
       summary="showing the Parcel Tracking IPH on the Magic Stack"/>
   <variant name="IPH_iOSPasswordPromoDesktop"
       summary="showing the iOS password promo on desktop"/>
+  <variant name="IPH_iOSPostDefaultAbandonmentPromo"
+      summary="showing the iOS post-default browser abandonment promo on iOS"/>
   <variant name="IPH_iOSPromoAllTabs"
       summary="showing All Tabs default browser promo"/>
   <variant name="IPH_iOSPromoAppStore"
@@ -262,7 +260,10 @@ chromium-metrics-reviews@google.com.
   <variant name="IPH_iOSSwipeBackForward"
       summary="the full screen IPH for edge swipe on page to go backward or
                forward"/>
-  <variant name="IPH_iOSTabGridSwipeLeftForIncognito"
+  <variant name="IPH_iOSSwipeToolbarToChangeTab"
+      summary="the full screen IPH for swipe on the toolbar to go to the
+               previous or next tab in the tab list"/>
+  <variant name="IPH_iOSTabGridSwipeRightForIncognito"
       summary="the full screen IPH for left swipe on regular tab grid to
                browse in incognito"/>
   <variant name="IPH_iOSTabGridToolbarItemFeature"

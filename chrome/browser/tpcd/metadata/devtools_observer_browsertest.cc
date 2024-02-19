@@ -64,7 +64,11 @@ class TpcdMetadataDevtoolsObserverBrowserTest
                                 first_party_pattern_spec);
     metadata_pairs.emplace_back(third_party_pattern_spec_2,
                                 first_party_pattern_spec);
-    Metadata metadata = MakeMetadataProtoFromVectorOfPair(metadata_pairs);
+    Metadata metadata;
+    AddEntryToMetadata(metadata, third_party_pattern_spec_1,
+                       first_party_pattern_spec);
+    AddEntryToMetadata(metadata, third_party_pattern_spec_2,
+                       first_party_pattern_spec);
     tpcd::metadata::Parser::GetInstance()->ParseMetadata(
         metadata.SerializeAsString());
 
@@ -83,7 +87,8 @@ class TpcdMetadataDevtoolsObserverBrowserTest
                        const std::string& third_party_site) {
     ASSERT_TRUE(NavigateToSetCookie(GetActiveWebContents(this), &https_server_,
                                     third_party_site,
-                                    /*is_secure_cookie_set=*/true));
+                                    /*is_secure_cookie_set=*/true,
+                                    /*is_ad_tagged=*/false));
     ASSERT_TRUE(content::NavigateToURL(
         GetActiveWebContents(this),
         embedded_test_server()->GetURL(first_party_site, "/title1.html")));

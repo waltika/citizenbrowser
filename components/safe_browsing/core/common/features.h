@@ -50,6 +50,10 @@ BASE_DECLARE_FEATURE(kDownloadTailoredWarnings);
 // passwords for local decryption on encrypted archives.
 BASE_DECLARE_FEATURE(kEncryptedArchivesMetadata);
 
+// Controls whether the Enhanced Safe Browsing (ESB) download row promotion
+// should show.
+BASE_DECLARE_FEATURE(kEsbDownloadRowPromo);
+
 // Allows the Extension Telemetry Service to accept and use configurations
 // sent by the server.
 BASE_DECLARE_FEATURE(kExtensionTelemetryConfiguration);
@@ -61,6 +65,10 @@ BASE_DECLARE_FEATURE(kExtensionTelemetryFileDataForCommandLineExtensions);
 // Enables collection of telemetry signal whenever an extension invokes the
 // chrome.tabs API methods.
 BASE_DECLARE_FEATURE(kExtensionTelemetryTabsApiSignal);
+
+// Enables collection of telemetry signal whenever an extension invokes the
+// chrome.tabs.captureVisibleTab API method.
+BASE_DECLARE_FEATURE(kExtensionTelemetryTabsApiSignalCaptureVisibleTab);
 
 // Enables collection of telemetry signal whenever an extension invokes the
 // tabs.executeScript API call.

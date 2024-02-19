@@ -148,6 +148,15 @@ chromium-metrics-reviews@google.com.
       summary="Feature is trying to be updated from an unknown source"/>
 </variants>
 
+<variants name="Autofill.NonInteractivePaymentMethodType">
+  <variant name="LocalCard" summary="local card"/>
+  <variant name="LocalIban" summary="local IBAN"/>
+  <variant name="ServerCard" summary="server card"/>
+  <variant name="ServerIban" summary="server IBAN"/>
+  <variant name="UnknownCard" summary="unknown card type"/>
+  <variant name="VirtualCard" summary="virtual card"/>
+</variants>
+
 <variants name="Autofill.OfferNotification.Type">
   <variant name="CardLinkedOffer"
       summary="The bubble/infobar for an offer that is linked to a credit
@@ -1952,18 +1961,6 @@ chromium-metrics-reviews@google.com.
   <token key="FillingStatus" variants="AutofillFieldFillingStats"/>
 </histogram>
 
-<histogram name="Autofill.FieldPrediction.PhoneNumberGrammarUsage"
-    units="Index" expires_after="2024-07-14">
-  <owner>fleimgruber@google.com</owner>
-  <owner>chrome-autofill-alerts@google.com</owner>
-  <summary>
-    Logs the index of the phone number grammar that matched. Emitted when
-    parsing forms using local heuristics. Additionally logs whether the special
-    case handling matched a suffix field. This pair is encoded as
-    2*grammar_index + matched_suffix + 1.
-  </summary>
-</histogram>
-
 <histogram
     name="Autofill.FieldPredictionQuality.Aggregate{AutofillFieldPredictionSource}"
     enum="AutofillFieldPredictionQuality" expires_after="2024-12-12">
@@ -3316,7 +3313,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram
-    name="Autofill.PaymentMethods.CheckoutFlow.ReauthUsage.{CardType}.{AuthenticationMethod}"
+    name="Autofill.PaymentMethods.CheckoutFlow.ReauthUsage.{PaymentMethodType}.{AuthenticationMethod}"
     enum="MandatoryReauthAuthEvent" expires_after="2024-07-01">
   <owner>sujiezhu@google.com</owner>
   <owner>payments-autofill-team@google.com</owner>
@@ -3327,10 +3324,11 @@ chromium-metrics-reviews@google.com.
     reauth flow during a payments autofill form fill, we will log the
     MandatoryReauthAuthEvent to this histogram. This is logged in order to get
     the reauth usages and corresponding success rate for each breakdown. This
-    subhistogram pertains to {CardType}s that used {AuthenticationMethod} during
-    the checkout flow.
+    subhistogram pertains to {PaymentMethodType}s that used
+    {AuthenticationMethod} during the checkout flow.
   </summary>
-  <token key="CardType" variants="Autofill.PaymentsRpcCardType"/>
+  <token key="PaymentMethodType"
+      variants="Autofill.NonInteractivePaymentMethodType"/>
   <token key="AuthenticationMethod"
       variants="Autofill.MandatoryReauth.AuthenticationMethod"/>
 </histogram>
@@ -5771,28 +5769,6 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
-<histogram name="Autofill.WebView.AutofillState.NoVirtualStructureProvided"
-    enum="BooleanEnabled" expires_after="2024-12-12">
-  <owner>jihadghanna@google.com</owner>
-  <owner>src/android_webview/OWNERS</owner>
-  <summary>
-    Records whether autofill was enabled or not when no virtual view structure
-    was provided during an autofill session. Emitted at form submission, or when
-    a new AutofillSession starts, or when the AutofillProvider is destroyed.
-  </summary>
-</histogram>
-
-<histogram name="Autofill.WebView.AwGIsCurrentService" enum="BooleanYesNo"
-    expires_after="2024-12-12">
-  <owner>battre@chromium.org</owner>
-  <owner>src/android_webview/OWNERS</owner>
-  <summary>
-    Records whether Autofill with Google is the current Android autofill
-    service. It is recorded on AutofillProvider initialization. Only recorded in
-    Android P and beyond.
-  </summary>
-</histogram>
-
 <histogram name="Autofill.WebView.BottomsheetNoViewStructureDelay" units="ms"
     expires_after="2024-12-31">
   <owner>jkeitel@google.com</owner>
@@ -6018,19 +5994,6 @@ chromium-metrics-reviews@google.com.
   <token key="AutofillFormType" variants="AutofillFormType"/>
 </histogram>
 
-<histogram name="Autofill.WebView.OnDidFillAutofillFormDataEarlyReturnReason"
-    enum="OnDidFillAutofillFormDataEarlyReturnReason"
-    expires_after="2024-03-31">
-  <owner>jihadghanna@google.com</owner>
-  <owner>src/android_webview/OWNERS</owner>
-  <summary>
-    Records the reason for early return in
-    AutoillProviderAndroid::OnDidFillAutofillFormData. Recorded right before
-    returning early from the function if this happens, and at every function
-    call.
-  </summary>
-</histogram>
-
 <histogram name="Autofill.WebView.PrefillRequestState"
     enum="AndroidAutofillPrefillRequestState" expires_after="2024-10-31">
   <owner>jkeitel@google.com</owner>
@@ -6101,18 +6064,6 @@ chromium-metrics-reviews@google.com.
   <owner>battre@chromium.org</owner>
   <owner>src/android_webview/OWNERS</owner>
   <summary>The time taken to display suggestion.</summary>
-</histogram>
-
-<histogram name="Autofill.WebView.UserChangedAutofilledField"
-    enum="BooleanEnabled" expires_after="2024-12-12">
-  <owner>battre@chromium.org</owner>
-  <owner>src/android_webview/OWNERS</owner>
-  <summary>
-    Records for forms to which users made manual changes (typing, pasting,
-    etc.), whether a previously autofilled field was changed by the manual
-    changes. No metrics are emitted for forms into which the user has not typed.
-    Recorded on form submission or destruction of the Autofill provider.
-  </summary>
 </histogram>
 
 </histograms>

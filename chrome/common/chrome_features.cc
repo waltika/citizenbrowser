@@ -284,6 +284,17 @@ BASE_FEATURE(kChromeStructuredMetrics,
              "ChromeStructuredMetrics",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
+// Kill switch for Controlled Frame. This is enabled by default but is only
+// tested to ensure it's enabled before proceeding with the rest of the feature
+// checks like testing for IWA support or Kiosk mode. If this feature flag is
+// disabled, such as via Finch, then Controlled Frame will no longer be
+// available in IWA or Kiosk mode.
+// See https://github.com/WICG/controlled-frame/blob/main/README.md for more
+// info.
+BASE_FEATURE(kControlledFrame,
+             "ControlledFrame",
+             base::FEATURE_ENABLED_BY_DEFAULT);
+
 // When installing default installed PWAs, we wait for service workers
 // to cache resources.
 BASE_FEATURE(kDesktopPWAsCacheDuringDefaultInstall,
@@ -441,11 +452,6 @@ BASE_FEATURE(kEnableNetworkServiceResourceBlockListIfThirdPartyCookiesBlocked,
              "EnableNetworkServiceResourceBlockListIfThirdPartyCookiesBlocked",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-// Enable extended descriptions for key settings in Chrome settings.
-BASE_FEATURE(kExtendedSettingsDescriptions,
-             "ExtendedSettingsDescriptions",
-             base::FEATURE_DISABLED_BY_DEFAULT);
-
 #if !BUILDFLAG(IS_ANDROID)
 // Lazy initialize IndividualSettings for extensions from enterprise policy
 // that are not installed.
@@ -497,6 +503,12 @@ BASE_FEATURE(kPrivacyGuide3,
 // feature to be enabled as well.
 BASE_FEATURE(kPrivacyGuidePreload,
              "PrivacyGuidePreload",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+// Defines if the linked services setting is eligible to be shown in Chrome
+// settings.
+BASE_FEATURE(kLinkedServicesSetting,
+             "LinkedServicesSetting",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 #if BUILDFLAG(IS_ANDROID)
@@ -1169,7 +1181,6 @@ BASE_FEATURE(kSafetyCheckExtensions,
              base::FEATURE_ENABLED_BY_DEFAULT);
 #endif
 
-#if !BUILDFLAG(IS_ANDROID)
 // Enables notification permission module in Safety Check.
 BASE_FEATURE(kSafetyCheckNotificationPermissions,
              "SafetyCheckNotificationPermissions",
@@ -1190,7 +1201,6 @@ BASE_FEATURE(kSafetyHub, "SafetyHub", base::FEATURE_DISABLED_BY_DEFAULT);
 // Time between automated runs of the password check.
 const base::FeatureParam<base::TimeDelta> kBackgroundPasswordCheckInterval{
     &kSafetyHub, "background-password-check-interval", base::Days(10)};
-#endif  // !BUILDFLAG(IS_ANDROID)
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)
 // Enable support for multiple scheduler configurations.

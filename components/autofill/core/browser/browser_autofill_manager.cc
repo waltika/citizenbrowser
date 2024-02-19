@@ -261,6 +261,9 @@ FillDataType GetEventTypeFromSingleFieldSuggestionPopupItemId(
     case PopupItemId::kPasswordAccountStorageOptInAndGenerate:
     case PopupItemId::kPasswordAccountStorageReSignin:
     case PopupItemId::kPasswordEntry:
+    case PopupItemId::kPasswordFieldByFieldFilling:
+    case PopupItemId::kFillPassword:
+    case PopupItemId::kViewPasswordDetails:
     case PopupItemId::kScanCreditCard:
     case PopupItemId::kSeePromoCodeDetails:
     case PopupItemId::kSeparator:
@@ -2024,8 +2027,7 @@ std::vector<Suggestion> BrowserAutofillManager::GetProfileSuggestions(
   base::flat_map<FieldGlobalId, FieldFillingSkipReason> skip_reasons =
       form.fields.size() == form_structure->field_count()
           ? form_filler_->GetFieldFillingSkipReasons(
-                form, *form_structure, trigger_field,
-                trigger_autofill_field->section,
+                form, *form_structure, *trigger_autofill_field,
                 last_address_fields_to_fill_for_section
                     ? GetTargetServerFieldsForTypeAndLastTargetedFields(
                           *last_address_fields_to_fill_for_section,
@@ -2324,13 +2326,16 @@ void BrowserAutofillManager::GetAvailableSuggestions(
         GetProfileSuggestions(form, context->form_structure, field,
                               context->focused_field, trigger_source);
     if (context->focused_field &&
-        context->focused_field->Type().group() == FieldTypeGroup::kEmail) {
-      std::optional<Suggestion> maybe_plus_address_suggestion =
-          MaybeGetPlusAddressSuggestion(field);
-      if (maybe_plus_address_suggestion.has_value()) {
-        suggestions->insert(suggestions->cbegin(),
-                            maybe_plus_address_suggestion.value());
-      }
+        context->focused_field->Type().group() == FieldTypeGroup::kEmail &&
+        client().GetPlusAddressDelegate()) {
+      std::vector<Suggestion> plus_address_suggestions =
+          client().GetPlusAddressDelegate()->GetSuggestions(
+              client().GetLastCommittedPrimaryMainFrameOrigin(),
+              client().IsOffTheRecord(), field.value);
+      suggestions->insert(
+          suggestions->cbegin(),
+          std::make_move_iterator(plus_address_suggestions.begin()),
+          std::make_move_iterator(plus_address_suggestions.end()));
     }
   }
 
@@ -2550,50 +2555,6 @@ bool BrowserAutofillManager::ShouldUploadUkm(
   }
 
   return true;
-}
-
-std::optional<Suggestion> BrowserAutofillManager::MaybeGetPlusAddressSuggestion(
-    const FormFieldData& field) {
-  AutofillPlusAddressDelegate* plus_address_delegate =
-      client().GetPlusAddressDelegate();
-  if (!plus_address_delegate ||
-      !plus_address_delegate->SupportsPlusAddresses(
-          client().GetLastCommittedPrimaryMainFrameOrigin(),
-          client().IsOffTheRecord())) {
-    return std::nullopt;
-  }
-
-  const std::u16string normalized_field_value =
-      RemoveDiacriticsAndConvertToLowerCase(field.value);
-  std::optional<std::string> maybe_address =
-      plus_address_delegate->GetPlusAddress(
-          client().GetLastCommittedPrimaryMainFrameOrigin());
-  if (maybe_address == std::nullopt) {
-    if (!normalized_field_value.empty()) {
-      return std::nullopt;
-    }
-    Suggestion create_plus_address_suggestion(
-        plus_address_delegate->GetCreateSuggestionLabel(),
-        PopupItemId::kCreateNewPlusAddress);
-    plus_address_delegate->RecordAutofillSuggestionEvent(
-        AutofillPlusAddressDelegate::SuggestionEvent::
-            kCreateNewPlusAddressSuggested);
-    create_plus_address_suggestion.icon = Suggestion::Icon::kPlusAddress;
-    return create_plus_address_suggestion;
-  }
-
-  // Only suggest filling a plus address whose prefix matches the field's value.
-  std::u16string address = base::UTF8ToUTF16(*maybe_address);
-  if (!address.starts_with(normalized_field_value)) {
-    return std::nullopt;
-  }
-  Suggestion existing_plus_address_suggestion(
-      std::move(address), PopupItemId::kFillExistingPlusAddress);
-  plus_address_delegate->RecordAutofillSuggestionEvent(
-      AutofillPlusAddressDelegate::SuggestionEvent::
-          kExistingPlusAddressSuggested);
-  existing_plus_address_suggestion.icon = Suggestion::Icon::kPlusAddress;
-  return existing_plus_address_suggestion;
 }
 
 std::optional<Suggestion> BrowserAutofillManager::MaybeGetComposeSuggestion(

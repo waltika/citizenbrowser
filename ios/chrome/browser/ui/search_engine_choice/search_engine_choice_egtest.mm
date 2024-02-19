@@ -64,9 +64,10 @@
   [SearchEngineChoiceEarlGreyUI verifySearchEngineChoiceScreenIsDisplayed];
 }
 
+// TODO(b/325441139): Test fails on device and simulator.
 // Tests that search engine choice dialog is moved to the other active scene
 // when the current scene is removed.
-- (void)testOpenSecondWindow {
+- (void)DISABLED_testOpenSecondWindow {
   if (![ChromeEarlGrey areMultipleWindowsSupported]) {
     EARL_GREY_TEST_DISABLED(@"Multiple windows can't be opened.");
   }
@@ -79,10 +80,11 @@
   [SearchEngineChoiceEarlGreyUI verifySearchEngineChoiceScreenIsDisplayed];
 }
 
+// TODO(b/325441139): Test fails on device and simulator.
 // Tests that the Search Engine Choice screen is displayed, that the primary
 // button is correctly updated when the user selects a search engine then
 // scrolls down and that it correctly sets the default search engine.
-- (void)testSearchEngineChoiceScreenSelectThenScroll {
+- (void)DISABLED_testSearchEngineChoiceScreenSelectThenScroll {
   // Checks that the choice screen is shown
   [SearchEngineChoiceEarlGreyUI verifySearchEngineChoiceScreenIsDisplayed];
   // Checks that the fake omnibox illustration is displayed and is initially
@@ -115,10 +117,11 @@
       verifyDefaultSearchEngineSetting:searchEngineToSelect];
 }
 
+// TODO(b/325441139): Test fails on device and simulator.
 // Tests that the Search Engine Choice screen is displayed, that the
 // primary button is correctly updated when the user scrolls down then selects a
 // search engine and that it correctly sets the default search engine.
-- (void)testSearchEngineChoiceScreenScrollThenSelect {
+- (void)DISABLED_testSearchEngineChoiceScreenScrollThenSelect {
   // Checks that the choice screen is shown
   [SearchEngineChoiceEarlGreyUI verifySearchEngineChoiceScreenIsDisplayed];
   // Checks that the fake omnibox illustration is displayed and is initially

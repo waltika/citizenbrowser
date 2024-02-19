@@ -146,6 +146,8 @@ static_library("browser") {
     "accessibility/accessibility_labels_service_factory.h",
     "accessibility/accessibility_state_utils.cc",
     "accessibility/accessibility_state_utils.h",
+    "accessibility/embedded_a11y_extension_loader.cc",
+    "accessibility/embedded_a11y_extension_loader.h",
     "accessibility/page_colors.cc",
     "accessibility/page_colors.h",
     "accessibility/page_colors_factory.cc",
@@ -1371,8 +1373,6 @@ static_library("browser") {
     "process_singleton.h",
     "process_singleton_internal.cc",
     "process_singleton_internal.h",
-    "profiles/allowed_domains_for_apps_policy_handler.cc",
-    "profiles/allowed_domains_for_apps_policy_handler.h",
     "profiles/bookmark_model_loaded_observer.cc",
     "profiles/bookmark_model_loaded_observer.h",
     "profiles/chrome_browser_main_extra_parts_profiles.cc",
@@ -2325,6 +2325,7 @@ static_library("browser") {
     "//components/password_manager/core/common",
     "//components/payments/content:utils",
     "//components/payments/core",
+    "//components/pdf/common:constants",
     "//components/performance_manager",
     "//components/permissions",
     "//components/permissions/prediction_service",
@@ -3179,8 +3180,6 @@ static_library("browser") {
       "geolocation/geolocation_permission_context_delegate_android.h",
       "gesturenav/android/tab_on_back_gesture_handler.cc",
       "gesturenav/android/tab_on_back_gesture_handler.h",
-      "history_clusters/history_clusters_bridge.cc",
-      "history_clusters/history_clusters_bridge.h",
       "history_clusters/history_clusters_tab_helper_android.cc",
       "icon_loader_android.cc",
       "incognito/android/incognito_utils_android.cc",
@@ -3192,6 +3191,16 @@ static_library("browser") {
       "installable/installed_webapp_geolocation_context.h",
       "installable/installed_webapp_provider.cc",
       "installable/installed_webapp_provider.h",
+
+      # TODO(b/40071344): Fold into "keyboard_accessory/android".
+      "keyboard_accessory/android/address_accessory_controller_impl.cc",
+      "keyboard_accessory/android/address_accessory_controller_impl.h",
+      "keyboard_accessory/android/credit_card_accessory_controller_impl.cc",
+      "keyboard_accessory/android/credit_card_accessory_controller_impl.h",
+      "keyboard_accessory/android/manual_filling_controller_impl.cc",
+      "keyboard_accessory/android/manual_filling_controller_impl.h",
+      "keyboard_accessory/android/password_accessory_controller_impl.cc",
+      "keyboard_accessory/android/password_accessory_controller_impl.h",
       "language/android/language_bridge.cc",
       "language/android/language_bridge.h",
       "lens/android/lens_policy_utils.cc",
@@ -3267,9 +3276,6 @@ static_library("browser") {
       "password_manager/android/generated_password_saved_message_delegate.h",
       "password_manager/android/local_passwords_migration_warning_util.cc",
       "password_manager/android/local_passwords_migration_warning_util.h",
-      "password_manager/android/password_accessory_controller.h",
-      "password_manager/android/password_accessory_controller_impl.cc",
-      "password_manager/android/password_accessory_controller_impl.h",
       "password_manager/android/password_accessory_metrics_util.h",
       "password_manager/android/password_checkup_launcher_helper.cc",
       "password_manager/android/password_checkup_launcher_helper.h",
@@ -3322,12 +3328,6 @@ static_library("browser") {
       "profiles/android/profile_manager_utils.cc",
       "profiles/android/profile_resolver.cc",
       "profiles/android/profile_resolver.h",
-      "profiles/profile_android.cc",
-      "profiles/profile_android.h",
-
-      # TODO(b/307628893): Move profile_key_android to
-      # chrome/browser/profiles:profiles once the circular dependency is removed
-      "profiles/profile_key_android.cc",
       "profiles/profile_manager_android.cc",
       "profiles/profile_manager_android.h",
       "readaloud/android/read_aloud_features.cc",
@@ -3460,7 +3460,7 @@ static_library("browser") {
       "//chrome/browser/feedback/android:jni_headers",
       "//chrome/browser/flags:flags_android",
       "//chrome/browser/gesturenav/android:jni_headers",
-      "//chrome/browser/keyboard_accessory/android:public",
+      "//chrome/browser/keyboard_accessory/android",
       "//chrome/browser/language/android:jni_headers",
       "//chrome/browser/long_screenshots:services",
       "//chrome/browser/notifications:jni_headers",
@@ -3559,7 +3559,7 @@ static_library("browser") {
       "//components/page_load_metrics/browser",
       "//components/paint_preview/browser",
       "//components/password_manager/content/browser",
-      "//components/password_manager/core/browser/affiliation",
+      "//components/password_manager/core/browser/affiliation:affiliation_fetching",
       "//components/password_manager/core/browser/form_parsing:form_parsing",
       "//components/password_manager/core/browser/leak_detection",
       "//components/payments/content",
@@ -4686,7 +4686,6 @@ static_library("browser") {
       "//services/device/public/cpp/bluetooth",
       "//services/device/public/cpp/hid",
       "//third_party/crashpad/crashpad/client:common",
-      "//third_party/sqlite",
       "//third_party/zxcvbn-cpp",
       "//ui/webui/resources/cr_components/app_management:mojo_bindings",
       "//ui/webui/resources/cr_components/help_bubble:mojo_bindings",
@@ -6365,6 +6364,14 @@ static_library("browser") {
     deps += [ "//chrome/browser/enterprise/data_controls" ]
   }
 
+  if (enterprise_client_certificates) {
+    sources += [
+      "enterprise/client_certificates/certificate_store_factory.cc",
+      "enterprise/client_certificates/certificate_store_factory.h",
+    ]
+    deps += [ "//components/enterprise/client_certificates/core" ]
+  }
+
   if (is_linux || is_win || is_mac || is_chromeos_ash) {
     sources += [
       "enterprise/connectors/device_trust/consent_policy_observer.cc",
@@ -6425,10 +6432,6 @@ static_library("browser") {
       "enterprise/idle/idle_service_factory.h",
     ]
     deps += [ "//components/enterprise/idle" ]
-  }
-
-  if (is_win || is_mac) {
-    deps += [ "//components/enterprise/client_certificates/core" ]
   }
 
   if (is_linux || is_win || is_mac) {
@@ -7187,6 +7190,8 @@ static_library("browser") {
       "autocomplete/shortcuts_extensions_manager.h",
       "browsing_data/counters/hosted_apps_counter.cc",
       "browsing_data/counters/hosted_apps_counter.h",
+      "controlled_frame/controlled_frame_media_access_handler.cc",
+      "controlled_frame/controlled_frame_media_access_handler.h",
       "drive/drive_notification_manager_factory.cc",
       "drive/drive_notification_manager_factory.h",
       "guest_view/app_view/chrome_app_view_guest_delegate.cc",
@@ -7605,7 +7610,6 @@ static_library("browser") {
       "//chrome/browser/pdf:pdf_pref_names",
       "//components/pdf/browser",
       "//components/pdf/browser:interceptors",
-      "//components/pdf/common",
       "//extensions/common/api",
       "//pdf:buildflags",
       "//pdf:features",

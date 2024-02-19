@@ -1968,6 +1968,21 @@ String BuildServiceWorkerResponseSource(
   }
 }
 
+String BuildServiceWorkerRouterSourceType(
+    const network::mojom::ServiceWorkerRouterSourceType& type) {
+  switch (type) {
+    case network::mojom::ServiceWorkerRouterSourceType::kNetwork:
+      return protocol::Network::ServiceWorkerRouterSourceEnum::Network;
+    case network::mojom::ServiceWorkerRouterSourceType::kRace:
+      return protocol::Network::ServiceWorkerRouterSourceEnum::
+          RaceNetworkAndFetchHandler;
+    case network::mojom::ServiceWorkerRouterSourceType::kFetchEvent:
+      return protocol::Network::ServiceWorkerRouterSourceEnum::FetchEvent;
+    case network::mojom::ServiceWorkerRouterSourceType::kCache:
+      return protocol::Network::ServiceWorkerRouterSourceEnum::Cache;
+  }
+}
+
 String AlternateProtocolUsageToString(
     net::AlternateProtocolUsage alternate_protocol_usage) {
   switch (alternate_protocol_usage) {
@@ -2048,6 +2063,8 @@ std::unique_ptr<Network::Response> BuildResponse(
     response->SetServiceWorkerRouterInfo(
         protocol::Network::ServiceWorkerRouterInfo::Create()
             .SetRuleIdMatched(info.service_worker_router_info->rule_id_matched)
+            .SetMatchedSourceType(BuildServiceWorkerRouterSourceType(
+                info.service_worker_router_info->matched_source_type))
             .Build());
   }
 
@@ -3270,7 +3287,7 @@ CreateNetworkFactoryForCitizenNotes(
   // Let CitizenNotes fetch resources without CORS and CORB. Source maps are valid
   // JSON and would otherwise require a CORS fetch + correct response headers.
   // See BUG(chromium:1076435) for more context.
-  params->is_corb_enabled = false;
+  params->is_orb_enabled = false;
 
   if (scheme == url::kHttpScheme || scheme == url::kHttpsScheme) {
     return url_loader_factory::CreatePendingRemote(

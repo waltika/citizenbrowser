@@ -139,7 +139,7 @@ typedef void (*GraphemeClusterCallback)(void* context,
 
 class PLATFORM_EXPORT ShapeResult : public GarbageCollected<ShapeResult> {
  public:
-  ShapeResult(scoped_refptr<const SimpleFontData>,
+  ShapeResult(const SimpleFontData*,
               unsigned start_index,
               unsigned num_characters,
               TextDirection);
@@ -152,7 +152,7 @@ class PLATFORM_EXPORT ShapeResult : public GarbageCollected<ShapeResult> {
   void Trace(Visitor*) const;
 
   static ShapeResult* CreateEmpty(const ShapeResult& other) {
-    return MakeGarbageCollected<ShapeResult>(other.primary_font_, 0, 0,
+    return MakeGarbageCollected<ShapeResult>(other.primary_font_.Get(), 0, 0,
                                              other.Direction());
   }
   static const ShapeResult* CreateForTabulationCharacters(
@@ -184,8 +184,8 @@ class PLATFORM_EXPORT ShapeResult : public GarbageCollected<ShapeResult> {
   LayoutUnit SnappedWidth() const { return LayoutUnit::FromFloatCeil(width_); }
   unsigned NumCharacters() const { return num_characters_; }
   unsigned NumGlyphs() const { return num_glyphs_; }
-  const SimpleFontData* PrimaryFont() const { return primary_font_.get(); }
-  bool HasFallbackFonts() const;
+  const SimpleFontData* PrimaryFont() const { return primary_font_.Get(); }
+  bool HasFallbackFonts(const SimpleFontData* primary_font) const;
 
   // TODO(eae): Remove start_x and return value once ShapeResultBuffer has been
   // removed.
@@ -308,12 +308,15 @@ class PLATFORM_EXPORT ShapeResult : public GarbageCollected<ShapeResult> {
 
   // Returns a line-end `ShapeResult` when breaking at `break_offset`, and the
   // glyph before `break_offset` has auto-spacing.
-  const ShapeResult* UnapplyAutoSpacing(unsigned start_offset,
+  const ShapeResult* UnapplyAutoSpacing(float spacing_width,
+                                        unsigned start_offset,
                                         unsigned break_offset) const;
 
   // Adjust the offset from `OffsetForPosition` when the offset has
   // `HasAutoSpacingAfter`.
-  unsigned AdjustOffsetForAutoSpacing(unsigned offset, float position) const;
+  unsigned AdjustOffsetForAutoSpacing(float spacing_width,
+                                      unsigned offset,
+                                      float position) const;
 
   // Append a copy of a range within an existing result to another result.
   //
@@ -347,10 +350,12 @@ class PLATFORM_EXPORT ShapeResult : public GarbageCollected<ShapeResult> {
 
   // Computes the list of fonts along with the number of glyphs for each font.
   struct RunFontData {
-    SimpleFontData* font_data_;
+    DISALLOW_NEW();
+    void Trace(Visitor* visitor) const { visitor->Trace(font_data_); }
+    Member<SimpleFontData> font_data_;
     wtf_size_t glyph_count_;
   };
-  void GetRunFontData(Vector<RunFontData>* font_data) const;
+  void GetRunFontData(HeapVector<RunFontData>* font_data) const;
 
   // Iterates over, and calls the specified callback function, for all the
   // glyphs. Also tracks (and returns) a seeded total advance.
@@ -510,7 +515,7 @@ class PLATFORM_EXPORT ShapeResult : public GarbageCollected<ShapeResult> {
   // index to x-position and O(log n) time, using binary search, from
   // x-position to character index.
   mutable HeapVector<ShapeResultCharacterData> character_position_;
-  scoped_refptr<const SimpleFontData> primary_font_;
+  Member<const SimpleFontData> primary_font_;
 
   unsigned start_index_;
   unsigned num_characters_;
@@ -565,5 +570,6 @@ PLATFORM_EXPORT std::ostream& operator<<(std::ostream&, const ShapeResult&);
 }  // namespace blink
 
 WTF_ALLOW_CLEAR_UNUSED_SLOTS_WITH_MEM_FUNCTIONS(blink::ShapeResult::ShapeRange)
+WTF_ALLOW_CLEAR_UNUSED_SLOTS_WITH_MEM_FUNCTIONS(blink::ShapeResult::RunFontData)
 
 #endif  // THIRD_PARTY_BLINK_RENDERER_PLATFORM_FONTS_SHAPING_SHAPE_RESULT_H_

@@ -390,6 +390,19 @@ void AdAuctionServiceImpl::RunAdAuction(
     return;
   }
 
+  // The `PageImpl` recorded at the construction of the AdAuctionServiceImpl has
+  // been invalidated or the current frame's `PageImpl` has changed to a
+  // different one, abort the auction.
+  // See crbug.com/1422301.
+  if (base::FeatureList::IsEnabled(features::kDetectInconsistentPageImpl) &&
+      (!GetFrame()->auction_initiator_page() ||
+       GetFrame()->auction_initiator_page().get() !=
+           &(GetFrame()->GetPage()))) {
+    std::move(callback).Run(/*aborted_by_script=*/false,
+                            /*config=*/std::nullopt);
+    return;
+  }
+
   auto* auction_result_metrics =
       AdAuctionResultMetrics::GetOrCreateForPage(render_frame_host().GetPage());
   if (!auction_result_metrics->ShouldRunAuction()) {
@@ -448,11 +461,9 @@ void AdAuctionServiceImpl::RunAdAuction(
           &AreAllowedReportingOriginsAttested,
           base::Unretained(render_frame_host().GetBrowserContext())),
       std::move(abort_receiver),
-      base::BindOnce(
-          &AdAuctionServiceImpl::OnAuctionComplete, base::Unretained(this),
-          std::move(callback), std::move(urn_uuid.value()),
-          fenced_frame_urls_map.unique_id(), GetFrame()->GetGlobalId(),
-          GetFrame()->GetPage().GetWeakPtrImpl()));
+      base::BindOnce(&AdAuctionServiceImpl::OnAuctionComplete,
+                     base::Unretained(this), std::move(callback),
+                     std::move(urn_uuid.value())));
   AuctionRunner* raw_auction = auction.get();
   auctions_.emplace(raw_auction, std::move(auction));
 }
@@ -524,7 +535,7 @@ void AdAuctionServiceImpl::DeprecatedGetURLFromURN(
 
 void AdAuctionServiceImpl::DeprecatedReplaceInURN(
     const GURL& urn_url,
-    std::vector<blink::mojom::AdKeywordReplacementPtr> replacements,
+    const std::vector<blink::AuctionConfig::AdKeywordReplacement>& replacements,
     DeprecatedReplaceInURNCallback callback) {
   if (!blink::IsValidUrnUuidURL(urn_url)) {
     ReportBadMessageAndDeleteThis("Unexpected request: invalid URN");
@@ -532,15 +543,8 @@ void AdAuctionServiceImpl::DeprecatedReplaceInURN(
   }
   std::vector<std::pair<std::string, std::string>> local_replacements;
   for (const auto& replacement : replacements) {
-    if (!(base::StartsWith(replacement->match, "${") &&
-          base::EndsWith(replacement->match, "}")) &&
-        !(base::StartsWith(replacement->match, "%%") &&
-          base::EndsWith(replacement->match, "%%"))) {
-      ReportBadMessageAndDeleteThis("Unexpected request: bad replacement");
-      return;
-    }
-    local_replacements.emplace_back(std::move(replacement->match),
-                                    std::move(replacement->replacement));
+    local_replacements.emplace_back(std::move(replacement.match),
+                                    std::move(replacement.replacement));
   }
   content::FencedFrameURLMapping& mapping =
       static_cast<RenderFrameHostImpl&>(render_frame_host())
@@ -669,7 +673,8 @@ void AdAuctionServiceImpl::PreconnectSocket(
   render_frame_host()
       .GetStoragePartition()
       ->GetNetworkContext()
-      ->PreconnectSockets(/*num_streams=*/1, url, /*allow_credentials=*/false,
+      ->PreconnectSockets(/*num_streams=*/1, url,
+                          network::mojom::CredentialsMode::kOmit,
                           network_anonymization_key);
 }
 
@@ -723,7 +728,24 @@ AdAuctionServiceImpl::AdAuctionServiceImpl(
           this),
       auction_nonce_manager_(GetFrame()),
       private_aggregation_manager_(PrivateAggregationManager::GetManager(
-          *render_frame_host.GetBrowserContext())) {}
+          *render_frame_host.GetBrowserContext())) {
+  // Throughout the auction, the `PageImpl` of the frame which initiates the
+  // auction should stay the same. When an inconsistency is detected, the
+  // auction must be aborted. This is done by storing a weak pointer to the
+  // `PageImpl`. It is verified at various stages of the auction.
+  //
+  // Note: `AdAuctionServiceImpl` is constructed upon the first call of a
+  // Protected Audience API. This is why the weak pointer is set here instead of
+  // during frame's `RenderFrameHostImpl` construction.
+  //
+  // See crbug.com/1422301 for a scenario where `PageImpl` can change, and why
+  // this is problematic.
+  //
+  // TODO(crbug.com/936696): Once RenderDocument is launched, the `PageImpl`
+  // will not change. Remove all logics around this weak pointer.
+  GetFrame()->set_auction_initiator_page(
+      static_cast<PageImpl&>(render_frame_host.GetPage()).GetWeakPtrImpl());
+}
 
 AdAuctionServiceImpl::~AdAuctionServiceImpl() {
   while (!auctions_.empty()) {
@@ -812,9 +834,6 @@ bool AdAuctionServiceImpl::IsInterestGroupAPIAllowed(
 void AdAuctionServiceImpl::OnAuctionComplete(
     RunAdAuctionCallback callback,
     GURL urn_uuid,
-    FencedFrameURLMapping::Id fenced_frame_urls_map_id,
-    GlobalRenderFrameHostId render_frame_host_id,
-    const base::WeakPtr<PageImpl> page_impl,
     AuctionRunner* auction,
     bool aborted_by_script,
     std::optional<blink::InterestGroupKey> winning_group_key,
@@ -831,6 +850,18 @@ void AdAuctionServiceImpl::OnAuctionComplete(
   DCHECK(auction_it != auctions_.end());
   std::unique_ptr<AuctionRunner> owned_auction = std::move(auction_it->second);
   auctions_.erase(auction_it);
+
+  // The `PageImpl` recorded at the construction of the AdAuctionServiceImpl has
+  // been invalidated or the current frame's `PageImpl` has changed to a
+  // different one, abort the auction.
+  // See crbug.com/1422301.
+  if (base::FeatureList::IsEnabled(features::kDetectInconsistentPageImpl) &&
+      (!GetFrame()->auction_initiator_page() ||
+       GetFrame()->auction_initiator_page().get() !=
+           &(GetFrame()->GetPage()))) {
+    std::move(callback).Run(aborted_by_script, /*config=*/std::nullopt);
+    return;
+  }
 
   // Forward debug information to devtools.
   for (const std::string& error : errors) {
@@ -877,31 +908,6 @@ void AdAuctionServiceImpl::OnAuctionComplete(
                                          winning_group_key->name};
   FencedFrameURLMapping& current_fenced_frame_urls_map =
       GetFrame()->GetPage().fenced_frame_urls_map();
-  // TODO(crbug.com/1422301): The auction must operate on the same fenced frame
-  // mapping that was used at the beginning of the auction. If not, we fail the
-  // auction. Once the issue fixed, convert it back to a CHECK.
-  //
-  // The fenced frame mapping may be changed because:
-  // 1. The render frame host has changed.
-  // 2. The page owned by the render frame host has changed.
-  // 3. The fenced frame mapping of the page has changed.
-  //
-  // From crash reports, we find the RenderFrameHostImpl is the same during the
-  // auction. However, PageImpl has changed, so FencedFrameUrlMapping ends up
-  // also being different. The crash takes place when there exists a child frame
-  // for the auction. The main frame is active, and the child frame is running
-  // the unload handler.
-  if (IsAuctionExpectedToFail(fenced_frame_urls_map_id, render_frame_host_id,
-                              page_impl)) {
-    // At least one of the RenderFrameHostImpl, PageImpl and the
-    // FencedFrameUrlMapping has changed during the auction.
-    if (auction_result_metrics) {
-      auction_result_metrics->ReportAuctionResult(
-          AdAuctionResultMetrics::AuctionResult::kFailed);
-    }
-    std::move(callback).Run(aborted_by_script, /*config=*/std::nullopt);
-    return;
-  }
 
   // Set up reporting for any fenced frame that's navigated to the winning bid's
   // URL. Use a URLLoaderFactory that will automatically reconnect on network
@@ -1006,9 +1012,6 @@ void AdAuctionServiceImpl::ReturnEmptyGetInterestGroupAdAuctionDataCallback(
 
 void AdAuctionServiceImpl::LoadAuctionDataAndKeyForNextQueuedRequest() {
   BiddingAndAuctionDataConstructionState& state = ba_data_callbacks_.front();
-  scoped_refptr<network::WrapperSharedURLLoaderFactory> loader =
-      GetRefCountedTrustedURLLoaderFactory();
-  network::WrapperSharedURLLoaderFactory* loader_ptr = loader.get();
 
   GetInterestGroupManager().GetInterestGroupAdAuctionData(
       GetTopWindowOrigin(),
@@ -1019,10 +1022,9 @@ void AdAuctionServiceImpl::LoadAuctionDataAndKeyForNextQueuedRequest() {
   // GetBiddingAndAuctionServerKey can call its callback synchronously, so we
   // need to call it last in case it invalidates `state`.
   GetInterestGroupManager().GetBiddingAndAuctionServerKey(
-      loader_ptr, std::move(state.coordinator),
+      GetRefCountedTrustedURLLoaderFactory(), std::move(state.coordinator),
       base::BindOnce(&AdAuctionServiceImpl::OnGotBiddingAndAuctionServerKey,
-                     weak_ptr_factory_.GetWeakPtr(), state.request_id,
-                     std::move(loader)));
+                     weak_ptr_factory_.GetWeakPtr(), state.request_id));
 }
 
 void AdAuctionServiceImpl::OnGotAuctionData(base::Uuid request_id,
@@ -1040,7 +1042,6 @@ void AdAuctionServiceImpl::OnGotAuctionData(base::Uuid request_id,
 
 void AdAuctionServiceImpl::OnGotBiddingAndAuctionServerKey(
     base::Uuid request_id,
-    scoped_refptr<network::WrapperSharedURLLoaderFactory> loader,
     base::expected<BiddingAndAuctionServerKey, std::string> maybe_key) {
   if (ba_data_callbacks_.empty() ||
       request_id != ba_data_callbacks_.front().request_id) {
@@ -1102,7 +1103,8 @@ void AdAuctionServiceImpl::OnGotAuctionDataAndKey(base::Uuid request_id) {
       .GetStoragePartition()
       ->GetNetworkContext()
       ->PreconnectSockets(
-          /*num_streams=*/1, state.seller.GetURL(), /*allow_credentials=*/true,
+          /*num_streams=*/1, state.seller.GetURL(),
+          network::mojom::CredentialsMode::kInclude,
           render_frame_host()
               .GetIsolationInfoForSubresources()
               .network_anonymization_key());
@@ -1163,21 +1165,6 @@ url::Origin AdAuctionServiceImpl::GetTopWindowOrigin() const {
     return origin();
   }
   return render_frame_host().GetMainFrame()->GetLastCommittedOrigin();
-}
-
-bool AdAuctionServiceImpl::IsAuctionExpectedToFail(
-    FencedFrameURLMapping::Id fenced_frame_urls_map_id,
-    GlobalRenderFrameHostId render_frame_host_id,
-    const base::WeakPtr<PageImpl> page_impl) {
-  bool render_frame_host_impl_mismatch =
-      render_frame_host_id != GetFrame()->GetGlobalId();
-  bool page_impl_mismatch = page_impl.get() != &(GetFrame()->GetPage());
-  bool fenced_frame_url_mapping_mismatch =
-      fenced_frame_urls_map_id !=
-      GetFrame()->GetPage().fenced_frame_urls_map().unique_id();
-
-  return render_frame_host_impl_mismatch || page_impl_mismatch ||
-         fenced_frame_url_mapping_mismatch;
 }
 
 }  // namespace content

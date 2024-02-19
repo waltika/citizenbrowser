@@ -56,6 +56,10 @@
 
 namespace exo {
 
+BASE_FEATURE(kExoDisableBeginFrameAcks,
+             "ExoDisableBeginFrameAcks",
+             base::FEATURE_ENABLED_BY_DEFAULT);
+
 namespace {
 
 class CustomWindowTargeter : public aura::WindowTargeter {
@@ -556,6 +560,12 @@ SurfaceTreeHost::CreateLayerTreeFrameSink() {
     logged_once = true;
   }
 
+  // Disable merge of frame acks with begin frame so that clients of exo can
+  // get frame callbacks and resources reclaimed as soon as possible.
+  if (base::FeatureList::IsEnabled(kExoDisableBeginFrameAcks)) {
+    params.wants_begin_frame_acks = false;
+  }
+
   params.auto_needs_begin_frame =
       base::FeatureList::IsEnabled(kExoReactiveFrameSubmission) &&
       base::FeatureList::IsEnabled(kExoAutoNeedsBeginFrame);
@@ -784,7 +794,6 @@ void SurfaceTreeHost::ApplyAndPropagateRoundedCornersToSurfaceTree(
     Surface* surface,
     const gfx::RRectF& rounded_corners_bounds) {
   surface->SetRoundedCorners(rounded_corners_bounds,
-                             /*is_root_coordinates=*/false,
                              /*commit_override=*/true);
   for (auto& sub_surface_entry : surface->sub_surfaces()) {
     // Convert the rounded corners bounds to sub_surface local coordinates by

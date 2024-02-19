@@ -44,6 +44,25 @@ const base::FeatureParam<int> kTopK{
     &optimization_guide::features::kOptimizationGuideOnDeviceModel,
     "on_device_model_topk", 3};
 
+const base::FeatureParam<bool> kPreferTextureWeights{
+    &optimization_guide::features::kOptimizationGuideOnDeviceModel,
+    "on_device_model_prefer_texture_weights", true};
+
+const base::FeatureParam<bool> kEnableHostMappedPointer{
+    &optimization_guide::features::kOptimizationGuideOnDeviceModel,
+    "on_device_model_enable_host_mapped_pointer",
+#if BUILDFLAG(IS_WIN)
+    // TODO(cduvall): Figure out why host mapped pointer is slower on Win.
+    false
+#else
+    true
+#endif
+};
+
+const base::FeatureParam<bool> kUseLowPower{
+    &optimization_guide::features::kOptimizationGuideOnDeviceModel,
+    "on_device_model_use_low_power", false};
+
 // Helper to bind object methods as weak task-posting callback functions.
 template <typename R, typename C, typename... Args>
 std::function<R(Args...)> CreateWeakCallbackFn(R (C::*method)(Args...),
@@ -363,20 +382,11 @@ base::expected<uint32_t, LoadModelResult> OnDeviceModelExecutor::LoadAdaptation(
     return base::unexpected(LoadModelResult::kFailedToLoadLibrary);
   }
 
-  auto weights = std::make_unique<base::MemoryMappedFile>();
-  if (!assets.weights.IsValid() ||
-      !weights->Initialize(std::move(assets.weights),
-                           base::MemoryMappedFile::READ_WRITE_COPY)) {
-    LOG(ERROR) << "Unable to load weights";
-    return base::unexpected(LoadModelResult::kFailedToLoadLibrary);
-  }
-
   uint32_t id;
   const ChromeMLModelData data = {
       .model_proto_data = model_proto->data(),
       .model_proto_size = model_proto->length(),
-      .weights_data = weights->mutable_bytes().data(),
-      .weights_size = weights->length(),
+      .weights_file = assets.weights.TakePlatformFile(),
   };
   ChromeMLAdaptationDescriptor descriptor = {
       .model_data = &data,
@@ -385,7 +395,6 @@ base::expected<uint32_t, LoadModelResult> OnDeviceModelExecutor::LoadAdaptation(
     return base::unexpected(LoadModelResult::kFailedToLoadLibrary);
   }
   adaptation_data_.push_back(std::move(model_proto));
-  adaptation_data_.push_back(std::move(weights));
   return base::ok(id);
 }
 
@@ -410,14 +419,6 @@ LoadModelResult OnDeviceModelExecutor::Init(
     return LoadModelResult::kFailedToLoadLibrary;
   }
 
-  weights_ = std::make_unique<base::MemoryMappedFile>();
-  if (!assets.weights.IsValid() ||
-      !weights_->Initialize(std::move(assets.weights),
-                            base::MemoryMappedFile::READ_WRITE_COPY)) {
-    LOG(ERROR) << "Unable to load weights";
-    return LoadModelResult::kFailedToLoadLibrary;
-  }
-
   if (assets.ts_data.IsValid()) {
     if (!ts_data_.Initialize(std::move(assets.ts_data)) ||
         !assets.ts_sp_model.IsValid() ||
@@ -438,15 +439,11 @@ LoadModelResult OnDeviceModelExecutor::Init(
 
   auto model_proto_dispose =
       CreateWeakCallbackFn(&OnDeviceModelExecutor::DisposeModelProto, this);
-  auto weights_dispose =
-      CreateWeakCallbackFn(&OnDeviceModelExecutor::DisposeWeights, this);
   const ChromeMLModelData data = {
       .model_proto_data = model_proto_->data(),
       .model_proto_size = model_proto_->length(),
       .model_proto_dispose = &model_proto_dispose,
-      .weights_data = weights_->mutable_bytes().data(),
-      .weights_size = weights_->length(),
-      .weights_dispose = &weights_dispose,
+      .weights_file = assets.weights.TakePlatformFile(),
   };
   auto sentencepiece_model_proto_dispose =
       CreateWeakCallbackFn(&OnDeviceModelExecutor::DisposeSentencepiece, this);
@@ -461,6 +458,9 @@ LoadModelResult OnDeviceModelExecutor::Init(
       .ts_dimension = params->ts_dimension.value_or(0),
       .adaptation_ranks = params->adaptation_ranks.data(),
       .adaptation_ranks_size = params->adaptation_ranks.size(),
+      .prefer_texture_weights = kPreferTextureWeights.Get(),
+      .enable_host_mapped_pointer = kEnableHostMappedPointer.Get(),
+      .use_low_power = kUseLowPower.Get(),
   };
   if (ts_data_.IsValid()) {
     CHECK(ts_sp_model_.IsValid());
@@ -482,10 +482,6 @@ void OnDeviceModelExecutor::DisposeSentencepiece() {
 
 void OnDeviceModelExecutor::DisposeModelProto() {
   model_proto_ = nullptr;
-}
-
-void OnDeviceModelExecutor::DisposeWeights() {
-  weights_ = nullptr;
 }
 
 // static

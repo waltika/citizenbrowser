@@ -87,14 +87,13 @@ public class ConfirmSyncDataIntegrationTest extends BlankUiTestActivityTestCase 
     @Before
     public void setUp() {
         IdentityServicesProvider.setInstanceForTests(mIdentityServicesProviderMock);
-        Profile.setLastUsedProfileForTesting(mProfile);
         when(IdentityServicesProvider.get().getSigninManager(any())).thenReturn(mSigninManagerMock);
         mDelegate =
                 TestThreadUtils.runOnUiThreadBlockingNoException(
                         () -> {
                             return new ConfirmSyncDataStateMachineDelegate(
                                     getActivity(),
-                                    getActivity().getSupportFragmentManager(),
+                                    mProfile,
                                     new ModalDialogManager(
                                             new AppModalPresenter(getActivity()),
                                             ModalDialogType.APP));
@@ -182,7 +181,11 @@ public class ConfirmSyncDataIntegrationTest extends BlankUiTestActivityTestCase 
                 () -> {
                     ConfirmSyncDataStateMachine stateMachine =
                             new ConfirmSyncDataStateMachine(
-                                    mDelegate, oldAccountName, newAccountName, mListenerMock);
+                                    mProfile,
+                                    mDelegate,
+                                    oldAccountName,
+                                    newAccountName,
+                                    mListenerMock);
                 });
     }
 

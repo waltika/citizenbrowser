@@ -133,7 +133,7 @@ class MockSessionWrapper
   raw_ref<MockSession> session_;
 };
 
-class MockComposeDialog : public compose::mojom::ComposeDialog {
+class MockComposeDialog : public compose::mojom::ComposeUntrustedDialog {
  public:
   MOCK_METHOD(void,
               ResponseReceived,
@@ -250,19 +250,19 @@ class ChromeComposeClientTest : public BrowserWithTestWindowTest {
     client_page_handler_.reset();
     page_handler_.reset();
     // Setup Dialog Page Handler.
-    mojo::PendingReceiver<compose::mojom::ComposeClientPageHandler>
+    mojo::PendingReceiver<compose::mojom::ComposeClientUntrustedPageHandler>
         client_page_handler_pending_receiver =
             client_page_handler_.BindNewPipeAndPassReceiver();
-    mojo::PendingReceiver<compose::mojom::ComposeSessionPageHandler>
+    mojo::PendingReceiver<compose::mojom::ComposeSessionUntrustedPageHandler>
         page_handler_pending_receiver =
             page_handler_.BindNewPipeAndPassReceiver();
 
     // Setup Compose Dialog.
     callback_router_.reset();
-    callback_router_ =
-        std::make_unique<mojo::Receiver<compose::mojom::ComposeDialog>>(
-            &compose_dialog());
-    mojo::PendingRemote<compose::mojom::ComposeDialog>
+    callback_router_ = std::make_unique<
+        mojo::Receiver<compose::mojom::ComposeUntrustedDialog>>(
+        &compose_dialog());
+    mojo::PendingRemote<compose::mojom::ComposeUntrustedDialog>
         callback_router_pending_remote =
             callback_router_->BindNewPipeAndPassRemote();
 
@@ -292,14 +292,15 @@ class ChromeComposeClientTest : public BrowserWithTestWindowTest {
     return browser()->tab_strip_model()->GetWebContentsAt(0);
   }
 
-  mojo::Remote<compose::mojom::ComposeClientPageHandler>&
+  mojo::Remote<compose::mojom::ComposeClientUntrustedPageHandler>&
   client_page_handler() {
     return client_page_handler_;
   }
 
   ukm::TestAutoSetUkmRecorder& ukm_recorder() { return *ukm_recorder_; }
 
-  mojo::Remote<compose::mojom::ComposeSessionPageHandler>& page_handler() {
+  mojo::Remote<compose::mojom::ComposeSessionUntrustedPageHandler>&
+  page_handler() {
     return page_handler_;
   }
 
@@ -403,11 +404,13 @@ class ChromeComposeClientTest : public BrowserWithTestWindowTest {
   base::HistogramTester histogram_tester_;
   base::UserActionTester user_action_tester_;
 
-  std::unique_ptr<mojo::Receiver<compose::mojom::ComposeDialog>>
+  std::unique_ptr<mojo::Receiver<compose::mojom::ComposeUntrustedDialog>>
       callback_router_;
   std::unique_ptr<ukm::TestAutoSetUkmRecorder> ukm_recorder_;
-  mojo::Remote<compose::mojom::ComposeClientPageHandler> client_page_handler_;
-  mojo::Remote<compose::mojom::ComposeSessionPageHandler> page_handler_;
+  mojo::Remote<compose::mojom::ComposeClientUntrustedPageHandler>
+      client_page_handler_;
+  mojo::Remote<compose::mojom::ComposeSessionUntrustedPageHandler>
+      page_handler_;
   std::unique_ptr<base::ScopedMockElapsedTimersForTest> test_timer_;
   ComposeEnabling::ScopedOverride scoped_compose_enabled_;
 };
@@ -448,11 +451,21 @@ TEST_F(ChromeComposeClientTest, TestCompose) {
                                   compose::mojom::ComposeStatus::kOk, 1);
 
   // Check that a request duration OK metric was emitted.
-  histograms().ExpectTotalCount(compose::kComposeRequestDurationOk, 1);
-  histograms().ExpectTotalCount("Compose.Server.Duration.Ok", 1);
+  histograms().ExpectTotalCount(
+      base::StrCat({"Compose", compose::kComposeRequestDurationOkSuffix}), 1);
+  histograms().ExpectTotalCount(
+      base::StrCat(
+          {"Compose.Server", compose::kComposeRequestDurationOkSuffix}),
+      1);
 
-  // Check that a no request duration Error metric was emitted.
-  histograms().ExpectTotalCount(compose::kComposeRequestDurationError, 0);
+  // Check that a no request duration Error metrics were emitted.
+  histograms().ExpectTotalCount(
+      base::StrCat({"Compose", compose::kComposeRequestDurationErrorSuffix}),
+      0);
+  histograms().ExpectTotalCount(
+      base::StrCat(
+          {"Compose.Server", compose::kComposeRequestDurationErrorSuffix}),
+      0);
   // Check that the request metadata had a valid node offset.
   histograms().ExpectUniqueSample(
       compose::kInnerTextNodeOffsetFound,
@@ -725,9 +738,12 @@ TEST_F(ChromeComposeClientTest, TestComposeWithIncompleteResponsesAnimated) {
   histogram_tester.ExpectUniqueSample(compose::kComposeRequestStatus,
                                       compose::mojom::ComposeStatus::kOk, 1);
   // Check that a single request duration OK metric was emitted.
-  histogram_tester.ExpectTotalCount(compose::kComposeRequestDurationOk, 1);
+  histogram_tester.ExpectTotalCount(
+      base::StrCat({"Compose", compose::kComposeRequestDurationOkSuffix}), 1);
   // Check that no request duration Error metric was emitted.
-  histogram_tester.ExpectTotalCount(compose::kComposeRequestDurationError, 0);
+  histogram_tester.ExpectTotalCount(
+      base::StrCat({"Compose", compose::kComposeRequestDurationErrorSuffix}),
+      0);
 }
 
 TEST_F(ChromeComposeClientTest, TestComposeNoResultAnimation) {
@@ -837,9 +853,12 @@ TEST_F(ChromeComposeClientTest, TestComposeSessionIgnoresPreviousResponse) {
   histogram_tester.ExpectUniqueSample(compose::kComposeRequestStatus,
                                       compose::mojom::ComposeStatus::kOk, 1);
   // Check that a single request duration OK metric was emitted.
-  histogram_tester.ExpectTotalCount(compose::kComposeRequestDurationOk, 1);
+  histogram_tester.ExpectTotalCount(
+      base::StrCat({"Compose", compose::kComposeRequestDurationOkSuffix}), 1);
   // Check that no request duration Error metric was emitted.
-  histogram_tester.ExpectTotalCount(compose::kComposeRequestDurationError, 0);
+  histogram_tester.ExpectTotalCount(
+      base::StrCat({"Compose", compose::kComposeRequestDurationErrorSuffix}),
+      0);
 }
 
 TEST_F(ChromeComposeClientTest, TestComposeParams) {
@@ -961,9 +980,12 @@ TEST_F(ChromeComposeClientTest, TestComposeNoParsedAny) {
                                   compose::mojom::ComposeStatus::kNoResponse,
                                   1);
   // Check that a request duration Error metric was emitted.
-  histograms().ExpectTotalCount(compose::kComposeRequestDurationError, 1);
+  histograms().ExpectTotalCount(
+      base::StrCat({"Compose", compose::kComposeRequestDurationErrorSuffix}),
+      1);
   // Check that a no request duration OK metric was emitted.
-  histograms().ExpectTotalCount(compose::kComposeRequestDurationOk, 0);
+  histograms().ExpectTotalCount(
+      base::StrCat({"Compose", compose::kComposeRequestDurationOkSuffix}), 0);
 }
 
 TEST_F(ChromeComposeClientTest, TestOptimizationGuideDisabled) {
@@ -1102,7 +1124,7 @@ TEST_F(ChromeComposeClientTest, TestSaveThenComposeThenRestoreWebUIState) {
 }
 
 TEST_F(ChromeComposeClientTest, NoStateWorksAtChromeCompose) {
-  NavigateAndCommitActiveTab(GURL("chrome://compose"));
+  NavigateAndCommitActiveTab(GURL(chrome::kChromeUIUntrustedComposeUrl));
   // We skip the dialog showing here, as there is no dialog required at this
   // URL.
   BindMojo();
@@ -1159,10 +1181,10 @@ TEST_F(ChromeComposeClientTest, TestCancelMetrics) {
                   ukm::builders::Compose_SessionProgress::kCanceledName, 1)));
 }
 
-// Tests that closing the session at chrome://compose does not crash the
-// browser, even though there is no dialog shown at that URL.
+// Tests that closing the session at chrome-untrusted://compose does not crash
+// the browser, even though there is no dialog shown at that URL.
 TEST_F(ChromeComposeClientTest, TestCloseUIAtChromeCompose) {
-  NavigateAndCommitActiveTab(GURL("chrome://compose"));
+  NavigateAndCommitActiveTab(GURL(chrome::kChromeUIUntrustedComposeUrl));
   // We skip the dialog showing here, as there is no dialog required at this
   // URL.
   BindMojo();
@@ -2962,11 +2984,12 @@ TEST_F(ChromeComposeClientTest, TestCannotSendMessagesAfterClosingDialog) {
 }
 
 // Tests that the Compose client crashes the browser if a webcontents
-// sends any more messages after closing the dialog at chrome://contents.
+// sends any more messages after closing the dialog at
+// chrome-untrusted://compose.
 TEST_F(ChromeComposeClientTest,
        TestCannotSendMessagesAfterClosingDialogAtChromeCompose) {
   GTEST_FLAG_SET(death_test_style, "threadsafe");
-  NavigateAndCommitActiveTab(GURL("chrome://compose"));
+  NavigateAndCommitActiveTab(GURL(chrome::kChromeUIUntrustedComposeUrl));
   // We skip the dialog showing here, as there is no dialog required at this
   // URL.
   BindMojo();

@@ -4,24 +4,27 @@
 
 #include "ash/picker/picker_controller.h"
 
+#include <memory>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <variant>
-#include <vector>
 
 #include "ash/constants/ash_switches.h"
 #include "ash/picker/model/picker_search_results.h"
 #include "ash/picker/picker_asset_fetcher.h"
 #include "ash/picker/picker_asset_fetcher_impl.h"
+#include "ash/picker/picker_copy_media.h"
 #include "ash/picker/picker_insert_media_request.h"
+#include "ash/picker/picker_search_controller.h"
 #include "ash/picker/views/picker_view.h"
 #include "ash/picker/views/picker_view_delegate.h"
 #include "ash/public/cpp/ash_web_view_factory.h"
 #include "ash/public/cpp/picker/picker_client.h"
 #include "ash/public/cpp/picker/picker_search_result.h"
-#include "ash/resources/vector_icons/vector_icons.h"
 #include "ash/wm/window_util.h"
+#include "base/check.h"
+#include "base/check_is_test.h"
 #include "base/command_line.h"
 #include "base/functional/bind.h"
 #include "base/functional/overloaded.h"
@@ -36,9 +39,9 @@
 
 namespace ash {
 
-enum class AppListSearchResultType;
-
 namespace {
+
+bool g_should_check_key = true;
 
 // The hash value for the feature key of the Picker feature, used for
 // development.
@@ -55,6 +58,10 @@ constexpr std::string_view kPickerFeatureTestKeyHash(
 
 // Time from when the insert is issued and when we give up inserting.
 constexpr base::TimeDelta kInsertMediaTimeout = base::Seconds(2);
+
+// Time from when a start starts to when the first set of results are published.
+// TODO: b/325195938 - Lower this to 200ms without affecting results.
+constexpr base::TimeDelta kBurnInPeriod = base::Milliseconds(400);
 
 enum class PickerFeatureKeyType { kNone, kDev, kTest };
 
@@ -73,9 +80,6 @@ PickerFeatureKeyType MatchPickerFeatureKeyHash() {
   }
   return PickerFeatureKeyType::kNone;
 }
-
-// TODO: b/316936687 - Use the icons from real search results.
-const gfx::VectorIcon& kPlaceholderIcon = kCheckIcon;
 
 // Gets the current caret bounds in universal screen coordinates in DIP. Returns
 // an empty rect if there is no active caret or the caret bounds can't be
@@ -129,51 +133,16 @@ PickerInsertMediaRequest::MediaData ResultToInsertMediaData(
       result.data());
 }
 
-PickerSearchResults::Section GetFakeExpressionsSection() {
-  return PickerSearchResults::Section(
-      u"Matching expressions",
-      {{PickerSearchResult::Emoji(u"👍"), PickerSearchResult::Emoji(u"😊"),
-        PickerSearchResult::Symbol(u"⊃"), PickerSearchResult::Symbol(u"⊇"),
-        PickerSearchResult::Symbol(u"♬"),
-        PickerSearchResult::Emoticon(u"¯\\_(ツ)_/¯"),
-        PickerSearchResult::Gif(
-            GURL("https://media.tenor.com/BzfS_9uPq_AAAAAd/cat-bonfire.gif"),
-            gfx::Size(140, 140), u"gif")}});
-}
-
-PickerSearchResults::Section GetFakeLinksSection() {
-  return PickerSearchResults::Section(
-      u"Matching links",
-      {{
-          PickerSearchResult::BrowsingHistory(
-              GURL("http://www.foo.com"),
-              ui::ImageModel::FromVectorIcon(kPlaceholderIcon)),
-          PickerSearchResult::BrowsingHistory(
-              GURL("http://crbug.com"),
-              ui::ImageModel::FromVectorIcon(kPlaceholderIcon)),
-      }});
-}
-
-PickerSearchResults::Section GetFakeFilesSection() {
-  return PickerSearchResults::Section(
-      u"Matching files", {{PickerSearchResult::Text(u"my file"),
-                           PickerSearchResult::Text(u"my other file")}});
-}
-
-void HandleSearchResults(PickerViewDelegate::SearchResultsCallback callback,
-                         ash::AppListSearchResultType type,
-                         std::vector<PickerSearchResult> results) {
-  callback.Run(PickerSearchResults({{
-      GetFakeExpressionsSection(),
-      PickerSearchResults::Section(u"Matching links", results),
-      GetFakeFilesSection(),
-  }}));
+void MaybeCopyMediaToClipboard(const PickerSearchResult& result) {
+  if (const auto* gif =
+          std::get_if<PickerSearchResult::GifData>(&result.data())) {
+    CopyGifMediaToClipboard(gif->url, gif->content_description);
+  }
 }
 
 }  // namespace
 
-PickerController::PickerController()
-    : should_paint_(MatchPickerFeatureKeyHash() == PickerFeatureKeyType::kDev) {
+PickerController::PickerController() {
   asset_fetcher_ = std::make_unique<PickerAssetFetcherImpl>(base::BindRepeating(
       &PickerController::DownloadGifToString, weak_ptr_factory_.GetWeakPtr()));
   if (auto* manager = ash::input_method::InputMethodManager::Get()) {
@@ -190,6 +159,10 @@ PickerController::~PickerController() {
 }
 
 bool PickerController::IsFeatureKeyMatched() {
+  if (!g_should_check_key) {
+    return true;
+  }
+
   if (MatchPickerFeatureKeyHash() == PickerFeatureKeyType::kNone) {
     LOG(ERROR) << "Provided feature key does not match with the expected one.";
     return false;
@@ -198,8 +171,19 @@ bool PickerController::IsFeatureKeyMatched() {
   return true;
 }
 
+void PickerController::DisableFeatureKeyCheckForTesting() {
+  CHECK_IS_TEST();
+  g_should_check_key = false;
+}
+
 void PickerController::SetClient(PickerClient* client) {
   client_ = client;
+  if (client_ == nullptr) {
+    search_controller_ = nullptr;
+  } else {
+    search_controller_ =
+        std::make_unique<PickerSearchController>(client_, kBurnInPeriod);
+  }
 }
 
 void PickerController::ToggleWidget(
@@ -236,15 +220,9 @@ void PickerController::GetResultsForCategory(PickerCategory category,
 void PickerController::StartSearch(const std::u16string& query,
                                    std::optional<PickerCategory> category,
                                    SearchResultsCallback callback) {
-  // Show fake results while we wait for a response from CrOS Search.
-  // TODO: b/324154537 - Show a loading animation instead.
-  callback.Run(PickerSearchResults({{
-      GetFakeExpressionsSection(),
-      GetFakeLinksSection(),
-      GetFakeFilesSection(),
-  }}));
-  client_->StartCrosSearch(
-      query, base::BindRepeating(&HandleSearchResults, std::move(callback)));
+  CHECK(search_controller_);
+  search_controller_->StartSearch(query, std::move(category),
+                                  std::move(callback));
 }
 
 void PickerController::InsertResultOnNextFocus(
@@ -260,11 +238,8 @@ void PickerController::InsertResultOnNextFocus(
 
   // This cancels the previous request if there was one.
   insert_media_request_ = std::make_unique<PickerInsertMediaRequest>(
-      input_method, ResultToInsertMediaData(result), kInsertMediaTimeout);
-}
-
-bool PickerController::ShouldPaint() {
-  return should_paint_;
+      input_method, ResultToInsertMediaData(result), kInsertMediaTimeout,
+      base::BindOnce(&MaybeCopyMediaToClipboard, result));
 }
 
 PickerAssetFetcher* PickerController::GetAssetFetcher() {

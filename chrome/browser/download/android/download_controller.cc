@@ -35,12 +35,12 @@
 #include "chrome/browser/permissions/permission_update_message_controller_android.h"
 #include "chrome/browser/ui/android/tab_model/tab_model.h"
 #include "chrome/browser/ui/android/tab_model/tab_model_list.h"
-#include "chrome/common/pdf_util.h"
 #include "chrome/grit/branded_strings.h"
 #include "components/download/content/public/context_menu_download.h"
 #include "components/download/public/common/android/auto_resumption_handler.h"
 #include "components/infobars/content/content_infobar_manager.h"
 #include "components/messages/android/messages_feature.h"
+#include "components/pdf/common/constants.h"
 #include "components/strings/grit/components_strings.h"
 #include "content/public/browser/browser_context.h"
 #include "content/public/browser/browser_task_traits.h"
@@ -49,6 +49,7 @@
 #include "content/public/browser/download_manager.h"
 #include "content/public/browser/render_process_host.h"
 #include "content/public/browser/render_view_host.h"
+#include "content/public/common/content_features.h"
 #include "net/base/filename_util.h"
 #include "ui/android/view_android.h"
 #include "ui/android/window_android.h"
@@ -227,8 +228,9 @@ void DownloadController::CloseTabIfEmpty(content::WebContents* web_contents,
     return;
   }
 
-  if (base::FeatureList::IsEnabled(chrome::android::kOpenPdfInline) &&
-      base::EqualsCaseInsensitiveASCII(download->GetMimeType(), kPDFMimeType)) {
+  if (base::FeatureList::IsEnabled(features::kAndroidOpenPdfInline) &&
+      base::EqualsCaseInsensitiveASCII(download->GetMimeType(),
+                                       pdf::kPDFMimeType)) {
     return;
   }
 
@@ -344,8 +346,8 @@ void DownloadController::OnDownloadStarted(DownloadItem* download_item) {
   // For dangerous downloads, we need to show the dangerous infobar before the
   // download can start.
   if (!download_item->IsDangerous() &&
-      download_item->GetMimeType() == kPDFMimeType &&
-      base::FeatureList::IsEnabled(chrome::android::kOpenPdfInline)) {
+      download_item->GetMimeType() == pdf::kPDFMimeType &&
+      base::FeatureList::IsEnabled(features::kAndroidOpenPdfInline)) {
     content::WebContents* web_contents =
         content::DownloadItemUtils::GetWebContents(download_item);
     if (web_contents) {

@@ -75,6 +75,7 @@
 <translation id="2702250627063295552">将阅读清单项添加到 Chrome</translation>
 <translation id="2703746758996815929">若要获取实用 Chrome 提示，请在 iOS 设置中开启通知。</translation>
 <translation id="2736805085127235148">目前，在您的设备设置中，Chrome 通知功能处于关闭状态。</translation>
+<translation id="2750626042242931740">您可以随时在 Chrome 设置中更新您的选择。</translation>
 <translation id="2767464022270041271">尚未保存任何密码。您需要先保存密码，然后才能使用 Google 密码管理工具的密码检查功能。</translation>
 <translation id="2789947168960170215">如果您忘记了口令或想更改此设置，请<ph name="BEGIN_LINK" />清除账号中的 Chrome 数据<ph name="END_LINK" />。</translation>
 <translation id="2868822340714096138">清除 Chrome 中的浏览数据</translation>
@@ -226,6 +227,7 @@
 <translation id="7261678641327190792">Chrome 无法检查您的密码</translation>
 <translation id="7272930098487145294">若要保存图片，请点按“设置”并允许 Chrome 添加照片</translation>
 <translation id="7275945473750112644">您的账号是由 <ph name="HOSTED_DOMAIN" /> 管理，所以您在此设备上存储的 Chrome 数据将会被清除</translation>
+<translation id="7304491752269485262">Chrome 自动填充展开视图</translation>
 <translation id="7349129508108954623">允许 Chrome 使用 Google 地图针对检测到的地址为您提供路线和当地信息。</translation>
 <translation id="7394108421562933108">Chrome 中的地图</translation>
 <translation id="7400722733683201933">关于Google Chrome</translation>

@@ -78,10 +78,9 @@ struct SameSizeAsRunInfo {
 ASSERT_SIZE(ShapeResult::RunInfo, SameSizeAsRunInfo);
 
 struct SameSizeAsShapeResult {
-  float width;
-  UntracedMember<void*> member;
   Vector<int> vectors[2];
-  void* pointer;
+  UntracedMember<void*> members[2];
+  float width;
   unsigned integers[2];
   unsigned bitfields : 32;
 };
@@ -394,7 +393,7 @@ void ShapeResult::RunInfo::CharacterIndexForXPosition(
   }
 }
 
-ShapeResult::ShapeResult(scoped_refptr<const SimpleFontData> font_data,
+ShapeResult::ShapeResult(const SimpleFontData* font_data,
                          unsigned start_index,
                          unsigned num_characters,
                          TextDirection direction)
@@ -434,6 +433,7 @@ void ShapeResult::Trace(Visitor* visitor) const {
   visitor->Trace(deprecated_ink_bounds_);
   visitor->Trace(runs_);
   visitor->Trace(character_position_);
+  visitor->Trace(primary_font_);
 }
 
 size_t ShapeResult::ByteSize() const {
@@ -724,8 +724,7 @@ float ShapeResult::CaretPositionForOffset(
   return PositionForOffset(offset, adjust_mid_cluster);
 }
 
-bool ShapeResult::HasFallbackFonts() const {
-  const SimpleFontData* primary_font = PrimaryFont();
+bool ShapeResult::HasFallbackFonts(const SimpleFontData* primary_font) const {
   for (const Member<RunInfo>& run : runs_) {
     if (run->font_data_ != primary_font) {
       return true;
@@ -734,10 +733,10 @@ bool ShapeResult::HasFallbackFonts() const {
   return false;
 }
 
-void ShapeResult::GetRunFontData(Vector<RunFontData>* font_data) const {
+void ShapeResult::GetRunFontData(HeapVector<RunFontData>* font_data) const {
   for (const auto& run : runs_) {
     font_data->push_back(
-        RunFontData({run->font_data_.get(), run->glyph_data_.size()}));
+        RunFontData({run->font_data_.Get(), run->glyph_data_.size()}));
   }
 }
 
@@ -752,7 +751,7 @@ float ShapeResult::ForEachGlyphImpl(float initial_advance,
   for (const auto& glyph_data : run.glyph_data_) {
     glyph_callback(context, run.start_index_ + glyph_data.character_index,
                    glyph_data.glyph, *glyph_offsets, total_advance,
-                   is_horizontal, run.canvas_rotation_, run.font_data_.get());
+                   is_horizontal, run.canvas_rotation_, run.font_data_.Get());
     total_advance += glyph_data.advance;
     ++glyph_offsets;
   }
@@ -787,7 +786,7 @@ float ShapeResult::ForEachGlyphImpl(float initial_advance,
   auto total_advance = initial_advance;
   unsigned run_start = run.start_index_ + index_offset;
   bool is_horizontal = HB_DIRECTION_IS_HORIZONTAL(run.direction_);
-  const SimpleFontData* font_data = run.font_data_.get();
+  const SimpleFontData* font_data = run.font_data_.Get();
 
   if (run.IsLtr()) {  // Left-to-right
     for (const auto& glyph_data : run.glyph_data_) {
@@ -1166,6 +1165,7 @@ void ShapeResult::ApplyTextAutoSpacingCore(Iterator offset_begin,
 }
 
 const ShapeResult* ShapeResult::UnapplyAutoSpacing(
+    float spacing_width,
     unsigned start_offset,
     unsigned break_offset) const {
   DCHECK_GE(start_offset, StartIndex());
@@ -1182,31 +1182,28 @@ const ShapeResult* ShapeResult::UnapplyAutoSpacing(
       continue;
     }
     HarfBuzzRunGlyphData& last_glyph = run->glyph_data_.back();
-    DCHECK(PrimaryFont());
-    const float width = TextAutoSpace::GetSpacingWidth(*PrimaryFont());
-    DCHECK_GE(last_glyph.advance, width);
-    last_glyph.advance -= width;
-    run->width_ -= width;
-    sub_range->width_ -= width;
+    DCHECK_GE(last_glyph.advance, spacing_width);
+    last_glyph.advance -= spacing_width;
+    run->width_ -= spacing_width;
+    sub_range->width_ -= spacing_width;
     break;
   }
   return sub_range;
 }
 
-unsigned ShapeResult::AdjustOffsetForAutoSpacing(unsigned offset,
+unsigned ShapeResult::AdjustOffsetForAutoSpacing(float spacing_width,
+                                                 unsigned offset,
                                                  float position) const {
   DCHECK(!character_position_.empty());
   DCHECK(HasAutoSpacingAfter(offset));
-  DCHECK(PrimaryFont());
-  const float autospace_width = TextAutoSpace::GetSpacingWidth(*PrimaryFont());
   DCHECK_GE(offset, StartIndex());
   offset -= StartIndex();
   DCHECK_LT(offset, NumCharacters());
-  // If the next character fits in `position + autospace_width`, then advance
+  // If the next character fits in `position + spacing_width`, then advance
   // the break offset. The auto-spacing at line edges will be removed by
   // `UnapplyAutoSpacing`.
   if (IsLtr()) {
-    position += autospace_width;
+    position += spacing_width;
     if (offset + 1 < NumCharacters()) {
       const ShapeResultCharacterData& data = character_position_[offset + 1];
       if (data.x_position <= position) {
@@ -1218,7 +1215,7 @@ unsigned ShapeResult::AdjustOffsetForAutoSpacing(unsigned offset,
       }
     }
   } else {
-    position -= autospace_width;
+    position -= spacing_width;
     if (offset + 1 < NumCharacters()) {
       const ShapeResultCharacterData& data = character_position_[offset + 1];
       if (data.x_position >= position) {
@@ -1679,7 +1676,7 @@ unsigned ShapeResult::CopyRangeInternal(unsigned run_index,
 ShapeResult* ShapeResult::SubRange(unsigned start_offset,
                                    unsigned end_offset) const {
   ShapeResult* sub_range =
-      MakeGarbageCollected<ShapeResult>(primary_font_.get(), 0, 0, Direction());
+      MakeGarbageCollected<ShapeResult>(primary_font_.Get(), 0, 0, Direction());
   CopyRange(start_offset, end_offset, sub_range);
   return sub_range;
 }

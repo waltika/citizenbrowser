@@ -671,12 +671,36 @@ source_set("unit_tests") {
 
 if (enable_hevc_parser_and_hw_decoder) {
   fuzzer_test("media_h265_decoder_fuzzer") {
-    sources = [ "h265_decoder_fuzzertest.cc" ]
+    sources = [ "h265_decoder_fuzzer.cc" ]
     deps = [
       ":gpu",
       "//base",
       "//media",
     ]
+  }
+}
+
+fuzzer_test("media_h264_decoder_fuzzer") {
+  sources = [ "h264_decoder_fuzzer.cc" ]
+  deps = [
+    ":gpu",
+    "//base",
+    "//media",
+  ]
+  seed_corpuses = [ "//media/test/data" ]
+}
+
+# TODO(crbug.com/1006266): consider using |use_chromeos_video_acceleration|.
+if (use_v4l2_codec || use_vaapi) {
+  fuzzer_test("media_vp8_decoder_fuzzer") {
+    sources = [ "vp8_decoder_fuzzer.cc" ]
+    deps = [
+      ":common",
+      ":gpu",
+      "//base",
+      "//media",
+    ]
+    seed_corpuses = [ "//media/test/data" ]
   }
 }
 
@@ -689,4 +713,14 @@ if (use_av1_hw_decoder) {
       "//media",
     ]
   }
+}
+
+fuzzer_test("media_vp9_decoder_fuzzer") {
+  sources = [ "vp9_decoder_fuzzer.cc" ]
+  deps = [
+    ":gpu",
+    "//base",
+    "//media",
+  ]
+  seed_corpuses = [ "//media/test/data" ]
 }

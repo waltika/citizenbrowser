@@ -76,12 +76,12 @@ using ClearCookiesCallback = Storage::Backend::ClearCookiesCallback;
 using GetCookiesCallback = Storage::Backend::GetCookiesCallback;
 using SetCookiesCallback = Storage::Backend::SetCookiesCallback;
 
-struct CNUsageListInitializer {
+struct UsageListInitializer {
   const char* type;
   int64_t blink::mojom::UsageBreakdown::*usage_member;
 };
 
-CNUsageListInitializer cn_initializers[] = {
+UsageListInitializer cninitializers[] = {
     {Storage::StorageTypeEnum::File_systems,
      &blink::mojom::UsageBreakdown::fileSystem},
     {Storage::StorageTypeEnum::Websql, &blink::mojom::UsageBreakdown::webSql},
@@ -111,7 +111,7 @@ void ReportUsageAndQuotaDataOnUIThread(
   auto usageList = std::make_unique<Array<Storage::UsageForType>>();
 
   blink::mojom::UsageBreakdown* breakdown_ptr = usage_breakdown.get();
-  for (const auto initializer : cn_initializers) {
+  for (const auto initializer : cninitializers) {
     std::unique_ptr<Storage::UsageForType> entry =
         Storage::UsageForType::Create()
             .SetStorageType(initializer.type)
@@ -1062,11 +1062,11 @@ void CNStorageHandler::OnInterestGroupAccessed(
     case AccessType::kClear:
       type_enum = Storage::InterestGroupAccessTypeEnum::Clear;
       break;
-    case AccessType::kTopLevelAdditionalBid:
-      type_enum = Storage::InterestGroupAccessTypeEnum::TopLevelAdditionalBid;
-      break;
     case AccessType::kTopLevelBid:
       type_enum = Storage::InterestGroupAccessTypeEnum::TopLevelBid;
+      break;
+    case AccessType::kTopLevelAdditionalBid:
+      type_enum = Storage::InterestGroupAccessTypeEnum::TopLevelAdditionalBid;
       break;
   };
   frontend_->InterestGroupAccessed(
@@ -1243,6 +1243,10 @@ void SendSharedStorageMetadata(
     error_message += "Unable to retrieve `remainingBudget`. ";
   }
 
+  if (metadata.bytes_used == -1) {
+    error_message += "Unable to retrieve `bytes_used`. ";
+  }
+
   if (!error_message.empty()) {
     callback->sendFailure(Response::ServerError(error_message));
     return;
@@ -1253,6 +1257,7 @@ void SendSharedStorageMetadata(
           .SetLength(metadata.length)
           .SetCreationTime(metadata.creation_time.InSecondsFSinceUnixEpoch())
           .SetRemainingBudget(metadata.remaining_budget)
+          .SetBytesUsed(metadata.bytes_used)
           .Build();
 
   callback->sendSuccess(std::move(protocol_metadata));
@@ -2033,16 +2038,37 @@ ToAggregatableTriggerData(
   return out;
 }
 
-std::unique_ptr<Array<Storage::AttributionReportingAggregatableValueEntry>>
-ToAggregatableValueEntries(
-    const attribution_reporting::AggregatableValues& values) {
+std::unique_ptr<Array<Storage::AttributionReportingAggregatableValueDictEntry>>
+ToAggregatableValueDictEntries(
+    const attribution_reporting::AggregatableValues::Values&
+        aggregatable_value) {
   auto out = std::make_unique<
-      Array<Storage::AttributionReportingAggregatableValueEntry>>();
-  for (const auto& [key, value] : values.values()) {
+      Array<Storage::AttributionReportingAggregatableValueDictEntry>>();
+  out->reserve(aggregatable_value.size());
+  for (const auto& [key, value] : aggregatable_value) {
     out->emplace_back(
-        Storage::AttributionReportingAggregatableValueEntry::Create()
+        Storage::AttributionReportingAggregatableValueDictEntry::Create()
             .SetKey(key)
             .SetValue(value)
+            .Build());
+  }
+
+  return out;
+}
+
+std::unique_ptr<Array<Storage::AttributionReportingAggregatableValueEntry>>
+ToAggregatableValueEntries(
+    const std::vector<attribution_reporting::AggregatableValues>&
+        aggregatable_values) {
+  auto out = std::make_unique<
+      Array<Storage::AttributionReportingAggregatableValueEntry>>();
+  out->reserve(aggregatable_values.size());
+  for (const auto& aggregatable_value : aggregatable_values) {
+    out->emplace_back(
+        Storage::AttributionReportingAggregatableValueEntry::Create()
+            .SetValues(
+                ToAggregatableValueDictEntries(aggregatable_value.values()))
+            .SetFilters(ToFilterPair(aggregatable_value.filters()))
             .Build());
   }
 
@@ -2094,12 +2120,7 @@ void CNStorageHandler::OnSourceHandled(
           .SetAggregationKeys(
               ToAggregationKeysEntries(registration.aggregation_keys))
           .SetExpiry(registration.expiry.InSeconds())
-          // TODO(crbug.com/1499890): Replace defaults with
-          // `registration.trigger_specs` once that field is added.
-          .SetTriggerSpecs(
-              ToTriggerSpecs(attribution_reporting::TriggerSpecs::Default(
-                  common_info.source_type(),
-                  registration.event_report_windows)))
+          .SetTriggerSpecs(ToTriggerSpecs(registration.trigger_specs))
           .SetAggregatableReportWindow(
               registration.aggregatable_report_window.InSeconds())
           .SetTriggerDataMatching(

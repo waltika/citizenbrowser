@@ -85,8 +85,6 @@ class CONTENT_EXPORT IndexedDBContextImpl
           client_state_checker_remote,
       const base::UnguessableToken& client_token,
       mojo::PendingReceiver<blink::mojom::IDBFactory> receiver) override;
-  void DeleteForStorageKey(const blink::StorageKey& storage_key,
-                           DeleteForStorageKeyCallback callback) override;
   void ForceClose(storage::BucketId bucket_id,
                   storage::mojom::ForceCloseReason reason,
                   base::OnceClosure callback) override;
@@ -112,12 +110,6 @@ class CONTENT_EXPORT IndexedDBContextImpl
                                   const std::string& key,
                                   const std::string& value,
                                   base::OnceClosure callback) override;
-  void GetBlobCountForTesting(const storage::BucketLocator& bucket_locator,
-                              GetBlobCountForTestingCallback callback) override;
-  void GetNextBlobNumberForTesting(
-      const storage::BucketLocator& bucket_locator,
-      int64_t database_id,
-      GetNextBlobNumberForTestingCallback callback) override;
   void GetPathForBlobForTesting(
       const storage::BucketLocator& bucket_locator,
       int64_t database_id,
@@ -174,7 +166,6 @@ class CONTENT_EXPORT IndexedDBContextImpl
   const base::FilePath GetFirstPartyDataPathForTesting() const;
 
   bool IsInMemoryContext() const { return base_data_path_.empty(); }
-  int GetBucketBlobFileCount(const storage::BucketLocator& bucket_locator);
 
   bool is_incognito() const { return base_data_path_.empty(); }
 
@@ -228,12 +219,6 @@ class CONTENT_EXPORT IndexedDBContextImpl
       base::OnceClosure closure,
       const std::optional<storage::BucketLocator>& bucket_locator);
 
-  void OnGotBucketsForDeletion(
-      base::OnceCallback<void(bool)> callback,
-      storage::QuotaErrorOr<std::set<storage::BucketInfo>> buckets);
-  void DoDeleteBucketData(const storage::BucketLocator& bucket_locator,
-                          base::OnceCallback<void(bool)> callback);
-
   // Always run immediately before destruction.
   void ShutdownOnIDBSequence();
 
@@ -278,8 +263,8 @@ class CONTENT_EXPORT IndexedDBContextImpl
   // Applies the given `callback` to all bucket contexts.
   void ForEachBucketContext(IndexedDBBucketContext::InstanceClosure callback);
 
-  // For usage reporting.
-  int64_t GetInMemoryDBSize(const storage::BucketLocator& bucket_locator) const;
+  // Calculates in-memory/incognito usage for usage reporting.
+  int64_t GetInMemorySize(const storage::BucketLocator& bucket_locator) const;
 
   std::vector<storage::BucketId> GetOpenBucketIdsForTesting() const;
 

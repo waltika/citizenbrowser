@@ -10,6 +10,7 @@
 #include <optional>
 #include <set>
 #include <sstream>
+#include <string_view>
 #include <utility>
 
 #include "ash/accessibility/accessibility_controller.h"
@@ -72,7 +73,6 @@
 #include "base/scoped_observation.h"
 #include "base/strings/strcat.h"
 #include "base/strings/string_number_conversions.h"
-#include "base/strings/string_piece.h"
 #include "base/strings/stringprintf.h"
 #include "base/system/sys_info.h"
 #include "base/task/bind_post_task.h"
@@ -594,6 +594,8 @@ std::string SetAllowedPref(Profile* profile,
     DCHECK(value.is_bool());
   } else if (pref_name == ash::prefs::kAccessibilityVirtualKeyboardEnabled) {
     DCHECK(value.is_bool());
+  } else if (pref_name == prefs::kDocumentScanAPITrustedExtensions) {
+    DCHECK(value.is_list());
   } else if (pref_name == ash::prefs::kEnableAutoScreenLock) {
     DCHECK(value.is_bool());
   } else if (pref_name == prefs::kLanguagePreloadEngines) {
@@ -1514,10 +1516,10 @@ ExtensionFunction::ResponseAction
 AutotestPrivateGetAllEnterprisePoliciesFunction::Run() {
   DVLOG(1) << "AutotestPrivateGetAllEnterprisePoliciesFunction";
 
-  auto client = std::make_unique<policy::ChromePolicyConversionsClient>(
-      browser_context());
   base::Value::Dict all_policies_dict =
-      policy::DictionaryPolicyConversions(std::move(client))
+      policy::PolicyConversions(
+          std::make_unique<policy::ChromePolicyConversionsClient>(
+              browser_context()))
           .EnableDeviceLocalAccountPolicies(true)
           .EnableDeviceInfo(true)
           .ToValueDict();
@@ -4809,7 +4811,7 @@ class AutotestPrivateInstallPWAForCurrentURLFunction::PWABannerObserver
 
     // If PWA is already loaded, call callback immediately.
     Installable installable =
-        app_banner_manager_->GetInstallableWebAppCheckResultForTesting();
+        app_banner_manager_->GetInstallableWebAppCheckResult();
     if (installable == Installable::kYes_Promotable ||
         installable == Installable::kYes_ByUserRequest) {
       observation_.Reset();
@@ -4822,10 +4824,10 @@ class AutotestPrivateInstallPWAForCurrentURLFunction::PWABannerObserver
 
   ~PWABannerObserver() override {}
 
-  void OnInstallableWebAppStatusUpdated() override {
-    Installable installable =
-        app_banner_manager_->GetInstallableWebAppCheckResultForTesting();
-    switch (installable) {
+  void OnInstallableWebAppStatusUpdated(
+      webapps::InstallableWebAppCheckResult result,
+      const std::optional<webapps::WebAppBannerData>& data) override {
+    switch (result) {
       case Installable::kNo:
         [[fallthrough]];
       case Installable::kNo_AlreadyInstalled:
@@ -4845,7 +4847,7 @@ class AutotestPrivateInstallPWAForCurrentURLFunction::PWABannerObserver
   }
 
  private:
-  using Installable = webapps::AppBannerManager::InstallableWebAppCheckResult;
+  using Installable = webapps::InstallableWebAppCheckResult;
 
   base::ScopedObservation<webapps::AppBannerManager,
                           webapps::AppBannerManager::Observer>
@@ -6666,7 +6668,7 @@ void AutotestPrivateInstallBruschettaFunction::OnInstallerFinish(
   if (result == bruschetta::BruschettaInstallResult::kSuccess) {
     Respond(NoArguments());
   } else {
-    Respond(Error(base::UTF16ToUTF8(base::StringPiece16(
+    Respond(Error(base::UTF16ToUTF8(std::u16string_view(
         bruschetta::BruschettaInstallResultString(result)))));
   }
 }

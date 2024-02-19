@@ -861,7 +861,6 @@ class LocalDeviceInstrumentationTestRun(
       timeout = min(MAX_BATCH_TEST_TIMEOUT,
                     FIXED_TEST_TIMEOUT_OVERHEAD + sum(timeouts))
     else:
-      assert test['is_junit4']
       test_name = instrumentation_test_instance.GetTestName(test)
       test_display_name = self._GetUniqueTestName(test)
 
@@ -1246,12 +1245,11 @@ class LocalDeviceInstrumentationTestRun(
     else:
       test_mtime = os.path.getmtime(test_apk_path)
 
-    if not self._test_instance.wait_for_java_debugger:
-      try:
-        return instrumentation_test_instance.GetTestsFromPickle(
-            pickle_path, test_mtime)
-      except instrumentation_test_instance.TestListPickleException as e:
-        logging.info('Could not get tests from pickle: %s', e)
+    try:
+      return instrumentation_test_instance.GetTestsFromPickle(
+          pickle_path, test_mtime)
+    except instrumentation_test_instance.TestListPickleException as e:
+      logging.info('Could not get tests from pickle: %s', e)
     logging.info('Getting tests by having %s list them.',
                  self._test_instance.junit4_runner_class)
     def list_tests(d):

@@ -42,6 +42,7 @@
 #include "third_party/blink/renderer/bindings/core/v8/v8_aria_notification_options.h"
 #include "third_party/blink/renderer/core/accessibility/ax_object_cache_base.h"
 #include "third_party/blink/renderer/core/accessibility/blink_ax_event_intent.h"
+#include "third_party/blink/renderer/core/aom/computed_accessible_node.h"
 #include "third_party/blink/renderer/core/editing/commands/selection_for_undo_step.h"
 #include "third_party/blink/renderer/core/execution_context/execution_context_lifecycle_observer.h"
 #include "third_party/blink/renderer/core/frame/local_frame_view.h"
@@ -501,15 +502,6 @@ class MODULES_EXPORT AXObjectCacheImpl
   // called, it will only retrieve objects that have changed since now.
   void SerializeLocationChanges(uint32_t reset_token) override;
 
-  // Searches the accessibility tree for plugin's root object and returns it.
-  // Returns an empty WebAXObject if no root object is present.
-  AXObject* GetPluginRoot() override {
-    ax_tree_source_->Freeze();
-    AXObject* result = ax_tree_source_->GetPluginRoot();
-    ax_tree_source_->Thaw();
-    return result;
-  }
-
   bool SerializeEntireTree(
       size_t max_node_count,
       base::TimeDelta timeout,
@@ -525,13 +517,13 @@ class MODULES_EXPORT AXObjectCacheImpl
           ax::mojom::blink::Action::kNone,
       const std::vector<ui::AXEventIntent>& event_intents = {}) override;
 
-  void SerializeDirtyObjectsAndEvents(
-      bool has_plugin_tree_source,
-      std::vector<ui::AXTreeUpdate>& updates,
-      std::vector<ui::AXEvent>& events,
-      bool& had_end_of_test_event,
-      bool& had_load_complete_messages,
-      bool& need_to_send_location_changes) override;
+  void SerializeDirtyObjectsAndEvents(WebPluginContainer* plugin_container,
+                                      std::vector<ui::AXTreeUpdate>& updates,
+                                      std::vector<ui::AXEvent>& events,
+                                      bool& had_end_of_test_event,
+                                      bool& had_load_complete_messages,
+                                      bool& need_to_send_location_changes,
+                                      bool& mark_plugin_subtree_dirty) override;
 
   void GetImagesToAnnotate(ui::AXTreeUpdate& updates,
                            std::vector<ui::AXNodeData*>& nodes) override;
@@ -609,6 +601,8 @@ class MODULES_EXPORT AXObjectCacheImpl
   // Used by outside classes, mainly RenderAccessibilityImpl, to inform
   // AXObjectCacheImpl that a serialization was sent.
   void OnSerializationStartSend() override;
+
+  ComputedAccessibleNode* GetOrCreateComputedAccessibleNode(AXID) override;
 
 #if DCHECK_IS_ON()
   // This is called after a node's included status changes, to update the
@@ -1117,6 +1111,10 @@ class MODULES_EXPORT AXObjectCacheImpl
   // insertion. The items in the vector are in the order that the operations
   // were made in.
   HashMap<AXID, WTF::Vector<TextChangedOperation>> text_operation_in_node_ids_;
+
+  // Used to keep track of which ComputedAccessibleNodes have already been
+  // instantiated in this document to avoid constructing duplicates.
+  HeapHashMap<AXID, Member<ComputedAccessibleNode>> computed_node_mapping_;
 
   // The source of the event that is currently being handled.
   ax::mojom::blink::EventFrom active_event_from_ =

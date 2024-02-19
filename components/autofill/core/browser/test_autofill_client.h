@@ -41,6 +41,7 @@
 #include "components/autofill/core/browser/payments/local_card_migration_manager.h"
 #include "components/autofill/core/browser/payments/mandatory_reauth_manager.h"
 #include "components/autofill/core/browser/payments/mock_iban_access_manager.h"
+#include "components/autofill/core/browser/payments/payments_window_manager.h"
 #include "components/autofill/core/browser/payments/test/mock_mandatory_reauth_manager.h"
 #include "components/autofill/core/browser/payments/test/test_credit_card_risk_based_authenticator.h"
 #include "components/autofill/core/browser/payments/test_payments_autofill_client.h"
@@ -132,7 +133,7 @@ class TestAutofillClientTemplate : public T {
     return test_personal_data_manager_.get();
   }
 
-  AutofillOptimizationGuide* GetAutofillOptimizationGuide() const override {
+  MockAutofillOptimizationGuide* GetAutofillOptimizationGuide() const override {
     return mock_autofill_optimization_guide_.get();
   }
 
@@ -172,7 +173,7 @@ class TestAutofillClientTemplate : public T {
     return otp_authenticator_.get();
   }
 
-  CreditCardRiskBasedAuthenticator* GetRiskBasedAuthenticator() override {
+  TestCreditCardRiskBasedAuthenticator* GetRiskBasedAuthenticator() override {
     if (!risk_based_authenticator_) {
       risk_based_authenticator_ =
           std::make_unique<TestCreditCardRiskBasedAuthenticator>(this);
@@ -204,28 +205,33 @@ class TestAutofillClientTemplate : public T {
           /*personal_data_manager=*/nullptr, /*history_service=*/nullptr,
           /*app_locale=*/"en-US"));
     }
-
     return form_data_importer_.get();
   }
 
-  payments::PaymentsAutofillClient* GetPaymentsAutofillClient() override {
+  payments::TestPaymentsAutofillClient* GetPaymentsAutofillClient() override {
     if (!payments_autofill_client_) {
       payments_autofill_client_ =
           std::make_unique<payments::TestPaymentsAutofillClient>();
     }
-
     return payments_autofill_client_.get();
   }
 
-  payments::PaymentsNetworkInterface* GetPaymentsNetworkInterface() override {
+  payments::TestPaymentsNetworkInterface* GetPaymentsNetworkInterface()
+      override {
     return payments_network_interface_.get();
   }
 
-  StrikeDatabase* GetStrikeDatabase() override {
+  payments::PaymentsWindowManager* GetPaymentsWindowManager() override {
+    return payments_window_manager_.get();
+  }
+
+  TestStrikeDatabase* GetStrikeDatabase() override {
     return test_strike_database_.get();
   }
 
-  ukm::UkmRecorder* GetUkmRecorder() override { return &test_ukm_recorder_; }
+  ukm::TestAutoSetUkmRecorder* GetUkmRecorder() override {
+    return &test_ukm_recorder_;
+  }
 
   ukm::SourceId GetUkmSourceId() override {
     if (source_id_ == -1) {
@@ -235,7 +241,7 @@ class TestAutofillClientTemplate : public T {
     return source_id_;
   }
 
-  AddressNormalizer* GetAddressNormalizer() override {
+  TestAddressNormalizer* GetAddressNormalizer() override {
     return &test_address_normalizer_;
   }
 
@@ -395,8 +401,6 @@ class TestAutofillClientTemplate : public T {
 
     std::move(callback).Run(get_save_card_offer_user_decision(), {});
   }
-
-  void CreditCardUploadCompleted(bool card_saved) override {}
 
   void ConfirmCreditCardFillAssist(const CreditCard& card,
                                    base::OnceClosure callback) override {
@@ -584,6 +588,12 @@ class TestAutofillClientTemplate : public T {
     payments_network_interface_ = std::move(payments_network_interface);
   }
 
+  void set_payments_window_manager(
+      std::unique_ptr<payments::PaymentsWindowManager>
+          payments_window_manager) {
+    payments_window_manager_ = std::move(payments_window_manager);
+  }
+
   void set_test_form_data_importer(
       std::unique_ptr<FormDataImporter> form_data_importer) {
     form_data_importer_ = std::move(form_data_importer);
@@ -680,12 +690,11 @@ class TestAutofillClientTemplate : public T {
     return save_card_offer_user_decision_;
   }
 
-  ::testing::NiceMock<MockAutocompleteHistoryManager>*
-  GetMockAutocompleteHistoryManager() {
+  MockAutocompleteHistoryManager* GetMockAutocompleteHistoryManager() {
     return &mock_autocomplete_history_manager_;
   }
 
-  ::testing::NiceMock<MockIbanManager>* GetMockIbanManager() {
+  MockIbanManager* GetMockIbanManager() {
     if (!mock_iban_manager_) {
       mock_iban_manager_ = std::make_unique<testing::NiceMock<MockIbanManager>>(
           test_personal_data_manager_.get());
@@ -693,7 +702,7 @@ class TestAutofillClientTemplate : public T {
     return mock_iban_manager_.get();
   }
 
-  ::testing::NiceMock<MockIbanAccessManager>* GetMockIbanAccessManager() {
+  MockIbanAccessManager* GetMockIbanAccessManager() {
     if (!mock_iban_access_manager_) {
       mock_iban_access_manager_ =
           std::make_unique<testing::NiceMock<MockIbanAccessManager>>(this);
@@ -701,8 +710,7 @@ class TestAutofillClientTemplate : public T {
     return mock_iban_access_manager_.get();
   }
 
-  ::testing::NiceMock<MockMerchantPromoCodeManager>*
-  GetMockMerchantPromoCodeManager() {
+  MockMerchantPromoCodeManager* GetMockMerchantPromoCodeManager() {
     return &mock_merchant_promo_code_manager_;
   }
 
@@ -774,8 +782,9 @@ class TestAutofillClientTemplate : public T {
   std::unique_ptr<AutofillOfferManager> autofill_offer_manager_;
   std::unique_ptr<payments::TestPaymentsAutofillClient>
       payments_autofill_client_;
-  std::unique_ptr<payments::PaymentsNetworkInterface>
+  std::unique_ptr<payments::TestPaymentsNetworkInterface>
       payments_network_interface_;
+  std::unique_ptr<payments::PaymentsWindowManager> payments_window_manager_;
   std::unique_ptr<testing::NiceMock<MockIbanManager>> mock_iban_manager_;
 
   // The below objects must be destroyed before `PaymentsNetworkInterface`

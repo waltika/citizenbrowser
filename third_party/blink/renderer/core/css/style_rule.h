@@ -31,6 +31,8 @@
 #include "third_party/blink/renderer/core/css/container_query.h"
 #include "third_party/blink/renderer/core/css/css_property_value_set.h"
 #include "third_party/blink/renderer/core/css/css_selector_list.h"
+#include "third_party/blink/renderer/core/css/css_syntax_definition.h"
+#include "third_party/blink/renderer/core/css/css_variable_data.h"
 #include "third_party/blink/renderer/core/css/media_list.h"
 #include "third_party/blink/renderer/core/css/parser/css_at_rule_id.h"
 #include "third_party/blink/renderer/core/css/parser/css_nesting_type.h"
@@ -73,6 +75,7 @@ class CORE_EXPORT StyleRuleBase : public GarbageCollected<StyleRuleBase> {
     kTry,
     kStartingStyle,
     kViewTransition,
+    kFunction,
   };
 
   // Name of a cascade layer as given by an @layer rule, split at '.' into a
@@ -115,6 +118,7 @@ class CORE_EXPORT StyleRuleBase : public GarbageCollected<StyleRuleBase> {
     return GetType() == kContainer || GetType() == kMedia ||
            GetType() == kSupports || GetType() == kStartingStyle;
   }
+  bool IsFunctionRule() const { return GetType() == kFunction; }
 
   StyleRuleBase* Copy() const;
 
@@ -417,67 +421,6 @@ class CORE_EXPORT StyleRuleFontFace : public StyleRuleBase {
   Member<const CascadeLayer> layer_;
 };
 
-// TODO(sesse): When we get CSSOM support for page margin rules, consider
-// whether this should be a StyleRuleGroup or not. (The page margin rules
-// are not strictly selectors, though.)
-class StyleRulePage : public StyleRuleBase {
- public:
-  StyleRulePage(CSSSelectorList* selector_list,
-                CSSPropertyValueSet* properties,
-                HeapVector<Member<StyleRuleBase>> child_rules);
-  StyleRulePage(const StyleRulePage&);
-
-  const CSSSelector* Selector() const { return selector_list_->First(); }
-  const CSSPropertyValueSet& Properties() const { return *properties_; }
-  MutableCSSPropertyValueSet& MutableProperties();
-
-  void WrapperAdoptSelectorList(CSSSelectorList* selectors) {
-    selector_list_ = selectors;
-  }
-
-  StyleRulePage* Copy() const {
-    return MakeGarbageCollected<StyleRulePage>(*this);
-  }
-
-  void SetCascadeLayer(const CascadeLayer* layer) { layer_ = layer; }
-  const CascadeLayer* GetCascadeLayer() const { return layer_.Get(); }
-
-  const HeapVector<Member<StyleRuleBase>, 4>& ChildRules() const {
-    return child_rules_;
-  }
-  HeapVector<Member<StyleRuleBase>, 4>& ChildRules() { return child_rules_; }
-
-  void TraceAfterDispatch(blink::Visitor*) const;
-
- private:
-  Member<CSSPropertyValueSet> properties_;  // Cannot be null.
-  Member<const CascadeLayer> layer_;
-  Member<CSSSelectorList> selector_list_;
-
-  // Page margin rules (e.g. @top-left).
-  HeapVector<Member<StyleRuleBase>, 4> child_rules_;
-};
-
-class StyleRulePageMargin : public StyleRuleBase {
- public:
-  StyleRulePageMargin(CSSAtRuleID id, CSSPropertyValueSet* properties);
-  StyleRulePageMargin(const StyleRulePageMargin&);
-
-  const CSSPropertyValueSet& Properties() const { return *properties_; }
-  MutableCSSPropertyValueSet& MutableProperties();
-  CSSAtRuleID ID() const { return id_; }
-
-  StyleRulePageMargin* Copy() const {
-    return MakeGarbageCollected<StyleRulePageMargin>(*this);
-  }
-
-  void TraceAfterDispatch(blink::Visitor*) const;
-
- private:
-  CSSAtRuleID id_;                          // What margin, e.g. @top-right.
-  Member<CSSPropertyValueSet> properties_;  // Cannot be null.
-};
-
 class CORE_EXPORT StyleRuleProperty : public StyleRuleBase {
  public:
   StyleRuleProperty(const String& name, CSSPropertyValueSet*);
@@ -589,6 +532,67 @@ class CORE_EXPORT StyleRuleLayerStatement : public StyleRuleBase {
   Vector<LayerName> names_;
 };
 
+// TODO(sesse): When we get CSSOM support for page margin rules, consider
+// whether this should be a StyleRuleGroup or not. (The page margin rules
+// are not strictly selectors, though.)
+class StyleRulePage : public StyleRuleBase {
+ public:
+  StyleRulePage(CSSSelectorList* selector_list,
+                CSSPropertyValueSet* properties,
+                HeapVector<Member<StyleRuleBase>> child_rules);
+  StyleRulePage(const StyleRulePage&);
+
+  const CSSSelector* Selector() const { return selector_list_->First(); }
+  const CSSPropertyValueSet& Properties() const { return *properties_; }
+  MutableCSSPropertyValueSet& MutableProperties();
+
+  void WrapperAdoptSelectorList(CSSSelectorList* selectors) {
+    selector_list_ = selectors;
+  }
+
+  StyleRulePage* Copy() const {
+    return MakeGarbageCollected<StyleRulePage>(*this);
+  }
+
+  void SetCascadeLayer(const CascadeLayer* layer) { layer_ = layer; }
+  const CascadeLayer* GetCascadeLayer() const { return layer_.Get(); }
+
+  const HeapVector<Member<StyleRuleBase>, 4>& ChildRules() const {
+    return child_rules_;
+  }
+  HeapVector<Member<StyleRuleBase>, 4>& ChildRules() { return child_rules_; }
+
+  void TraceAfterDispatch(blink::Visitor*) const;
+
+ private:
+  Member<CSSPropertyValueSet> properties_;  // Cannot be null.
+  Member<const CascadeLayer> layer_;
+  Member<CSSSelectorList> selector_list_;
+
+  // Page margin rules (e.g. @top-left).
+  HeapVector<Member<StyleRuleBase>, 4> child_rules_;
+};
+
+class StyleRulePageMargin : public StyleRuleBase {
+ public:
+  StyleRulePageMargin(CSSAtRuleID id, CSSPropertyValueSet* properties);
+  StyleRulePageMargin(const StyleRulePageMargin&);
+
+  const CSSPropertyValueSet& Properties() const { return *properties_; }
+  MutableCSSPropertyValueSet& MutableProperties();
+  CSSAtRuleID ID() const { return id_; }
+
+  StyleRulePageMargin* Copy() const {
+    return MakeGarbageCollected<StyleRulePageMargin>(*this);
+  }
+
+  void TraceAfterDispatch(blink::Visitor*) const;
+
+ private:
+  CSSAtRuleID id_;                          // What margin, e.g. @top-right.
+  Member<CSSPropertyValueSet> properties_;  // Cannot be null.
+};
+
 // If you add new children of this class, remember to update IsConditionRule()
 // above.
 class CORE_EXPORT StyleRuleCondition : public StyleRuleGroup {
@@ -695,6 +699,46 @@ class StyleRuleCharset : public StyleRuleBase {
  private:
 };
 
+// An @function rule, representing a CSS function.
+class CORE_EXPORT StyleRuleFunction : public StyleRuleBase {
+ public:
+  struct Type {
+    CSSSyntaxDefinition syntax;
+
+    // Whether this is a numeric type, that would be accepted by calc()
+    // (see https://drafts.csswg.org/css-values/#calc-func). This is used
+    // to allow the user to not have to write calc() around every single
+    // expression, so that one could do e.g. --foo(2 + 2) instead of
+    // --foo(calc(2 + 2)). Since writing calc() around an expression of
+    // such a type will never change its meaning, and nested calc is allowed,
+    // this is always safe even when not needed.
+    bool should_add_implicit_calc;
+  };
+  struct Parameter {
+    String name;
+    Type type;
+  };
+
+  StyleRuleFunction(AtomicString name,
+                    Vector<Parameter> parameters,
+                    scoped_refptr<CSSVariableData> function_body,
+                    Type return_type);
+  StyleRuleFunction(const StyleRuleFunction&) = delete;
+
+  const AtomicString& GetName() const { return name_; }
+  const Vector<Parameter>& GetParameters() const { return parameters_; }
+  CSSVariableData& GetFunctionBody() const { return *function_body_; }
+  const Type& GetReturnType() const { return return_type_; }
+
+  void TraceAfterDispatch(blink::Visitor*) const;
+
+ private:
+  AtomicString name_;
+  Vector<Parameter> parameters_;
+  scoped_refptr<CSSVariableData> function_body_;
+  Type return_type_;
+};
+
 template <>
 struct DowncastTraits<StyleRule> {
   static bool AllowFrom(const StyleRuleBase& rule) {
@@ -791,6 +835,13 @@ template <>
 struct DowncastTraits<StyleRuleStartingStyle> {
   static bool AllowFrom(const StyleRuleBase& rule) {
     return rule.IsStartingStyleRule();
+  }
+};
+
+template <>
+struct DowncastTraits<StyleRuleFunction> {
+  static bool AllowFrom(const StyleRuleBase& rule) {
+    return rule.IsFunctionRule();
   }
 };
 

@@ -19,6 +19,7 @@
 #include "chrome/browser/ui/tabs/tab_utils.h"
 #include "chrome/browser/ui/views/chrome_layout_provider.h"
 #include "chrome/browser/ui/views/tabs/fade_footer_view.h"
+#include "components/prefs/pref_change_registrar.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/gfx/animation/linear_animation.h"
 #include "ui/views/animation/animation_delegate_views.h"
@@ -75,17 +76,11 @@ class TabHoverCardBubbleView : public views::BubbleDialogDelegateView {
   static std::optional<double> GetPreviewImageCrossfadeStart();
 
  private:
-  FRIEND_TEST_ALL_PREFIXES(TabHoverCardInteractiveUiTest,
-                           HoverCardDoesNotHaveFooterView);
-  FRIEND_TEST_ALL_PREFIXES(TabHoverCardFadeFooterInteractiveUiTest,
-                           HoverCardFooterUpdatesTabAlertStatus);
-  FRIEND_TEST_ALL_PREFIXES(TabHoverCardFadeFooterInteractiveUiTest,
-                           HoverCardFooterShowsDiscardStatus);
-  FRIEND_TEST_ALL_PREFIXES(TabHoverCardFadeFooterInteractiveUiTest,
-                           HoverCardFooterShowsMemoryUsage);
   FRIEND_TEST_ALL_PREFIXES(TabHoverCardFadeFooterInteractiveUiTest,
                            BackgroundTabHoverCardContentsHaveCorrectDimensions);
   class ThumbnailView;
+
+  void OnMemoryUsageInHovercardsPrefChanged();
 
   // views::BubbleDialogDelegateView:
   gfx::Size CalculatePreferredSize() const override;
@@ -96,8 +91,9 @@ class TabHoverCardBubbleView : public views::BubbleDialogDelegateView {
   raw_ptr<FooterView> footer_view_ = nullptr;
   std::optional<TabAlertState> alert_state_;
   const raw_ptr<const TabStyle> tab_style_;
-  const bool discard_tab_treatment_enabled_;
   const bool memory_usage_in_hovercards_enabled_;
+  PrefChangeRegistrar pref_change_registrar_;
+  bool memory_usage_in_hovercards_setting_ = false;
 
   int corner_radius_ = ChromeLayoutProvider::Get()->GetCornerRadiusMetric(
       views::Emphasis::kHigh);

@@ -4,21 +4,25 @@
 
 package org.chromium.chrome.test.transit;
 
-import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
-import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
+import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
-import static org.hamcrest.CoreMatchers.allOf;
+import static org.chromium.base.test.transit.ViewElement.scopedViewElement;
 
 import org.chromium.base.test.transit.Condition;
 import org.chromium.base.test.transit.Elements;
 import org.chromium.base.test.transit.Trip;
 import org.chromium.base.test.transit.UiThreadCondition;
+import org.chromium.base.test.transit.ViewElement;
 import org.chromium.chrome.browser.tabmodel.TabModelSelector;
 import org.chromium.chrome.test.ChromeTabbedActivityTestRule;
+import org.chromium.chrome.test.R;
 
 /** The tab switcher screen showing regular tabs. */
 public class RegularTabSwitcherStation extends TabSwitcherStation {
+
+    public static final ViewElement EMPTY_STATE_TEXT =
+            scopedViewElement(withText(R.string.tabswitcher_no_tabs_empty_state));
 
     public RegularTabSwitcherStation(ChromeTabbedActivityTestRule chromeTabbedActivityTestRule) {
         super(chromeTabbedActivityTestRule, /* incognito= */ false);
@@ -57,17 +61,15 @@ public class RegularTabSwitcherStation extends TabSwitcherStation {
                         return "Incognito tabs exist";
                     }
                 };
-        elements.declareUnownedViewIf(INCOGNITO_TOGGLE_TABS, incognitoTabsExist);
-        elements.declareUnownedViewIf(REGULAR_TOGGLE_TAB_BUTTON, incognitoTabsExist);
-        elements.declareUnownedViewIf(INCOGNITO_TOGGLE_TAB_BUTTON, incognitoTabsExist);
+        elements.declareViewIf(INCOGNITO_TOGGLE_TABS, incognitoTabsExist);
+        elements.declareViewIf(REGULAR_TOGGLE_TAB_BUTTON, incognitoTabsExist);
+        elements.declareViewIf(INCOGNITO_TOGGLE_TAB_BUTTON, incognitoTabsExist);
     }
 
     public IncognitoTabSwitcherStation selectIncognitoTabList() {
         IncognitoTabSwitcherStation tabSwitcher =
                 new IncognitoTabSwitcherStation(mChromeTabbedActivityTestRule);
         return Trip.travelSync(
-                this,
-                tabSwitcher,
-                (t) -> onView(allOf(isDisplayed(), INCOGNITO_TOGGLE_TAB_BUTTON)).perform(click()));
+                this, tabSwitcher, (t) -> INCOGNITO_TOGGLE_TAB_BUTTON.perform(click()));
     }
 }

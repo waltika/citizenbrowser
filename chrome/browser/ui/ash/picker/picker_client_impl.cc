@@ -14,9 +14,11 @@
 #include "ash/picker/picker_controller.h"
 #include "ash/public/cpp/picker/picker_search_result.h"
 #include "base/check.h"
+#include "base/check_deref.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback.h"
 #include "base/notimplemented.h"
+#include "base/strings/utf_string_conversions.h"
 #include "chrome/browser/ash/app_list/app_list_controller_delegate.h"
 #include "chrome/browser/ash/app_list/search/chrome_search_result.h"
 #include "chrome/browser/ash/app_list/search/omnibox/omnibox_lacros_provider.h"
@@ -26,14 +28,18 @@
 #include "chrome/browser/ash/crosapi/crosapi_manager.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/ash/ash_web_view_impl.h"
+#include "chrome/browser/ui/webui/ash/emoji/emoji_picker.mojom-forward.h"
+#include "chrome/browser/ui/webui/ash/emoji/emoji_picker.mojom-shared.h"
 #include "chromeos/ash/components/browser_context_helper/browser_context_helper.h"
 #include "components/user_manager/user.h"
 #include "components/user_manager/user_manager.h"
+#include "content/public/browser/storage_partition.h"
 #include "net/traffic_annotation/network_traffic_annotation.h"
 #include "services/network/public/cpp/resource_request.h"
 #include "services/network/public/cpp/simple_url_loader.h"
 #include "ui/base/page_transition_types.h"
 #include "ui/base/window_open_disposition.h"
+#include "url/gurl.h"
 #include "url/url_constants.h"
 
 namespace ash {
@@ -42,6 +48,8 @@ enum class AppListSearchResultType;
 
 namespace {
 
+constexpr int kMaxGifsToSearch = 4;
+
 void OnGifDownloaded(PickerClientImpl::DownloadGifToStringCallback callback,
                      std::unique_ptr<network::SimpleURLLoader> simple_loader,
                      std::unique_ptr<std::string> response_body) {
@@ -49,8 +57,42 @@ void OnGifDownloaded(PickerClientImpl::DownloadGifToStringCallback callback,
     std::move(callback).Run(*response_body);
     return;
   }
-  // TODO: b/316936723 - Add better handling of errors.
+  // TODO: b/325368650 - Add better handling of errors.
   std::move(callback).Run(std::string());
+}
+
+void OnGifSearchResponse(PickerClientImpl::FetchGifsCallback callback,
+                         emoji_picker::mojom::Status status,
+                         emoji_picker::mojom::TenorGifResponsePtr response) {
+  if (status != emoji_picker::mojom::Status::kHttpOk) {
+    // TODO: b/325368650 - Add better handling of errors.
+    std::move(callback).Run({});
+    return;
+  }
+
+  std::vector<ash::PickerSearchResult> picker_results;
+  CHECK(response);
+  picker_results.reserve(response->results.size());
+  for (const emoji_picker::mojom::GifResponsePtr& result : response->results) {
+    CHECK(result);
+    // TODO: b/325339604 - Get an actual preview image for each gif from tenor.
+    picker_results.push_back(ash::PickerSearchResult::Gif(
+        CHECK_DEREF(result->url.get()).preview,
+        GURL("https://media.tenor.com/64BYBgDG41QAAAAF/"
+             "loading.png"),
+        result->preview_size, base::UTF8ToUTF16(result->content_description)));
+  }
+
+  std::move(callback).Run(std::move(picker_results));
+}
+
+int AutocompleteProviderTypes() {
+  return AutocompleteProvider::TYPE_BOOKMARK |
+         AutocompleteProvider::TYPE_HISTORY_QUICK |
+         AutocompleteProvider::TYPE_HISTORY_URL |
+         AutocompleteProvider::TYPE_HISTORY_FUZZY |
+         AutocompleteProvider::TYPE_OPEN_TAB |
+         AutocompleteProvider::TYPE_BOOKMARK;
 }
 
 }  // namespace
@@ -126,6 +168,18 @@ void PickerClientImpl::DownloadGifToString(
       network::SimpleURLLoader::kMaxBoundedStringDownloadSize);
 }
 
+void PickerClientImpl::FetchGifSearch(const std::string& query,
+                                      FetchGifsCallback callback) {
+  CHECK(profile_);
+  content::StoragePartition* storage_partition =
+      profile_->GetDefaultStoragePartition();
+  CHECK(storage_partition);
+  gif_tenor_api_fetcher_.FetchGifSearch(
+      base::BindOnce(&OnGifSearchResponse, std::move(callback)),
+      storage_partition->GetURLLoaderFactoryForBrowserProcess(), query,
+      std::nullopt, kMaxGifsToSearch);
+}
+
 void PickerClientImpl::StartCrosSearch(const std::u16string& query,
                                        CrosSearchResultsCallback callback) {
   CHECK(search_engine_);
@@ -148,13 +202,18 @@ void PickerClientImpl::OnCrosSearchResultsUpdated(
         app_list_controller_delegate_.GetUrlForSearchResult(*result);
     if (result_url.has_value()) {
       picker_results.push_back(ash::PickerSearchResult::BrowsingHistory(
-          *result_url, result->icon().icon));
+          *result_url, result->title(), result->icon().icon));
     } else {
       picker_results.push_back(ash::PickerSearchResult::Text(result->title()));
     }
   }
 
   callback.Run(result_type, std::move(picker_results));
+}
+
+void PickerClientImpl::StopCrosQuery() {
+  CHECK(search_engine_);
+  search_engine_->StopQuery();
 }
 
 void PickerClientImpl::ActiveUserChanged(user_manager::User* active_user) {
@@ -189,7 +248,7 @@ void PickerClientImpl::SetProfile(Profile* profile) {
             crosapi::CrosapiManager::Get()));
   } else {
     search_engine_->AddProvider(std::make_unique<app_list::OmniboxProvider>(
-        profile_, &app_list_controller_delegate_));
+        profile_, &app_list_controller_delegate_, AutocompleteProviderTypes()));
   }
 }
 

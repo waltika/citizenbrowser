@@ -166,6 +166,8 @@ AtomicString SameOriginAttribution(Frame* observer_frame,
   return SameOriginKeyword();
 }
 
+// Eligible event types should be kept in sync with IsWebInteractionEvent
+// (widget_event_handler.cc)
 bool IsEventTypeForInteractionId(const AtomicString& type) {
   return type == event_type_names::kPointercancel ||
          type == event_type_names::kContextmenu ||
@@ -173,8 +175,10 @@ bool IsEventTypeForInteractionId(const AtomicString& type) {
          type == event_type_names::kPointerup ||
          type == event_type_names::kClick ||
          type == event_type_names::kKeydown ||
+         type == event_type_names::kKeypress ||
          type == event_type_names::kKeyup ||
          type == event_type_names::kCompositionstart ||
+         type == event_type_names::kCompositionupdate ||
          type == event_type_names::kCompositionend ||
          type == event_type_names::kInput;
 }
@@ -408,7 +412,10 @@ void WindowPerformance::RegisterEventTiming(const Event& event,
   const PointerEvent* pointer_event = DynamicTo<PointerEvent>(event);
   if (event_type == event_type_names::kPointermove) {
     // A trusted pointermove must be a PointerEvent.
-    DCHECK(event.IsPointerEvent());
+    if (!event.IsPointerEvent()) {
+      return;
+    }
+
     NotifyPotentialDrag(pointer_event->pointerId());
     SetCurrentEventTimingEvent(nullptr);
     return;
@@ -431,6 +438,8 @@ void WindowPerformance::RegisterEventTiming(const Event& event,
       event_target ? event_target->ToNode() : nullptr,
       DomWindow());  // TODO(haoliuk): Add WPT for Event Timing.
                      // See crbug.com/1320878.
+  entry->SetUnsafeQueuedTimestamp(
+      responsiveness_metrics_->CurrentInteractionEventQueuedTimestamp());
   std::optional<PointerId> pointer_id;
   if (pointer_event) {
     pointer_id = pointer_event->pointerId();
@@ -508,38 +517,17 @@ void WindowPerformance::ReportEvent(InteractiveDetector* interactive_detector,
                                     base::TimeTicks presentation_timestamp) {
   PerformanceEventTiming* entry = event_data->GetEventTiming();
   base::TimeTicks event_timestamp = event_data->GetEventTimestamp();
+  const base::TimeTicks event_queued_timestamp = entry->unsafeQueuedTimestamp();
   std::optional<int> key_code = event_data->GetKeyCode();
   std::optional<PointerId> pointer_id = event_data->GetPointerId();
 
-  const bool is_artificial_pointerup_or_click =
-      (entry->name() == event_type_names::kPointerup ||
-       entry->name() == event_type_names::kClick) &&
-      entry->startTime() == pending_pointer_down_start_time_;
-
-  if (is_artificial_pointerup_or_click) {
-    UseCounter::Count(GetExecutionContext(),
-                      WebFeature::kEventTimingArtificialPointerupOrClick);
-  }
-
-  // The page visibility was changed, or this is an artificial event. We
-  // fallback entry's end time to its processingEnd (as if there was no next
-  // paint needed).
-  const bool fallback_end_time_to_processing_end =
-      (last_visibility_change_timestamp_ > event_timestamp &&
-       last_visibility_change_timestamp_ < presentation_timestamp)
-#if BUILDFLAG(IS_MAC)
-      || is_artificial_pointerup_or_click
-#endif  // BUILDFLAG(IS_MAC)
-      ;
+  absl::optional<base::TimeTicks> fallback_time =
+      GetFallbackTime(entry, event_timestamp, presentation_timestamp);
 
   base::TimeTicks entry_end_timetick =
-      fallback_end_time_to_processing_end
-          ? GetTimeOriginInternal() + base::Milliseconds(entry->processingEnd())
-          : presentation_timestamp;
+      fallback_time.has_value() ? *fallback_time : presentation_timestamp;
   DOMHighResTimeStamp entry_end_time =
-      fallback_end_time_to_processing_end
-          ? entry->processingEnd()
-          : MonotonicTimeToDOMHighResTimeStamp(presentation_timestamp);
+      MonotonicTimeToDOMHighResTimeStamp(entry_end_timetick);
 
   base::TimeDelta processing_time =
       base::Milliseconds(entry->processingEnd() - entry->processingStart());
@@ -571,7 +559,7 @@ void WindowPerformance::ReportEvent(InteractiveDetector* interactive_detector,
 
   // Event Timing
   ResponsivenessMetrics::EventTimestamps event_timestamps = {
-      event_timestamp, entry_end_timetick};
+      event_timestamp, entry_end_timetick, event_queued_timestamp};
   if (SetInteractionIdAndRecordLatency(entry, key_code, pointer_id,
                                        event_timestamps)) {
     NotifyAndAddEventTimingBuffer(entry);
@@ -631,6 +619,70 @@ void WindowPerformance::NotifyAndAddEventTimingBuffer(
     TRACE_EVENT_NESTABLE_ASYNC_END_WITH_TIMESTAMP0(
         "devtools.timeline", "EventTiming", hash, unsafe_end_time);
   }
+}
+
+absl::optional<base::TimeTicks> WindowPerformance::GetFallbackTime(
+    PerformanceEventTiming* entry,
+    base::TimeTicks event_timestamp,
+    base::TimeTicks presentation_timestamp) {
+  // For artificial events on MacOS, we will fallback entry's end time to its
+  // processingEnd (as if there was no next paint needed). crbug.com/1321819.
+  const bool is_artificial_pointerup_or_click =
+      (entry->name() == event_type_names::kPointerup ||
+       entry->name() == event_type_names::kClick) &&
+      entry->startTime() == pending_pointer_down_start_time_;
+
+  if (is_artificial_pointerup_or_click) {
+    UseCounter::Count(GetExecutionContext(),
+                      WebFeature::kEventTimingArtificialPointerupOrClick);
+  }
+
+  // If the page visibility was changed. We fallback entry's end time to its
+  // processingEnd (as if there was no next paint needed). crbug.com/1312568.
+  const bool was_page_visibility_changed =
+      last_visibility_change_timestamp_ > event_timestamp &&
+      last_visibility_change_timestamp_ < presentation_timestamp;
+
+  // An javascript synchronous modal dialog showed before the event frame
+  // got presented. User could wait for arbitrarily long on the dialog. Thus
+  // we fall back presentation time to the pre dialog showing time.
+  // crbug.com/1435448.
+  bool fallback_end_time_to_dialog_time = false;
+  base::TimeTicks first_modal_dialog_timestamp;
+
+  // Clean up stale dialog times.
+  while (!show_modal_dialog_timestamps_.empty() &&
+         show_modal_dialog_timestamps_.front() < event_timestamp) {
+    show_modal_dialog_timestamps_.pop_front();
+  }
+
+  if (!show_modal_dialog_timestamps_.empty() &&
+      show_modal_dialog_timestamps_.front() < presentation_timestamp) {
+    if (base::FeatureList::IsEnabled(
+            features::kEventTimingFallbackToModalDialogStart)) {
+      fallback_end_time_to_dialog_time = true;
+    }
+    first_modal_dialog_timestamp = show_modal_dialog_timestamps_.front();
+  }
+
+  const bool fallback_end_time_to_processing_end =
+      was_page_visibility_changed
+#if BUILDFLAG(IS_MAC)
+      || is_artificial_pointerup_or_click
+#endif  // BUILDFLAG(IS_MAC)
+      ;
+
+  // Return minimum fallback time.
+  base::TimeTicks processing_end_timetick =
+      GetTimeOriginInternal() + base::Milliseconds(entry->processingEnd());
+  if (fallback_end_time_to_dialog_time && fallback_end_time_to_processing_end) {
+    return std::min(first_modal_dialog_timestamp, processing_end_timetick);
+  } else if (fallback_end_time_to_dialog_time) {
+    return first_modal_dialog_timestamp;
+  } else if (fallback_end_time_to_processing_end) {
+    return processing_end_timetick;
+  }
+  return absl::nullopt;
 }
 
 bool WindowPerformance::SetInteractionIdAndRecordLatency(
@@ -755,6 +807,10 @@ void WindowPerformance::PageVisibilityChanged() {
                           last_visibility_change_timestamp_);
 }
 
+void WindowPerformance::WillShowModalDialog() {
+  show_modal_dialog_timestamps_.push_back(base::TimeTicks::Now());
+}
+
 EventCounts* WindowPerformance::eventCounts() {
   if (!event_counts_)
     event_counts_ = MakeGarbageCollected<EventCounts>();
@@ -804,7 +860,11 @@ void WindowPerformance::OnLargestContentfulPaintUpdated(
 
     if (LocalFrame* local_frame = element->GetDocument().GetFrame()) {
       if (LCPCriticalPathPredictor* lcpp = local_frame->GetLCPP()) {
-        lcpp->OnLargestContentfulPaintUpdated(*element);
+        std::optional<KURL> maybe_url = std::nullopt;
+        if (!url.empty()) {
+          maybe_url = KURL(url);
+        }
+        lcpp->OnLargestContentfulPaintUpdated(*element, maybe_url);
       }
     }
   }

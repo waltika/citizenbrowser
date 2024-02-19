@@ -20,6 +20,7 @@
 #include "base/strings/string_util.h"
 #include "base/strings/utf_string_conversions.h"
 #include "build/build_config.h"
+#include "components/affiliations/core/browser/affiliation_utils.h"
 #include "components/autofill/core/browser/autofill_client.h"
 #include "components/autofill/core/browser/autofill_driver.h"
 #include "components/autofill/core/browser/ui/popup_item_ids.h"
@@ -31,14 +32,15 @@
 #include "components/autofill/core/common/password_generation_util.h"
 #include "components/device_reauth/device_authenticator.h"
 #include "components/favicon/core/favicon_util.h"
-#include "components/password_manager/core/browser/affiliation/affiliation_utils.h"
 #include "components/password_manager/core/browser/password_feature_manager.h"
 #include "components/password_manager/core/browser/password_manager_client.h"
 #include "components/password_manager/core/browser/password_manager_driver.h"
 #include "components/password_manager/core/browser/password_manager_metrics_recorder.h"
 #include "components/password_manager/core/browser/password_manager_metrics_util.h"
 #include "components/password_manager/core/browser/password_manager_util.h"
+#include "components/password_manager/core/browser/password_manual_fallback_flow.h"
 #include "components/password_manager/core/browser/password_ui_utils.h"
+#include "components/password_manager/core/browser/ui/saved_passwords_presenter.h"
 #include "components/password_manager/core/browser/webauthn_credentials_delegate.h"
 #include "components/prefs/pref_service.h"
 #include "components/signin/public/base/signin_metrics.h"
@@ -394,7 +396,15 @@ void PasswordAutofillManager::OnShowPasswordSuggestions(
     ShowWebAuthnCredentials show_webauthn_credentials,
     const gfx::RectF& bounds) {
   if (autofill::IsAutofillManuallyTriggered(trigger_source)) {
-    // TODO(b/321678448): Implement manual fallback suggestion generation.
+    if (!manual_fallback_flow_) {
+      manual_fallback_flow_ = std::make_unique<PasswordManualFallbackFlow>(
+          password_manager_driver_, autofill_client_, password_client_,
+          std::make_unique<SavedPasswordsPresenter>(
+              password_client_->GetAffiliationService(),
+              password_client_->GetProfilePasswordStore(),
+              password_client_->GetAccountPasswordStore()));
+    }
+    manual_fallback_flow_->RunFlow(bounds, text_direction);
     return;
   }
   bool autofill_available =
@@ -438,6 +448,7 @@ void PasswordAutofillManager::DidNavigateMainFrame() {
   CancelBiometricReauthIfOngoing();
   favicon_tracker_.TryCancelAll();
   page_favicon_ = gfx::Image();
+  manual_fallback_flow_.reset();
 }
 
 bool PasswordAutofillManager::FillSuggestionForTest(
@@ -448,6 +459,11 @@ bool PasswordAutofillManager::FillSuggestionForTest(
 bool PasswordAutofillManager::PreviewSuggestionForTest(
     const std::u16string& username) {
   return PreviewSuggestion(username, autofill::PopupItemId::kPasswordEntry);
+}
+
+void PasswordAutofillManager::SetManualFallbackFlowForTest(
+    std::unique_ptr<PasswordSuggestionFlow> manual_fallback_flow) {
+  manual_fallback_flow_.swap(manual_fallback_flow);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -514,7 +530,8 @@ bool PasswordAutofillManager::FillSuggestion(
       GetPasswordAndMetadataForUsername(username, popup_item_id, *fill_data_,
                                         &password_and_meta_data)) {
     bool is_android_credential =
-        FacetURI::FromPotentiallyInvalidSpec(password_and_meta_data.realm)
+        affiliations::FacetURI::FromPotentiallyInvalidSpec(
+            password_and_meta_data.realm)
             .IsValidAndroidFacetURI();
     metrics_util::LogFilledPasswordFromAndroidApp(is_android_credential);
     password_manager_driver_->FillSuggestion(

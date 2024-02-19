@@ -20,7 +20,7 @@
     height: 1px;
   }
 
-  tbody tr {
+  tbody tr, tfoot tr {
     border-top-color: rgba(0,0,0,.12);
     border-top-style: solid;
     border-top-width: 1px;
@@ -28,6 +28,10 @@
 
   thead tr {
     border: 0;
+  }
+
+  tfoot {
+    font-weight: bold;
   }
 
   td, th {
@@ -77,11 +81,6 @@
     background-color: rgb(250,199,192);
   }
 
-  .debug-url {
-    color: rgb(66,135,245);
-    font-weight: bold;
-  }
-
   .number {
     font-variant-numeric: tabular-nums;
     text-align: right;
@@ -92,4 +91,7 @@
     <tr></tr>
   </thead>
   <tbody></tbody>
+  <tfoot>
+    <tr><td></td></tr>
+  </tfoot>
 </table>

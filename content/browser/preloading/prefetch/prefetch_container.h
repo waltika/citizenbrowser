@@ -33,6 +33,7 @@ class CookieManager;
 
 namespace content {
 
+class BrowserContext;
 class PrefetchCookieListener;
 class PrefetchDocumentManager;
 class PrefetchNetworkContext;
@@ -102,7 +103,7 @@ class CONTENT_EXPORT PrefetchContainer {
       const blink::mojom::Referrer& referrer,
       std::optional<net::HttpNoVarySearchData> no_vary_search_expected,
       base::WeakPtr<PrefetchDocumentManager> prefetch_document_manager,
-      PreloadingURLMatchCallback matcher = {});
+      base::WeakPtr<PreloadingAttempt> attempt = nullptr);
   ~PrefetchContainer();
 
   PrefetchContainer(const PrefetchContainer&) = delete;
@@ -274,6 +275,12 @@ class CONTENT_EXPORT PrefetchContainer {
   // response, and not serve any prefetched resources.
   void SetIsDecoy(bool is_decoy) { is_decoy_ = is_decoy; }
   bool IsDecoy() const { return is_decoy_; }
+
+  // Whether this prefetch is potentially contaminated by cross-site state.
+  // If so, it may need special handling for privacy.
+  // See https://crbug.com/1439246.
+  bool IsCrossSiteContaminated() const { return is_cross_site_contaminated_; }
+  void MarkCrossSiteContaminated();
 
   // Allows for |PrefetchCookieListener|s to be reigsitered for
   // `GetCurrentSinglePrefetchToPrefetch()`.
@@ -540,6 +547,10 @@ class CONTENT_EXPORT PrefetchContainer {
   void SetPrefetchStatusWithoutUpdatingTriggeringOutcome(
       PrefetchStatus prefetch_status);
 
+  // Add client hints headers to a request bound for |origin|.
+  void AddClientHintsHeaders(const url::Origin& origin,
+                             net::HttpRequestHeaders* request_headers);
+
   // Returns the `SinglePrefetch` to be prefetched next. This is the last
   // element in `redirect_chain_`, because, during prefetching from the network,
   // we push back `SinglePrefetch`s to `redirect_chain_` and access the latest
@@ -590,6 +601,9 @@ class CONTENT_EXPORT PrefetchContainer {
 
   // The |PrefetchDocumentManager| that requested |this|.
   base::WeakPtr<PrefetchDocumentManager> prefetch_document_manager_;
+
+  // The |BrowserContext| in which this is being run.
+  base::WeakPtr<BrowserContext> browser_context_;
 
   // The current status, if any, of the prefetch.
   // TODO(crbug.com/1494771): Use `load_state_` instead for non-metrics purpose.
@@ -644,6 +658,11 @@ class CONTENT_EXPORT PrefetchContainer {
   // The result of probe when checked on navigation.
   std::optional<PrefetchProbeResult> probe_result_;
 
+  // If set, this prefetch's timing might be affected by cross-site state, so
+  // further processing may need to affect how the response is processed to make
+  // inferences about this logic less practical.
+  bool is_cross_site_contaminated_ = false;
+
   // Reference to metrics related to the page that considered using this
   // prefetch.
   base::WeakPtr<PrefetchServingPageMetricsContainer>
@@ -680,6 +699,12 @@ class CONTENT_EXPORT PrefetchContainer {
   base::OnceClosure on_received_head_callback_;
 
   std::unique_ptr<base::OneShotTimer> timeout_timer_;
+
+  // Whether JavaScript is on in this contents (or was, when this prefetch
+  // started). This affects Client Hints behavior. Per-origin settings are
+  // handled later, according to
+  // |ClientHintsControllerDelegate::IsJavaScriptAllowed|.
+  bool is_javascript_enabled_ = false;
 
   base::WeakPtrFactory<PrefetchContainer> weak_method_factory_{this};
 };

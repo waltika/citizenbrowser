@@ -16,7 +16,7 @@
 #include "ash/wm/window_restore/pine_contents_data.h"
 #include "ash/wm/window_restore/pine_contents_view.h"
 #include "ash/wm/window_restore/pine_context_menu_model.h"
-#include "ash/wm/window_restore/window_restore_controller.h"
+#include "ash/wm/window_restore/pine_controller.h"
 #include "ash/wm/window_restore/window_restore_util.h"
 #include "base/test/scoped_feature_list.h"
 #include "components/prefs/pref_registry_simple.h"
@@ -102,7 +102,7 @@ TEST_F(PineContextMenuModelTest, LayoutAndCommands) {
 // context menu.
 TEST_F(PineContextMenuModelTest, ShowContextMenuOnSettingsButtonClicked) {
   Shell::Get()
-      ->window_restore_controller()
+      ->pine_controller()
       ->MaybeStartPineOverviewSessionDevAccelerator();
   WaitForOverviewEntered();
 
@@ -113,13 +113,13 @@ TEST_F(PineContextMenuModelTest, ShowContextMenuOnSettingsButtonClicked) {
   ASSERT_TRUE(pine_widget);
 
   // The context menu should not be open.
-  PineContentsView* const contents_view =
+  PineContentsView* contents_view =
       views::AsViewClass<PineContentsView>(pine_widget->GetContentsView());
   ASSERT_TRUE(contents_view);
   EXPECT_FALSE(contents_view->context_menu_model_.get());
 
   // Click on the settings button, the context menu should appear.
-  LeftClickOn(contents_view->settings_button_view_.get());
+  LeftClickOn(contents_view->settings_button_.get());
   EXPECT_TRUE(contents_view->context_menu_model_.get());
 }
 

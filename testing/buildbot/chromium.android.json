@@ -5658,7 +5658,6 @@
         ],
         "ci_only": true,
         "description": "Run with android_31_google_apis_x64",
-        "experiment_percentage": 100,
         "isolate_profile_data": true,
         "merge": {
           "args": [
@@ -25059,6 +25058,7 @@
   "android-cronet-arm64-dbg": {
     "additional_compile_targets": [
       "cronet_package",
+      "cronet_package_ci",
       "cronet_perf_test_apk",
       "cronet_sample_test_apk",
       "cronet_smoketests_missing_native_library_instrumentation_apk",
@@ -25094,6 +25094,7 @@
   "android-cronet-arm64-rel": {
     "additional_compile_targets": [
       "cronet_package",
+      "cronet_package_ci",
       "cronet_perf_test_apk",
       "cronet_sample_test_apk",
       "cronet_smoketests_missing_native_library_instrumentation_apk",
@@ -27059,6 +27060,7 @@
   "android-cronet-x64-rel": {
     "additional_compile_targets": [
       "cronet_package",
+      "cronet_package_ci",
       "cronet_perf_test_apk",
       "cronet_sample_test_apk",
       "cronet_smoketests_apk",
@@ -30290,6 +30292,7 @@
   "android-cronet-x86-rel": {
     "additional_compile_targets": [
       "cronet_package",
+      "cronet_package_ci",
       "cronet_perf_test_apk",
       "cronet_sample_test_apk",
       "cronet_smoketests_apk",
@@ -31513,6 +31516,7 @@
           "--gs-results-bucket=chromium-result-details",
           "--recover-devices",
           "--avd-config=../../tools/android/avd/proto/generic_android26.textpb",
+          "--gtest-also-run-pre-tests",
           "--test-launcher-filter-file=../../testing/buildbot/filters/android.emulator_o.content_browsertests.filter"
         ],
         "isolate_profile_data": true,
@@ -35788,6 +35792,7 @@
           "--use-persistent-shell",
           "--gs-results-bucket=chromium-result-details",
           "--recover-devices",
+          "--gtest-also-run-pre-tests",
           "--test-launcher-filter-file=../../testing/buildbot/filters/android.pie_arm64.content_browsertests_coverage.filter"
         ],
         "isolate_profile_data": true,

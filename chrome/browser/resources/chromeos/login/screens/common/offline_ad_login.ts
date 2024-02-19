@@ -70,7 +70,7 @@ const DEFAULT_ENCRYPTION_TYPES = 'strong';
 
 interface EncryptionSelectListItem {
   value: string;
-  label: string;
+  title: string;
   selected: boolean;
   subtitle?: string;
 }
@@ -343,16 +343,16 @@ export class OfflineAdLogin extends OfflineAdLoginBase {
   }
 
   setupEncList(): void {
-    let list = loadTimeData.getValue('encryptionTypesList') as
+    const list = loadTimeData.getValue('encryptionTypesList') as
         EncryptionSelectListType;
     for (const item of list) {
       this.encryptionValueToSubtitleMap[item.value] = item.subtitle!;
       delete item.subtitle;
     }
-    list = list as typeof SelectListType;
+    const selectList: SelectListType = list;
     setupSelect(
-        this.getEncryptionList(), list, this.onEncryptionSelected.bind(this));
-    this.defaultEncryption = getSelectedValue(list)!;
+        this.getEncryptionList(), selectList, this.onEncryptionSelected.bind(this));
+    this.defaultEncryption = getSelectedValue(selectList)!;
     this.encryptionValue = this.defaultEncryption;
     this.machineNameError =
         loadTimeData.getString('adJoinErrorMachineNameInvalid');
@@ -378,17 +378,17 @@ export class OfflineAdLogin extends OfflineAdLoginBase {
     // errorState.
     this.errorStateLocked = true;
     this.machineNameInvalid =
-        this.errorState == ActiveDirectoryErrorState.MACHINE_NAME_INVALID ||
-        this.errorState == ActiveDirectoryErrorState.MACHINE_NAME_TOO_LONG;
+        this.errorState === ActiveDirectoryErrorState.MACHINE_NAME_INVALID ||
+        this.errorState === ActiveDirectoryErrorState.MACHINE_NAME_TOO_LONG;
     this.userInvalid =
-        this.errorState == ActiveDirectoryErrorState.BAD_USERNAME;
+        this.errorState === ActiveDirectoryErrorState.BAD_USERNAME;
     this.authPasswordInvalid =
-        this.errorState == ActiveDirectoryErrorState.BAD_AUTH_PASSWORD;
+        this.errorState === ActiveDirectoryErrorState.BAD_AUTH_PASSWORD;
     this.unlockPasswordInvalid =
-        this.errorState == ActiveDirectoryErrorState.BAD_UNLOCK_PASSWORD;
+        this.errorState === ActiveDirectoryErrorState.BAD_UNLOCK_PASSWORD;
 
     // Clear password.
-    if (this.errorState == ActiveDirectoryErrorState.NONE) {
+    if (this.errorState === ActiveDirectoryErrorState.NONE) {
       this.getPasswordInput().value = '';
     }
     this.errorStateLocked = false;
@@ -399,7 +399,7 @@ export class OfflineAdLogin extends OfflineAdLoginBase {
   }
 
   isEncryptionStrong(): boolean {
-    return this.encryptionValue == this.defaultEncryption;
+    return this.encryptionValue === this.defaultEncryption;
   }
 
   setJoinConfigurationOptions(options: JoinConfigType[]): void {
@@ -409,9 +409,13 @@ export class OfflineAdLogin extends OfflineAdLoginBase {
       return;
     }
     this.joinConfigOptions = options;
-    const selectList = [];
+    const selectList: SelectListType = [];
     for (let i = 0; i < options.length; ++i) {
-      selectList.push({title: options[i].name, value: i});
+      selectList.push({
+        title: options[i].name,
+        value: i.toString(),
+        selected: false,
+      });
     }
     setupSelect(
         this.getJoinConfigSelect(), selectList,
@@ -527,7 +531,7 @@ export class OfflineAdLogin extends OfflineAdLoginBase {
   }
 
   private onJoinConfigSelected(value: any): void {
-    if (this.selectedConfigOption == this.joinConfigOptions![value]) {
+    if (this.selectedConfigOption === this.joinConfigOptions![value]) {
       return;
     }
     this.errorState = ActiveDirectoryErrorState.NONE;
@@ -605,15 +609,15 @@ export class OfflineAdLogin extends OfflineAdLoginBase {
    * Returns true if "Machine name is invalid" error should be displayed.
    */
   isMachineNameInvalid(errorState: ActiveDirectoryErrorState): boolean {
-    return errorState != ActiveDirectoryErrorState.MACHINE_NAME_TOO_LONG;
+    return errorState !== ActiveDirectoryErrorState.MACHINE_NAME_TOO_LONG;
   }
 
   getMachineNameError(locale: string, errorState: ActiveDirectoryErrorState):
       string {
-    if (errorState == ActiveDirectoryErrorState.MACHINE_NAME_TOO_LONG) {
+    if (errorState === ActiveDirectoryErrorState.MACHINE_NAME_TOO_LONG) {
       return this.i18nDynamic(locale, 'adJoinErrorMachineNameTooLong');
     }
-    if (errorState == ActiveDirectoryErrorState.MACHINE_NAME_INVALID) {
+    if (errorState === ActiveDirectoryErrorState.MACHINE_NAME_INVALID) {
       if (this.machineNameInputPattern) {
         return this.i18nDynamic(locale, 'adJoinErrorMachineNameInvalidFormat');
       }
@@ -622,8 +626,8 @@ export class OfflineAdLogin extends OfflineAdLoginBase {
   }
 
   onKeydownUnlockPassword(e: KeyboardEvent): void {
-    if (e.key == 'Enter') {
-      if (this.getUnlockPasswordInput().value.length == 0) {
+    if (e.key === 'Enter') {
+      if (this.getUnlockPasswordInput().value.length === 0) {
         this.onSkipClicked();
       } else {
         this.onUnlockPasswordEntered();
@@ -634,7 +638,7 @@ export class OfflineAdLogin extends OfflineAdLoginBase {
 
   onKeydownMachineNameInput(e: KeyboardEvent): void {
     this.errorState = ActiveDirectoryErrorState.NONE;
-    if (e.key == 'Enter') {
+    if (e.key === 'Enter') {
       this.switchTo('userInput') || this.switchTo('passwordInput') ||
           this.onSubmit();
     }
@@ -642,7 +646,7 @@ export class OfflineAdLogin extends OfflineAdLoginBase {
 
   onKeydownUserInput(e: KeyboardEvent): void {
     this.errorState = ActiveDirectoryErrorState.NONE;
-    if (e.key == 'Enter') {
+    if (e.key === 'Enter') {
       this.switchTo('passwordInput') || this.onSubmit();
     }
   }
@@ -660,14 +664,14 @@ export class OfflineAdLogin extends OfflineAdLoginBase {
 
   onKeydownAuthPasswordInput(e: KeyboardEvent): void {
     this.errorState = ActiveDirectoryErrorState.NONE;
-    if (e.key == 'Enter') {
+    if (e.key === 'Enter') {
       this.onSubmit();
     }
   }
 
   switchTo(inputId: string): boolean {
     const inputElement = this.getInputElementById(inputId);
-    if (!inputElement.disabled && inputElement.value.length == 0) {
+    if (!inputElement.disabled && inputElement.value.length === 0) {
       inputElement.focus();
       return true;
     }

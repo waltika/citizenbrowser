@@ -5,12 +5,13 @@
 
 load("//lib/branches.star", "branches")
 load("//lib/builder_config.star", "builder_config")
-load("//lib/builders.star", "builders", "cpu", "os", "reclient", "xcode")
+load("//lib/builders.star", "builders", "cpu", "os", "reclient")
 load("//lib/ci.star", "ci")
 load("//lib/consoles.star", "consoles")
 load("//lib/gn_args.star", "gn_args")
 load("//lib/structs.star", "structs")
 load("//lib/builder_health_indicators.star", "health_spec")
+load("//lib/xcode.star", "xcode")
 
 ci.defaults.set(
     executable = ci.DEFAULT_EXECUTABLE,
@@ -154,11 +155,11 @@ ci.builder(
     notifies = ["Site Isolation Android"],
 )
 
+# TODO(b/299215988): Move to chromium.chromiumos.star.
 ci.builder(
-    name = "chromeos-jacuzzi-rel-skylab-fyi",
+    name = "chromeos-jacuzzi-rel-skylab",
     description_html = """\
-This builder builds public image and runs tests on DUTs in the lab.<br/>\
-This is experimental.
+This builder builds public image and runs tests on DUTs in the lab.
 """,
     builder_spec = builder_config.builder_spec(
         gclient_config = builder_config.gclient_config(
@@ -183,7 +184,8 @@ This is experimental.
             ],
         ),
         skylab_upload_location = builder_config.skylab_upload_location(
-            gs_bucket = "chromium-skylab-ci",
+            # Both CI and try use the same `chromium-skylab-try` bucket.
+            gs_bucket = "chromium-skylab-try",
             gs_extra = "ash",
         ),
     ),
@@ -207,11 +209,11 @@ This is experimental.
     contact_team_email = "chromeos-velocity@google.com",
 )
 
+# TODO(b/299215988): Move to chromium.chromiumos.star.
 ci.builder(
-    name = "chromeos-octopus-rel-skylab-fyi",
+    name = "chromeos-octopus-rel-skylab",
     description_html = """\
-This builder builds public image and runs tests on octopus DUTs in the lab.<br/>\
-This is experimental.
+This builder builds public image and runs tests on octopus DUTs in the lab.
 """,
     builder_spec = builder_config.builder_spec(
         gclient_config = builder_config.gclient_config(
@@ -236,7 +238,8 @@ This is experimental.
             ],
         ),
         skylab_upload_location = builder_config.skylab_upload_location(
-            gs_bucket = "chromium-skylab-ci",
+            # Both CI and try use the same `chromium-skylab-try` bucket.
+            gs_bucket = "chromium-skylab-try",
             gs_extra = "ash",
         ),
     ),
@@ -2668,4 +2671,47 @@ ci.builder(
     execution_timeout = 16 * time.hour,
     notifies = ["annotator-rel"],
     reclient_jobs = reclient.jobs.LOW_JOBS_FOR_CI,
+)
+
+# TODO(crbug.com/324461153) remove this builder once dangling check is on CQ.
+ci.builder(
+    name = "linux-lacros-rel-dangling-ptr-fyi",
+    description_html = "Dangling ptr check for lacros.",
+    builder_spec = builder_config.builder_spec(
+        gclient_config = builder_config.gclient_config(
+            config = "chromium_no_telemetry_dependencies",
+            apply_configs = [
+                "chromeos",
+            ],
+        ),
+        chromium_config = builder_config.chromium_config(
+            config = "chromium",
+            apply_configs = [
+                "mb",
+            ],
+            build_config = builder_config.build_config.RELEASE,
+            target_arch = builder_config.target_arch.INTEL,
+            target_bits = 64,
+            target_platform = builder_config.target_platform.CHROMEOS,
+        ),
+        build_gs_bucket = "chromium-fyi-archive",
+    ),
+    gn_args = gn_args.config(
+        configs = [
+            "lacros_on_linux",
+            "release_builder",
+            "reclient",
+            "also_build_ash_chrome",
+            "use_cups",
+            "enable_dangling_raw_ptr_checks",
+            "enable_dangling_raw_ptr_feature_flag",
+            "enable_backup_ref_ptr_feature_flag",
+        ],
+    ),
+    os = os.LINUX_DEFAULT,
+    console_view_entry = consoles.console_view_entry(
+        category = "lacros",
+    ),
+    contact_team_email = "chrome-desktop-engprod@google.com",
+    reclient_jobs = reclient.jobs.HIGH_JOBS_FOR_CI,
 )

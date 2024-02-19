@@ -35,6 +35,7 @@ class WebAppSettingsPageHandler : public AppManagementPageHandlerBase,
   ~WebAppSettingsPageHandler() override;
 
   // app_management::mojom::PageHandler:
+  void SetPinned(const std::string& app_id, bool pinned) override;
   void SetResizeLocked(const std::string& app_id, bool locked) override;
   void SetPreferredApp(const std::string& app_id,
                        bool is_preferred_app) override;
@@ -57,6 +58,9 @@ class WebAppSettingsPageHandler : public AppManagementPageHandlerBase,
       const webapps::AppId& app_id) override;
   void OnWebAppUserLinkCapturingPreferencesChanged(const webapps::AppId& app_id,
                                                    bool is_preferred) override;
+
+  // AppManagementPageHandlerBase:
+  app_management::mojom::AppPtr CreateApp(const std::string& app_id) override;
 
  private:
   base::ScopedObservation<web_app::WebAppRegistrar,

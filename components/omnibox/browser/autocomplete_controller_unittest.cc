@@ -100,6 +100,7 @@ class AutocompleteControllerTest : public testing::Test {
         name, AutocompleteMatchType::SEARCH_SUGGEST_PERSONALIZED, false, false,
         traditional_relevance, std::nullopt);
     match.keyword = u"keyword";
+    match.suggestion_group_id = omnibox::GROUP_PERSONALIZED_ZERO_SUGGEST;
     match.subtypes.emplace(omnibox::SUBTYPE_PERSONAL);
     match.subtypes.emplace(omnibox::SUBTYPE_ZERO_PREFIX);
     return match;
@@ -627,7 +628,10 @@ TEST_F(AutocompleteControllerTest, UpdateResult_Ranking) {
 #endif  // !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
 }
 
-TEST_F(AutocompleteControllerTest, UpdateResult_NumZPSShownInSession) {
+TEST_F(AutocompleteControllerTest, UpdateResult_ZPSEnabledAndShownInSession) {
+  auto zps_input = FakeAutocompleteController::CreateInput(u"");
+  zps_input.set_focus_type(metrics::OmniboxFocusType::INTERACTION_CLOBBER);
+
   {
     SCOPED_TRACE("Zero-prefix suggestions are offered synchronously");
     EXPECT_THAT(controller_.SimulateAutocompletePass(
@@ -636,11 +640,13 @@ TEST_F(AutocompleteControllerTest, UpdateResult_NumZPSShownInSession) {
                         CreatePersonalizedZeroPrefixMatch("zps_1", 1450),
                         CreatePersonalizedZeroPrefixMatch("zps_2", 1449),
                     },
-                    FakeAutocompleteController::CreateInput(u"")),
+                    zps_input),
                 testing::ElementsAreArray({
                     "zps_1",
                     "zps_2",
                 }));
+    // Whether zero-prefix suggestions were enabled in the session is updated.
+    EXPECT_TRUE(controller_.published_result_.zero_prefix_enabled_in_session());
     // The count of zero-prefix suggestions offered in the session is updated.
     EXPECT_EQ(controller_.published_result_
                   .num_zero_prefix_suggestions_shown_in_session(),
@@ -656,13 +662,14 @@ TEST_F(AutocompleteControllerTest, UpdateResult_NumZPSShownInSession) {
                         CreatePersonalizedZeroPrefixMatch("zps_3", 1448),
                         CreatePersonalizedZeroPrefixMatch("zps_4", 1447),
                     },
-                    FakeAutocompleteController::CreateInput(u"")),
+                    zps_input),
                 testing::ElementsAreArray({
                     "zps_1",
                     "zps_2",
                     "zps_3",
                     "zps_4",
                 }));
+    EXPECT_TRUE(controller_.published_result_.zero_prefix_enabled_in_session());
     // If zero-prefix suggestions are offered multiple times in the session, the
     // most recent count is logged.
     EXPECT_EQ(controller_.published_result_
@@ -675,6 +682,8 @@ TEST_F(AutocompleteControllerTest, UpdateResult_NumZPSShownInSession) {
     // Stop with clear_result=false does not clear the result set or notify
     // `OnResultChanged()`.
     EXPECT_FALSE(controller_.published_result_.empty());
+    // Whether zero-prefix suggestions were enabled in the session is unchanged.
+    EXPECT_TRUE(controller_.published_result_.zero_prefix_enabled_in_session());
     // The count of zero-prefix suggestions offered in the session is unchanged.
     EXPECT_EQ(controller_.published_result_
                   .num_zero_prefix_suggestions_shown_in_session(),
@@ -690,6 +699,8 @@ TEST_F(AutocompleteControllerTest, UpdateResult_NumZPSShownInSession) {
                 testing::ElementsAreArray({
                     "search_1",
                 }));
+    // Whether zero-prefix suggestions were enabled in the session is unchanged.
+    EXPECT_TRUE(controller_.published_result_.zero_prefix_enabled_in_session());
     // The count of zero-prefix suggestions offered in the session is unchanged.
     EXPECT_EQ(controller_.published_result_
                   .num_zero_prefix_suggestions_shown_in_session(),
@@ -699,9 +710,11 @@ TEST_F(AutocompleteControllerTest, UpdateResult_NumZPSShownInSession) {
     SCOPED_TRACE("Stop with clear_result=true is called due to popup closing");
     controller_.Stop(/*clear_result=*/true);
     // Stop with clear_result=true clears the result set and notifies
-    // `OnResultChanged()`. The count of zero-prefix suggestions offered in the
-    // session is also reset.
+    // `OnResultChanged()`. Whether zero-prefix suggestions were enabled and the
+    // count of zero-prefix suggestions offered in the session is also reset.
     EXPECT_TRUE(controller_.published_result_.empty());
+    EXPECT_FALSE(
+        controller_.published_result_.zero_prefix_enabled_in_session());
     EXPECT_EQ(controller_.published_result_
                   .num_zero_prefix_suggestions_shown_in_session(),
               0u);
@@ -1755,6 +1768,40 @@ TEST_F(AutocompleteControllerTest, UpdateResult_ForceAllowedToBeDefault) {
   }
 }
 
+TEST_F(AutocompleteControllerTest, ExtraHeaders) {
+  // Populate template URL service with starter pack entries.
+  std::vector<std::unique_ptr<TemplateURLData>> turls =
+      TemplateURLStarterPackData::GetStarterPackEngines();
+  for (auto& turl : turls) {
+    controller_.template_url_service_->Add(
+        std::make_unique<TemplateURL>(std::move(*turl)));
+  }
+  {
+    SCOPED_TRACE("@gemini starter pack match get an extra header.");
+    auto match = CreateStarterPackMatch(u"@gemini");
+    // searchbox_stats need to have been set.
+    match.search_terms_args =
+        std::make_unique<TemplateURLRef::SearchTermsArgs>(std::u16string());
+    match.search_terms_args->searchbox_stats.set_client_name("chrome");
+
+    controller_.UpdateMatchDestinationURLWithAdditionalSearchboxStats(
+        base::Milliseconds(123), &match);
+    EXPECT_EQ(match.extra_headers, kOmniboxGeminiHeader);
+  }
+  {
+    SCOPED_TRACE("@bookmarks starter pack match does not get an extra header.");
+    auto match = CreateStarterPackMatch(u"@bookmarks");
+    // searchbox_stats need to have been set.
+    match.search_terms_args =
+        std::make_unique<TemplateURLRef::SearchTermsArgs>(std::u16string());
+    match.search_terms_args->searchbox_stats.set_client_name("chrome");
+
+    controller_.UpdateMatchDestinationURLWithAdditionalSearchboxStats(
+        base::Milliseconds(123), &match);
+    EXPECT_EQ(match.extra_headers, "");
+  }
+}
+
 TEST_F(AutocompleteControllerTest, ShouldRunProvider) {
   // Disable LimitKeywordModeSuggestions flag.
   base::test::ScopedFeatureList scoped_feature_list;
@@ -1885,7 +1932,8 @@ TEST_F(AutocompleteControllerTest,
   excluded_provider_types = {
       AutocompleteProvider::TYPE_OPEN_TAB,
       AutocompleteProvider::TYPE_HISTORY_CLUSTER_PROVIDER,
-      AutocompleteProvider::TYPE_DOCUMENT};
+      AutocompleteProvider::TYPE_DOCUMENT,
+      AutocompleteProvider::TYPE_ON_DEVICE_HEAD};
   for (auto& provider : controller_.providers()) {
     EXPECT_NE(controller_.ShouldRunProvider(provider.get()),
               excluded_provider_types.contains(provider->type()))
@@ -1897,7 +1945,8 @@ TEST_F(AutocompleteControllerTest,
   controller_.input_.UpdateText(u"drive.google.com", 0, {});
   excluded_provider_types = {
       AutocompleteProvider::TYPE_OPEN_TAB,
-      AutocompleteProvider::TYPE_HISTORY_CLUSTER_PROVIDER};
+      AutocompleteProvider::TYPE_HISTORY_CLUSTER_PROVIDER,
+      AutocompleteProvider::TYPE_ON_DEVICE_HEAD};
   for (auto& provider : controller_.providers()) {
     EXPECT_NE(controller_.ShouldRunProvider(provider.get()),
               excluded_provider_types.contains(provider->type()))

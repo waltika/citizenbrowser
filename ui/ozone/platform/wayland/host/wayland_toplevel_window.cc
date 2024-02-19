@@ -398,7 +398,8 @@ void WaylandToplevelWindow::SetOpaqueRegion(
   root_surface()->set_opaque_region(region_px);
 }
 
-void WaylandToplevelWindow::SetInputRegion(std::optional<gfx::Rect> region_px) {
+void WaylandToplevelWindow::SetInputRegion(
+    std::optional<std::vector<gfx::Rect>> region_px) {
   input_region_px_ = region_px;
   root_surface()->set_input_region(region_px);
 }
@@ -1221,7 +1222,17 @@ void WaylandToplevelWindow::SetUpShellIntegration() {
   if (connection()->zaura_shell()) {
     if (auto* zaura_surface = root_surface()->CreateZAuraSurface()) {
       zaura_surface->set_delegate(AsWeakPtr());
-      zaura_surface->SetOcclusionTracking();
+
+      // If native window occlusion tracking is disabled (meaning compositor
+      // visibility is not controlled by occlusion) then enable the old
+      // unsynchronized occlusion pathway. Also, if the server does not support
+      // the synchronized occlusion pathway, enable the unsynchronized occlusion
+      // pathway.
+      if (!delegate()->IsNativeWindowOcclusionTrackingAlwaysEnabled() ||
+          !shell_toplevel_->IsSupportedOnAuraToplevel(
+              ZAURA_TOPLEVEL_CONFIGURE_OCCLUSION_STATE_SINCE_VERSION)) {
+        zaura_surface->SetOcclusionTracking();
+      }
     }
 
 #if BUILDFLAG(IS_CHROMEOS_LACROS)
@@ -1303,7 +1314,7 @@ void WaylandToplevelWindow::UpdateWindowMask() {
           : (IsOpaqueWindow() ? std::optional<std::vector<gfx::Rect>>(region)
                               : std::nullopt));
   root_surface()->set_input_region(input_region_px_ ? input_region_px_
-                                                    : *region.begin());
+                                                    : region);
 }
 
 bool WaylandToplevelWindow::GetTabletMode() {

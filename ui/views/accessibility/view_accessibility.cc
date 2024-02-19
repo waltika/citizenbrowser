@@ -267,17 +267,6 @@ void ViewAccessibility::GetAccessibleNodeData(ui::AXNodeData* data) const {
     data->relative_bounds.bounds = override_data_.relative_bounds.bounds;
   }
 
-#if DCHECK_IS_ON()
-  // This will help keep track of the attributes that have already
-  // been migrated from the old system of computing AXNodeData for Views (pull),
-  // to the new system (push). This will help ensure that new Views don't use
-  // the old system for attributes that have already been migrated.
-  // TODO(accessibility): Remove once migration is complete.
-  views::ViewsAXCompletedAttributes::Validate(*data);
-#endif
-
-  views::ViewAccessibilityUtils::Merge(/*source*/ data_, /*destination*/ *data);
-
   // We need to add the ignored state to all ignored Views, similar to how Blink
   // exposes ignored DOM nodes. Calling AXNodeData::IsIgnored() would also check
   // if the role is in the list of roles that are inherently ignored.
@@ -292,8 +281,8 @@ void ViewAccessibility::GetAccessibleNodeData(ui::AXNodeData* data) const {
   if (ViewAccessibility::IsAccessibilityFocusable())
     data->AddState(ax::mojom::State::kFocusable);
 
-  if (is_enabled_) {
-    if (*is_enabled_) {
+  if (overriden_is_enabled_) {
+    if (*overriden_is_enabled_) {
       // Take into account the possibility that the View is marked as readonly
       // but enabled. In other words, we can't just remove all restrictions,
       // unless the View is explicitly marked as disabled. Note that readonly is
@@ -329,6 +318,27 @@ void ViewAccessibility::GetAccessibleNodeData(ui::AXNodeData* data) const {
                               scale_factor);
     }
   }
+
+  // ***IMPORTANT***
+  //
+  // This step absolutely needs to be at the very end of the function in order
+  // for us to catch all the attributes that have been set through a different
+  // way than the ViewsAX AXNodeData push system. See `data_` for more info.
+
+#if DCHECK_IS_ON()
+  // This will help keep track of the attributes that have already
+  // been migrated from the old system of computing AXNodeData for Views (pull),
+  // to the new system (push). This will help ensure that new Views don't use
+  // the old system for attributes that have already been migrated.
+  // TODO(accessibility): Remove once migration is complete.
+  views::ViewsAXCompletedAttributes::Validate(*data);
+#endif
+
+  views::ViewAccessibilityUtils::Merge(/*source*/ data_, /*destination*/ *data);
+
+  // Nothing should be added beyond this point. Reach out to the Chromium
+  // accessibility team in Slack, or to benjamin.beaudry@microsoft.com if you
+  // absolutely need to add something past this point.
 }
 
 void ViewAccessibility::OverrideFocus(AXVirtualView* virtual_view) {
@@ -375,6 +385,58 @@ void ViewAccessibility::EndPopupFocusOverride() {
 
 void ViewAccessibility::FireFocusAfterMenuClose() {
   view_->NotifyAccessibilityEvent(ax::mojom::Event::kFocusAfterMenuClose, true);
+}
+
+void ViewAccessibility::SetRole(const ax::mojom::Role role) {
+  if (role == GetViewAccessibilityRole()) {
+    return;
+  }
+
+  data_.role = role;
+  if (role != ax::mojom::Role::kUnknown && role != ax::mojom::Role::kNone) {
+    // TODO(javiercon): This is to temporarily work around the DCHECK
+    // that wants to have a role to calculate a name-from: As of right now,
+    // OverrideRole is getting migrated before OverrideName. This means that
+    // when views call both in sequence and since OverrideRole is replaced by
+    // this func data_ will have the role but override_data_ will have the name
+    // (and not the role) so make sure to remove this once OverrideName is also
+    // migrated.
+    override_data_.role = role;
+  }
+}
+
+ax::mojom::Role ViewAccessibility::GetViewAccessibilityRole() const {
+  return data_.role;
+}
+
+void ViewAccessibility::SetBounds(const gfx::RectF& bounds) {
+  data_.relative_bounds.bounds = bounds;
+}
+
+void ViewAccessibility::SetIsEnabled(bool is_enabled) {
+  if (is_enabled == GetIsEnabled()) {
+    return;
+  }
+
+  if (!is_enabled) {
+    data_.SetRestriction(ax::mojom::Restriction::kDisabled);
+  } else if (data_.GetRestriction() == ax::mojom::Restriction::kDisabled) {
+    // Take into account the possibility that the View is marked as readonly
+    // but enabled. In other words, we can't just remove all restrictions,
+    // unless the View is explicitly marked as disabled. Note that readonly is
+    // another restriction state in addition to enabled and disabled, (see
+    // `ax::mojom::Restriction`).
+    data_.SetRestriction(ax::mojom::Restriction::kNone);
+  }
+
+  // TODO(crbug.com/1421682): We need a specific enabled-changed event for this.
+  // Some platforms have specific state-changed events and this generic event
+  // does not suggest what changed.
+  view()->NotifyAccessibilityEvent(ax::mojom::Event::kStateChanged, true);
+}
+
+bool ViewAccessibility::GetIsEnabled() const {
+  return data_.GetRestriction() != ax::mojom::Restriction::kDisabled;
 }
 
 void ViewAccessibility::OverrideRole(const ax::mojom::Role role) {
@@ -514,17 +576,16 @@ void ViewAccessibility::OverrideIsEnabled(bool enabled) {
   // is equal to kNone. Adding an IntAttribute that is equal to kNone is
   // ambiguous, since it is unclear what would be the difference between doing
   // this and not adding the attribute at all.
-  is_enabled_ = enabled;
+  overriden_is_enabled_ = enabled;
 }
 
 bool ViewAccessibility::IsAccessibilityEnabled() const {
-  if (is_enabled_)
-    return *is_enabled_;
-  return view_->GetEnabled();
-}
+  // TODO(javiercon): Remove once views are migrated to use the new setter.
+  if (overriden_is_enabled_) {
+    return *overriden_is_enabled_;
+  }
 
-void ViewAccessibility::OverrideBounds(const gfx::RectF& bounds) {
-  override_data_.relative_bounds.bounds = bounds;
+  return view_->GetEnabled();
 }
 
 void ViewAccessibility::OverrideHasPopup(const ax::mojom::HasPopup has_popup) {

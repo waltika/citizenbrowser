@@ -5,10 +5,11 @@
 
 load("//lib/branches.star", "branches")
 load("//lib/builder_config.star", "builder_config")
-load("//lib/builders.star", "cpu", "os", "reclient", "siso", "xcode")
+load("//lib/builders.star", "cpu", "os", "reclient", "siso")
 load("//lib/try.star", "try_")
 load("//lib/consoles.star", "consoles")
 load("//lib/gn_args.star", "gn_args")
+load("//lib/xcode.star", "xcode")
 
 try_.defaults.set(
     executable = try_.DEFAULT_EXECUTABLE,
@@ -461,7 +462,7 @@ try_.builder(
     ),
     experiments = {
         # crbug/940930
-        "chromium.enable_cleandead": 50,
+        "chromium.enable_cleandead": 100,
     },
     main_list_view = "try",
     reclient_jobs = reclient.jobs.LOW_JOBS_FOR_CQ,
@@ -634,9 +635,6 @@ This builder shadows ios-simulator builder to compare between Siso builds and Ni
 This builder should be removed after migrating ios-simulator from Ninja to Siso. b/277863839
 """,
     mirrors = builder_config.copy_from("try/ios-simulator"),
-    try_settings = builder_config.try_settings(
-        is_compile_only = True,
-    ),
     gn_args = "try/ios-simulator",
     os = os.LINUX_DEFAULT,
     compilator = "ios-simulator-siso-compilator",
@@ -650,7 +648,7 @@ This builder should be removed after migrating ios-simulator from Ninja to Siso.
     main_list_view = "try",
     siso_enabled = True,
     tryjob = try_.job(
-        experiment_percentage = 10,
+        experiment_percentage = 5,
     ),
     use_clang_coverage = True,
 )

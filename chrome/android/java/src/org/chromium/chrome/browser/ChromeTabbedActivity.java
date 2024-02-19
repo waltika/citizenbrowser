@@ -90,7 +90,6 @@ import org.chromium.chrome.browser.compositor.layouts.LayoutManagerChromePhone;
 import org.chromium.chrome.browser.compositor.layouts.LayoutManagerChromeTablet;
 import org.chromium.chrome.browser.compositor.overlays.strip.StripLayoutHelperManager.TabModelStartupInfo;
 import org.chromium.chrome.browser.cookies.CookiesFetcher;
-import org.chromium.chrome.browser.crash.ChromePureJavaExceptionReporter;
 import org.chromium.chrome.browser.crypto.CipherFactory;
 import org.chromium.chrome.browser.dependency_injection.ChromeActivityComponent;
 import org.chromium.chrome.browser.device.DeviceClassManager;
@@ -130,6 +129,7 @@ import org.chromium.chrome.browser.layouts.LayoutType;
 import org.chromium.chrome.browser.lifecycle.ActivityLifecycleDispatcher;
 import org.chromium.chrome.browser.lifecycle.ActivityLifecycleDispatcher.ActivityState;
 import org.chromium.chrome.browser.locale.LocaleManager;
+import org.chromium.chrome.browser.magic_stack.HomeModulesConfigManager;
 import org.chromium.chrome.browser.magic_stack.ModuleDelegate.ModuleType;
 import org.chromium.chrome.browser.magic_stack.ModuleRegistry;
 import org.chromium.chrome.browser.metrics.AndroidSessionDurationsServiceState;
@@ -184,6 +184,7 @@ import org.chromium.chrome.browser.tab.TabLaunchType;
 import org.chromium.chrome.browser.tab.TabObscuringHandler;
 import org.chromium.chrome.browser.tab.TabSelectionType;
 import org.chromium.chrome.browser.tab.tab_restore.HistoricalTabModelObserver;
+import org.chromium.chrome.browser.tab_resumption.TabResumptionModuleBuilder;
 import org.chromium.chrome.browser.tabbed_mode.TabbedAppMenuPropertiesDelegate;
 import org.chromium.chrome.browser.tabbed_mode.TabbedRootUiCoordinator;
 import org.chromium.chrome.browser.tabmodel.ChromeTabCreator;
@@ -310,7 +311,6 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
             "Android.ExplicitViewIntentFinishedNewTabbedActivity";
 
     private static final String TAG_MULTI_INSTANCE = "MultiInstance";
-    private static final String SOURCE_ACTIVITY_REFERRER_OS = "android-app://android";
 
     static final String HISTOGRAM_MISMATCHED_INDICES_ACTIVITY_CREATION_TIME_DELTA =
             "Android.MultiWindowMode.MismatchedIndices.ActivityCreationTimeDelta";
@@ -444,6 +444,9 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
     private DragAndDropDelegate mDragDropDelegate;
 
     private ExperimentalStartupMetricsTracker mExperimentalStartupMetricsTracker;
+
+    private OneshotSupplierImpl<ModuleRegistry> mModuleRegistrySupplier =
+            new OneshotSupplierImpl<>();
 
     private final IncognitoTabHost mIncognitoTabHost =
             new IncognitoTabHost() {
@@ -895,7 +898,8 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
                 mRootUiCoordinator.getIncognitoReauthControllerSupplier(),
                 v -> onTabSwitcherClicked(),
                 mTabModelProfileSupplier,
-                getToolbarManager().getTabStripHeightSupplier());
+                getToolbarManager().getTabStripHeightSupplier(),
+                mModuleRegistrySupplier);
     }
 
     private void initHub() {
@@ -2303,7 +2307,7 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
     private void maybeRegisterHomeModules() {
         if (!StartSurfaceConfiguration.useMagicStack()) return;
 
-        ModuleRegistry moduleRegistry = ModuleRegistry.getInstance();
+        ModuleRegistry moduleRegistry = new ModuleRegistry(HomeModulesConfigManager.getInstance());
         SingleTabModuleBuilder singleTabModuleBuilder =
                 new SingleTabModuleBuilder(
                         this, getTabModelSelectorSupplier(), getTabContentManagerSupplier());
@@ -2314,6 +2318,14 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
                     new PriceChangeModuleBuilder(this, mTabModelProfileSupplier, mTabModelSelector);
             moduleRegistry.registerModule(ModuleType.PRICE_CHANGE, priceChangeModuleBuilder);
         }
+
+        if (ChromeFeatureList.sTabResumptionModuleAndroid.isEnabled()) {
+            TabResumptionModuleBuilder tabResumptionModuleBuilder =
+                    new TabResumptionModuleBuilder(this, mTabModelProfileSupplier);
+            moduleRegistry.registerModule(ModuleType.TAB_RESUMPTION, tabResumptionModuleBuilder);
+        }
+
+        mModuleRegistrySupplier.set(moduleRegistry);
     }
 
     private boolean shouldIgnoreIntent() {
@@ -2542,7 +2554,8 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
                             getToolbarManager()::getToolbar,
                             mHomeSurfaceTracker,
                             getTabContentManagerSupplier(),
-                            getToolbarManager().getTabStripHeightSupplier());
+                            getToolbarManager().getTabStripHeightSupplier(),
+                            mModuleRegistrySupplier);
         }
         return mTabDelegateFactory;
     }
@@ -2690,7 +2703,7 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
                     mMultiInstanceManager.allocInstanceId(
                             windowId, ApplicationStatus.getTaskId(this), preferNew);
             mWindowId = instanceIdInfo.first;
-            logIntentInfo(intent, instanceIdInfo);
+            logIntentInfo(intent);
             // If a new instance ID was allocated for the newly created activity, potentially
             // dispatch it to an existing activity under special circumstances. See
             // |#maybeDispatchIntentInExistingActivity(Intent)| for details.
@@ -2722,13 +2735,7 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
         return super.isStartedUpCorrectly(intent);
     }
 
-    private void logIntentInfo(Intent intent, Pair<Integer, Integer> instanceIdInfo) {
-        boolean isFromOs =
-                getReferrer() != null
-                        && getReferrer().toString().equals(SOURCE_ACTIVITY_REFERRER_OS);
-        boolean isFromChrome = IntentHandler.wasIntentSenderChrome(intent);
-        int windowId = instanceIdInfo.first;
-
+    private void logIntentInfo(Intent intent) {
         var logMessage =
                 "Intent routed via ChromeLauncherActivity: "
                         + IntentUtils.safeGetBooleanExtra(
@@ -2753,41 +2760,6 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
                         + "\nIntent hash: "
                         + System.identityHashCode(intent);
         Log.i(TAG_MULTI_INSTANCE, logMessage);
-        // Only crash-report if a valid window ID is allocated to launch the intent.
-        if (windowId == INVALID_WINDOW_ID) return;
-
-        // Report an exception iff all the following conditions are satisfied:
-        // 1. At least one instance of Chrome already exists (that is, the newly created activity is
-        // for an instance that is not the first).
-        // 2. The intent will be launched in a new instance of Chrome.
-        // 3. The device is a phone.
-        // 4. The intent is a VIEW intent with a non-Chrome source, OR, a MAIN intent with a
-        // non-Chrome / non-OS source.
-        boolean isViewIntent = Intent.ACTION_VIEW.equals(intent.getAction()) && !isFromChrome;
-        boolean isMainIntent =
-                Intent.ACTION_MAIN.equals(intent.getAction()) && !isFromChrome && !isFromOs;
-
-        if (MultiWindowUtils.getInstanceCount() >= 1
-                && instanceIdInfo.second == InstanceAllocationType.NEW_INSTANCE_NEW_TASK
-                && !DeviceFormFactor.isNonMultiDisplayContextOnTablet(this)) {
-            if (isViewIntent) {
-                logMessage =
-                        "This is not a crash. Logging info for VIEW intent received in"
-                                + " ChromeTabbedActivity dispatched via"
-                                + " AsyncInitializationActivity#onCreate() that could potentially"
-                                + " create a new Chrome instance.\n"
-                                + logMessage;
-                ChromePureJavaExceptionReporter.reportJavaException(new Throwable(logMessage));
-            } else if (isMainIntent) {
-                logMessage =
-                        "This is not a crash. Logging info for MAIN intent received in"
-                                + " ChromeTabbedActivity dispatched via"
-                                + " AsyncInitializationActivity#onCreate() that could potentially"
-                                + " create a new Chrome instance.\n"
-                                + logMessage;
-                ChromePureJavaExceptionReporter.reportJavaException(new Throwable(logMessage));
-            }
-        }
     }
 
     // It is possible that an undesired attempt is made to launch a VIEW intent in a new
@@ -4006,10 +3978,18 @@ public class ChromeTabbedActivity extends ChromeActivity<ChromeActivityComponent
      * hub expects which is a double.
      */
     private DoubleConsumer adaptOnToolbarAlphaChange() {
-        return alpha ->
-                getToolbarManager()
-                        .getToolbarAlphaInOverviewObserver()
-                        .onOverviewAlphaChanged((float) alpha);
+        return alpha -> {
+            // If the manager is still null, it doesn't matter whatever is happening. Can safely
+            // ignore any signal.
+            @Nullable ToolbarManager toolbarManager = getToolbarManager();
+            if (toolbarManager == null) {
+                return;
+            }
+
+            toolbarManager
+                    .getToolbarAlphaInOverviewObserver()
+                    .onOverviewAlphaChanged((float) alpha);
+        };
     }
 
     public void showStartSurfaceForTesting() {

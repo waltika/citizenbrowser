@@ -740,6 +740,8 @@ class EnrollmentState {
 
     switch (initial_enrollment_mode) {
       case Response::INITIAL_ENROLLMENT_MODE_NONE:
+      // Do nothing initially with token-based enrollment mode.
+      case Response::INITIAL_ENROLLMENT_MODE_TOKEN_ENROLLMENT_ENFORCED:
         return {AutoEnrollmentResult::kNoEnrollment, std::string()};
       case Response::INITIAL_ENROLLMENT_MODE_ENROLLMENT_ENFORCED:
         return {AutoEnrollmentResult::kEnrollment,
@@ -1063,7 +1065,7 @@ class EnrollmentStateFetcherImpl::Sequence {
         fetch_duration);
   }
 
-  void ReportStepDurationAndResetTimer(base::StringPiece uma_step_suffix) {
+  void ReportStepDurationAndResetTimer(std::string_view uma_step_suffix) {
     base::UmaHistogramTimes(
         base::StrCat({kUMAStateDeterminationStepDuration, uma_step_suffix}),
         base::TimeTicks::Now() - step_started_);

@@ -45,7 +45,6 @@ class InterestGroupManagerImpl;
 struct BiddingAndAuctionServerKey;
 class RenderFrameHost;
 class RenderFrameHostImpl;
-class PageImpl;
 class PrivateAggregationManager;
 
 // Implements the AdAuctionService service called by Blink code.
@@ -82,7 +81,8 @@ class CONTENT_EXPORT AdAuctionServiceImpl final
       DeprecatedGetURLFromURNCallback callback) override;
   void DeprecatedReplaceInURN(
       const GURL& urn_url,
-      std::vector<blink::mojom::AdKeywordReplacementPtr> replacements,
+      const std::vector<blink::AuctionConfig::AdKeywordReplacement>&
+          replacements,
       DeprecatedReplaceInURNCallback callback) override;
   void GetInterestGroupAdAuctionData(
       const url::Origin& seller,
@@ -165,9 +165,6 @@ class CONTENT_EXPORT AdAuctionServiceImpl final
   void OnAuctionComplete(
       RunAdAuctionCallback callback,
       GURL urn_uuid,
-      FencedFrameURLMapping::Id fenced_frame_urls_map_id,
-      GlobalRenderFrameHostId render_frame_host_id,
-      const base::WeakPtr<PageImpl> page_impl,
       AuctionRunner* auction,
       bool aborted_by_script,
       std::optional<blink::InterestGroupKey> winning_group_key,
@@ -191,21 +188,12 @@ class CONTENT_EXPORT AdAuctionServiceImpl final
   void OnGotAuctionData(base::Uuid request_id, BiddingAndAuctionData data);
   void OnGotBiddingAndAuctionServerKey(
       base::Uuid request_id,
-      scoped_refptr<network::WrapperSharedURLLoaderFactory> loader,
       base::expected<BiddingAndAuctionServerKey, std::string> maybe_key);
   void OnGotAuctionDataAndKey(base::Uuid request_id);
 
   InterestGroupManagerImpl& GetInterestGroupManager() const;
 
   url::Origin GetTopWindowOrigin() const;
-
-  // Return whether the auction is expected to fail because any of
-  // RenderFrameHostImpl, PageImpl and FencedFrameUrlMapping has changed during
-  // the auction.
-  bool IsAuctionExpectedToFail(
-      FencedFrameURLMapping::Id fenced_frame_urls_map_id,
-      GlobalRenderFrameHostId render_frame_host_id,
-      const base::WeakPtr<PageImpl> page_impl);
 
   // To avoid race conditions associated with top frame navigations (mentioned
   // in document_service.h), we need to save the values of the main frame

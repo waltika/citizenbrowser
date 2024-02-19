@@ -646,7 +646,8 @@ export enum Action {
   TestEvaluated = 122,
   InsightTestMessageShown = 123,
   CommandEvaluatedInTestPanel = 124,
-  MaxValue = 125,
+  TestSidebarOpened = 125,
+  MaxValue = 126,
 }
 
 /* eslint-disable @typescript-eslint/naming-convention */

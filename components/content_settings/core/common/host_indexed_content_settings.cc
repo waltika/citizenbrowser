@@ -145,6 +145,26 @@ HostIndexedContentSettings::Iterator::Iterator(
   }
 }
 
+HostIndexedContentSettings::Iterator::Iterator(const Iterator& other)
+    : index_(other.index_),
+      stage_(other.stage_),
+      next_map_iterator_(other.next_map_iterator_),
+      next_map_end_(other.next_map_end_),
+      current_iterator_(other.current_iterator_),
+      current_end_(other.current_end_) {
+  index_->iterating_++;
+}
+
+HostIndexedContentSettings::Iterator::Iterator(Iterator&& other)
+    : index_(other.index_),
+      stage_(other.stage_),
+      next_map_iterator_(other.next_map_iterator_),
+      next_map_end_(other.next_map_end_),
+      current_iterator_(other.current_iterator_),
+      current_end_(other.current_end_) {
+  index_->iterating_++;
+}
+
 HostIndexedContentSettings::Iterator::~Iterator() {
   DCHECK_GT(index_->iterating_, 0);
   index_->iterating_--;
@@ -178,6 +198,13 @@ HostIndexedContentSettings::Iterator::operator++() {
     }
   }
   return *this;
+}
+
+HostIndexedContentSettings::Iterator
+HostIndexedContentSettings::Iterator::operator++(int) {
+  Iterator ret = *this;
+  operator++();
+  return ret;
 }
 
 void HostIndexedContentSettings::Iterator::SetStage(Stage stage) {
@@ -220,6 +247,10 @@ void HostIndexedContentSettings::Iterator::SetStage(Stage stage) {
 
 HostIndexedContentSettings::HostIndexedContentSettings() = default;
 
+HostIndexedContentSettings::HostIndexedContentSettings(std::string source,
+                                                       bool off_the_record)
+    : source_(std::move(source)), off_the_record_(off_the_record) {}
+
 HostIndexedContentSettings::HostIndexedContentSettings(
     HostIndexedContentSettings&& other) = default;
 HostIndexedContentSettings& HostIndexedContentSettings::operator=(
@@ -229,17 +260,15 @@ HostIndexedContentSettings& HostIndexedContentSettings::operator=(
 std::vector<HostIndexedContentSettings> HostIndexedContentSettings::Create(
     const ContentSettingsForOneType& settings) {
   std::vector<HostIndexedContentSettings> indices;
-  indices.emplace_back();
   if (settings.empty()) {
     return indices;
   }
-  std::string_view last_source = settings.front().source;
   for (const auto& entry : settings) {
     // Indices need to be split by content settings provider to ensure
     // accurate precedence of settings.
-    if (entry.source != last_source) {
-      last_source = entry.source;
-      indices.emplace_back();
+    if (indices.empty() || entry.source != indices.back().source_ ||
+        entry.incognito != indices.back().off_the_record()) {
+      indices.emplace_back(entry.source, entry.incognito);
     }
     indices.back().SetValue(entry.primary_pattern, entry.secondary_pattern,
                             entry.setting_value.Clone(), entry.metadata);
@@ -330,25 +359,6 @@ size_t HostIndexedContentSettings::size() const {
   }
   size += wildcard_settings_.size();
   return size;
-}
-
-void HostIndexedContentSettings::DcheckSameResultAsLinearLookup(
-    const GURL& primary_url,
-    const GURL& secondary_url,
-    const ContentSettingsForOneType& linear_settings) const {
-  DCHECK([&]() -> bool {
-    const ContentSettingPatternSource* found_content_setting =
-        FindContentSetting(primary_url, secondary_url, linear_settings);
-    const RuleEntry* found_indexed_content_setting =
-        Find(primary_url, secondary_url);
-
-    if (!found_content_setting || !found_indexed_content_setting) {
-      return !found_content_setting && !found_indexed_content_setting;
-    }
-    return found_content_setting->GetContentSetting() ==
-           ValueToContentSetting(found_indexed_content_setting->second.value);
-  }()) << "Different result in index lookup: "
-       << primary_url.spec() << " " << secondary_url.spec();
 }
 
 }  // namespace content_settings

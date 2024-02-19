@@ -72,6 +72,7 @@ import "chromeos/crosapi/mojom/login_state.mojom";
 import "chromeos/crosapi/mojom/policy_namespace.mojom";
 import "chromeos/crosapi/mojom/policy_service.mojom";
 import "chromeos/crosapi/mojom/message_center.mojom";
+import "chromeos/crosapi/mojom/mahi.mojom";
 import "chromeos/crosapi/mojom/metrics.mojom";
 import "chromeos/crosapi/mojom/metrics_reporting.mojom";
 import "chromeos/crosapi/mojom/multi_capture_service.mojom";
@@ -158,8 +159,8 @@ struct BrowserInfo {
 // please note the milestone when you added it, to help us reason about
 // compatibility between the client applications and older ash-chrome binaries.
 //
-// Next version: 132
-// Next method id: 134
+// Next version: 133
+// Next method id: 135
 [Stable, Uuid="8b79c34f-2bf8-4499-979a-b17cac522c1e",
  RenamedFrom="crosapi.mojom.AshChromeService"]
 interface Crosapi {
@@ -514,6 +515,11 @@ interface Crosapi {
   // Added in M90.
   [MinVersion=17] BindMachineLearningService@22(
       pending_receiver<chromeos.machine_learning.mojom.MachineLearningService> receiver);
+
+  // Binds the mahi browser delegate to the mahi browser client.
+  // Added in M123.
+  [MinVersion=132] BindMahiBrowserDelegate@134(
+      pending_receiver<MahiBrowserDelegate> receiver);
 
   // Binds the MediaUI interface for the Global Media Controls UI.
   // Added in M113.
@@ -997,8 +1003,8 @@ struct DeviceProperties {
 // Entropy variables which need to be kept in sync between Ash and Lacros
 // throughout a session.
 //
-// Next version: 1
-// Next id: 3
+// Next version: 2
+// Next id: 4
 [Stable]
 struct EntropySource {
   // Metrics service low entropy source of ash chrome.
@@ -1009,6 +1015,13 @@ struct EntropySource {
 
   // Metrics service pseudo low entropy source of ash chrome.
   int32 pseudo_low_entropy@2;
+
+  // The limited entropy randomization source used by ash chrome, provided by
+  // the metrics service. This field should not be null, but is required to be
+  // optional by mojo for backward compatibility. See
+  // https://chromium.googlesource.com/chromium/src/mojo/+/HEAD/public/tools/bindings/README.md#versioned-structs
+  [MinVersion=1]
+  string? limited_entropy_randomization_source@3;
 };
 
 [Stable, Extensible]

@@ -103,6 +103,16 @@ class AccountFetcherService : public ProfileOAuth2TokenServiceObserver {
   // force-enable off.
   void EnableAccountCapabilitiesFetcherForTest(bool enabled);
 
+  // Returns the AccountCapabilitiesFetcherFactory, for use in tests only.
+  AccountCapabilitiesFetcherFactory*
+  GetAccountCapabilitiesFetcherFactoryForTest();
+
+  // Calling this method provides a hint that Account Capabilities may be
+  // fetched in the near future, and front-loads some processing to speed
+  // up future fetches. This is purely a latency optimization; calling this
+  // method is optional.
+  void PrepareForFetchingAccountCapabilities();
+
 #if BUILDFLAG(IS_ANDROID)
   // Refresh the AccountInfo if the existing one is stale
   void RefreshAccountInfoIfStale(const CoreAccountId& account_id);
@@ -111,6 +121,9 @@ class AccountFetcherService : public ProfileOAuth2TokenServiceObserver {
   void SetIsChildAccount(const CoreAccountId& account_id,
                          bool is_child_account);
 #endif
+
+  // Destroy any fetchers created for the specified account.
+  void DestroyFetchers(const CoreAccountId& account_id);
 
   // ProfileOAuth2TokenServiceObserver implementation.
   void OnRefreshTokenAvailable(const CoreAccountId& account_id) override;

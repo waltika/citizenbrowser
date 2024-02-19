@@ -822,21 +822,21 @@ struct GroupPortableImpl {
 
 #ifdef ABSL_INTERNAL_HAVE_SSE2
 using Group = GroupSse2Impl;
-using GroupEmptyOrDeleted = GroupSse2Impl;
+using GroupFullEmptyOrDeleted = GroupSse2Impl;
 #elif defined(ABSL_INTERNAL_HAVE_ARM_NEON) && defined(ABSL_IS_LITTLE_ENDIAN)
 using Group = GroupAArch64Impl;
 // For Aarch64, we use the portable implementation for counting and masking
-// empty or deleted group elements. This is to avoid the latency of moving
+// full, empty or deleted group elements. This is to avoid the latency of moving
 // between data GPRs and Neon registers when it does not provide a benefit.
 // Using Neon is profitable when we call Match(), but is not when we don't,
-// which is the case when we do *EmptyOrDeleted operations. It is difficult to
-// make a similar approach beneficial on other architectures such as x86 since
-// they have much lower GPR <-> vector register transfer latency and 16-wide
-// Groups.
-using GroupEmptyOrDeleted = GroupPortableImpl;
+// which is the case when we do *EmptyOrDeleted and MaskFull operations.
+// It is difficult to make a similar approach beneficial on other architectures
+// such as x86 since they have much lower GPR <-> vector register transfer
+// latency and 16-wide Groups.
+using GroupFullEmptyOrDeleted = GroupPortableImpl;
 #else
 using Group = GroupPortableImpl;
-using GroupEmptyOrDeleted = GroupPortableImpl;
+using GroupFullEmptyOrDeleted = GroupPortableImpl;
 #endif
 
 // When there is an insertion with no reserved growth, we rehash with
@@ -1463,7 +1463,7 @@ inline FindInfo find_first_non_full(const CommonFields& common, size_t hash) {
   auto seq = probe(common, hash);
   const ctrl_t* ctrl = common.control();
   while (true) {
-    GroupEmptyOrDeleted g{ctrl + seq.offset()};
+    GroupFullEmptyOrDeleted g{ctrl + seq.offset()};
     auto mask = g.MaskEmptyOrDeleted();
     if (mask) {
 #if !defined(NDEBUG)
@@ -1543,6 +1543,46 @@ constexpr size_t BackingArrayAlignment(size_t align_of_slot) {
 inline void* SlotAddress(void* slot_array, size_t slot, size_t slot_size) {
   return reinterpret_cast<void*>(reinterpret_cast<char*>(slot_array) +
                                  (slot * slot_size));
+}
+
+// Iterates over all full slots and calls `cb(const ctrl_t*, SlotType*)`.
+// NOTE: no erasure from this table allowed during Callback call.
+template <class SlotType, class Callback>
+ABSL_ATTRIBUTE_ALWAYS_INLINE inline void IterateOverFullSlots(
+    const CommonFields& c, SlotType* slot, Callback cb) {
+  const size_t cap = c.capacity();
+  const ctrl_t* ctrl = c.control();
+  if (is_small(cap)) {
+    // Mirrored/cloned control bytes in small table are also located in the
+    // first group (starting from position 0). We are taking group from position
+    // `capacity` in order to avoid duplicates.
+
+    // Small tables capacity fits into portable group, where
+    // GroupPortableImpl::MaskFull is more efficient for the
+    // capacity <= GroupPortableImpl::kWidth.
+    assert(cap <= GroupPortableImpl::kWidth &&
+           "unexpectedly large small capacity");
+    static_assert(Group::kWidth >= GroupPortableImpl::kWidth,
+                  "unexpected group width");
+    // Group starts from kSentinel slot, so indices in the mask will
+    // be increased by 1.
+    const auto mask = GroupPortableImpl(ctrl + cap).MaskFull();
+    --ctrl;
+    --slot;
+    for (uint32_t i : mask) {
+      cb(ctrl + i, slot + i);
+    }
+    return;
+  }
+  size_t remaining = c.size();
+  while (remaining != 0) {
+    for (uint32_t i : GroupFullEmptyOrDeleted(ctrl).MaskFull()) {
+      cb(ctrl + i, slot + i);
+      --remaining;
+    }
+    slot += Group::kWidth;
+    ctrl += Group::kWidth;
+  }
 }
 
 // Helper class to perform resize of the hash set.
@@ -1802,7 +1842,7 @@ struct PolicyFunctions {
   size_t slot_size;
 
   // Returns the hash of the pointed-to slot.
-  size_t (*hash_slot)(void* set, void* slot);
+  size_t (*hash_slot)(const void* hash_fn, void* slot);
 
   // Transfer the contents of src_slot to dst_slot.
   void (*transfer)(void* set, void* dst_slot, void* src_slot);
@@ -1847,7 +1887,7 @@ ABSL_ATTRIBUTE_NOINLINE void TransferRelocatable(void*, void* dst, void* src) {
 }
 
 // Type-erased version of raw_hash_set::drop_deletes_without_resize.
-void DropDeletesWithoutResize(CommonFields& common,
+void DropDeletesWithoutResize(CommonFields& common, const void* hash_fn,
                               const PolicyFunctions& policy, void* tmp_space);
 
 // A SwissTable.
@@ -1987,6 +2027,7 @@ class raw_hash_set {
       ++ctrl_;
       ++slot_;
       skip_empty_or_deleted();
+      if (ABSL_PREDICT_FALSE(*ctrl_ == ctrl_t::kSentinel)) ctrl_ = nullptr;
       return *this;
     }
     // PRECONDITION: not an end() iterator.
@@ -2021,18 +2062,15 @@ class raw_hash_set {
     explicit iterator(const GenerationType* generation_ptr)
         : HashSetIteratorGenerationInfo(generation_ptr), ctrl_(nullptr) {}
 
-    // Fixes up `ctrl_` to point to a full by advancing it and `slot_` until
-    // they reach one.
-    //
-    // If a sentinel is reached, we null `ctrl_` out instead.
+    // Fixes up `ctrl_` to point to a full or sentinel by advancing `ctrl_` and
+    // `slot_` until they reach one.
     void skip_empty_or_deleted() {
       while (IsEmptyOrDeleted(*ctrl_)) {
         uint32_t shift =
-            GroupEmptyOrDeleted{ctrl_}.CountLeadingEmptyOrDeleted();
+            GroupFullEmptyOrDeleted{ctrl_}.CountLeadingEmptyOrDeleted();
         ctrl_ += shift;
         slot_ += shift;
       }
-      if (ABSL_PREDICT_FALSE(*ctrl_ == ctrl_t::kSentinel)) ctrl_ = nullptr;
     }
 
     ctrl_t* control() const { return ctrl_; }
@@ -2222,19 +2260,55 @@ class raw_hash_set {
                                that.alloc_ref())) {}
 
   raw_hash_set(const raw_hash_set& that, const allocator_type& a)
-      : raw_hash_set(0, that.hash_ref(), that.eq_ref(), a) {
+      : raw_hash_set(GrowthToLowerboundCapacity(that.size()), that.hash_ref(),
+                     that.eq_ref(), a) {
     const size_t size = that.size();
-    if (size == 0) return;
-    reserve(size);
-    // Because the table is guaranteed to be empty, we can do something faster
-    // than a full `insert`.
-    for (const auto& v : that) {
-      const size_t hash = PolicyTraits::apply(HashElement{hash_ref()}, v);
-      auto target = find_first_non_full_outofline(common(), hash);
-      SetCtrl(common(), target.offset, H2(hash), sizeof(slot_type));
-      emplace_at(target.offset, v);
-      common().maybe_increment_generation_on_insert();
-      infoz().RecordInsert(hash, target.probe_length);
+    if (size == 0) {
+      return;
+    }
+    const size_t cap = capacity();
+    // Note about single group tables:
+    // 1. It is correct to have any order of elements.
+    // 2. Order has to be non deterministic.
+    // 3. We are assigning elements with arbitrary `shift` starting from
+    //    `capacity + shift` position.
+    // 4. `shift` must be coprime with `capacity + 1` in order to be able to use
+    //     modular arithmetic to traverse all positions, instead if cycling
+    //     through a subset of positions. Odd numbers are coprime with any
+    //     `capacity + 1` (2^N).
+    size_t offset = cap;
+    const size_t shift =
+        is_single_group(cap) ? (PerTableSalt(control()) | 1) : 0;
+    IterateOverFullSlots(
+        that.common(), that.slot_array(),
+        [&](const ctrl_t* that_ctrl,
+            slot_type* that_slot) ABSL_ATTRIBUTE_ALWAYS_INLINE {
+          if (shift == 0) {
+            // Big tables case. Position must be searched via probing.
+            // The table is guaranteed to be empty, so we can do faster than
+            // a full `insert`.
+            const size_t hash = PolicyTraits::apply(
+                HashElement{hash_ref()}, PolicyTraits::element(that_slot));
+            FindInfo target = find_first_non_full_outofline(common(), hash);
+            infoz().RecordInsert(hash, target.probe_length);
+            offset = target.offset;
+          } else {
+            // Small tables case. Next position is computed via shift.
+            offset = (offset + shift) & cap;
+          }
+          const h2_t h2 = static_cast<h2_t>(*that_ctrl);
+          assert(  // We rely that hash is not changed for small tables.
+              H2(PolicyTraits::apply(HashElement{hash_ref()},
+                                     PolicyTraits::element(that_slot))) == h2 &&
+              "hash function value changed unexpectedly during the copy");
+          SetCtrl(common(), offset, h2, sizeof(slot_type));
+          emplace_at(offset, PolicyTraits::element(that_slot));
+          common().maybe_increment_generation_on_insert();
+        });
+    if (shift != 0) {
+      // On small table copy we do not record individual inserts.
+      // RecordInsert requires hash, but it is unknown for small tables.
+      infoz().RecordStorageChanged(size, cap);
     }
     common().set_size(size);
     set_growth_left(growth_left() - size);
@@ -2293,8 +2367,11 @@ class raw_hash_set {
   ~raw_hash_set() { destructor_impl(); }
 
   iterator begin() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    // TODO(b/324478958): Consider reverting if no impact.
+    if (ABSL_PREDICT_FALSE(empty())) return end();
     auto it = iterator_at(0);
     it.skip_empty_or_deleted();
+    assert(IsFull(*it.control()));
     return it;
   }
   iterator end() ABSL_ATTRIBUTE_LIFETIME_BOUND {
@@ -2889,14 +2966,10 @@ class raw_hash_set {
 
   inline void destroy_slots() {
     if (PolicyTraits::template destroy_is_trivial<Alloc>()) return;
-    const size_t cap = capacity();
-    const ctrl_t* ctrl = control();
-    slot_type* slot = slot_array();
-    for (size_t i = 0; i != cap; ++i) {
-      if (IsFull(ctrl[i])) {
-        destroy(slot + i);
-      }
-    }
+    IterateOverFullSlots(
+        common(), slot_array(),
+        [&](const ctrl_t*, slot_type* slot)
+            ABSL_ATTRIBUTE_ALWAYS_INLINE { this->destroy(slot); });
   }
 
   inline void dealloc() {
@@ -2989,7 +3062,7 @@ class raw_hash_set {
   inline void drop_deletes_without_resize() {
     // Stack-allocate space for swapping elements.
     alignas(slot_type) unsigned char tmp[sizeof(slot_type)];
-    DropDeletesWithoutResize(common(), GetPolicyFunctions(), tmp);
+    DropDeletesWithoutResize(common(), &hash_ref(), GetPolicyFunctions(), tmp);
   }
 
   // Called whenever the table *might* need to conditionally grow.
@@ -3238,13 +3311,6 @@ class raw_hash_set {
     return settings_.template get<3>();
   }
 
-  // Make type-specific functions for this type's PolicyFunctions struct.
-  static size_t hash_slot_fn(void* set, void* slot) {
-    auto* h = static_cast<raw_hash_set*>(set);
-    return PolicyTraits::apply(
-        HashElement{h->hash_ref()},
-        PolicyTraits::element(static_cast<slot_type*>(slot)));
-  }
   static void transfer_slot_fn(void* set, void* dst, void* src) {
     auto* h = static_cast<raw_hash_set*>(set);
     h->transfer(static_cast<slot_type*>(dst), static_cast<slot_type*>(src));
@@ -3266,7 +3332,7 @@ class raw_hash_set {
   static const PolicyFunctions& GetPolicyFunctions() {
     static constexpr PolicyFunctions value = {
         sizeof(slot_type),
-        &raw_hash_set::hash_slot_fn,
+        PolicyTraits::template get_hash_slot_fn<hasher>(),
         PolicyTraits::transfer_uses_memcpy()
             ? TransferRelocatable<sizeof(slot_type)>
             : &raw_hash_set::transfer_slot_fn,

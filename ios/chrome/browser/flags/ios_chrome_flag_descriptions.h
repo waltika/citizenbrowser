@@ -450,6 +450,11 @@ extern const char kIOSIncognitoDownloadsWarningDescription[];
 extern const char kIOSKeyboardAccessoryUpgradeName[];
 extern const char kIOSKeyboardAccessoryUpgradeDescription[];
 
+// Title and description for the flag to use a UICollectionView for the Magic
+// Stack.
+extern const char kIOSMagicStackCollectionViewName[];
+extern const char kIOSMagicStackCollectionViewDescription[];
+
 // Title and description for the flag to enable parcel tracking.
 extern const char kIOSParcelTrackingName[];
 extern const char kIOSParcelTrackingDescription[];
@@ -514,6 +519,24 @@ extern const char kIPHForSafariSwitcherDescription[];
 extern const char kIPHiOSPromoPasswordManagerWidgetName[];
 extern const char kIPHiOSPromoPasswordManagerWidgetDescription[];
 
+// Title and description for the flag to enable the pull-to-refreh IPH.
+extern const char kIPHiOSPullToRefreshFeatureName[];
+extern const char kIPHiOSPullToRefreshFeatureDescription[];
+
+// Title and description for the flag to enable the tab swipe back/forward IPH.
+extern const char kIPHiOSSwipeBackForwardFeatureName[];
+extern const char kIPHiOSSwipeBackForwardFeatureDescription[];
+
+// Title and description for the flag to enable the swipe toolbar to switch tab
+// IPH.
+extern const char kIPHiOSSwipeToolbarToChangeTabFeatureName[];
+extern const char kIPHiOSSwipeToolbarToChangeTabFeatureDescription[];
+
+// Title and description for the flag to enable the swipe-to-incognito IPH on
+// the tab grid.
+extern const char kIPHiOSTabGridSwipeRightForIncognitoName[];
+extern const char kIPHiOSTabGridSwipeRightForIncognitoDescription[];
+
 // Title and description for the flag to lock the bottom toolbar into place.
 extern const char kLockBottomToolbarName[];
 extern const char kLockBottomToolbarDescription[];
@@ -522,6 +545,11 @@ extern const char kLockBottomToolbarDescription[];
 // in the Home Surface,
 extern const char kMagicStackName[];
 extern const char kMagicStackDescription[];
+
+// Title and Description for the flag that controls the view mode for (history)
+// sync screen.
+extern const char kMinorModeRestrictionsForHistorySyncOptInName[];
+extern const char kMinorModeRestrictionsForHistorySyncOptInDescription[];
 
 // Title and description for the flag that controls sending metrickit non-crash
 // reports.

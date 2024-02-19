@@ -64,6 +64,10 @@ BASE_FEATURE(kIOSPasswordSignInUff,
              base::FEATURE_DISABLED_BY_DEFAULT);
 #endif  // IS_IOS
 
+BASE_FEATURE(kLocalStateEnterprisePasswordHashes,
+             "LocalStateEnterprisePasswordHashes",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
 #if !BUILDFLAG(IS_ANDROID) && !BUILDFLAG(IS_IOS)
 BASE_FEATURE(kNewConfirmationBubbleForGeneratedPasswords,
              "NewConfirmationBubbleForGeneratedPasswords",
@@ -119,11 +123,6 @@ BASE_FEATURE(kUnifiedPasswordManagerLocalPasswordsAndroidNoMigration,
              "UnifiedPasswordManagerLocalPasswordsAndroidNoMigration",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
-constinit const base::FeatureParam<int> kUPMLocalPasswordsMinGmsVersionCode(
-    &kUnifiedPasswordManagerLocalPasswordsAndroidNoMigration,
-    "min_gms_version",
-    /*default_value=*/240212000);
-
 BASE_FEATURE(kUnifiedPasswordManagerLocalPasswordsAndroidWithMigration,
              "UnifiedPasswordManagerLocalPasswordsAndroidWithMigration",
              base::FEATURE_DISABLED_BY_DEFAULT);
@@ -139,7 +138,7 @@ BASE_FEATURE(kUseExtensionListForPSLMatching,
 
 BASE_FEATURE(kUseServerPredictionsOnSaveParsing,
              "UseServerPredictionsOnSaveParsing",
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             base::FEATURE_ENABLED_BY_DEFAULT);
 
 BASE_FEATURE(kUsernameFirstFlowFallbackCrowdsourcing,
              "UsernameFirstFlowFallbackCrowdsourcing",

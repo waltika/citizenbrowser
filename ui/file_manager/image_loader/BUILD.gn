@@ -38,7 +38,7 @@ copy("copy_src") {
     "image_loader_client.ts",
     "image_loader_util.ts",
     "image_orientation.ts",
-    "image_request_task.js",
+    "image_request_task.ts",
     "load_image_request.ts",
     "piex_loader.ts",
     "scheduler.ts",
@@ -68,7 +68,7 @@ ts_library("build_ts") {
     "//ash/webui/common/resources:generate_definitions",
   ]
 
-  in_files = image_loader_static_js_files + image_loader_ts + [
+  in_files = image_loader_ts + [
                "file_manager/common/js/file_types_data.js",
                "file_manager/common/js/file_types_base.ts",
                "file_manager/common/js/lru_cache.ts",

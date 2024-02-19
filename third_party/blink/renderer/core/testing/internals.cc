@@ -3263,7 +3263,7 @@ Node* Internals::visibleSelectionAnchorNode() {
   Position position = GetFrame()
                           ->Selection()
                           .ComputeVisibleSelectionInDOMTreeDeprecated()
-                          .Base();
+                          .Anchor();
   return position.IsNull() ? nullptr : position.ComputeContainerNode();
 }
 
@@ -3273,7 +3273,7 @@ unsigned Internals::visibleSelectionAnchorOffset() {
   Position position = GetFrame()
                           ->Selection()
                           .ComputeVisibleSelectionInDOMTreeDeprecated()
-                          .Base();
+                          .Anchor();
   return position.IsNull() ? 0 : position.ComputeOffsetInContainerNode();
 }
 
@@ -3283,7 +3283,7 @@ Node* Internals::visibleSelectionFocusNode() {
   Position position = GetFrame()
                           ->Selection()
                           .ComputeVisibleSelectionInDOMTreeDeprecated()
-                          .Extent();
+                          .Focus();
   return position.IsNull() ? nullptr : position.ComputeContainerNode();
 }
 
@@ -3293,7 +3293,7 @@ unsigned Internals::visibleSelectionFocusOffset() {
   Position position = GetFrame()
                           ->Selection()
                           .ComputeVisibleSelectionInDOMTreeDeprecated()
-                          .Extent();
+                          .Focus();
   return position.IsNull() ? 0 : position.ComputeOffsetInContainerNode();
 }
 
@@ -3450,10 +3450,12 @@ class AddOneFunction : public ScriptFunction::Callable {
 
 }  // namespace
 
-ScriptPromise Internals::createResolvedPromise(ScriptState* script_state,
-                                               ScriptValue value) {
-  auto* resolver = MakeGarbageCollected<ScriptPromiseResolver>(script_state);
-  ScriptPromise promise = resolver->Promise();
+ScriptPromiseTyped<IDLAny> Internals::createResolvedPromise(
+    ScriptState* script_state,
+    ScriptValue value) {
+  auto* resolver =
+      MakeGarbageCollected<ScriptPromiseResolverTyped<IDLAny>>(script_state);
+  auto promise = resolver->Promise();
   resolver->Resolve(value);
   return promise;
 }

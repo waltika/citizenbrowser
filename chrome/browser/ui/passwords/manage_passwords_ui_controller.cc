@@ -69,6 +69,7 @@
 #include "components/password_manager/core/common/password_manager_pref_names.h"
 #include "components/password_manager/core/common/password_manager_ui.h"
 #include "components/signin/public/base/signin_metrics.h"
+#include "components/signin/public/base/signin_switches.h"
 #include "components/signin/public/identity_manager/account_info.h"
 #include "content/public/browser/navigation_handle.h"
 #include "content/public/browser/web_contents.h"
@@ -851,8 +852,9 @@ void ManagePasswordsUIController::BlockMovingPasswordToAccountStore() {
 }
 
 void ManagePasswordsUIController::PromptSaveBubbleAfterDefaultStoreChanged() {
-  CHECK_EQ(GetState(),
-           password_manager::ui::PASSWORD_STORE_CHANGED_BUBBLE_STATE)
+  CHECK(GetState() ==
+            password_manager::ui::PASSWORD_STORE_CHANGED_BUBBLE_STATE ||
+        GetState() == password_manager::ui::PENDING_PASSWORD_STATE)
       << GetState();
   passwords_data_.TransitionToState(
       password_manager::ui::PENDING_PASSWORD_STATE);
@@ -898,8 +900,10 @@ void ManagePasswordsUIController::NavigateToPasswordCheckup(
   password_manager::LogPasswordCheckReferrer(referrer);
 }
 
-void ManagePasswordsUIController::EnableSync(const AccountInfo& account) {
-  signin_ui_util::EnableSyncFromSingleAccountPromo(
+void ManagePasswordsUIController::SignIn(const AccountInfo& account) {
+  CHECK(IsExplicitBrowserSigninUIOnDesktopEnabled(
+      switches::ExplicitBrowserSigninPhase::kFull));
+  signin_ui_util::SignInFromSingleAccountPromo(
       Profile::FromBrowserContext(web_contents()->GetBrowserContext()), account,
       signin_metrics::AccessPoint::ACCESS_POINT_PASSWORD_BUBBLE);
 }

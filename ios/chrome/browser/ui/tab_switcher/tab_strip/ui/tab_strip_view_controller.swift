@@ -46,6 +46,11 @@ class TabStripViewController: UIViewController, TabStripCellDelegate,
   // Handles drag and drop interactions.
   public weak var dragDropHandler: TabCollectionDragDropHandler?
 
+  /// Targeted scroll offset, used on iOS 16 only.
+  /// On iOS 16, the scroll animation after opening a new tab is delayed.
+  /// This variable ensures that the most recent scroll event is processed.
+  private var targetedScrollOffsetiOS16: CGFloat = 0
+
   init() {
     layout = TabStripLayout()
     collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
@@ -77,7 +82,7 @@ class TabStripViewController: UIViewController, TabStripCellDelegate,
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    view.backgroundColor = UIColor(named: kTabStripBackgroundColor)
+    view.backgroundColor = UIColor(named: kGroupedPrimaryBackgroundColor)
 
     collectionView.translatesAutoresizingMaskIntoConstraints = false
     collectionView.clipsToBounds = true
@@ -146,9 +151,27 @@ class TabStripViewController: UIViewController, TabStripCellDelegate,
     snapshot.appendSections([.tabs])
     snapshot.appendItems(items, toSection: .tabs)
 
-    applySnapshot(
-      diffableDataSource: diffableDataSource, snapshot: snapshot, animatingDifferences: true)
-    selectItem(selectedItem)
+    // TODO(crbug.com/325415449): Update this when #unavailable is rocognized by
+    // the formatter.
+    if #available(iOS 17.0, *) {
+    } else {
+      layout.cellAnimatediOS16 = true
+    }
+
+    if let selectedItem = selectedItem,
+      let diffableDataSource = diffableDataSource,
+      diffableDataSource.indexPath(for: selectedItem) != nil
+    {
+      // If the newly selected item is already in the data source, select it first.
+      selectItem(selectedItem)
+      applySnapshot(
+        diffableDataSource: diffableDataSource, snapshot: snapshot, animatingDifferences: true)
+    } else {
+      // If the newly selected item is a new item, select it after applying snapshot.
+      applySnapshot(
+        diffableDataSource: diffableDataSource, snapshot: snapshot, animatingDifferences: true)
+      selectItem(selectedItem)
+    }
 
     /// Scroll to the end of the collection view if a new tab has been opened.
     if newTabOpened {
@@ -167,12 +190,15 @@ class TabStripViewController: UIViewController, TabStripCellDelegate,
           // occur simultaneously, the resulting animation lacks of
           // smoothness.
           weak var weakSelf = self
+          targetedScrollOffsetiOS16 = offset
           DispatchQueue.main.asyncAfter(
             deadline: .now() + TabStripConstants.CollectionView.scrollDelayAfterInsert
           ) {
             weakSelf?.scrollToContentOffset(offset)
           }
         }
+      } else {
+        layout.cellAnimatediOS16 = false
       }
     }
   }
@@ -193,7 +219,7 @@ class TabStripViewController: UIViewController, TabStripCellDelegate,
     collectionView.selectItem(at: indexPath, animated: false, scrollPosition: [])
 
     /// Invalidate the layout to correctly recalculate the frame of the `selected` cell.
-    collectionView.collectionViewLayout.invalidateLayout()
+    layout.invalidateLayout()
   }
 
   func reloadItem(_ item: TabSwitcherItem?) {
@@ -232,6 +258,15 @@ class TabStripViewController: UIViewController, TabStripCellDelegate,
     }
     let item = diffableDataSource.itemIdentifier(for: indexPath)
     mutator?.close(item)
+  }
+
+  // MARK: - UIScrollViewDelegate
+
+  func scrollViewDidEndDragging(
+    _ scrollView: UIScrollView,
+    willDecelerate decelerate: Bool
+  ) {
+    layout.cellAnimatediOS16 = false
   }
 
   // MARK: - Private
@@ -344,6 +379,12 @@ class TabStripViewController: UIViewController, TabStripCellDelegate,
 
   /// Scrolls the collection view to the given horizontal `offset`.
   func scrollToContentOffset(_ offset: CGFloat) {
+    // TODO(crbug.com/325415449): Update this when #unavailable is rocognized by
+    // the formatter.
+    if #available(iOS 17.0, *) {
+    } else {
+      if offset != targetedScrollOffsetiOS16 { return }
+    }
     self.collectionView.setContentOffset(
       CGPoint(x: offset, y: 0),
       animated: true)
@@ -493,8 +534,12 @@ extension TabStripViewController: UICollectionViewDragDelegate, UICollectionView
     guard let dropOperation: UIDropOperation = dragDropHandler?.dropOperation(for: session) else {
       return UICollectionViewDropProposal(operation: .cancel)
     }
+    /// Use `insertIntoDestinationIndexPath` if the dragged item is not from the same
+    /// collection view. This prevents having unwanted empty space in the collection view.
     return UICollectionViewDropProposal(
-      operation: dropOperation, intent: .insertAtDestinationIndexPath)
+      operation: dropOperation,
+      intent: dropOperation == .move
+        ? .insertAtDestinationIndexPath : .insertIntoDestinationIndexPath)
   }
 
   func collectionView(

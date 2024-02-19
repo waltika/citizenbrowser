@@ -278,8 +278,43 @@ ui::AXNode* ReadAnythingAppModel::GetParentForSelection(ui::AXNode* node) {
   return parent;
 }
 
+bool ReadAnythingAppModel::ContentNodesOnlyContainHeadings() {
+  for (ui::AXNodeID node_id : content_node_ids_) {
+    ui::AXNode* node = GetAXNode(node_id);
+    if (!node || node->IsInvisibleOrIgnored() ||
+        node->GetRole() == ax::mojom::Role::kHeading) {
+      continue;
+    }
+
+    // Check the ancestors for a heading node, as inline text boxes or static
+    // text nodes could be deeply nested under one.
+    base::queue<ui::AXNode*> ancestors =
+        node->GetAncestorsCrossingTreeBoundaryAsQueue();
+    bool found_heading = false;
+    while (!ancestors.empty()) {
+      if (ancestors.front()->GetRole() == ax::mojom::Role::kHeading) {
+        found_heading = true;
+        break;
+      }
+      ancestors.pop();
+    }
+    if (!found_heading) {
+      return false;
+    }
+  }
+  return true;
+}
+
 void ReadAnythingAppModel::ComputeDisplayNodeIdsForDistilledTree() {
   DCHECK(!content_node_ids_.empty());
+
+  // RM should not display just headings, return early to allow "highlight to
+  // use RM" empty state screen to show.
+  // TODO(crbug.com/1266555): Remove when Screen2x doesn't return just headings.
+  if (features::IsReadAnythingWithAlgorithmEnabled() &&
+      ContentNodesOnlyContainHeadings()) {
+    return;
+  }
 
   // Display nodes are the nodes which will be displayed by the rendering
   // algorithm of Read Anything app.ts. We wish to create a subtree which
@@ -1171,8 +1206,7 @@ ReadAnythingAppModel::GetNextNodes() {
       // If the position is now at the start of a paragraph and we already have
       // nodes to return, return the current list of nodes so that we don't
       // cross paragraph boundaries with text.
-      if (ax_position_->AtStartOfParagraph() &&
-          current_granularity.node_ids.size() > 0) {
+      if (ShouldSplitAtParagraph(ax_position_, current_granularity)) {
         return current_granularity;
       }
 
@@ -1326,30 +1360,12 @@ ReadAnythingAppModel::GetNextValidPositionFromCurrentPosition(
     return new_position;
   }
 
-  if (new_position->AtStartOfParagraph() &&
-      (current_granularity.node_ids.size() > 0)) {
-    return new_position;
-  }
-
-  bool is_leaf = new_position->GetAnchor()->IsChildOfLeaf();
-  // If the node is a leaf, use the parent node instead.
-  ui::AXNode* anchor_node =
-      is_leaf ? new_position->GetAnchor()->GetLowestPlatformAncestor()
-              : new_position->GetAnchor();
-  bool was_previously_spoken =
-      NodeBeenOrWillBeSpoken(current_granularity, anchor_node->id());
-  bool is_text_node = IsTextForReadAnything(anchor_node->id());
-  const std::set<ui::AXNodeID>* node_ids = selection_node_ids().empty()
-                                               ? &display_node_ids()
-                                               : &selection_node_ids();
-  bool contains_node = base::Contains(*node_ids, anchor_node->id());
-
-  while (was_previously_spoken || !is_text_node || !contains_node) {
+  while (!IsValidAXPosition(new_position, current_granularity)) {
     ui::AXNodePosition::AXPositionInstance possible_new_position =
         new_position->CreateNextSentenceStartPosition(movement_options);
-    anchor_node = possible_new_position->GetAnchor();
-    if (!anchor_node) {
-      if (was_previously_spoken) {
+    if (!possible_new_position->GetAnchor()) {
+      if (NodeBeenOrWillBeSpoken(current_granularity,
+                                 new_position->GetAnchor()->id())) {
         // If the previous position we were looking at was previously spoken,
         // go ahead and return the null position to avoid duplicate nodes
         // being added.
@@ -1360,23 +1376,6 @@ ReadAnythingAppModel::GetNextValidPositionFromCurrentPosition(
 
     new_position =
         new_position->CreateNextSentenceStartPosition(movement_options);
-
-    // We need to check for the beginning of the paragraph within the loop
-    // in case the first node was a non-text node and we've skipped ahead in
-    // the AXPosition.
-    if (new_position->AtStartOfParagraph() &&
-        (current_granularity.node_ids.size() > 0)) {
-      return new_position;
-    }
-
-    is_leaf = anchor_node->IsChildOfLeaf();
-    if (is_leaf) {
-      anchor_node = anchor_node->GetLowestPlatformAncestor();
-    }
-    was_previously_spoken =
-        NodeBeenOrWillBeSpoken(current_granularity, anchor_node->id());
-    is_text_node = IsTextForReadAnything(anchor_node->id());
-    contains_node = base::Contains(*node_ids, anchor_node->id());
   }
 
   return new_position;
@@ -1455,4 +1454,37 @@ bool ReadAnythingAppModel::IsTextForReadAnything(
 
 bool ReadAnythingAppModel::IsOpeningPunctuation(char c) {
   return (c == '(' || c == '{' || c == '[' || c == '<');
+}
+
+// We should split the current utterance at a paragraph boundary if the
+// AXPosition is at the start of a paragraph and we already have nodes in
+// our current granularity segment.
+bool ReadAnythingAppModel::ShouldSplitAtParagraph(
+    ui::AXNodePosition::AXPositionInstance& position,
+    ReadAloudCurrentGranularity& current_granularity) {
+  return position->AtStartOfParagraph() &&
+         (current_granularity.node_ids.size() > 0);
+}
+
+ui::AXNode* ReadAnythingAppModel::GetAnchorNode(
+    ui::AXNodePosition::AXPositionInstance& position) {
+  bool is_leaf = position->GetAnchor()->IsChildOfLeaf();
+  // If the node is a leaf, use the parent node instead.
+  return is_leaf ? position->GetAnchor()->GetLowestPlatformAncestor()
+                 : position->GetAnchor();
+}
+
+bool ReadAnythingAppModel::IsValidAXPosition(
+    ui::AXNodePosition::AXPositionInstance& position,
+    ReadAnythingAppModel::ReadAloudCurrentGranularity& current_granularity) {
+  ui::AXNode* anchor_node = GetAnchorNode(position);
+  bool was_previously_spoken =
+      NodeBeenOrWillBeSpoken(current_granularity, anchor_node->id());
+  bool is_text_node = IsTextForReadAnything(anchor_node->id());
+  const std::set<ui::AXNodeID>* node_ids = selection_node_ids().empty()
+                                               ? &display_node_ids()
+                                               : &selection_node_ids();
+  bool contains_node = base::Contains(*node_ids, anchor_node->id());
+
+  return !was_previously_spoken && is_text_node && contains_node;
 }

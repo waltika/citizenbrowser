@@ -106,7 +106,9 @@ class PaymentsNetworkInterface : public PaymentsNetworkInterfaceBase {
   struct UnmaskRequestDetails {
     UnmaskRequestDetails();
     UnmaskRequestDetails(const UnmaskRequestDetails& other);
+    UnmaskRequestDetails(UnmaskRequestDetails&&);
     UnmaskRequestDetails& operator=(const UnmaskRequestDetails& other);
+    UnmaskRequestDetails& operator=(UnmaskRequestDetails&&);
     ~UnmaskRequestDetails();
 
     int64_t billing_customer_number = 0;
@@ -119,6 +121,7 @@ class PaymentsNetworkInterface : public PaymentsNetworkInterfaceBase {
     std::string context_token;
     // The origin of the primary main frame where the unmasking happened.
     // Should be populated when the unmasking is for a virtual-card.
+    // TODO(b/325465172): Convert this to an std::optional<url::Origin>.
     std::optional<GURL> last_committed_primary_main_frame_origin;
     // The selected challenge option. Should be populated when we are doing CVC
     // unmasking for a virtual card.
@@ -130,6 +133,9 @@ class PaymentsNetworkInterface : public PaymentsNetworkInterfaceBase {
     // only be populated when the client is not in incognito mode since it will
     // be used for personalization.
     std::optional<url::Origin> merchant_domain_for_footprints;
+    // The token received in the final redirect of a PaymentsWindowManager flow,
+    // which is the only scenario where this field should be populated.
+    PaymentsWindowManager::RedirectCompletionProof redirect_completion_proof;
   };
 
   // Information retrieved from an UnmaskRequest.

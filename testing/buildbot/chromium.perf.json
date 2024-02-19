@@ -706,8 +706,7 @@
           "--browser=android-trichrome-chrome-google-64-32-bundle",
           "--upload-results",
           "--test-shard-map-filename=android-pixel6-perf-pgo_map.json",
-          "--ignore-benchmark-exit-code",
-          "--iteration-count=30"
+          "--ignore-benchmark-exit-code"
         ],
         "merge": {
           "script": "//tools/perf/process_perf_results.py"
@@ -1438,7 +1437,7 @@
           "hard_timeout": 21600,
           "io_timeout": 21600,
           "service_account": "chrome-tester@chops-service-accounts.iam.gserviceaccount.com",
-          "shards": 20
+          "shards": 23
         },
         "test": "performance_test_suite",
         "trigger_script": {
@@ -1540,7 +1539,7 @@
           "hard_timeout": 21600,
           "io_timeout": 21600,
           "service_account": "chrome-tester@chops-service-accounts.iam.gserviceaccount.com",
-          "shards": 20
+          "shards": 23
         },
         "test": "performance_test_suite",
         "trigger_script": {

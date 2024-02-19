@@ -931,7 +931,7 @@ IN_PROC_BROWSER_TEST_F(WebIdDigitalCredentialsBrowserTest,
 
   EXPECT_CALL(*digital_identity_provider, Request(_, _, IsJson(request), _))
       .WillOnce(WithArg<3>(
-          [](DigitalIdentityProvider::DigitalCredentialCallback callback) {
+          [](DigitalIdentityProvider::DigitalIdentityCallback callback) {
             std::move(callback).Run("test-mdoc");
           }));
 
@@ -957,46 +957,6 @@ IN_PROC_BROWSER_TEST_F(WebIdDigitalCredentialsBrowserTest,
                 },
               }],
             },
-          });
-          return token;
-        }) ()
-    )";
-
-  EXPECT_EQ("test-mdoc", EvalJs(shell(), script));
-}
-
-// Test that a Verifiable Credential can be requested via the alternative JS
-// API.
-IN_PROC_BROWSER_TEST_F(WebIdDigitalCredentialsBrowserTest, AlternativeJSAPI) {
-  idp_server()->SetConfigResponseDetails(BuildValidConfigDetails());
-  MockDigitalIdentityProvider* digital_identity_provider =
-      static_cast<MockDigitalIdentityProvider*>(
-          test_browser_client_->GetDigitalIdentityProviderForTests());
-
-  const char request[] = R"(
-  {
-   "providers": [ {
-     "protocol": "OpenID4VP",
-     "request": "{canBeAnything: true}",
-     "publicKey": "anything really? yeah."
-   } ]
-  }
-  )";
-
-  EXPECT_CALL(*digital_identity_provider, Request(_, _, IsJson(request), _))
-      .WillOnce(WithArg<3>(
-          [](DigitalIdentityProvider::DigitalCredentialCallback callback) {
-            std::move(callback).Run("test-mdoc");
-          }));
-
-  std::string script = R"(
-        (async () => {
-          const {token} = await navigator.credentials.requestIdentity({
-            providers: [{
-              protocol: "OpenID4VP",
-              request: "{canBeAnything: true}",
-              publicKey: "anything really? yeah.",
-            }],
           });
           return token;
         }) ()
@@ -1043,7 +1003,7 @@ IN_PROC_BROWSER_TEST_F(WebIdDigitalCredentialsBrowserTest,
 
   EXPECT_CALL(*digital_identity_provider, Request(_, _, _, _))
       .WillOnce(WithArg<3>(
-          [&](DigitalIdentityProvider::DigitalCredentialCallback callback) {
+          [&](DigitalIdentityProvider::DigitalIdentityCallback callback) {
             EXPECT_EQ(
                 "AbortError: Only one navigator.credentials.get request may be "
                 "outstanding at one time.",

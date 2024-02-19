@@ -1765,14 +1765,24 @@ void DeviceSection::AddCustomizeButtonsPageStrings(
        IDS_SETTINGS_CUSTOMIZE_BUTTONS_RENAMING_DIALOG_TITLE},
       {"customizeButtonSubpageDescription",
        IDS_SETTINGS_CUSTOMIZE_BUTTONS_SUBPAGE_DESCRIPTION},
+      {"customizeTabletButtonSubpageDescription",
+       IDS_SETTINGS_CUSTOMIZE_TABLET_BUTTONS_SUBPAGE_DESCRIPTION},
       {"customizeMouseButtonsNudgeHeader",
        IDS_SETTINGS_CUSTOMIZE_MOUSE_BUTTONS_NUDGE_HEADER},
+      {"customizeTabletButtonsNudgeHeader",
+       IDS_SETTINGS_CUSTOMIZE_TABLET_BUTTONS_NUDGE_HEADER},
+      {"customizePenButtonsNudgeHeader",
+       IDS_SETTINGS_CUSTOMIZE_PEN_BUTTONS_NUDGE_HEADER},
       {"customizeMouseButtonsTitle",
        IDS_SETTINGS_CUSTOMIZE_MOUSE_BUTTONS_TITLE},
       {"disbableOptionLabel", IDS_SETTINGS_DISABLE_OPTION_LABEL},
       {"keyCombinationDialogTitle", IDS_SETTINGS_KEY_COMBINATION_DIALOG_TITLE},
       {"keyCombinationOptionLabel", IDS_SETTINGS_KEY_COMBINATION_OPTION_LABEL},
       {"noRemappingOptionLabel", IDS_SETTINGS_NO_REMAPPING_OPTION_LABEL},
+      {"renameIconLabel", IDS_SETTINGS_CUSTOMIZATION_RENAME_ICON_LABEL},
+      {"buttonRemappingRenamingDialogInputDescription",
+       IDS_SETTINGS_RENAMING_DIALOG_INPUT_DESCRIPTION},
+
   };
   html_source->AddLocalizedStrings(kCustomizeButtonsPageStrings);
   ash::common::AddShortcutInputKeyStrings(html_source);

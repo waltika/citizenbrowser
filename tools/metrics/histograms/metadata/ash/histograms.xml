@@ -157,6 +157,7 @@ chromium-metrics-reviews@google.com.
   <variant name="ToggleMirrorMode"/>
   <variant name="ToggleMultitaskMenu"/>
   <variant name="ToggleOverview"/>
+  <variant name="TogglePicker"/>
   <variant name="ToggleProjectorMarker"/>
   <variant name="ToggleResizeLockMenu"/>
   <variant name="ToggleSnapGroupWindowsGroupAndUngroup"/>
@@ -1461,6 +1462,29 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
+<histogram name="Ash.Calendar.UserAction" enum="CalendarUserAction"
+    expires_after="2024-12-01">
+  <owner>jiamingc@google.com</owner>
+  <owner>tbarzic@google.com</owner>
+  <owner>cros-status-area-eng@google.com</owner>
+  <summary>
+    User actions recorded when the user interacts with Calendar in Chrome OS
+    System UI.
+  </summary>
+</histogram>
+
+<histogram name="Ash.Calendar.UserActionToOpenCalendarWebUi"
+    enum="CalendarUserAction" expires_after="2024-12-01">
+  <owner>jiamingc@google.com</owner>
+  <owner>tbarzic@google.com</owner>
+  <owner>cros-status-area-eng@google.com</owner>
+  <summary>
+    User actions in Chrome OS Calendar System UI that result in Google Calendar
+    web UI being opened. Recorded when the user interacts with the Chrome OS
+    Calendar System UI.
+  </summary>
+</histogram>
+
 <histogram name="Ash.Calendar.UserJourneyTime.{EventLaunchState}" units="ms"
     expires_after="2024-09-04">
   <owner>newcomer@google.com</owner>
@@ -1775,7 +1799,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram
     name="Ash.CaptureModeController.GIFRecordingFileSize.{TabletOrClamshell}"
-    units="KB" expires_after="2024-03-01">
+    units="KB" expires_after="2025-02-13">
   <owner>afakhry@chromium.org</owner>
   <owner>gzadina@google.com</owner>
   <summary>
@@ -1788,7 +1812,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram
     name="Ash.CaptureModeController.GIFRecordingLength.{TabletOrClamshell}"
-    units="seconds" expires_after="2024-03-01">
+    units="seconds" expires_after="2025-02-13">
   <owner>afakhry@chromium.org</owner>
   <owner>gzadina@google.com</owner>
   <summary>
@@ -1801,7 +1825,7 @@ chromium-metrics-reviews@google.com.
 
 <histogram
     name="Ash.CaptureModeController.GIFRecordingRegionToScreenRatio.{TabletOrClamshell}"
-    units="% of fullscreen area" expires_after="2024-03-20">
+    units="% of fullscreen area" expires_after="2025-02-13">
   <owner>afakhry@chromium.org</owner>
   <owner>gzadina@google.com</owner>
   <summary>
@@ -1813,7 +1837,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Ash.CaptureModeController.NumberOfConnectedCameras"
-    units="connected cameras" expires_after="2024-02-04">
+    units="connected cameras" expires_after="2025-02-13">
   <owner>conniekxu@chromium.org</owner>
   <owner>gzadina@google.com</owner>
   <summary>
@@ -2286,8 +2310,29 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
+<histogram name="Ash.Desks.DeskLifetime_Profile_{DeskIndex}" units="hr"
+    expires_after="2024-12-21">
+  <owner>dandersson@chromium.org</owner>
+  <owner>yongshun@chromium.org</owner>
+  <owner>chromeos-wms@google.com</owner>
+  <summary>
+    Variant of Ash.Desks.DeskLifetime that is emitted if the closed desk has a
+    desk profile assigned to it. It has the same semantics as DeskLifetime.
+  </summary>
+  <token key="DeskIndex">
+    <variant name="1" summary="1"/>
+    <variant name="2" summary="2"/>
+    <variant name="3" summary="3"/>
+    <variant name="4" summary="4"/>
+    <variant name="5" summary="5"/>
+    <variant name="6" summary="6"/>
+    <variant name="7" summary="7"/>
+    <variant name="8" summary="8"/>
+  </token>
+</histogram>
+
 <histogram name="Ash.Desks.DeskLifetime_{DeskIndex}" units="hr"
-    expires_after="2024-05-19">
+    expires_after="2024-08-11">
   <owner>afakhry@chromium.org</owner>
   <owner>janetmac@chromium.org</owner>
   <summary>
@@ -2361,6 +2406,10 @@ chromium-metrics-reviews@google.com.
     Emitted when the active desk is changed to specify the source of this
     action, i.e. whether due to new-desk shortcut, desk removed, window
     activated, switch-desk shortcut, or a press on the desk mini_view.
+
+    Note: the bucket for user switching was previousy emitted to at session
+    startup which meant that it was artificially inflated. As of M123, these
+    events now end up in the session restore bucket.
   </summary>
 </histogram>
 
@@ -2513,7 +2562,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Ash.Desks.NumberOfWindowsOnDesk_16" units="units"
-    expires_after="2024-05-26">
+    expires_after="2024-08-11">
   <owner>dandersson@chromium.org</owner>
   <owner>janetmac@chromium.org</owner>
   <summary>
@@ -3664,6 +3713,16 @@ chromium-metrics-reviews@google.com.
   </summary>
 </histogram>
 
+<histogram name="Ash.Glanceables.TimeManagement.Classroom.UserAction"
+    enum="ClassroomUserAction" expires_after="2024-12-31">
+  <owner>tbarzic@google.com</owner>
+  <owner>chromeos-launcher@google.com</owner>
+  <summary>
+    User actions performed in the Time Management Glanceables bubble for Google
+    Classroom
+  </summary>
+</histogram>
+
 <histogram name="Ash.Glanceables.TimeManagement.FeatureStatus"
     enum="TimeManagementGlanceablesFeatureStatus" expires_after="2024-12-31">
   <owner>amitrokhin@google.com</owner>
@@ -3756,6 +3815,16 @@ chromium-metrics-reviews@google.com.
   <summary>
     Records the total number of times the selected tasks list is changed. The
     total count is recorded when the glanceable bubble is closed.
+  </summary>
+</histogram>
+
+<histogram name="Ash.Glanceables.TimeManagement.Tasks.UserAction"
+    enum="TasksUserAction" expires_after="2024-12-31">
+  <owner>tbarzic@google.com</owner>
+  <owner>chromeos-launcher@google.com</owner>
+  <summary>
+    User actions performed in the Time Management Glanceables bubble for Google
+    Tasks
   </summary>
 </histogram>
 
@@ -4887,6 +4956,32 @@ chromium-metrics-reviews@google.com.
   </token>
 </histogram>
 
+<histogram
+    name="Ash.NotifierFramework.PinnedSystemNotification.ShownWithoutIcon"
+    enum="NotificationCatalogName" expires_after="2025-02-15">
+  <owner>kradtke@google.com</owner>
+  <owner>cros-status-area-eng@google.com</owner>
+  <summary>
+    Records a `catalog_name` whenever a pinned notification is shown without
+    having provided a `vector_small_image` through its `Notification` object.
+    All pinned notifications must have an icon, so the metric will be used to
+    track misbehaving notifications.
+  </summary>
+</histogram>
+
+<histogram
+    name="Ash.NotifierFramework.PinnedSystemNotification.ShownWithoutTitle"
+    enum="NotificationCatalogName" expires_after="2025-02-15">
+  <owner>kradtke@google.com</owner>
+  <owner>cros-status-area-eng@google.com</owner>
+  <summary>
+    Records a `catalog_name` whenever a pinned notification is shown without
+    having provided a `title` through its `Notification` object. All pinned
+    notifications must have a title, so the metric will be used to track
+    misbehaving notifications.
+  </summary>
+</histogram>
+
 <histogram name="Ash.NotifierFramework.Toast.Dismissed.{TimeRange}"
     enum="ToastCatalogName" expires_after="2025-01-15">
   <owner>kradtke@google.com</owner>
@@ -5401,7 +5496,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Ash.Personalization.App.Duration" units="ms"
-    expires_after="2024-06-09">
+    expires_after="2024-08-11">
   <owner>pzliu@google.com</owner>
   <owner>assistive-eng@google.com</owner>
   <summary>
@@ -5411,7 +5506,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Ash.Personalization.DynamicColor.ColorScheme.Settled"
-    enum="PersonalizationDynamicColorColorScheme" expires_after="2024-06-09">
+    enum="PersonalizationDynamicColorColorScheme" expires_after="2024-08-11">
   <owner>ericamlee@chromium.org</owner>
   <owner>assistive-eng@google.com</owner>
   <summary>
@@ -5431,7 +5526,7 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram name="Ash.Personalization.DynamicColor.StaticColor.Settled"
-    enum="PersonalizationDynamicColorStaticColor" expires_after="2024-06-09">
+    enum="PersonalizationDynamicColorStaticColor" expires_after="2024-08-11">
   <owner>ericamlee@chromium.org</owner>
   <owner>assistive-eng@google.com</owner>
   <summary>
@@ -6333,6 +6428,22 @@ chromium-metrics-reviews@google.com.
 </histogram>
 
 <histogram
+    name="Ash.Search.FileSuggestions.DriveRecents.FolderCount.{SearchType}"
+    units="int" expires_after="2024-10-01">
+  <owner>tbarzic@chromium.org</owner>
+  <owner>chromeos-launcher@google.com</owner>
+  <summary>
+    The number of folder items returned by local Drive FS search while
+    generating file suggestions based on recent drive activity. The suggestions
+    are generated on demand when the user opens a supported UI surface - e.g.
+    continue section in the launcher. The suggestions are generated by
+    performing multiple queries on Drive FS. {SearchType} describes the type of
+    query the search is handling.
+  </summary>
+  <token key="SearchType" variants="DriveFsSearchType"/>
+</histogram>
+
+<histogram
     name="Ash.Search.FileSuggestions.DriveRecents.ItemCount.{SearchType}"
     units="int" expires_after="2024-10-01">
   <owner>tbarzic@chromium.org</owner>
@@ -6797,6 +6908,19 @@ chromium-metrics-reviews@google.com.
     the screen, or if the first window is no longer snapped on the same side,
     records the maximum value of 50 hours (18000 seconds).
   </summary>
+</histogram>
+
+<histogram name="Ash.SnapWindowSuggestions.{SnapSource}" enum="Boolean"
+    expires_after="2025-02-09">
+  <owner>sophiewen@chromium.org</owner>
+  <owner>michelefan@chromium.org</owner>
+  <owner>xdai@chromium.org</owner>
+  <summary>
+    Recorded at the time a window is snapped via a snap action source that can
+    start faster split view. Emits true if faster split view is enabled, false
+    otherwise.
+  </summary>
+  <token key="SnapSource" variants="SnapActionSource"/>
 </histogram>
 
 <histogram name="Ash.SpeechRecognitionSessionLength.{Location}" units="ms"

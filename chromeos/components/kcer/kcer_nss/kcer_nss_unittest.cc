@@ -9,11 +9,10 @@
 #include <vector>
 
 #include "base/base64.h"
-#include "base/files/file_path.h"
-#include "base/files/file_util.h"
 #include "base/memory/raw_ref.h"
 #include "base/task/bind_post_task.h"
 #include "base/test/test_future.h"
+#include "chromeos/components/kcer/chaps/mock_high_level_chaps_client.h"
 #include "chromeos/components/kcer/kcer.h"
 #include "chromeos/components/kcer/kcer_impl.h"
 #include "chromeos/components/kcer/kcer_nss/kcer_token_impl_nss.h"
@@ -144,23 +143,6 @@ bool KeyInfoEquals(const KeyInfo& expected, const KeyInfo& actual) {
   return true;
 }
 
-// Reads a file in the PEM format, decodes it, returns the content of the first
-// PEM block in the DER format. Currently supports CERTIFICATE and PRIVATE KEY
-// block types.
-std::optional<std::vector<uint8_t>> ReadPemFileReturnDer(
-    const base::FilePath& path) {
-  std::string pem_data;
-  if (!base::ReadFileToString(path, &pem_data)) {
-    return std::nullopt;
-  }
-
-  bssl::PEMTokenizer tokenizer(pem_data, {"CERTIFICATE", "PRIVATE KEY"});
-  if (!tokenizer.GetNext()) {
-    return std::nullopt;
-  }
-  return StrToBytes(tokenizer.data());
-}
-
 // A helper class for receiving notifications from Kcer.
 class NotificationsObserver {
  public:
@@ -249,13 +231,13 @@ class KcerNssTest : public testing::Test {
     for (Token token_type : tokens) {
       if (token_type == Token::kUser) {
         CHECK(!user_token_ptr.MaybeValid());
-        user_token_ =
-            std::make_unique<TokenHolder>(token_type, /*initialize=*/true);
+        user_token_ = std::make_unique<TokenHolder>(token_type, &chaps_client_,
+                                                    /*initialize=*/true);
         user_token_ptr = user_token_->GetWeakPtr();
       } else if (token_type == Token::kDevice) {
         CHECK(!device_token_ptr.MaybeValid());
-        device_token_ =
-            std::make_unique<TokenHolder>(token_type, /*initialize=*/true);
+        device_token_ = std::make_unique<TokenHolder>(
+            token_type, &chaps_client_, /*initialize=*/true);
         device_token_ptr = device_token_->GetWeakPtr();
       }
     }
@@ -270,6 +252,7 @@ class KcerNssTest : public testing::Test {
       content::BrowserTaskEnvironment::REAL_IO_THREAD};
   NotificationsObserver observer_;
   base::CallbackListSubscription observers_subscription_;
+  MockHighLevelChapsClient chaps_client_;
   std::unique_ptr<TokenHolder> user_token_;
   std::unique_ptr<TokenHolder> device_token_;
   std::unique_ptr<Kcer> kcer_;
@@ -295,7 +278,7 @@ TEST_F(KcerNssTest, UseUnavailableTokenThenGetError) {
 // initialization completes (in this case - completes with a failure).
 TEST_F(KcerNssTest, QueueTasksThenFailInitializationThenGetErrors) {
   // Do not initialize yet to simulate slow initialization.
-  TokenHolder user_token(Token::kUser, /*initialize=*/false);
+  TokenHolder user_token(Token::kUser, &chaps_client_, /*initialize=*/false);
 
   std::unique_ptr<net::CertBuilder> issuer = MakeCertIssuer();
   std::unique_ptr<net::CertBuilder> cert_builder = MakeCertBuilder(
@@ -456,7 +439,7 @@ TEST_F(KcerNssTest, QueueTasksThenFailInitializationThenGetErrors) {
 // Test that Kcer forwards notifications from external sources. (Notifications
 // created by Kcer are tested together with the methods that create them.)
 TEST_F(KcerNssTest, ObserveExternalNotification) {
-  TokenHolder user_token(Token::kUser, /*initialize=*/true);
+  TokenHolder user_token(Token::kUser, &chaps_client_, /*initialize=*/true);
 
   std::unique_ptr<Kcer> kcer =
       CreateKcer(IOTaskRunner(), user_token.GetWeakPtr(),
@@ -999,6 +982,7 @@ TEST_F(KcerNssTest, ImportCertForImportedKey) {
   std::optional<std::vector<uint8_t>> key = ReadPemFileReturnDer(
       net::GetTestCertsDirectory().AppendASCII("client_1.key"));
   ASSERT_TRUE(key.has_value() && (key->size() > 0));
+
   std::optional<std::vector<uint8_t>> cert = ReadPemFileReturnDer(
       net::GetTestCertsDirectory().AppendASCII("client_1.pem"));
   ASSERT_TRUE(cert.has_value() && (cert->size() > 0));
@@ -1227,6 +1211,7 @@ class KcerNssAllKeyTypesTest : public KcerNssTest,
         std::optional<std::vector<uint8_t>> key_to_import =
             ReadPemFileReturnDer(
                 net::GetTestCertsDirectory().AppendASCII("key_usage_p256.key"));
+
         kcer_->ImportKey(token, Pkcs8PrivateKeyInfoDer(key_to_import.value()),
                          key_waiter.GetCallback());
         key_can_be_listed_ = false;

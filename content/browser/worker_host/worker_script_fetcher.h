@@ -135,6 +135,8 @@ class WorkerScriptFetcher : public network::mojom::URLLoaderClient {
       const base::UnguessableToken& devtools_worker_token,
       CitizenNotesAgentHostImpl* citizennotes_agent_host,
       const base::UnguessableToken& citizennotes_worker_token,
+      bool require_cross_site_request_for_cookies,
+      bool has_storage_access,
       CompletionCallback callback);
 
   // Creates a loader factory bundle. Must be called on the UI thread. For
@@ -208,6 +210,7 @@ class WorkerScriptFetcher : public network::mojom::URLLoaderClient {
       const base::UnguessableToken& devtools_worker_token,
       CitizenNotesAgentHostImpl* citizennotes_agent_host,
       const base::UnguessableToken& citizennotes_worker_token,
+      bool require_cross_site_request_for_cookies,
       WorkerScriptFetcher::CompletionCallback callback);
 
   void Start(std::vector<std::unique_ptr<blink::URLLoaderThrottle>> throttles);

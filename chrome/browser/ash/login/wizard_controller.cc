@@ -2111,6 +2111,9 @@ void WizardController::OnEnrollmentScreenExit(EnrollmentScreen::Result result) {
       PerformOOBECompletedActions(
           OobeMetricsHelper::CompletedPreLoginOobeFlowType::kAutoEnrollment);
       DCHECK(!prescribed_enrollment_config_.is_forced());
+      // set  the userCreationScreen with the default step creation and
+      // pre-select 'For personal use'.
+      GetScreen<UserCreationScreen>()->SetDefaultStep();
       ShowLoginScreen();
       break;
     case EnrollmentScreen::Result::TPM_ERROR:
@@ -2597,11 +2600,6 @@ void WizardController::OnMarketingOptInScreenExit(
 void WizardController::OnResetScreenExit() {
   OnScreenExit(ResetView::kScreenId, kResetScreenExitReason);
   OnDeviceModificationCanceled();
-}
-
-void WizardController::OnChangedMetricsReportingState(bool enabled) {
-  StatsReportingController::Get()->SetEnabled(
-      ProfileManager::GetActiveUserProfile(), enabled);
 }
 
 void WizardController::OnDeviceModificationCanceled() {

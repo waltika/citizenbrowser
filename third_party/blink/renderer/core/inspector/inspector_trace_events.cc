@@ -127,7 +127,7 @@ void InspectorTraceEvents::WillSendRequest(
     const KURL& fetch_context_url,
     const ResourceRequest& request,
     const ResourceResponse& redirect_response,
-    const ResourceLoaderOptions&,
+    const ResourceLoaderOptions& resource_loader_options,
     ResourceType resource_type,
     RenderBlockingBehavior render_blocking_behavior,
     base::TimeTicks timestamp) {
@@ -137,7 +137,8 @@ void InspectorTraceEvents::WillSendRequest(
       timestamp, "data", [&](perfetto::TracedValue ctx) {
         inspector_send_request_event::Data(
             std::move(ctx), execution_context, loader, request.InspectorId(),
-            frame, request, resource_type, render_blocking_behavior);
+            frame, request, resource_type, render_blocking_behavior,
+            resource_loader_options);
       });
 }
 
@@ -423,9 +424,6 @@ const char* PseudoTypeToString(CSSSelector::PseudoType pseudo_type) {
     DEFINE_STRING_MAPPING(PseudoUnparsed)
 #undef DEFINE_STRING_MAPPING
   }
-
-  NOTREACHED();
-  return "";
 }
 
 String UrlForFrame(LocalFrame* frame) {
@@ -481,10 +479,8 @@ const char* NotStreamedReasonString(ScriptStreamer::NotStreamingReason reason) {
     case ScriptStreamer::NotStreamingReason::kDidntTryToStartStreaming:
     case ScriptStreamer::NotStreamingReason::kAlreadyLoaded:
     case ScriptStreamer::NotStreamingReason::kInvalid:
-      NOTREACHED();
+      NOTREACHED_NORETURN();
   }
-  NOTREACHED();
-  return "";
 }
 
 }  // namespace
@@ -516,27 +512,32 @@ const char inspector_schedule_style_invalidation_tracking_event::kRuleSet[] =
     "ruleset";
 
 const char* ResourcePriorityString(ResourceLoadPriority priority) {
-  const char* priority_string = nullptr;
   switch (priority) {
     case ResourceLoadPriority::kVeryLow:
-      priority_string = "VeryLow";
-      break;
+      return "VeryLow";
     case ResourceLoadPriority::kLow:
-      priority_string = "Low";
-      break;
+      return "Low";
     case ResourceLoadPriority::kMedium:
-      priority_string = "Medium";
-      break;
+      return "Medium";
     case ResourceLoadPriority::kHigh:
-      priority_string = "High";
-      break;
+      return "High";
     case ResourceLoadPriority::kVeryHigh:
-      priority_string = "VeryHigh";
-      break;
+      return "VeryHigh";
     case ResourceLoadPriority::kUnresolved:
-      break;
+      return nullptr;
   }
-  return priority_string;
+}
+
+const char* FetchPriorityString(
+    mojom::blink::FetchPriorityHint fetch_priority) {
+  switch (fetch_priority) {
+    case mojom::blink::FetchPriorityHint::kAuto:
+      return "auto";
+    case mojom::blink::FetchPriorityHint::kLow:
+      return "low";
+    case mojom::blink::FetchPriorityHint::kHigh:
+      return "high";
+  }
 }
 
 void inspector_schedule_style_invalidation_tracking_event::IdChange(
@@ -816,29 +817,20 @@ void inspector_change_resource_priority_event::Data(
 namespace {
 String GetRenderBlockingStringFromBehavior(
     RenderBlockingBehavior render_blocking_behavior) {
-  String render_blocking_string;
   switch (render_blocking_behavior) {
     case RenderBlockingBehavior::kUnset:
-      break;
+      return String();
     case RenderBlockingBehavior::kBlocking:
-      render_blocking_string = "blocking";
-      break;
+      return "blocking";
     case RenderBlockingBehavior::kNonBlocking:
-      render_blocking_string = "non_blocking";
-      break;
+      return "non_blocking";
     case RenderBlockingBehavior::kNonBlockingDynamic:
-      render_blocking_string = "dynamically_injected_non_blocking";
-      break;
+      return "dynamically_injected_non_blocking";
     case RenderBlockingBehavior::kInBodyParserBlocking:
-      render_blocking_string = "in_body_parser_blocking";
-      break;
+      return "in_body_parser_blocking";
     case RenderBlockingBehavior::kPotentiallyBlocking:
-      render_blocking_string = "potentially_blocking";
-      break;
-    default:
-      NOTREACHED();
+      return "potentially_blocking";
   }
-  return render_blocking_string;
 }
 
 }  // namespace
@@ -851,12 +843,15 @@ void inspector_send_request_event::Data(
     LocalFrame* frame,
     const ResourceRequest& request,
     ResourceType resource_type,
-    RenderBlockingBehavior render_blocking_behavior) {
+    RenderBlockingBehavior render_blocking_behavior,
+    const ResourceLoaderOptions& resource_loader_options) {
   auto dict = std::move(context).WriteDictionary();
   dict.Add("requestId", IdentifiersFactory::RequestId(loader, identifier));
   dict.Add("frame", IdentifiersFactory::FrameId(frame));
   dict.Add("url", request.Url().GetString());
   dict.Add("requestMethod", request.HttpMethod());
+  dict.Add("isLinkPreload",
+           resource_loader_options.initiator_info.is_link_preload);
   String resource_type_string = InspectorPageAgent::ResourceTypeJson(
       InspectorPageAgent::ToResourceType(resource_type));
   dict.Add("resourceType", resource_type_string);
@@ -868,6 +863,8 @@ void inspector_send_request_event::Data(
   const char* priority = ResourcePriorityString(request.Priority());
   if (priority)
     dict.Add("priority", priority);
+  dict.Add("fetchPriorityHint",
+           FetchPriorityString(request.GetFetchPriorityHint()));
   SetCallStack(execution_context->GetIsolate(), dict);
 }
 
@@ -906,6 +903,8 @@ void inspector_send_navigation_request_event::Data(
       ResourcePriorityString(ResourceLoadPriority::kVeryHigh);
   if (priority)
     dict.Add("priority", priority);
+  dict.Add("fetchPriorityHint",
+           FetchPriorityString(mojom::blink::FetchPriorityHint::kAuto));
   SetCallStack(frame->DomWindow()->GetIsolate(), dict);
 }
 
@@ -988,6 +987,8 @@ void inspector_receive_response_event::Data(perfetto::TracedValue context,
     auto info = dict.AddDictionary("staticRoutingInfo");
     info.Add("ruleIdMatched",
              response.GetServiceWorkerRouterInfo()->RuleIdMatched());
+    info.Add("matchedSourceType",
+             response.GetServiceWorkerRouterInfo()->MatchedSourceType());
   }
 
   SetHeaders(dict.AddItem("headers"), response.HttpHeaderFields());

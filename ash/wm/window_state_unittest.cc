@@ -82,7 +82,22 @@ class AlwaysMaximizeTestState : public WindowState::State {
   WindowStateType state_type_;
 };
 
-using WindowStateTest = AshTestBase;
+class WindowStateTest : public AshTestBase {
+ public:
+  WindowStateTest() {
+    scoped_feature_list_.InitWithFeatures(
+        /*enabled_features=*/{features::kFasterSplitScreenSetup,
+                              features::kOsSettingsRevampWayfinding},
+        /*disabled_features=*/{});
+  }
+  WindowStateTest(const WindowStateTest&) = delete;
+  WindowStateTest& operator=(const WindowStateTest&) = delete;
+  ~WindowStateTest() override = default;
+
+ private:
+  base::test::ScopedFeatureList scoped_feature_list_;
+};
+
 using Sample = base::HistogramBase::Sample;
 
 // Test that a window gets properly snapped to the display's edges in a
@@ -163,7 +178,7 @@ TEST_F(WindowStateTest, SnapWindowMinimumSizeLandscape) {
       &delegate, -1, gfx::Rect(0, 100, kWorkAreaBounds.width() - 1, 100)));
 
   // It should be possible to snap a window with a minimum size.
-  const int kMinimumWidth = 700;
+  const int kMinimumWidth = 750;
   delegate.set_minimum_size(gfx::Size(kMinimumWidth, 0));
   WindowState* window_state = WindowState::Get(window.get());
   EXPECT_TRUE(window_state->CanSnap());

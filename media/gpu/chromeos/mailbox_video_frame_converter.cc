@@ -342,7 +342,9 @@ void MailboxVideoFrameConverter::ConvertFrame(scoped_refptr<VideoFrame> frame) {
     return OnError(FROM_HERE, "Invalid frame.");
 
   VideoFrame* origin_frame =
-      !unwrap_frame_cb_.is_null() ? unwrap_frame_cb_.Run(*frame) : frame.get();
+      !get_original_frame_cb_.is_null()
+          ? get_original_frame_cb_.Run(GetSharedMemoryId(*frame))
+          : frame.get();
   if (!origin_frame)
     return OnError(FROM_HERE, "Failed to get origin frame.");
 
@@ -570,7 +572,8 @@ bool MailboxVideoFrameConverter::GenerateSharedImageOnGPUThread(
       gpu::SHARED_IMAGE_USAGE_DISPLAY_READ | gpu::SHARED_IMAGE_USAGE_SCANOUT;
   if (video_frame->metadata().is_webgpu_compatible &&
       !shared_image_caps->disable_webgpu_shared_images) {
-    shared_image_usage |= gpu::SHARED_IMAGE_USAGE_WEBGPU;
+    shared_image_usage |= gpu::SHARED_IMAGE_USAGE_WEBGPU_READ |
+                          gpu::SHARED_IMAGE_USAGE_WEBGPU_WRITE;
   }
 
   gpu::SharedImageStub::SharedImageDestructionCallback destroy_shared_image_cb;
@@ -675,10 +678,10 @@ bool MailboxVideoFrameConverter::HasPendingFrames() const {
   return !input_frame_queue_.empty();
 }
 
-void MailboxVideoFrameConverter::set_unwrap_frame_cb(
-    UnwrapFrameCB unwrap_frame_cb) {
+void MailboxVideoFrameConverter::set_get_original_frame_cb(
+    GetOriginalFrameCB get_original_frame_cb) {
   DCHECK(parent_task_runner_->RunsTasksInCurrentSequence());
-  unwrap_frame_cb_ = std::move(unwrap_frame_cb);
+  get_original_frame_cb_ = std::move(get_original_frame_cb);
 }
 
 void MailboxVideoFrameConverter::OnError(const base::Location& location,

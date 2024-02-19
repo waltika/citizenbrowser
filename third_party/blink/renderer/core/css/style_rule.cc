@@ -167,6 +167,9 @@ void StyleRuleBase::Trace(Visitor* visitor) const {
     case kViewTransition:
       To<StyleRuleViewTransition>(this)->TraceAfterDispatch(visitor);
       return;
+    case kFunction:
+      To<StyleRuleFunction>(this)->TraceAfterDispatch(visitor);
+      return;
   }
   NOTREACHED();
 }
@@ -245,6 +248,9 @@ void StyleRuleBase::FinalizeGarbageCollectedObject() {
     case kViewTransition:
       To<StyleRuleViewTransition>(this)->~StyleRuleViewTransition();
       return;
+    case kFunction:
+      To<StyleRuleFunction>(this)->~StyleRuleFunction();
+      return;
   }
   NOTREACHED();
 }
@@ -287,6 +293,7 @@ StyleRuleBase* StyleRuleBase::Copy() const {
       return To<StyleRuleNamespace>(this)->Copy();
     case kCharset:
     case kKeyframe:
+    case kFunction:
       NOTREACHED();
       return nullptr;
     case kContainer:
@@ -397,6 +404,7 @@ CSSRule* StyleRuleBase::CreateCSSOMWrapper(wtf_size_t position_hint,
     case kKeyframe:
     case kCharset:
     case kPageMargin:
+    case kFunction:
       NOTREACHED();
       return nullptr;
   }
@@ -610,58 +618,10 @@ void StyleRuleBase::Reparent(StyleRule* old_parent, StyleRule* new_parent) {
     case kKeyframe:
     case kCharset:
     case kViewTransition:
+    case kFunction:
       // Cannot have any child rules.
       break;
   }
-}
-
-StyleRulePage::StyleRulePage(CSSSelectorList* selector_list,
-                             CSSPropertyValueSet* properties,
-                             HeapVector<Member<StyleRuleBase>> child_rules)
-    : StyleRuleBase(kPage),
-      properties_(properties),
-      selector_list_(selector_list),
-      child_rules_(std::move(child_rules)) {}
-
-StyleRulePage::StyleRulePage(const StyleRulePage& page_rule)
-    : StyleRuleBase(page_rule),
-      properties_(page_rule.properties_->MutableCopy()),
-      selector_list_(page_rule.selector_list_->Copy()) {}
-
-MutableCSSPropertyValueSet& StyleRulePage::MutableProperties() {
-  if (!properties_->IsMutable()) {
-    properties_ = properties_->MutableCopy();
-  }
-  return *To<MutableCSSPropertyValueSet>(properties_.Get());
-}
-
-void StyleRulePage::TraceAfterDispatch(blink::Visitor* visitor) const {
-  visitor->Trace(properties_);
-  visitor->Trace(layer_);
-  visitor->Trace(selector_list_);
-  visitor->Trace(child_rules_);
-  StyleRuleBase::TraceAfterDispatch(visitor);
-}
-
-StyleRulePageMargin::StyleRulePageMargin(CSSAtRuleID id,
-                                         CSSPropertyValueSet* properties)
-    : StyleRuleBase(kPageMargin), id_(id), properties_(properties) {}
-
-StyleRulePageMargin::StyleRulePageMargin(
-    const StyleRulePageMargin& page_margin_rule)
-    : StyleRuleBase(page_margin_rule),
-      properties_(page_margin_rule.properties_->MutableCopy()) {}
-
-MutableCSSPropertyValueSet& StyleRulePageMargin::MutableProperties() {
-  if (!properties_->IsMutable()) {
-    properties_ = properties_->MutableCopy();
-  }
-  return *To<MutableCSSPropertyValueSet>(properties_.Get());
-}
-
-void StyleRulePageMargin::TraceAfterDispatch(blink::Visitor* visitor) const {
-  visitor->Trace(properties_);
-  StyleRuleBase::TraceAfterDispatch(visitor);
 }
 
 StyleRuleProperty::StyleRuleProperty(const String& name,
@@ -849,6 +809,55 @@ Vector<String> StyleRuleLayerStatement::GetNamesAsStrings() const {
   return result;
 }
 
+StyleRulePage::StyleRulePage(CSSSelectorList* selector_list,
+                             CSSPropertyValueSet* properties,
+                             HeapVector<Member<StyleRuleBase>> child_rules)
+    : StyleRuleBase(kPage),
+      properties_(properties),
+      selector_list_(selector_list),
+      child_rules_(std::move(child_rules)) {}
+
+StyleRulePage::StyleRulePage(const StyleRulePage& page_rule)
+    : StyleRuleBase(page_rule),
+      properties_(page_rule.properties_->MutableCopy()),
+      selector_list_(page_rule.selector_list_->Copy()) {}
+
+MutableCSSPropertyValueSet& StyleRulePage::MutableProperties() {
+  if (!properties_->IsMutable()) {
+    properties_ = properties_->MutableCopy();
+  }
+  return *To<MutableCSSPropertyValueSet>(properties_.Get());
+}
+
+void StyleRulePage::TraceAfterDispatch(blink::Visitor* visitor) const {
+  visitor->Trace(properties_);
+  visitor->Trace(layer_);
+  visitor->Trace(selector_list_);
+  visitor->Trace(child_rules_);
+  StyleRuleBase::TraceAfterDispatch(visitor);
+}
+
+StyleRulePageMargin::StyleRulePageMargin(CSSAtRuleID id,
+                                         CSSPropertyValueSet* properties)
+    : StyleRuleBase(kPageMargin), id_(id), properties_(properties) {}
+
+StyleRulePageMargin::StyleRulePageMargin(
+    const StyleRulePageMargin& page_margin_rule)
+    : StyleRuleBase(page_margin_rule),
+      properties_(page_margin_rule.properties_->MutableCopy()) {}
+
+MutableCSSPropertyValueSet& StyleRulePageMargin::MutableProperties() {
+  if (!properties_->IsMutable()) {
+    properties_ = properties_->MutableCopy();
+  }
+  return *To<MutableCSSPropertyValueSet>(properties_.Get());
+}
+
+void StyleRulePageMargin::TraceAfterDispatch(blink::Visitor* visitor) const {
+  visitor->Trace(properties_);
+  StyleRuleBase::TraceAfterDispatch(visitor);
+}
+
 StyleRuleCondition::StyleRuleCondition(RuleType type,
                                        HeapVector<Member<StyleRuleBase>> rules)
     : StyleRuleGroup(type, std::move(rules)) {}
@@ -931,5 +940,20 @@ void StyleRuleContainer::TraceAfterDispatch(blink::Visitor* visitor) const {
 StyleRuleStartingStyle::StyleRuleStartingStyle(
     HeapVector<Member<StyleRuleBase>> rules)
     : StyleRuleGroup(kStartingStyle, std::move(rules)) {}
+
+StyleRuleFunction::StyleRuleFunction(
+    AtomicString name,
+    Vector<StyleRuleFunction::Parameter> parameters,
+    scoped_refptr<CSSVariableData> function_body,
+    StyleRuleFunction::Type return_type)
+    : StyleRuleBase(kFunction),
+      name_(std::move(name)),
+      parameters_(std::move(parameters)),
+      function_body_(function_body),
+      return_type_(return_type) {}
+
+void StyleRuleFunction::TraceAfterDispatch(blink::Visitor* visitor) const {
+  StyleRuleBase::TraceAfterDispatch(visitor);
+}
 
 }  // namespace blink

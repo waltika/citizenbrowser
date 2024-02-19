@@ -10,6 +10,7 @@
 #include "base/check_deref.h"
 #include "base/check_is_test.h"
 #include "base/command_line.h"
+#include "base/debug/dump_without_crashing.h"
 #include "base/json/json_reader.h"
 #include "base/memory/ptr_util.h"
 #include "base/metrics/histogram_functions.h"
@@ -26,6 +27,7 @@
 #include "components/search_engines/search_engine_choice_utils.h"
 #include "components/search_engines/search_engines_pref_names.h"
 #include "components/search_engines/search_engines_switches.h"
+#include "components/search_engines/template_url_prepopulate_data.h"
 #include "components/search_engines/template_url_service.h"
 #include "components/signin/public/base/signin_switches.h"
 #include "components/version_info/version_info.h"
@@ -67,14 +69,16 @@ bool IsSearchEngineChoiceScreenAllowedByPolicy(
   return false;
 }
 
-bool IsDefaultSearchProviderSetOrBlockedByPolicy(
-    const TemplateURLService& template_url_service) {
-  const TemplateURL* default_search_engine =
-      template_url_service.GetDefaultSearchProvider();
-
+bool IsSetOrBlockedByPolicy(const TemplateURL* default_search_engine) {
   return !default_search_engine ||
          default_search_engine->created_by_policy() ==
              TemplateURLData::CreatedByPolicy::kDefaultSearchProvider;
+}
+
+bool IsDefaultSearchProviderSetOrBlockedByPolicy(
+    const TemplateURLService& template_url_service) {
+  return IsSetOrBlockedByPolicy(
+      template_url_service.GetDefaultSearchProvider());
 }
 #endif
 
@@ -231,18 +235,43 @@ SearchEngineChoiceService::GetDynamicChoiceScreenConditions(
     return SearchEngineChoiceScreenConditions::kExtensionControlled;
   }
 
-  if (IsDefaultSearchProviderSetOrBlockedByPolicy(template_url_service)) {
-    return SearchEngineChoiceScreenConditions::kControlledByPolicy;
-  }
-
-  // Don't show the dialog if the user has a custom search engine set as
-  // default.
   const TemplateURL* default_search_engine =
       template_url_service.GetDefaultSearchProvider();
-  if (default_search_engine &&
-      !template_url_service.IsPrepopulatedOrDefaultProviderByPolicy(
+  if (IsSetOrBlockedByPolicy(default_search_engine)) {
+    // It is possible that between the static checks at service creation (around
+    // the time the profile was loaded) and the moment a compatible URL is
+    // loaded to show the search engine choice dialog, some new policies come in
+    // and take control of the default search provider. If we proceeded here,
+    // the choice screen could be shown and we might attempt to set a DSE based
+    // on the user selection, but that would be ignored.
+    return SearchEngineChoiceScreenConditions::kControlledByPolicy;
+  }
+  CHECK(default_search_engine);
+
+  if (!template_url_service.IsPrepopulatedOrDefaultProviderByPolicy(
           default_search_engine)) {
     return SearchEngineChoiceScreenConditions::kHasCustomSearchEngine;
+  }
+
+  if (default_search_engine->prepopulate_id() >
+      TemplateURLPrepopulateData::kMaxPrepopulatedEngineID) {
+    // Don't show a choice screen when the user has a distribution custom search
+    // engine as default (they have prepopulate ID > 1000).
+    // TODO(crbug.com/324880292): Revisit how those are handled.
+    return SearchEngineChoiceScreenConditions::
+        kHasDistributionCustomSearchEngine;
+  }
+
+  if (!TemplateURLPrepopulateData::GetPrepopulatedEngineFromFullList(
+          &profile_prefs_.get(), this,
+          default_search_engine->prepopulate_id())) {
+    // The current default search engine was at some point part of the
+    // prepopulated data (it has a "normal"-looking ID), but it has since been
+    // removed. Follow what we do for custom search engines, don't show the
+    // choice screen.
+    RecordUnexpectedSearchProvider(default_search_engine->data());
+    return SearchEngineChoiceScreenConditions::
+        kHasRemovedPrepopulatedSearchEngine;
   }
 
   if (IsSearchEngineChoiceCompleted(*profile_prefs_)) {

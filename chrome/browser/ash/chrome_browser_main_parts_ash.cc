@@ -11,6 +11,7 @@
 #include <utility>
 #include <vector>
 
+#include "ash/accelerators/rapid_key_sequence_recorder.h"
 #include "ash/accelerators/shortcut_input_handler.h"
 #include "ash/components/arc/arc_features.h"
 #include "ash/components/arc/arc_util.h"
@@ -113,7 +114,6 @@
 #include "chrome/browser/ash/login/session/user_session_manager.h"
 #include "chrome/browser/ash/login/startup_utils.h"
 #include "chrome/browser/ash/login/users/avatar/user_image_manager_registry.h"
-#include "chrome/browser/ash/login/users/chrome_user_manager.h"
 #include "chrome/browser/ash/login/wizard_controller.h"
 #include "chrome/browser/ash/memory_metrics.h"
 #include "chrome/browser/ash/mojo_service_manager/connection_helper.h"
@@ -156,7 +156,6 @@
 #include "chrome/browser/ash/settings/shutdown_policy_forwarder.h"
 #include "chrome/browser/ash/shortcut_mapping_pref_service.h"
 #include "chrome/browser/ash/startup_settings_cache.h"
-#include "chrome/browser/ash/system/breakpad_consent_watcher.h"
 #include "chrome/browser/ash/system/input_device_settings.h"
 #include "chrome/browser/ash/system/user_removal_manager.h"
 #include "chrome/browser/ash/system_token_cert_db_initializer.h"
@@ -826,18 +825,6 @@ int ChromeBrowserMainPartsAsh::PreMainMessageLoopRun() {
   bulk_printers_calculator_factory_ =
       std::make_unique<BulkPrintersCalculatorFactory>();
 
-  // StatsReportingController is created in
-  // ChromeBrowserMainParts::PreCreateThreads, so this must come afterwards.
-  auto* stats_controller = StatsReportingController::Get();
-  // |stats_controller| can be nullptr if ChromeBrowserMainParts's
-  // browser_process_->GetApplicationLocale() returns empty. We're trying to
-  // show an error message in that case, so don't just crash. (See
-  // ChromeBrowserMainParts::PreCreateThreadsImpl()).
-  if (stats_controller != nullptr) {
-    breakpad_consent_watcher_ =
-        system::BreakpadConsentWatcher::Initialize(stats_controller);
-  }
-
 #if BUILDFLAG(PLATFORM_CFM)
   cfm::InitializeCfmServices();
 #endif  // BUILDFLAG(PLATFORM_CFM)
@@ -870,7 +857,7 @@ void ChromeBrowserMainPartsAsh::PreProfileInit() {
   // -- This used to be in ChromeBrowserMainParts::PreMainMessageLoopRun()
   // -- just before CreateProfile().
 
-  g_browser_process->platform_part()->InitializeChromeUserManager();
+  g_browser_process->platform_part()->InitializeUserManager();
 
   if (base::FeatureList::IsEnabled(features::kPerUserMetrics)) {
     // Enable per-user metrics support as soon as user_manager is created.
@@ -1290,6 +1277,16 @@ void ChromeBrowserMainPartsAsh::PostProfileInit(Profile* profile,
         base::BindOnce(ShillSetPropertyErrorCallback,
                        shill::kEnableRFC8925Property));
 
+    ash::ShillManagerClient::Get()->SetProperty(
+        shill::kDisconnectWiFiOnEthernetProperty,
+        base::Value(base::FeatureList::IsEnabled(
+                        features::kDisconnectWiFiOnEthernetConnected)
+                        ? shill::kDisconnectWiFiOnEthernetConnected
+                        : shill::kDisconnectWiFiOnEthernetOff),
+        base::DoNothing(),
+        base::BindOnce(ShillSetPropertyErrorCallback,
+                       shill::kDisconnectWiFiOnEthernetProperty));
+
     // Notify patchpanel and shill about QoS feature enabled flag.
     const bool wifi_qos_enabled =
         base::FeatureList::IsEnabled(features::kEnableWifiQos);
@@ -1353,6 +1350,7 @@ void ChromeBrowserMainPartsAsh::PostBrowserStart() {
     Shell::Get()->shortcut_input_handler()->Initialize();
   }
   Shell::Get()->modifier_key_combo_recorder()->Initialize();
+  Shell::Get()->rapid_key_sequence_recorder()->Initialize();
 
   // Enable the KeyboardDrivenEventRewriter if the OEM manifest flag is on.
   if (system::InputDeviceSettings::Get()->ForceKeyboardDrivenUINavigation()) {
@@ -1721,7 +1719,7 @@ void ChromeBrowserMainPartsAsh::PostMainMessageLoopRun() {
 
   g_browser_process->platform_part()->ShutdownSessionManager();
   // Ash needs to be closed before UserManager is destroyed.
-  g_browser_process->platform_part()->DestroyChromeUserManager();
+  g_browser_process->platform_part()->DestroyUserManager();
 
   // Shutdown mojo service manager. This should be called before the
   // |mojo_ipc_support_| in |content::BrowserMainLoop| being reset. It is reset

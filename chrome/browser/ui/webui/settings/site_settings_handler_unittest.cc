@@ -872,11 +872,9 @@ class SiteSettingsHandlerBaseTest : public testing::Test {
 
     auto container = std::make_unique<LocalDataContainer>(
         mock_browsing_data_cookie_helper,
-        /*database_helper=*/nullptr, mock_browsing_data_local_storage_helper,
+        mock_browsing_data_local_storage_helper,
         /*session_storage_helper=*/nullptr,
         /*quota_helper=*/nullptr,
-        /*service_worker_helper=*/nullptr,
-        /*data_shared_worker_helper=*/nullptr,
         /*cache_storage_helper=*/nullptr);
     auto mock_cookies_tree_model = std::make_unique<CookiesTreeModel>(
         std::move(container), profile()->GetExtensionSpecialStoragePolicy());
@@ -2436,14 +2434,6 @@ TEST_P(SiteSettingsHandlerTest, SetCategory_GetException_ResetCategory) {
 TEST_P(SiteSettingsHandlerTest, NotificationPermissionRevokeUkm) {
   const std::string google("https://www.google.com");
   ukm::TestAutoSetUkmRecorder ukm_recorder;
-  auto* history_service = HistoryServiceFactory::GetForProfile(
-      profile(), ServiceAccessType::EXPLICIT_ACCESS);
-  history_service->AddPage(GURL(google), base::Time::Now(),
-                           history::SOURCE_BROWSED);
-  base::RunLoop origin_queried_waiter;
-  history_service->set_origin_queried_closure_for_testing(
-      origin_queried_waiter.QuitClosure());
-
   {
     base::Value::List set_notification_origin_args;
     set_notification_origin_args.Append(google);
@@ -2467,8 +2457,6 @@ TEST_P(SiteSettingsHandlerTest, NotificationPermissionRevokeUkm) {
     handler()->HandleSetCategoryPermissionForPattern(
         set_notification_origin_args);
   }
-
-  origin_queried_waiter.Run();
 
   auto entries = ukm_recorder.GetEntriesByName("Permission");
   EXPECT_EQ(1u, entries.size());

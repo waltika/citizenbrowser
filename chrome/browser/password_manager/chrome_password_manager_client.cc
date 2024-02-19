@@ -117,14 +117,14 @@
 #if BUILDFLAG(IS_ANDROID)
 #include "base/android/build_info.h"
 #include "chrome/browser/android/tab_android.h"
-#include "chrome/browser/autofill/manual_filling_controller.h"
+#include "chrome/browser/keyboard_accessory/android/manual_filling_controller.h"
+#include "chrome/browser/keyboard_accessory/android/password_accessory_controller.h"
+#include "chrome/browser/keyboard_accessory/android/password_accessory_controller_impl.h"
 #include "chrome/browser/password_manager/android/account_chooser_dialog_android.h"
 #include "chrome/browser/password_manager/android/auto_signin_first_run_dialog_android.h"
 #include "chrome/browser/password_manager/android/auto_signin_prompt_controller.h"
 #include "chrome/browser/password_manager/android/cred_man_controller.h"
 #include "chrome/browser/password_manager/android/credential_leak_controller_android.h"
-#include "chrome/browser/password_manager/android/password_accessory_controller.h"
-#include "chrome/browser/password_manager/android/password_accessory_controller_impl.h"
 #include "chrome/browser/password_manager/android/password_checkup_launcher_helper_impl.h"
 #include "chrome/browser/password_manager/android/password_generation_controller.h"
 #include "chrome/browser/password_manager/android/password_manager_error_message_helper_bridge_impl.h"
@@ -658,7 +658,8 @@ void ChromePasswordManagerClient::NotifyUserCredentialsWereLeaked(
                     sync_service)
           : "";
   (new CredentialLeakControllerAndroid(
-       leak_type, url, username, web_contents()->GetTopLevelNativeWindow(),
+       leak_type, url, username, profile_,
+       web_contents()->GetTopLevelNativeWindow(),
        std::make_unique<PasswordCheckupLauncherHelperImpl>(),
        std::move(metrics_recorder), account))
       ->ShowDialog();
@@ -710,7 +711,7 @@ const syncer::SyncService* ChromePasswordManagerClient::GetSyncService() const {
   return nullptr;
 }
 
-password_manager::AffiliationService*
+affiliations::AffiliationService*
 ChromePasswordManagerClient::GetAffiliationService() {
   return AffiliationServiceFactory::GetForProfile(profile_);
 }

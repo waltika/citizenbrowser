@@ -32,8 +32,8 @@ enum SharedImageUsage : uint32_t {
   // only use RasterInterface for OOP rasterization. TODO(backer): Eliminate
   // once we can CPU raster to SkImage via RasterInterface.
   SHARED_IMAGE_USAGE_OOP_RASTERIZATION = 1 << 6,
-  // Image will be used by Dawn (for WebGPU)
-  SHARED_IMAGE_USAGE_WEBGPU = 1 << 7,
+  // Image will be read by Dawn (for WebGPU)
+  SHARED_IMAGE_USAGE_WEBGPU_READ = 1 << 7,
   // Image may use concurrent read/write access. Used by single buffered canvas.
   // TODO(crbug.com/969114): This usage is currently not supported in GL/Vulkan
   // interop cases.
@@ -76,14 +76,17 @@ enum SharedImageUsage : uint32_t {
   // Image will be written via RasterInterface
   SHARED_IMAGE_USAGE_RASTER_WRITE = 1 << 20,
 
+  // Image will be written by Dawn (for WebGPU)
+  SHARED_IMAGE_USAGE_WEBGPU_WRITE = 1 << 21,
+
   // Start service side only usage flags after this entry. They must be larger
   // than `LAST_CLIENT_USAGE`.
-  LAST_CLIENT_USAGE = SHARED_IMAGE_USAGE_RASTER_WRITE,
+  LAST_CLIENT_USAGE = SHARED_IMAGE_USAGE_WEBGPU_WRITE,
 
   // Image will have pixels uploaded from CPU. The backing must implement
   // `UploadFromMemory()` if it supports this usage. Clients should specify
   // SHARED_IMAGE_USAGE_CPU_WRITE if they need to write pixels to the image.
-  SHARED_IMAGE_USAGE_CPU_UPLOAD = 1 << 21,
+  SHARED_IMAGE_USAGE_CPU_UPLOAD = 1 << 22,
 
   LAST_SHARED_IMAGE_USAGE = SHARED_IMAGE_USAGE_CPU_UPLOAD
 };

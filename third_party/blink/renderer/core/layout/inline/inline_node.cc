@@ -11,6 +11,7 @@
 #include "base/debug/dump_without_crashing.h"
 #include "base/ranges/algorithm.h"
 #include "base/trace_event/trace_event.h"
+#include "third_party/blink/renderer/core/dom/text_diff_range.h"
 #include "third_party/blink/renderer/core/frame/web_feature.h"
 #include "third_party/blink/renderer/core/layout/block_break_token.h"
 #include "third_party/blink/renderer/core/layout/constraint_space.h"
@@ -595,7 +596,7 @@ class InlineNodeDataEditor final {
 
   // Note: We can't use |Position| for |layout_text_.GetNode()| because |Text|
   // node is already changed.
-  InlineNodeData* Prepare(unsigned offset, unsigned length) {
+  InlineNodeData* Prepare() {
     if (!block_flow_ || block_flow_->NeedsCollectInlines() ||
         block_flow_->NeedsLayout() ||
         block_flow_->GetDocument().NeedsLayoutTreeUpdate() ||
@@ -661,16 +662,12 @@ class InlineNodeDataEditor final {
     // Copy items before replaced range
     auto const* end = data_->items.end();
     auto* it = data_->items.begin();
-    while (it != end && it->end_offset_ < start_offset) {
+    for (; it != end && it->end_offset_ < start_offset; ++it) {
       DCHECK(it != data_->items.end());
       items.push_back(*it);
-      ++it;
     }
 
-    for (;;) {
-      if (it == end)
-        break;
-
+    while (it != end) {
       // Copy part of item before replaced range.
       if (it->start_offset_ < start_offset) {
         const InlineItem& new_item = CopyItemBefore(*it, start_offset);
@@ -922,21 +919,20 @@ class InlineNodeDataEditor final {
 
 // static
 bool InlineNode::SetTextWithOffset(LayoutText* layout_text,
-                                   String new_text_in,
-                                   unsigned offset,
-                                   unsigned length) {
+                                   String new_text,
+                                   const TextDiffRange& diff) {
   if (!layout_text->HasValidInlineItems() ||
       !layout_text->IsInLayoutNGInlineFormattingContext())
     return false;
   const String old_text = layout_text->TransformedText();
-  if (offset == 0 && length == old_text.length()) {
+  if (diff.offset == 0 && diff.old_size == old_text.length()) {
     // We'll run collect inline items since whole text of |layout_text| is
     // changed.
     return false;
   }
 
   InlineNodeDataEditor editor(*layout_text);
-  InlineNodeData* const previous_data = editor.Prepare(offset, length);
+  InlineNodeData* const previous_data = editor.Prepare();
   if (!previous_data)
     return false;
 
@@ -944,7 +940,6 @@ bool InlineNode::SetTextWithOffset(LayoutText* layout_text,
   // while shaping.
   FontCachePurgePreventer font_cache_purge_preventer;
 
-  String new_text(std::move(new_text_in));
   TextOffsetMap offset_map;
   new_text = layout_text->TransformAndSecureText(new_text, offset_map);
   if (!offset_map.IsEmpty()) {

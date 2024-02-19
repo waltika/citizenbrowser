@@ -115,7 +115,6 @@ class TextAutosizerPageInfo;
 using PaintHoldingCommitTrigger = cc::PaintHoldingCommitTrigger;
 
 class CORE_EXPORT WebViewImpl final : public WebView,
-                                      public RefCounted<WebViewImpl>,
                                       public mojom::blink::PageBroadcast {
  public:
   static WebViewImpl* Create(
@@ -132,7 +131,8 @@ class CORE_EXPORT WebViewImpl final : public WebView,
       scheduler::WebAgentGroupScheduler& agent_group_scheduler,
       const SessionStorageNamespaceId& session_storage_namespace_id,
       std::optional<SkColor> page_base_background_color,
-      const BrowsingContextGroupInfo& browsing_context_group_info);
+      const BrowsingContextGroupInfo& browsing_context_group_info,
+      const ColorProviderColorMaps* color_provider_colors);
 
   // All calls to Create() should be balanced with a call to Close(). This
   // synchronously destroys the WebViewImpl.
@@ -224,8 +224,6 @@ class CORE_EXPORT WebViewImpl final : public WebView,
   void SetDeviceColorSpaceForTesting(
       const gfx::ColorSpace& color_space) override;
   void PaintContent(cc::PaintCanvas*, const gfx::Rect&) override;
-  void SetColorProviders(
-      const ColorProviderColorMaps& color_provider_colors) override;
   void RegisterRendererPreferenceWatcher(
       CrossVariantMojoRemote<mojom::RendererPreferenceWatcherInterfaceBase>
           watcher) override;
@@ -659,7 +657,6 @@ class CORE_EXPORT WebViewImpl final : public WebView,
   friend class frame_test_helpers::WebViewHelper;
   friend class SimCompositor;
   friend class WebView;  // So WebView::Create can call our constructor
-  friend class WTF::RefCounted<WebViewImpl>;
 
   void AcceptLanguagesChanged();
   void ThemeChanged();
@@ -718,7 +715,8 @@ class CORE_EXPORT WebViewImpl final : public WebView,
       scheduler::WebAgentGroupScheduler& agent_group_scheduler,
       const SessionStorageNamespaceId& session_storage_namespace_id,
       std::optional<SkColor> page_base_background_color,
-      const BrowsingContextGroupInfo& browsing_context_group_info);
+      const BrowsingContextGroupInfo& browsing_context_group_info,
+      const ColorProviderColorMaps* color_provider_colors);
   ~WebViewImpl() override;
 
   void ConfigureAutoResizeMode();

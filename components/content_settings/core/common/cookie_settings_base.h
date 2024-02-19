@@ -79,15 +79,18 @@ class CookieSettingsBase {
   // Enum for measuring the mechanism for re-enabling third-party cookies when
   // applying 3PCD experiment. These values are persisted to logs. Entries
   // should not be renumbered and numeric values should never be reused.
+  //
+  // Keep in sync with ThirdPartyCookieAllowMechanism at
+  // //src/tools/metrics/histograms/metadata/page/enums.xml
   enum class ThirdPartyCookieAllowMechanism {
     kNone = 0,
     // Allow by explicit cookie content setting (e.g. UserBypass).
     kAllowByExplicitSetting = 1,
-    // Allow by global 3p cookie setting setting (e.g. Enterperise Policy:
+    // Allow by global 3p cookie setting setting (e.g. Enterprise Policy:
     // BlockThirdPartyCookies, UX).
     kAllowByGlobalSetting = 2,
-    // Allow by 3PCD metadata grants content settings.
-    kAllowBy3PCDMetadata = 3,
+    // (DEPRECATED) Allow by 3PCD metadata grants content settings.
+    // kAllowBy3PCDMetadata = 3,
     // Allow by third-party deprecation trial.
     kAllowBy3PCD = 4,
     kAllowBy3PCDHeuristics = 5,
@@ -95,11 +98,41 @@ class CookieSettingsBase {
     kAllowByTopLevelStorageAccess = 7,
     kAllowByCORSException = 8,
     kAllowByTopLevel3PCD = 9,
-    // Allow by Enterperise Policy: CookiesAllowedForUrls.
+    // Allow by Enterprise Policy: CookiesAllowedForUrls.
     kAllowByEnterprisePolicyCookieAllowedForUrls = 10,
+    // Same as kAllowBy3PCDMetadata but for
+    // mojom::TpcdMetadataRuleSource::SOURCE_UNSPECIFIED rules.
+    kAllowBy3PCDMetadataSourceUnspecified = 11,
+    // Same as kAllowBy3PCDMetadata but for
+    // mojom::TpcdMetadataRuleSource::SOURCE_TEST rules.
+    kAllowBy3PCDMetadataSourceTest = 12,
+    // Same as kAllowBy3PCDMetadata but for
+    // mojom::TpcdMetadataRuleSource::SOURCE_1P_DT rules.
+    kAllowBy3PCDMetadataSource1pDt = 13,
+    // Same as kAllowBy3PCDMetadata but for
+    // mojom::TpcdMetadataRuleSource::SOURCE_3P_DT rules.
+    kAllowBy3PCDMetadataSource3pDt = 14,
+    // Same as kAllowBy3PCDMetadata but for
+    // mojom::TpcdMetadataRuleSource::SOURCE_DOGFOOD rules.
+    kAllowBy3PCDMetadataSourceDogFood = 15,
+    // Same as kAllowBy3PCDMetadata but for
+    // mojom::TpcdMetadataRuleSource::SOURCE_CRITICAL_SECTOR rules.
+    kAllowBy3PCDMetadataSourceCriticalSector = 16,
+    // Same as kAllowBy3PCDMetadata but for
+    // mojom::TpcdMetadataRuleSource::SOURCE_CUJ rules.
+    kAllowBy3PCDMetadataSourceCuj = 17,
+    // Same as kAllowBy3PCDMetadata but for
+    // mojom::TpcdMetadataRuleSource::SOURCE_GOV_EDU_TLD rules.
+    kAllowBy3PCDMetadataSourceGovEduTld = 18,
 
-    kMaxValue = kAllowByEnterprisePolicyCookieAllowedForUrls,
+    kMaxValue = kAllowBy3PCDMetadataSourceGovEduTld,
   };
+
+  static bool IsAnyTpcdMetadataAllowMechanism(
+      const ThirdPartyCookieAllowMechanism& mechanism);
+
+  static ThirdPartyCookieAllowMechanism TpcdMetadataSourceToAllowMechanism(
+      const mojom::TpcdMetadataRuleSource& source);
 
   class CookieSettingWithMetadata {
    public:
@@ -302,31 +335,35 @@ class CookieSettingsBase {
                                            ContentSettingsType content_type,
                                            SettingInfo* info) const = 0;
 
-  bool IsAllowedByStorageAccessGrant(const GURL& url,
-                                     const GURL& first_party_url) const;
-
-  bool IsAllowedByTopLevel3pcdTrialSetting(const GURL& first_party_url) const;
-
-  bool ShouldConsider3pcdTrialSettings(
+  bool IsAllowedByStorageAccessGrant(
+      const GURL& url,
+      const GURL& first_party_url,
       net::CookieSettingOverrides overrides) const;
 
-  bool ShouldConsiderTopLevel3pcdTrialSettings(
+  bool IsAllowedByTopLevelStorageAccessGrant(
+      const GURL& url,
+      const GURL& first_party_url,
       net::CookieSettingOverrides overrides) const;
 
-  bool ShouldConsider3pcdHeuristicsGrantsSettings(
+  bool IsAllowedBy3pcdTrialSettings(
+      const GURL& url,
+      const GURL& first_party_url,
       net::CookieSettingOverrides overrides) const;
 
-  // Returns true iff the query should consider Storage Access API permission
-  // grants.
-  bool ShouldConsiderStorageAccessGrants(
+  bool IsAllowedByTopLevel3pcdTrialSettings(
+      const GURL& first_party_url,
       net::CookieSettingOverrides overrides) const;
 
-  // Returns true iff the query should consider top-level Storage Access API
-  // permission grants. Note that this is handled similarly to storage access
-  // grants, but applies to subresources more broadly (at the top-level rather
-  // than only for a single frame).
-  bool ShouldConsiderTopLevelStorageAccessGrants(
+  bool IsAllowedBy3pcdHeuristicsGrantsSettings(
+      const GURL& url,
+      const GURL& first_party_url,
       net::CookieSettingOverrides overrides) const;
+
+  bool IsAllowedBy3pcdMetadataGrantsSettings(
+      const GURL& url,
+      const GURL& first_party_url,
+      net::CookieSettingOverrides overrides,
+      SettingInfo* out_info) const;
 
   struct AllowAllCookies {
     ThirdPartyCookieAllowMechanism mechanism =

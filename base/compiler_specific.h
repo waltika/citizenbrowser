@@ -443,11 +443,12 @@ inline constexpr bool AnalyzerAssumeTrue(bool arg) {
 // Additionally, the initial implementation in clang <= 16 overwrote the return
 // register(s) in the epilogue of a preserve_most function, so we only use
 // preserve_most in clang >= 17 (see https://reviews.llvm.org/D143425).
+// Clang only supports preserve_most on X86-64 and AArch64 for now.
 // See https://clang.llvm.org/docs/AttributeReference.html#preserve-most for
 // more details.
-#if defined(ARCH_CPU_64_BITS) &&                       \
-    !(BUILDFLAG(IS_WIN) && defined(ARCH_CPU_ARM64)) && \
-    !defined(COMPONENT_BUILD) && defined(__clang__) && \
+#if (defined(ARCH_CPU_ARM64) || defined(ARCH_CPU_X86_64)) && \
+    !(BUILDFLAG(IS_WIN) && defined(ARCH_CPU_ARM64)) &&       \
+    !defined(COMPONENT_BUILD) && defined(__clang__) &&       \
     __clang_major__ >= 17 && HAS_ATTRIBUTE(preserve_most)
 #define PRESERVE_MOST __attribute__((preserve_most))
 #else
@@ -501,6 +502,13 @@ inline constexpr bool AnalyzerAssumeTrue(bool arg) {
 // explanation requires cooperation of code that is not fully encapsulated close
 // to the UNSAFE_BUFFERS() usage, it should be rejected and replaced with safer
 // coding patterns or stronger guarantees.
+//
+// UNSAFE_BUFFERS_INCLUDE_BEGIN / UNSAFE_BUFFERS_INCLUDE_END can be used to
+// wrap an `#include` statement for a header which has not been made clean for
+// the -Wunsafe-buffer-usage warning. As these disable warnings for the entire
+// header, and its transitive dependencies, it's clear these should be temporary
+// and the header converted to use safe operations via `span` (or use
+// UNSAFE_BUFFERS() explicitly in rare cases).
 #if defined(__clang__)
 // clang-format off
 // Formatting is off so that we can put each _Pragma on its own line, as
@@ -510,8 +518,12 @@ inline constexpr bool AnalyzerAssumeTrue(bool arg) {
   __VA_ARGS__                                \
   _Pragma("clang unsafe_buffer_usage end")
 // clang-format on
+#define UNSAFE_BUFFERS_INCLUDE_BEGIN _Pragma("clang unsafe_buffer_usage begin")
+#define UNSAFE_BUFFERS_INCLUDE_END _Pragma("clang unsafe_buffer_usage end")
 #else
 #define UNSAFE_BUFFERS(...) __VA_ARGS__
+#define UNSAFE_BUFFERS_INCLUDE_BEGIN
+#define UNSAFE_BUFFERS_INCLUDE_END
 #endif
 
 #endif  // BASE_COMPILER_SPECIFIC_H_

@@ -1422,7 +1422,6 @@ interface CredentialsContainer
     method create
     method get
     method preventSilentAccess
-    method requestIdentity
     method store
 interface CropTarget
     static method fromElement
@@ -3774,6 +3773,7 @@ interface HTMLElement : Element
     getter title
     getter translate
     getter virtualKeyboardPolicy
+    getter writingSuggestions
     method attachInternals
     method blur
     method click
@@ -3910,6 +3910,7 @@ interface HTMLElement : Element
     setter title
     setter translate
     setter virtualKeyboardPolicy
+    setter writingSuggestions
 interface HTMLEmbedElement : HTMLElement
     attribute @@toStringTag
     getter align
@@ -4950,10 +4951,14 @@ interface HTMLTemplateElement : HTMLElement
     getter content
     getter parseparts
     getter serializable
+    getter shadowRootClonable
+    getter shadowRootDelegatesFocus
     getter shadowRootMode
     method constructor
     setter parseparts
     setter serializable
+    setter shadowRootClonable
+    setter shadowRootDelegatesFocus
     setter shadowRootMode
 interface HTMLTextAreaElement : HTMLElement
     attribute @@toStringTag
@@ -6966,6 +6971,10 @@ interface OverscrollEvent : Event
     attribute @@toStringTag
     getter deltaX
     getter deltaY
+    method constructor
+interface PageConcealEvent : Event
+    attribute @@toStringTag
+    getter activation
     method constructor
 interface PageRevealEvent : Event
     attribute @@toStringTag
@@ -12704,6 +12713,7 @@ namespace console
     getter onoffline
     getter ononline
     getter onoverscroll
+    getter onpageconceal
     getter onpagehide
     getter onpagereveal
     getter onpageshow
@@ -12935,6 +12945,7 @@ namespace console
     setter onoffline
     setter ononline
     setter onoverscroll
+    setter onpageconceal
     setter onpagehide
     setter onpagereveal
     setter onpageshow

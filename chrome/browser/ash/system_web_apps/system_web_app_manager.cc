@@ -55,6 +55,7 @@
 #include "chrome/browser/ash/system_web_apps/apps/os_url_handler_system_web_app_info.h"
 #include "chrome/browser/ash/system_web_apps/apps/personalization_app/personalization_system_app_delegate.h"
 #include "chrome/browser/ash/system_web_apps/apps/print_management_web_app_info.h"
+#include "chrome/browser/ash/system_web_apps/apps/print_preview_cros_system_web_app_info.h"
 #include "chrome/browser/ash/system_web_apps/apps/projector_system_web_app_info.h"
 #include "chrome/browser/ash/system_web_apps/apps/scanning_system_web_app_info.h"
 #include "chrome/browser/ash/system_web_apps/apps/shimless_rma_system_web_app_info.h"
@@ -104,10 +105,6 @@ const constexpr char kIconsFixedOnReinstallMetricName[] =
 
 namespace {
 
-// Number of attempts to install a given version & locale of the SWAs before
-// bailing out.
-const int kInstallFailureAttempts = 3;
-
 SystemWebAppDelegateMap CreateSystemWebApps(Profile* profile) {
   std::vector<std::unique_ptr<SystemWebAppDelegate>> info_vec;
   // TODO(crbug.com/1051229): Currently unused, will be hooked up
@@ -143,6 +140,7 @@ SystemWebAppDelegateMap CreateSystemWebApps(Profile* profile) {
   info_vec.push_back(
       std::make_unique<vc_background_ui::VcBackgroundUISystemAppDelegate>(
           profile));
+  info_vec.push_back(std::make_unique<PrintPreviewCrosDelegate>(profile));
 
 #if !defined(OFFICIAL_BUILD)
   info_vec.push_back(std::make_unique<SampleSystemAppDelegate>(profile));
@@ -801,10 +799,9 @@ void SystemWebAppManager::UpdateLastAttemptedInfo() {
   const std::string& last_attempted_locale(
       pref_service_->GetString(prefs::kSystemWebAppLastAttemptedLocale));
 
-  const bool is_retry = (last_attempted_version.IsValid() &&
-                         last_attempted_version == CurrentVersion() &&
-                         last_attempted_locale == CurrentLocale()) ||
-                        PreviousSessionHadBrokenIcons();
+  const bool is_retry = last_attempted_version.IsValid() &&
+                        last_attempted_version == CurrentVersion() &&
+                        last_attempted_locale == CurrentLocale();
 
   if (!is_retry) {
     pref_service_->SetInteger(prefs::kSystemWebAppInstallFailureCount, 0);

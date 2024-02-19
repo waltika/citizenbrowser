@@ -32,10 +32,6 @@ extern NSString* const kDefaultBrowserUtilsKey;
 
 namespace {
 
-// Key in storage containing an NSDate corresponding to the last time
-// an HTTP(S) link was sent and opened by the app.
-NSString* const kLastHTTPURLOpenTime = @"lastHTTPURLOpenTime";
-
 // Key in storage containing an array of dates. Each date correspond to
 // a general event of interest for Default Browser Promo modals.
 NSString* const kLastSignificantUserEventGeneral = @"lastSignificantUserEvent";
@@ -476,6 +472,7 @@ std::string GetVideoPromoVariant() {
 
 }  // namespace
 
+NSString* const kLastHTTPURLOpenTime = @"lastHTTPURLOpenTime";
 NSString* const kLastTimeUserInteractedWithNonModalPromo =
     @"lastTimeUserInteractedWithNonModalPromo";
 NSString* const kLastTimeUserInteractedWithFullscreenPromo =
@@ -704,6 +701,15 @@ void LogUserInteractionWithFirstRunPromo(BOOL openedSettings) {
   });
 }
 
+void CleanupStorageForTriggerExperiment() {
+  NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
+
+  [defaults removeObjectForKey:kAllTimestampsAppLaunchColdStart];
+  [defaults removeObjectForKey:kAllTimestampsAppLaunchWarmStart];
+  [defaults removeObjectForKey:kAllTimestampsAppLaunchIndirectStart];
+  [defaults removeObjectForKey:kAutofillUseCount];
+}
+
 void LogCopyPasteInOmniboxForDefaultBrowserPromo() {
   LogLikelyInterestedDefaultBrowserUserActivity(DefaultPromoTypeGeneral);
   StoreCurrentTimestampForKey(kOmniboxUseCount);
@@ -714,7 +720,11 @@ void LogBookmarkUseForDefaultBrowserPromo() {
   StoreCurrentTimestampForKey(kBookmarkUseCount);
 }
 
-void LogAutofillUseForDefaultBrowserPromo() {
+void LogAutofillUseForCriteriaExperiment() {
+  if (!IsDefaultBrowserTriggerCriteraExperimentEnabled()) {
+    CleanupStorageForTriggerExperiment();
+    return;
+  }
   StoreCurrentTimestampForKey(kAutofillUseCount);
 }
 
@@ -1019,14 +1029,6 @@ const std::string IOSDefaultBrowserPromoActionToString(
     default:
       NOTREACHED_NORETURN();
   }
-}
-
-void CleanupStorageForTriggerExperiment() {
-  NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
-
-  [defaults removeObjectForKey:kAllTimestampsAppLaunchColdStart];
-  [defaults removeObjectForKey:kAllTimestampsAppLaunchWarmStart];
-  [defaults removeObjectForKey:kAllTimestampsAppLaunchIndirectStart];
 }
 
 void RecordPromoStatsToUMAForActionString(PromoStatistics* promo_stats,

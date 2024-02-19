@@ -19,11 +19,6 @@ const base::FeatureParam<std::string> kPrivacySandboxAdsNoticeCCTAppId{
     &kPrivacySandboxAdsNoticeCCT, kPrivacySandboxAdsNoticeCCTAppIdName, ""};
 #endif  // BUILDFLAG(IS_ANDROID)
 
-// Show the Tracking Protection onboarding flow if not already onboarded.
-BASE_FEATURE(kPrivacySandboxSuppressDialogOnNonNormalBrowsers,
-             "PrivacySandboxSuppressDialogOnNonNormalBrowsers",
-             base::FEATURE_ENABLED_BY_DEFAULT);
-
 BASE_FEATURE(kPrivacySandboxSettings4,
              "PrivacySandboxSettings4",
              base::FEATURE_ENABLED_BY_DEFAULT);
@@ -156,6 +151,10 @@ BASE_FEATURE(kPrivacySandboxInternalsDevUI,
 
 BASE_FEATURE(kIpProtectionV1,
              "IpProtectionV1",
+             base::FEATURE_DISABLED_BY_DEFAULT);
+
+BASE_FEATURE(kIpProtectionUx,
+             "IpProtectionUx",
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 BASE_FEATURE(kCookieSettingsUiAlignment,

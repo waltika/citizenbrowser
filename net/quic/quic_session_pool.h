@@ -151,7 +151,7 @@ class NET_EXPORT_PRIVATE QuicSessionRequest {
       url::SchemeHostPort destination,
       quic::ParsedQuicVersion quic_version,
       const ProxyChain& proxy_chain,
-      const absl::optional<NetworkTrafficAnnotationTag> proxy_annotation_tag,
+      const std::optional<NetworkTrafficAnnotationTag> proxy_annotation_tag,
       SessionUsage session_usage,
       PrivacyMode privacy_mode,
       RequestPriority priority,
@@ -298,8 +298,6 @@ class NET_EXPORT_PRIVATE QuicSessionPool
     }
     const QuicSessionKey& session_key() const { return session_key_; }
 
-    // Returns the estimate of dynamically allocated memory in bytes.
-
    private:
     url::SchemeHostPort destination_;
     QuicSessionKey session_key_;
@@ -343,7 +341,7 @@ class NET_EXPORT_PRIVATE QuicSessionPool
       const QuicSessionKey& session_key,
       url::SchemeHostPort destination,
       quic::ParsedQuicVersion quic_version,
-      const absl::optional<NetworkTrafficAnnotationTag> proxy_annotation_tag,
+      const std::optional<NetworkTrafficAnnotationTag> proxy_annotation_tag,
       RequestPriority priority,
       bool use_dns_aliases,
       int cert_verify_flags,

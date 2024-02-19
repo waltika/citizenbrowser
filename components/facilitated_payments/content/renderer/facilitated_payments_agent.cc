@@ -30,21 +30,35 @@ FacilitatedPaymentsAgent::FacilitatedPaymentsAgent(
 FacilitatedPaymentsAgent::~FacilitatedPaymentsAgent() = default;
 
 void FacilitatedPaymentsAgent::TriggerPixCodeDetection(
-    base::OnceCallback<void(bool)> callback) {
+    base::OnceCallback<void(mojom::PixCodeDetectionResult)> callback) {
   if (will_destruct_ || !render_frame() || !render_frame()->IsMainFrame() ||
       !render_frame()->GetWebFrame()) {
-    std::move(callback).Run(/*found_pix_code=*/false);
+    std::move(callback).Run(
+        mojom::PixCodeDetectionResult::kPixCodeDetectionNotRun);
     return;
   }
 
+  mojom::PixCodeDetectionResult result =
+      mojom::PixCodeDetectionResult::kPixCodeNotFound;
   constexpr char kPixCodeIdentifier[] = "0014br.gov.bcb.pix";
-  blink::WebString result =
-      render_frame()->GetWebFrame()->GetDocument().FindTextInElementWith(
-          blink::WebString(kPixCodeIdentifier));
-  std::string trimmed = base::UTF16ToUTF8(
-      base::TrimWhitespace(result.Utf16(), base::TrimPositions::TRIM_ALL));
+  // Discard the PIX code string.
+  render_frame()->GetWebFrame()->GetDocument().FindTextInElementWith(
+      blink::WebString(kPixCodeIdentifier),
+      [&](const blink::WebString& potential_code) {
+        std::string trimmed_result = base::UTF16ToUTF8(base::TrimWhitespace(
+            potential_code.Utf16(), base::TrimPositions::TRIM_ALL));
+        if (trimmed_result.empty()) {
+          return false;
+        }
 
-  std::move(callback).Run(/*found_pix_code=*/IsValidPixCode(trimmed));
+        result = IsValidPixCode(trimmed_result)
+                     ? mojom::PixCodeDetectionResult::kValidPixCodeFound
+                     : mojom::PixCodeDetectionResult::kInvalidPixCodeFound;
+
+        return result == mojom::PixCodeDetectionResult::kValidPixCodeFound;
+      });
+
+  std::move(callback).Run(result);
 }
 
 void FacilitatedPaymentsAgent::OnDestruct() {

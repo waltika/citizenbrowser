@@ -345,6 +345,12 @@ export class FileManager {
 
   private store_ = getStore();
 
+  /**
+   * Whether local user files (e.g. My Files, Downloads, Play files...) are
+   * enabled or not, retrieved from user preferences.
+   */
+  localUserFilesAllowed: boolean = true;
+
   constructor() {
     (function() {
       ColorChangeUpdater.forDocument().start();
@@ -1626,6 +1632,12 @@ export class FileManager {
       this.toolbarController_.moveToTrashCommand.canExecuteChange(
           this.ui.listContainer.currentList);
       redraw = true;
+    }
+
+    if (this.localUserFilesAllowed !== prefs.localUserFilesAllowed) {
+      this.localUserFilesAllowed = prefs.localUserFilesAllowed;
+      // TODO(b/322779971): Trigger all changes necessary: remove placeholders,
+      // remove commands that aren't valid, etc.
     }
 
     await this.updateOfficePrefs_(prefs);

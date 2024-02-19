@@ -255,63 +255,6 @@ std::unique_ptr<VideoDecoderMixin> V4L2StatefulVideoDecoder::Create(
       std::move(media_log), std::move(task_runner), std::move(client)));
 }
 
-// static
-std::optional<SupportedVideoDecoderConfigs>
-V4L2StatefulVideoDecoder::GetSupportedConfigs() {
-  SupportedVideoDecoderConfigs supported_media_configs;
-
-  constexpr char kVideoDeviceDriverPath[] = "/dev/video-dec0";
-  base::ScopedFD device_fd(HANDLE_EINTR(
-      open(kVideoDeviceDriverPath, O_RDWR | O_NONBLOCK | O_CLOEXEC)));
-  if (!device_fd.is_valid()) {
-    return std::nullopt;
-  }
-
-  std::vector<uint32_t> v4l2_codecs = EnumerateSupportedPixFmts(
-      base::BindRepeating(&HandledIoctl, device_fd.get()),
-      V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
-
-  // V4L2 stateful formats (don't end up with _SLICE or _FRAME) supported.
-  constexpr std::array<uint32_t, 4> kSupportedInputCodecs = {
-    V4L2_PIX_FMT_H264,
-#if BUILDFLAG(ENABLE_HEVC_PARSER_AND_HW_DECODER)
-    V4L2_PIX_FMT_HEVC,
-#endif  // BUILDFLAG(ENABLE_HEVC_PARSER_AND_HW_DECODER)
-    V4L2_PIX_FMT_VP8,
-    V4L2_PIX_FMT_VP9,
-  };
-  std::erase_if(v4l2_codecs, [kSupportedInputCodecs](uint32_t v4l2_codec) {
-    return !base::Contains(kSupportedInputCodecs, v4l2_codec);
-  });
-
-  for (const uint32_t v4l2_codec : v4l2_codecs) {
-    const std::vector<VideoCodecProfile> media_codec_profiles =
-        EnumerateSupportedProfilesForV4L2Codec(
-            base::BindRepeating(&HandledIoctl, device_fd.get()), v4l2_codec);
-
-    gfx::Size min_coded_size;
-    gfx::Size max_coded_size;
-    GetSupportedResolution(base::BindRepeating(&HandledIoctl, device_fd.get()),
-                           v4l2_codec, &min_coded_size, &max_coded_size);
-
-    for (const auto& profile : media_codec_profiles) {
-      supported_media_configs.emplace_back(SupportedVideoDecoderConfig(
-          profile, profile, min_coded_size, max_coded_size,
-          /*allow_encrypted=*/false, /*require_encrypted=*/false));
-    }
-  }
-
-#if DCHECK_IS_ON()
-  for (const auto& config : supported_media_configs) {
-    DVLOGF(3) << "Enumerated " << GetProfileName(config.profile_min) << " ("
-              << config.coded_size_min.ToString() << "-"
-              << config.coded_size_max.ToString() << ")";
-  }
-#endif
-
-  return supported_media_configs;
-}
-
 void V4L2StatefulVideoDecoder::Initialize(const VideoDecoderConfig& config,
                                           bool /*low_delay*/,
                                           CdmContext* cdm_context,
@@ -329,7 +272,7 @@ void V4L2StatefulVideoDecoder::Initialize(const VideoDecoderConfig& config,
 
   // Make sure that the |config| requested is supported by the driver,
   // which must provide such information.
-  const auto supported_configs = GetSupportedConfigs();
+  const auto supported_configs = GetSupportedV4L2DecoderConfigs();
   if (!IsVideoDecoderConfigSupported(supported_configs.has_value()
                                          ? supported_configs.value()
                                          : SupportedVideoDecoderConfigs{},
@@ -1232,7 +1175,7 @@ H264FrameReassembler::FindH264FrameBoundary(const uint8_t* const data,
                                             size_t data_size) {
   h264_parser_.SetStream(data, data_size);
   while (true) {
-    H264NALU nalu;
+    H264NALU nalu = {};
     H264Parser::Result result = h264_parser_.AdvanceToNextNALU(&nalu);
     if (result == H264Parser::kInvalidStream ||
         result == H264Parser::kUnsupportedStream) {
@@ -1240,8 +1183,11 @@ H264FrameReassembler::FindH264FrameBoundary(const uint8_t* const data,
       return std::nullopt;
     }
     if (result == H264Parser::kEOStream) {
-      NOTREACHED_NORETURN()
-          << "|data| did not contain a whole NALU while parsing";
+      // Not an error per se, but strange to run out of data without having
+      // found a new NALU boundary. Pretend it's a frame boundary and move on.
+      return FrameBoundaryInfo{.is_whole_frame = true,
+                               .is_start_of_new_frame = true,
+                               .nalu_size = nalu.size};
     }
     DCHECK_EQ(result, H264Parser::kOk);
 

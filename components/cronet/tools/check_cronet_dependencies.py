@@ -24,8 +24,7 @@ _GN_PATH = os.path.join(REPOSITORY_ROOT, 'buildtools/linux64/gn')
 
 def _get_current_gn_args() -> List[str]:
   """Returns the GN args in the current working directory"""
-  return subprocess.check_output(["cat",
-                                  "args.gn"]).decode('utf-8').split("\n")
+  return subprocess.check_output(["cat", "args.gn"]).decode('utf-8').split("\n")
 
 
 def normalize_third_party_dep(dependency: str) -> str:
@@ -86,6 +85,9 @@ def normalize_and_dedup_deps(deps: Set[str]) -> Set[str]:
   normalize it according to |normalize_third_party_dep|.
   (3) Add the final path after processing to the set.
 
+  AndroidX dependencies are a special case and they don't go
+  through any processing, they are added as is.
+
   Args:
     deps: A set of all the dependencies.
 
@@ -97,12 +99,24 @@ def normalize_and_dedup_deps(deps: Set[str]) -> Set[str]:
     if not dep:
       # Ignore empty lines.
       continue
-    dep = cronet_utils.get_path_from_gn_label(dep)
-    if _THIRD_PARTY_STR in dep:
-      cleaned_deps.add(normalize_third_party_dep(dep))
-    else:
-      cleaned_deps.add(dep)
 
+    if dep.startswith("//third_party/androidx:") and dep.endswith("_java"):
+      # We treat androidx dependency differently because
+      # Cronet MUST NOT depend on any androidx dependency except
+      # androidx_annotations which is compile-time only. This is
+      # needed because this is one of mainline restrictions.
+      # Java/Android targets in GN must end with _java, this is needed
+      # so we don't bloat the dependencies file with auto-generated targets.
+      # (eg: androidx_annotation_annotation_java__assetres)
+
+      # Don't do any cleaning, add the exact GN label to the dependencies.
+      cleaned_deps.add(dep)
+    else:
+      dep = cronet_utils.get_path_from_gn_label(dep)
+      if _THIRD_PARTY_STR in dep:
+        cleaned_deps.add(normalize_third_party_dep(dep))
+      else:
+        cleaned_deps.add(dep)
   return sorted(cleaned_deps)
 
 

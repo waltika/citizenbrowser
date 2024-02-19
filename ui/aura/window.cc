@@ -893,13 +893,19 @@ void Window::GetDebugInfo(const aura::Window* active_window,
   if (name.empty())
     name = "\"\"";
   const gfx::Vector2dF& subpixel_position_offset = layer()->GetSubpixelOffset();
+  bool can_occlude_others = aura::Env::GetInstance()
+                                ->GetWindowOcclusionTracker()
+                                ->VisibleWindowCanOccludeOtherWindows(this);
+  bool has_opaque_regions = !opaque_regions_for_occlusion().empty();
   *out << " " << name << "<" << GetId() << ">";
   *out << " (" << this << ")" << " type=" << GetType();
   *out << ((this == active_window) ? " [active]" : "")
        << ((this == focused_window) ? " [focused]" : "")
        << ((this == capture_window) ? " [capture]" : "")
        << (GetTransparent() ? " [transparent]" : "")
-       << (IsVisible() ? " [visible]" : "") << " "
+       << (IsVisible() ? " [visible]" : "")
+       << (has_opaque_regions ? " [opaque_regions]" : "")
+       << (can_occlude_others ? " [occlude others]" : "")
        << (GetOcclusionState() != aura::Window::OcclusionState::UNKNOWN
                ? base::UTF16ToUTF8(
                      aura::Window::OcclusionStateToString(GetOcclusionState()))
@@ -907,12 +913,31 @@ void Window::GetDebugInfo(const aura::Window* active_window,
                : "")
        << " " << bounds().ToString()
        << " scale=" + transform().To2dScale().ToString();
+
   if (!subpixel_position_offset.IsZero()) {
     *out << " subpixel offset=" + subpixel_position_offset.ToString();
   }
-
   *out << base::StringPrintf(" opacity=%.1f", layer()->opacity());
-  *out << (layer()->GetTargetVisibility() ? " layer-visible" : " layer-hidden");
+
+  switch (layer()->type()) {
+    case ui::LAYER_NOT_DRAWN:
+      *out << " layer(not_drawn ";
+      break;
+    case ui::LAYER_TEXTURED:
+      *out << " layer(textured ";
+      if (layer()->fills_bounds_opaquely()) {
+        *out << " opaque ";
+      }
+      break;
+    case ui::LAYER_SOLID_COLOR:
+      *out << " layer(solid ";
+      break;
+    case ui::LAYER_NINE_PATCH:
+      *out << " layer(nine_patch ";
+      break;
+  }
+
+  *out << (layer()->GetTargetVisibility() ? " visible)" : " hidden)");
 }
 
 #if DCHECK_IS_ON()
@@ -1414,7 +1439,8 @@ void Window::SetOpaqueRegionsForOcclusion(
   // Opaque regions for occlusion do not apply to opaque windows, so only
   // allow opaque regions for occlusion to be set for them if they are the
   // same as the window bounds size.
-  DCHECK(GetTransparent() || opaque_regions_for_occlusion.empty() ||
+  DCHECK(GetTransparent() || layer()->type() == ui::LAYER_NOT_DRAWN ||
+         opaque_regions_for_occlusion.empty() ||
          (opaque_regions_for_occlusion.size() == 1 &&
           opaque_regions_for_occlusion[0] == gfx::Rect(bounds().size())));
   if (opaque_regions_for_occlusion == opaque_regions_for_occlusion_)
@@ -1489,8 +1515,11 @@ void Window::OnLayerFillsBoundsOpaquelyChanged(
   WindowOcclusionTracker::ScopedPause pause_occlusion_tracking;
 
   // Non-transparent windows should not have opaque regions for occlusion set.
-  if (!GetTransparent())
+#if DCHECK_IS_ON()
+  if (!GetTransparent() && layer()->type() != ui::LAYER_NOT_DRAWN) {
     DCHECK(opaque_regions_for_occlusion_.empty());
+  }
+#endif
 
   for (WindowObserver& observer : observers_)
     observer.OnWindowTransparentChanged(this, reason);

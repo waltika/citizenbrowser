@@ -141,9 +141,6 @@
   'android_browsertests_no_fieldtrial': {
     'modifications': {
       'android-12-x64-rel': {
-        # TODO(crbug.com/1225851): Remove experiment and ci_only
-        # once the test suite is stable.
-        'experiment_percentage': 100,
         'args': [
           # https://crbug.com/1289764
           '--gtest_filter=-All/ChromeBrowsingDataLifetimeManagerScheduledRemovalTest.History/*',
@@ -1425,6 +1422,15 @@
           '--tast-shard-method=hash',
         ],
       },
+      'chromeos-betty-pi-arc-chrome-dchecks': {
+        'swarming': {
+          # DCHECK builder is slower than non-DCHECK one.
+          'shards': 20,
+        },
+        'args': [
+          '--tast-shard-method=hash',
+        ],
+      },
       'chromeos-eve-chrome': {
         'swarming': {
           # Increased timeout to 4 hours due to shard timeout.
@@ -2003,6 +2009,7 @@
       # If you change this, make similar changes in android-x86-code-coverage below
       'android-oreo-x86-rel': {
         'args': [
+          '--gtest-also-run-pre-tests',
           '--test-launcher-filter-file=../../testing/buildbot/filters/android.emulator_o.content_browsertests.filter',
         ],
         'swarming': {
@@ -2015,6 +2022,7 @@
       },
       'android-pie-arm64-rel': {
         'args': [
+          '--gtest-also-run-pre-tests',
           '--test-launcher-filter-file=../../testing/buildbot/filters/android.pie_arm64.content_browsertests_coverage.filter',
         ],
         # Only retry the individual failed tests instead of rerunning entire
@@ -3699,11 +3707,13 @@
     },
   },
   'ondevice_stability_tests Intel UHD 630': {
-    'remove_from': [
-      # TODO(b:324122374): Enable this suite on the win32 builder
-      # once GPU issue is resolved.
-      'optimization_guide-win32',
-    ]
+    'modifications': {
+      'optimization_guide-win32': {
+        'args': [
+          '--target-platform=win32',
+        ],
+      },
+    },
   },
   'ondevice_stability_tests NVIDIA GeForce GTX 1660': {
     'modifications': {

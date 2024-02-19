@@ -1563,10 +1563,6 @@ inline constexpr char kFilesAppTrashEnabled[] = "ash.filesapp.trash_enabled";
 inline constexpr char kLoginScreenWebUILazyLoading[] =
     "ash.login.LoginScreenWebUILazyLoading";
 
-// Boolean value for the FloatingWorkspaceEnabled policy
-inline constexpr char kFloatingWorkspaceEnabled[] =
-    "ash.floating_workspace_enabled";
-
 // Boolean value for the FloatingWorkspaceV2Enabled policy
 inline constexpr char kFloatingWorkspaceV2Enabled[] =
     "ash.floating_workspace_v2_enabled";
@@ -2007,6 +2003,11 @@ inline constexpr char kInsertKeyModifier[] = "ash.settings.insert_key_modifier";
 // Refer to `ash::full_restore::RestoreOption`.
 inline constexpr char kRestoreAppsAndPagesPrefName[] =
     "settings.restore_apps_and_pages";
+
+// A boolean pref of whether the Game Dashboard should show the welcome dialog
+// on app startup.
+inline constexpr char kGameDashboardShowWelcomeDialog[] =
+    "ash.game_dashboard.show_welcome_dialog";
 
 //-----------------------------------------------------------------------------
 // Language related Prefs

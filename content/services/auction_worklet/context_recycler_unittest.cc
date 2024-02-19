@@ -433,6 +433,9 @@ TEST_F(ContextRecyclerTest, ReportBindings) {
 
 // Exercise SetBidBindings, and make sure they reset properly.
 TEST_F(ContextRecyclerTest, SetBidBindings) {
+  base::test::ScopedFeatureList scoped_feature_list;
+  scoped_feature_list.InitAndEnableFeature(blink::features::kFledgeMultiBid);
+
   const char kScript[] = R"(
     function test(bid) {
       setBid(bid);
@@ -465,6 +468,7 @@ TEST_F(ContextRecyclerTest, SetBidBindings) {
         base::TimeTicks::Now(),
         /*has_top_level_seller_origin=*/false, params.get(),
         /*per_buyer_currency=*/std::nullopt,
+        /*multi_bid_limit=*/5,
         /*is_ad_excluded=*/ignore_arg_return_false,
         /*is_component_ad_excluded=*/ignore_arg_return_false);
 
@@ -502,6 +506,7 @@ TEST_F(ContextRecyclerTest, SetBidBindings) {
         base::TimeTicks::Now(),
         /*has_top_level_seller_origin=*/false, params.get(),
         /*per_buyer_currency=*/std::nullopt,
+        /*multi_bid_limit=*/5,
         /*is_ad_excluded=*/ignore_arg_return_false,
         /*is_component_ad_excluded=*/ignore_arg_return_false);
 
@@ -543,6 +548,7 @@ TEST_F(ContextRecyclerTest, SetBidBindings) {
         base::TimeTicks::Now(),
         /*has_top_level_seller_origin=*/true, params.get(),
         /*per_buyer_currency=*/std::nullopt,
+        /*multi_bid_limit=*/5,
         /*is_ad_excluded=*/ignore_arg_return_false,
         /*is_component_ad_excluded=*/ignore_arg_return_false);
 
@@ -584,6 +590,7 @@ TEST_F(ContextRecyclerTest, SetBidBindings) {
         base::TimeTicks::Now(),
         /*has_top_level_seller_origin=*/true, params.get(),
         /*per_buyer_currency=*/std::nullopt,
+        /*multi_bid_limit=*/5,
         /*is_ad_excluded=*/ignore_arg_return_false,
         /*is_component_ad_excluded=*/ignore_arg_return_false);
 
@@ -639,6 +646,7 @@ TEST_F(ContextRecyclerTest, SetBidBindings) {
         base::TimeTicks::Now(),
         /*has_top_level_seller_origin=*/false, params.get(),
         /*per_buyer_currency=*/std::nullopt,
+        /*multi_bid_limit=*/5,
         /*is_ad_excluded=*/ignore_arg_return_false,
         /*is_component_ad_excluded=*/ignore_arg_return_false);
 
@@ -681,6 +689,7 @@ TEST_F(ContextRecyclerTest, SetBidBindings) {
         base::TimeTicks::Now(),
         /*has_top_level_seller_origin=*/false, params.get(),
         /*per_buyer_currency=*/std::nullopt,
+        /*multi_bid_limit=*/5,
         /*is_ad_excluded=*/matches_ad1,
         /*is_component_ad_excluded=*/matches_ad1);
 
@@ -714,6 +723,7 @@ TEST_F(ContextRecyclerTest, SetBidBindings) {
         base::TimeTicks::Now(),
         /*has_top_level_seller_origin=*/false, params.get(),
         /*per_buyer_currency=*/std::nullopt,
+        /*multi_bid_limit=*/5,
         /*is_ad_excluded=*/matches_ad1,
         /*is_component_ad_excluded=*/matches_ad1);
 
@@ -749,6 +759,7 @@ TEST_F(ContextRecyclerTest, SetBidBindings) {
         base::TimeTicks::Now(),
         /*has_top_level_seller_origin=*/false, params.get(),
         blink::AdCurrency::From("USD"),
+        /*multi_bid_limit=*/5,
         /*is_ad_excluded=*/matches_ad1,
         /*is_component_ad_excluded=*/matches_ad1);
 
@@ -786,6 +797,7 @@ TEST_F(ContextRecyclerTest, SetBidBindings) {
         base::TimeTicks::Now(),
         /*has_top_level_seller_origin=*/false, params.get(),
         blink::AdCurrency::From("CAD"),
+        /*multi_bid_limit=*/5,
         /*is_ad_excluded=*/matches_ad1,
         /*is_component_ad_excluded=*/matches_ad1);
 
@@ -821,6 +833,7 @@ TEST_F(ContextRecyclerTest, SetBidBindings) {
         base::TimeTicks::Now(),
         /*has_top_level_seller_origin=*/false, params.get(),
         blink::AdCurrency::From("CAD"),
+        /*multi_bid_limit=*/5,
         /*is_ad_excluded=*/matches_ad1,
         /*is_component_ad_excluded=*/matches_ad1);
 
@@ -843,6 +856,194 @@ TEST_F(ContextRecyclerTest, SetBidBindings) {
     EXPECT_EQ("CAD", bid->bid_currency->currency_code());
     EXPECT_EQ(mojom::RejectReason::kNotAvailable,
               context_recycler.set_bid_bindings()->reject_reason());
+  }
+
+  {
+    // Successful multiple bids.
+    v8::Isolate* isolate = helper_->isolate();
+    mojom::BidderWorkletNonSharedParamsPtr params =
+        mojom::BidderWorkletNonSharedParams::New();
+    ContextRecyclerScope scope(context_recycler);
+    params->ads.emplace();
+    params->ads.value().emplace_back(GURL("https://example1.test/ad1"),
+                                     std::nullopt);
+    params->ads.value().emplace_back(GURL("https://example2.test/ad2"),
+                                     std::nullopt);
+
+    context_recycler.set_bid_bindings()->ReInitialize(
+        base::TimeTicks::Now(),
+        /*has_top_level_seller_origin=*/false, params.get(),
+        /*per_buyer_currency=*/std::nullopt,
+        /*multi_bid_limit=*/5,
+        /*is_ad_excluded=*/ignore_arg_return_false,
+        /*is_component_ad_excluded=*/ignore_arg_return_false);
+
+    v8::LocalVector<v8::Value> bids(isolate);
+
+    gin::Dictionary bid0 = gin::Dictionary::CreateEmpty(isolate);
+    bid0.Set("render", std::string("https://example1.test/ad1"));
+    bid0.Set("bid", 10.0);
+    bids.push_back(gin::ConvertToV8(isolate, bid0));
+
+    gin::Dictionary bid1 = gin::Dictionary::CreateEmpty(isolate);
+    bid1.Set("render", std::string("https://example2.test/ad2"));
+    bid1.Set("bid", 9.5);
+    bids.push_back(gin::ConvertToV8(isolate, bid1));
+
+    std::vector<std::string> error_msgs;
+    Run(scope, script, "test", error_msgs, gin::ConvertToV8(isolate, bids));
+    EXPECT_THAT(error_msgs, ElementsAre());
+    auto mojo_bids = context_recycler.set_bid_bindings()->TakeBids();
+    ASSERT_EQ(2u, mojo_bids.size());
+    EXPECT_EQ("https://example1.test/ad1", mojo_bids[0]->ad_descriptor.url);
+    EXPECT_EQ(10.0, mojo_bids[0]->bid);
+    EXPECT_EQ("https://example2.test/ad2", mojo_bids[1]->ad_descriptor.url);
+    EXPECT_EQ(9.5, mojo_bids[1]->bid);
+  }
+
+  {
+    // More bids than permitted by config.
+    v8::Isolate* isolate = helper_->isolate();
+    mojom::BidderWorkletNonSharedParamsPtr params =
+        mojom::BidderWorkletNonSharedParams::New();
+    ContextRecyclerScope scope(context_recycler);
+    params->ads.emplace();
+    params->ads.value().emplace_back(GURL("https://example1.test/ad1"),
+                                     std::nullopt);
+    params->ads.value().emplace_back(GURL("https://example2.test/ad2"),
+                                     std::nullopt);
+    params->ads.value().emplace_back(GURL("https://example3.test/ad3"),
+                                     std::nullopt);
+
+    context_recycler.set_bid_bindings()->ReInitialize(
+        base::TimeTicks::Now(),
+        /*has_top_level_seller_origin=*/false, params.get(),
+        /*per_buyer_currency=*/std::nullopt,
+        /*multi_bid_limit=*/2,
+        /*is_ad_excluded=*/ignore_arg_return_false,
+        /*is_component_ad_excluded=*/ignore_arg_return_false);
+
+    v8::LocalVector<v8::Value> bids(isolate);
+
+    gin::Dictionary bid0 = gin::Dictionary::CreateEmpty(isolate);
+    bid0.Set("render", std::string("https://example1.test/ad1"));
+    bid0.Set("bid", 10.0);
+    bids.push_back(gin::ConvertToV8(isolate, bid0));
+
+    gin::Dictionary bid1 = gin::Dictionary::CreateEmpty(isolate);
+    bid1.Set("render", std::string("https://example2.test/ad2"));
+    bid1.Set("bid", 9.5);
+    bids.push_back(gin::ConvertToV8(isolate, bid1));
+
+    gin::Dictionary bid2 = gin::Dictionary::CreateEmpty(isolate);
+    bid2.Set("render", std::string("https://example3.test/ad3"));
+    bid2.Set("bid", 9.0);
+    bids.push_back(gin::ConvertToV8(isolate, bid2));
+
+    std::vector<std::string> error_msgs;
+    Run(scope, script, "test", error_msgs, gin::ConvertToV8(isolate, bids));
+    EXPECT_THAT(error_msgs,
+                ElementsAre("https://example.test/script.js:3 Uncaught "
+                            "TypeError: more bids provided than permitted by "
+                            "auction configuration."));
+    auto mojo_bids = context_recycler.set_bid_bindings()->TakeBids();
+    EXPECT_EQ(0u, mojo_bids.size());
+  }
+
+  {
+    // A non-bid among multi-bids is ignored and other bids are kept.
+    v8::Isolate* isolate = helper_->isolate();
+    mojom::BidderWorkletNonSharedParamsPtr params =
+        mojom::BidderWorkletNonSharedParams::New();
+    ContextRecyclerScope scope(context_recycler);
+    params->ads.emplace();
+    params->ads.value().emplace_back(GURL("https://example1.test/ad1"),
+                                     std::nullopt);
+    params->ads.value().emplace_back(GURL("https://example2.test/ad2"),
+                                     std::nullopt);
+
+    context_recycler.set_bid_bindings()->ReInitialize(
+        base::TimeTicks::Now(),
+        /*has_top_level_seller_origin=*/false, params.get(),
+        /*per_buyer_currency=*/std::nullopt,
+        /*multi_bid_limit=*/5,
+        /*is_ad_excluded=*/ignore_arg_return_false,
+        /*is_component_ad_excluded=*/ignore_arg_return_false);
+
+    v8::LocalVector<v8::Value> bids(isolate);
+
+    gin::Dictionary bid0 = gin::Dictionary::CreateEmpty(isolate);
+    bid0.Set("render", std::string("https://example1.test/ad1"));
+    bid0.Set("bid", 10.0);
+    bids.push_back(gin::ConvertToV8(isolate, bid0));
+
+    gin::Dictionary bid1 = gin::Dictionary::CreateEmpty(isolate);
+    bid1.Set("render", std::string("https://example2.test/ad2"));
+    bid1.Set("bid", -10);
+    bids.push_back(gin::ConvertToV8(isolate, bid1));
+
+    gin::Dictionary bid2 = gin::Dictionary::CreateEmpty(isolate);
+    bid2.Set("render", std::string("https://example2.test/ad2"));
+    bid2.Set("bid", 9.5);
+    bids.push_back(gin::ConvertToV8(isolate, bid2));
+
+    std::vector<std::string> error_msgs;
+    Run(scope, script, "test", error_msgs, gin::ConvertToV8(isolate, bids));
+    EXPECT_THAT(error_msgs, ElementsAre());
+    auto mojo_bids = context_recycler.set_bid_bindings()->TakeBids();
+    ASSERT_EQ(2u, mojo_bids.size());
+    EXPECT_EQ("https://example1.test/ad1", mojo_bids[0]->ad_descriptor.url);
+    EXPECT_EQ(10.0, mojo_bids[0]->bid);
+    EXPECT_EQ("https://example2.test/ad2", mojo_bids[1]->ad_descriptor.url);
+    EXPECT_EQ(9.5, mojo_bids[1]->bid);
+  }
+
+  {
+    // An error; rejects all bids.
+    v8::Isolate* isolate = helper_->isolate();
+    mojom::BidderWorkletNonSharedParamsPtr params =
+        mojom::BidderWorkletNonSharedParams::New();
+    ContextRecyclerScope scope(context_recycler);
+    params->ads.emplace();
+    params->ads.value().emplace_back(GURL("https://example1.test/ad1"),
+                                     std::nullopt);
+    params->ads.value().emplace_back(GURL("https://example2.test/ad2"),
+                                     std::nullopt);
+
+    context_recycler.set_bid_bindings()->ReInitialize(
+        base::TimeTicks::Now(),
+        /*has_top_level_seller_origin=*/false, params.get(),
+        /*per_buyer_currency=*/std::nullopt,
+        /*multi_bid_limit=*/5,
+        /*is_ad_excluded=*/ignore_arg_return_false,
+        /*is_component_ad_excluded=*/ignore_arg_return_false);
+
+    v8::LocalVector<v8::Value> bids(isolate);
+
+    gin::Dictionary bid0 = gin::Dictionary::CreateEmpty(isolate);
+    bid0.Set("render", std::string("https://example1.test/ad1"));
+    bid0.Set("bid", 10.0);
+    bids.push_back(gin::ConvertToV8(isolate, bid0));
+
+    gin::Dictionary bid1 = gin::Dictionary::CreateEmpty(isolate);
+    bid1.Set("render", std::string("https://example3.test/ad3"));
+    bid1.Set("bid", 9);
+    bids.push_back(gin::ConvertToV8(isolate, bid1));
+
+    gin::Dictionary bid2 = gin::Dictionary::CreateEmpty(isolate);
+    bid2.Set("render", std::string("https://example2.test/ad2"));
+    bid2.Set("bid", 9.5);
+    bids.push_back(gin::ConvertToV8(isolate, bid2));
+
+    std::vector<std::string> error_msgs;
+    Run(scope, script, "test", error_msgs, gin::ConvertToV8(isolate, bids));
+    EXPECT_THAT(error_msgs,
+                ElementsAre("https://example.test/script.js:3 Uncaught "
+                            "TypeError: generateBid() bids sequence entry: bid "
+                            "render URL 'https://example3.test/ad3' isn't one "
+                            "of the registered creative URLs."));
+    auto mojo_bids = context_recycler.set_bid_bindings()->TakeBids();
+    EXPECT_EQ(0u, mojo_bids.size());
   }
 }
 

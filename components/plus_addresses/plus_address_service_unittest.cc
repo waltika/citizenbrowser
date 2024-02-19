@@ -5,17 +5,25 @@
 #include "components/plus_addresses/plus_address_service.h"
 
 #include <optional>
+#include <string>
+#include <vector>
 
+#include "base/strings/utf_string_conversions.h"
+#include "base/test/metrics/histogram_tester.h"
 #include "base/test/mock_callback.h"
 #include "base/test/scoped_feature_list.h"
 #include "base/test/task_environment.h"
 #include "base/test/test_future.h"
 #include "base/time/time.h"
+#include "components/autofill/core/browser/ui/suggestion.h"
+#include "components/autofill/core/browser/ui/suggestion_test_helpers.h"
+#include "components/autofill/core/common/form_field_data.h"
 #include "components/plus_addresses/features.h"
-#include "components/plus_addresses/plus_address_client.h"
+#include "components/plus_addresses/plus_address_http_client.h"
 #include "components/plus_addresses/plus_address_prefs.h"
 #include "components/plus_addresses/plus_address_service.h"
 #include "components/plus_addresses/plus_address_test_utils.h"
+#include "components/plus_addresses/plus_address_types.h"
 #include "components/prefs/pref_service.h"
 #include "components/prefs/testing_pref_service.h"
 #include "components/signin/public/base/consent_level.h"
@@ -25,10 +33,134 @@
 #include "services/network/public/cpp/shared_url_loader_factory.h"
 #include "services/network/public/cpp/weak_wrapper_shared_url_loader_factory.h"
 #include "services/network/test/test_url_loader_factory.h"
+#include "testing/gmock/include/gmock/gmock.h"
 #include "testing/gtest/include/gtest/gtest.h"
 #include "url/gurl.h"
 
+namespace {
+
+using SuggestionEvent = autofill::AutofillPlusAddressDelegate::SuggestionEvent;
+using autofill::EqualsSuggestion;
+using autofill::PopupItemId;
+using autofill::Suggestion;
+using ::testing::ElementsAre;
+using ::testing::IsEmpty;
+
+auto IsSingleCreatePlusAddressSuggestion() {
+  return ElementsAre(EqualsSuggestion(PopupItemId::kCreateNewPlusAddress));
+}
+
+auto IsSingleFillPlusAddressSuggestion(std::string_view address) {
+  return ElementsAre(EqualsSuggestion(PopupItemId::kFillExistingPlusAddress,
+                                      /*main_text=*/base::UTF8ToUTF16(address),
+                                      Suggestion::Icon::kPlusAddress));
+}
+
+}  // namespace
+
 namespace plus_addresses {
+
+class MockPlusAddressService : public PlusAddressService {
+ public:
+  MOCK_METHOD(void, SyncPlusAddressMapping, ());
+  void HandlePollingErrorForTesting(PlusAddressRequestError error) {
+    return this->HandlePollingError(error);
+  }
+  int initial_poll_retry_attempt() { return initial_poll_retry_attempt_; }
+  std::optional<bool> account_is_forbidden() { return account_is_forbidden_; }
+};
+
+TEST(PlusAddressService, HandlePollingError_NoopWhenFlagDisabled) {
+  testing::StrictMock<MockPlusAddressService> service;
+  // Make an error that we would attempt to retry.
+  PlusAddressRequestError error(PlusAddressRequestErrorType::kNetworkError);
+  error.set_http_response_code(403);
+  EXPECT_CALL(service, SyncPlusAddressMapping()).Times(0);
+  service.HandlePollingErrorForTesting(error);
+  EXPECT_FALSE(service.account_is_forbidden().has_value());
+}
+
+TEST(PlusAddressService, HandlePollingError_NoopForNonNetworkError) {
+  base::test::ScopedFeatureList features;
+  features.InitAndEnableFeatureWithParameters(
+      plus_addresses::kFeature, {
+                                    {kDisableForForbiddenUsers.name, "true"},
+                                });
+  testing::StrictMock<MockPlusAddressService> service;
+  EXPECT_CALL(service, SyncPlusAddressMapping()).Times(0);
+  service.HandlePollingErrorForTesting(
+      PlusAddressRequestError(PlusAddressRequestErrorType::kOAuthError));
+  EXPECT_FALSE(service.account_is_forbidden().has_value());
+  service.HandlePollingErrorForTesting(
+      PlusAddressRequestError(PlusAddressRequestErrorType::kParsingError));
+  EXPECT_FALSE(service.account_is_forbidden().has_value());
+}
+
+TEST(PlusAddressService,
+     HandlePollingError_NoopWhenNetworkErrorMissingResponseCode) {
+  base::test::ScopedFeatureList features;
+  features.InitAndEnableFeatureWithParameters(
+      plus_addresses::kFeature, {
+                                    {kDisableForForbiddenUsers.name, "true"},
+                                });
+  testing::StrictMock<MockPlusAddressService> service;
+  PlusAddressRequestError error(PlusAddressRequestErrorType::kNetworkError);
+  EXPECT_CALL(service, SyncPlusAddressMapping()).Times(0);
+  service.HandlePollingErrorForTesting(error);
+  EXPECT_FALSE(service.account_is_forbidden().has_value());
+}
+
+TEST(PlusAddressService, HandlePollingError_NoopForNetworkErrorThatArent403) {
+  base::test::ScopedFeatureList features;
+  features.InitAndEnableFeatureWithParameters(
+      plus_addresses::kFeature, {
+                                    {kDisableForForbiddenUsers.name, "true"},
+                                });
+  testing::StrictMock<MockPlusAddressService> service;
+  PlusAddressRequestError error(PlusAddressRequestErrorType::kNetworkError);
+  error.set_http_response_code(404);
+  EXPECT_CALL(service, SyncPlusAddressMapping()).Times(0);
+  service.HandlePollingErrorForTesting(error);
+  EXPECT_FALSE(service.account_is_forbidden().has_value());
+}
+
+TEST(PlusAddressService, HandlePollingError_IncrementsRetryCounter) {
+  base::test::ScopedFeatureList features;
+  features.InitAndEnableFeatureWithParameters(
+      plus_addresses::kFeature, {
+                                    {kDisableForForbiddenUsers.name, "true"},
+                                });
+  testing::StrictMock<MockPlusAddressService> service;
+  // Make an error that we would attempt to retry.
+  PlusAddressRequestError error(PlusAddressRequestErrorType::kNetworkError);
+  error.set_http_response_code(403);
+  EXPECT_EQ(service.initial_poll_retry_attempt(), 0);
+  EXPECT_CALL(service, SyncPlusAddressMapping()).Times(1);
+  service.HandlePollingErrorForTesting(error);
+  EXPECT_FALSE(service.account_is_forbidden().has_value());
+  EXPECT_EQ(service.initial_poll_retry_attempt(), 1);
+}
+
+TEST(PlusAddressService, HandlePollingError_SetsAccountIsForbidden) {
+  base::test::ScopedFeatureList features;
+  features.InitAndEnableFeatureWithParameters(
+      plus_addresses::kFeature, {
+                                    {kDisableForForbiddenUsers.name, "true"},
+                                });
+  testing::StrictMock<MockPlusAddressService> service;
+  // Make an error that we would attempt to retry.
+  PlusAddressRequestError error(PlusAddressRequestErrorType::kNetworkError);
+  error.set_http_response_code(403);
+  // Initial error handling attempts to retry the request.
+  EXPECT_CALL(service, SyncPlusAddressMapping()).Times(1);
+  service.HandlePollingErrorForTesting(error);
+  EXPECT_FALSE(service.account_is_forbidden().has_value());
+  // If still failing with 403 after 1 retry, mark account as forbidden.
+  EXPECT_CALL(service, SyncPlusAddressMapping()).Times(0);
+  service.HandlePollingErrorForTesting(error);
+  EXPECT_TRUE(service.account_is_forbidden().has_value());
+  EXPECT_TRUE(service.account_is_forbidden().value());
+}
 
 class PlusAddressServiceTest : public ::testing::Test {
  protected:
@@ -203,8 +335,8 @@ TEST_F(PlusAddressServiceRequestsTest, ReservePlusAddress_ReturnsUnconfirmed) {
 
   PlusAddressService service(
       identity_test_env.identity_manager(), nullptr,
-      PlusAddressClient(identity_test_env.identity_manager(),
-                        test_shared_loader_factory));
+      PlusAddressHttpClient(identity_test_env.identity_manager(),
+                            test_shared_loader_factory));
 
   base::test::TestFuture<const PlusProfileOrError&> future;
   const url::Origin no_subdomain_origin =
@@ -236,8 +368,8 @@ TEST_F(PlusAddressServiceRequestsTest, ReservePlusAddress_ReturnsConfirmed) {
 
   PlusAddressService service(
       identity_test_env.identity_manager(), nullptr,
-      PlusAddressClient(identity_test_env.identity_manager(),
-                        test_shared_loader_factory));
+      PlusAddressHttpClient(identity_test_env.identity_manager(),
+                            test_shared_loader_factory));
 
   base::test::TestFuture<const PlusProfileOrError&> future;
   const url::Origin no_subdomain_origin =
@@ -269,8 +401,8 @@ TEST_F(PlusAddressServiceRequestsTest, ReservePlusAddress_Fails) {
 
   PlusAddressService service(
       identity_test_env.identity_manager(), nullptr,
-      PlusAddressClient(identity_test_env.identity_manager(),
-                        test_shared_loader_factory));
+      PlusAddressHttpClient(identity_test_env.identity_manager(),
+                            test_shared_loader_factory));
 
   const url::Origin no_subdomain_origin =
       url::Origin::Create(GURL("https://test.example"));
@@ -296,8 +428,8 @@ TEST_F(PlusAddressServiceRequestsTest, ConfirmPlusAddress_Successful) {
 
   PlusAddressService service(
       identity_test_env.identity_manager(), nullptr,
-      PlusAddressClient(identity_test_env.identity_manager(),
-                        test_shared_loader_factory));
+      PlusAddressHttpClient(identity_test_env.identity_manager(),
+                            test_shared_loader_factory));
 
   base::test::TestFuture<const PlusProfileOrError&> future;
   const url::Origin no_subdomain_origin =
@@ -337,8 +469,8 @@ TEST_F(PlusAddressServiceRequestsTest, ConfirmPlusAddress_Fails) {
 
   PlusAddressService service(
       identity_test_env.identity_manager(), nullptr,
-      PlusAddressClient(identity_test_env.identity_manager(),
-                        test_shared_loader_factory));
+      PlusAddressHttpClient(identity_test_env.identity_manager(),
+                            test_shared_loader_factory));
   std::string plus_address = "plus+remote@plus.plus";
   ASSERT_FALSE(service.IsPlusAddress(plus_address));
 
@@ -371,8 +503,8 @@ TEST_F(PlusAddressServiceRequestsTest,
 
   PlusAddressService service(
       identity_test_env.identity_manager(), nullptr,
-      PlusAddressClient(identity_test_env.identity_manager(),
-                        test_shared_loader_factory));
+      PlusAddressHttpClient(identity_test_env.identity_manager(),
+                            test_shared_loader_factory));
   const url::Origin test_origin =
       url::Origin::Create(GURL("https://test.example"));
   const std::string site = "test.example";
@@ -420,8 +552,8 @@ TEST_F(PlusAddressServiceRequestsTest,
 
   PlusAddressService service(
       identity_test_env.identity_manager(), nullptr,
-      PlusAddressClient(identity_test_env.identity_manager(),
-                        test_shared_loader_factory));
+      PlusAddressHttpClient(identity_test_env.identity_manager(),
+                            test_shared_loader_factory));
   const url::Origin test_origin =
       url::Origin::Create(GURL("https://test.example"));
   const std::string site = "test.example";
@@ -491,8 +623,8 @@ TEST_F(PlusAddressServicePolling, CallsGetAllPlusAddresses) {
                                          {signin::ConsentLevel::kSignin});
   identity_test_env.SetAutomaticIssueOfAccessTokens(true);
 
-  PlusAddressClient client(identity_test_env.identity_manager(),
-                           test_shared_loader_factory);
+  PlusAddressHttpClient client(identity_test_env.identity_manager(),
+                               test_shared_loader_factory);
   // The service starts the timer on construction and issues a request to
   // poll.
   PlusAddressService service(identity_test_env.identity_manager(), prefs(),
@@ -541,8 +673,8 @@ TEST_F(PlusAddressServicePolling,
                                          {signin::ConsentLevel::kSignin});
   identity_test_env.SetAutomaticIssueOfAccessTokens(true);
 
-  PlusAddressClient client(identity_test_env.identity_manager(),
-                           test_shared_loader_factory);
+  PlusAddressHttpClient client(identity_test_env.identity_manager(),
+                               test_shared_loader_factory);
   // The service starts the timer on construction and issues a request to
   // poll.
   PlusAddressService service(identity_test_env.identity_manager(), prefs(),
@@ -570,8 +702,8 @@ TEST_F(PlusAddressServicePolling,
                                          {signin::ConsentLevel::kSignin});
   identity_test_env.SetAutomaticIssueOfAccessTokens(true);
 
-  PlusAddressClient client(identity_test_env.identity_manager(),
-                           test_shared_loader_factory);
+  PlusAddressHttpClient client(identity_test_env.identity_manager(),
+                               test_shared_loader_factory);
   // The service starts the timer on construction and issues a request to
   // poll.
   PlusAddressService service(identity_test_env.identity_manager(), prefs(),
@@ -599,8 +731,8 @@ TEST_F(PlusAddressServicePolling,
                                          {signin::ConsentLevel::kSignin});
   identity_test_env.SetAutomaticIssueOfAccessTokens(true);
 
-  PlusAddressClient client(identity_test_env.identity_manager(),
-                           test_shared_loader_factory);
+  PlusAddressHttpClient client(identity_test_env.identity_manager(),
+                               test_shared_loader_factory);
   // The service starts the timer on construction and issues a request to
   // poll.
   PlusAddressService service(identity_test_env.identity_manager(), prefs(),
@@ -622,8 +754,8 @@ TEST_F(PlusAddressServicePolling, PrimaryAccountCleared_TogglesPollingOff) {
                                                 signin::ConsentLevel::kSignin);
   identity_test_env.SetAutomaticIssueOfAccessTokens(true);
 
-  PlusAddressClient client(identity_test_env.identity_manager(),
-                           test_shared_loader_factory);
+  PlusAddressHttpClient client(identity_test_env.identity_manager(),
+                               test_shared_loader_factory);
   PlusAddressService service(identity_test_env.identity_manager(), prefs(),
                              std::move(client));
   // Unblock initial poll.
@@ -660,8 +792,8 @@ TEST_F(PlusAddressServicePolling, PrimaryRefreshTokenError_TogglesPollingOff) {
           "plus1@plus.plus", signin::ConsentLevel::kSignin);
   identity_test_env.SetAutomaticIssueOfAccessTokens(true);
 
-  PlusAddressClient client(identity_test_env.identity_manager(),
-                           test_shared_loader_factory);
+  PlusAddressHttpClient client(identity_test_env.identity_manager(),
+                               test_shared_loader_factory);
   PlusAddressService service(identity_test_env.identity_manager(), prefs(),
                              std::move(client));
   // Unblock initial poll.
@@ -970,6 +1102,100 @@ TEST_F(PlusAddressServiceSignoutTest,
   EXPECT_FALSE(
       service.SupportsPlusAddresses(site, /*is_off_the_record=*/false));
   EXPECT_FALSE(service.IsPlusAddress("plus@plus.plus"));
+}
+
+// A test fixture with a `PlusAddressService` that is enabled to allow testing
+// suggestion generation.
+class PlusAddressSuggestionsTest : public PlusAddressServiceTest {
+ public:
+  PlusAddressSuggestionsTest() {
+    scoped_feature_list_.InitAndEnableFeatureWithParameters(
+        plus_addresses::kFeature, {{"server-url", "https://server.example"},
+                                   {"oauth-scope", "scope.example"}});
+    identity_test_env_.MakePrimaryAccountAvailable(
+        "plus@plus.plus", signin::ConsentLevel::kSignin);
+    identity_test_env_.SetAutomaticIssueOfAccessTokens(true);
+  }
+
+ protected:
+  PlusAddressService& service() { return service_; }
+
+  static constexpr std::string_view kPlusAddressSuggestionMetric =
+      "Autofill.PlusAddresses.Suggestion.Events";
+
+ private:
+  base::test::ScopedFeatureList scoped_feature_list_;
+  signin::IdentityTestEnvironment identity_test_env_;
+  PlusAddressService service_{identity_test_env_.identity_manager()};
+};
+
+// Tests that fill plus address suggestions are offered iff the value in the
+// focused field matches the prefix of an existing plus address.
+TEST_F(PlusAddressSuggestionsTest, SuggestionsForExistingPlusAddress) {
+  base::HistogramTester histogram_tester;
+  const auto origin = url::Origin::Create(GURL("https://foo.coom"));
+  const std::string plus_address = "plus+plus@plus.plus";
+  service().SavePlusAddress(origin, plus_address);
+
+  // We offer filling if the field is empty.
+  EXPECT_THAT(service().GetSuggestions(origin, /*is_off_the_record=*/false,
+                                       /*focused_field_value=*/u""),
+              IsSingleFillPlusAddressSuggestion(plus_address));
+  histogram_tester.ExpectUniqueSample(
+      kPlusAddressSuggestionMetric,
+      SuggestionEvent::kExistingPlusAddressSuggested, 1);
+
+  // If the user types a letter and it matches the plus address (after
+  // normalization), the plus address continues to be offered.
+  EXPECT_THAT(service().GetSuggestions(origin, /*is_off_the_record=*/false,
+                                       /*focused_field_value=*/u"P"),
+              IsSingleFillPlusAddressSuggestion(plus_address));
+  histogram_tester.ExpectUniqueSample(
+      kPlusAddressSuggestionMetric,
+      SuggestionEvent::kExistingPlusAddressSuggested, 2);
+
+  // If the value does not match the prefix of the plus address, nothing is
+  // shown.
+  EXPECT_THAT(service().GetSuggestions(origin, /*is_off_the_record=*/false,
+                                       /*focused_field_value=*/u"pp"),
+              IsEmpty());
+  histogram_tester.ExpectUniqueSample(
+      kPlusAddressSuggestionMetric,
+      SuggestionEvent::kExistingPlusAddressSuggested, 2);
+}
+
+// Tests that a create plus address suggestion is offered if there is no
+// existing plus address for the domain and the field value is empty.
+TEST_F(PlusAddressSuggestionsTest, SuggestionsForCreateNewPlusAddress) {
+  base::HistogramTester histogram_tester;
+  const auto origin = url::Origin::Create(GURL("https://foo.coom"));
+
+  // We offer creation if the field is empty.
+  EXPECT_THAT(service().GetSuggestions(origin, /*is_off_the_record=*/false,
+                                       /*focused_field_value=*/u""),
+              IsSingleCreatePlusAddressSuggestion());
+  histogram_tester.ExpectUniqueSample(
+      kPlusAddressSuggestionMetric,
+      SuggestionEvent::kCreateNewPlusAddressSuggested, 1);
+
+  // If the field value is not empty, nothing is shown.
+  EXPECT_THAT(service().GetSuggestions(origin, /*is_off_the_record=*/false,
+                                       /*focused_field_value=*/u"some text"),
+              IsEmpty());
+  histogram_tester.ExpectUniqueSample(
+      kPlusAddressSuggestionMetric,
+      SuggestionEvent::kCreateNewPlusAddressSuggested, 1);
+}
+
+// Tests that no suggestions are returned when plus address are disabled.
+TEST_F(PlusAddressSuggestionsTest, NoSuggestionsWhenDisabled) {
+  base::test::ScopedFeatureList feature_list;
+  feature_list.InitAndDisableFeature(plus_addresses::kFeature);
+
+  EXPECT_THAT(service().GetSuggestions(
+                  url::Origin::Create(GURL("https://foo.coom")),
+                  /*is_off_the_record=*/false, /*focused_field_value=*/u""),
+              IsEmpty());
 }
 
 }  // namespace plus_addresses

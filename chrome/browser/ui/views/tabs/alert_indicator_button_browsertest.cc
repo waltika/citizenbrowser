@@ -61,8 +61,9 @@ class AlertIndicatorButtonBrowserTest
                                         result);
   }
 
-  raw_ptr<content::WebContents> web_contents_ = nullptr;
-  raw_ptr<AlertIndicatorButton> alert_indicator_button_ = nullptr;
+  raw_ptr<content::WebContents, DanglingUntriaged> web_contents_ = nullptr;
+  raw_ptr<AlertIndicatorButton, DanglingUntriaged> alert_indicator_button_ =
+      nullptr;
 };
 
 // ToDo(b/323446918): this test fails for startScreenSharing on win10.

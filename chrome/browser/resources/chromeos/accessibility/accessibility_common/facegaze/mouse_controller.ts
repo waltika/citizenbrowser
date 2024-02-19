@@ -3,8 +3,8 @@
 // found in the LICENSE file.
 
 import {AsyncUtil} from '/common/async_util.js';
-import {EventGenerator} from '/common/event_generator.js';
 import {EventHandler} from '/common/event_handler.js';
+import {TestImportManager} from '/common/testing/test_import_manager.js';
 
 import {FaceLandmarkerResult} from '../third_party/mediapipe/task_vision/vision.js';
 
@@ -213,23 +213,8 @@ export class MouseController {
     }
   }
 
-  clickLeft(): void {
-    if (!this.mouseLocation_) {
-      return;
-    }
-    EventGenerator.sendMouseClick(this.mouseLocation_.x, this.mouseLocation_.y);
-  }
-
-  clickRight(): void {
-    if (!this.mouseLocation_) {
-      return;
-    }
-    EventGenerator.sendMouseClick(
-        this.mouseLocation_.x, this.mouseLocation_.y, {
-          mouseButton:
-              chrome.accessibilityPrivate.SyntheticMouseEventButton.RIGHT,
-          delayMs: 0,
-        });
+  mouseLocation(): ScreenPoint|undefined {
+    return this.mouseLocation_;
   }
 
   resetLocation(): void {
@@ -406,3 +391,5 @@ export namespace MouseController {
   export const DEFAULT_USE_MOUSE_ACCELERATION = true;
   export const DEFAULT_BUFFER_SIZE = 6;
 }
+
+TestImportManager.exportForTesting(MouseController);

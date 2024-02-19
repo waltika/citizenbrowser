@@ -74,7 +74,7 @@ PowerButtonMenuView::PowerButtonMenuView(
     layer()->SetBackgroundBlur(ColorProvider::kBackgroundBlurSigma);
     layer()->SetBackdropFilterQuality(ColorProvider::kBackgroundBlurQuality);
   }
-  GetViewAccessibility().OverrideRole(ax::mojom::Role::kMenu);
+  GetViewAccessibility().SetRole(ax::mojom::Role::kMenu);
   GetViewAccessibility().OverrideName(
       l10n_util::GetStringUTF16(IDS_ASH_POWER_BUTTON_MENU_ACCESSIBLE));
   RecreateItems();
@@ -248,10 +248,6 @@ void PowerButtonMenuView::RecreateItems() {
       kSystemPowerButtonMenuFeedbackIcon,
       l10n_util::GetStringUTF16(IDS_ASH_POWER_BUTTON_MENU_FEEDBACK_BUTTON),
       &feedback_item_);
-}
-
-const char* PowerButtonMenuView::GetClassName() const {
-  return "PowerButtonMenuView";
 }
 
 void PowerButtonMenuView::Layout(PassKey) {

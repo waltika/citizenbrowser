@@ -22,9 +22,14 @@ import org.chromium.base.supplier.ObservableSupplier;
 import org.chromium.chrome.browser.flags.ChromeFeatureList;
 import org.chromium.chrome.browser.magic_stack.ModuleRegistry.OnViewCreatedCallback;
 import org.chromium.chrome.browser.profiles.Profile;
+import org.chromium.chrome.browser.segmentation_platform.SegmentationPlatformServiceFactory;
 import org.chromium.components.browser_ui.styles.SemanticColorUtils;
 import org.chromium.components.browser_ui.widget.displaystyle.DisplayStyleObserver;
 import org.chromium.components.browser_ui.widget.displaystyle.UiConfig;
+import org.chromium.components.segmentation_platform.ClassificationResult;
+import org.chromium.components.segmentation_platform.PredictionOptions;
+import org.chromium.components.segmentation_platform.SegmentationPlatformService;
+import org.chromium.components.segmentation_platform.prediction_status.PredictionStatus;
 import org.chromium.ui.base.DeviceFormFactor;
 import org.chromium.ui.modelutil.MVCListAdapter.ModelList;
 import org.chromium.ui.modelutil.PropertyModel;
@@ -44,14 +49,16 @@ public class HomeModulesCoordinator implements ModuleDelegate, OnViewCreatedCall
     private final ModelList mModel;
     private final HomeModulesContextMenuManager mHomeModulesContextMenuManager;
     private final ObservableSupplier<Profile> mProfileSupplier;
+    private final ModuleRegistry mModuleRegistry;
 
     private CirclePagerIndicatorDecoration mPageIndicatorDecoration;
     private SnapHelper mSnapHelper;
     private boolean mIsSnapHelperAttached;
     private int mItemPerScreen;
-    private Set<Integer> mEnabledModuleList;
+    private Set<Integer> mEnabledModuleSet;
     private HomeModulesConfigManager mHomeModulesConfigManager;
     private HomeModulesConfigManager.HomeModulesStateListener mHomeModulesStateListener;
+    private SegmentationPlatformService mSegmentationPlatformService;
 
     /** It is non-null for tablets. */
     @Nullable private UiConfig mUiConfig;
@@ -68,23 +75,34 @@ public class HomeModulesCoordinator implements ModuleDelegate, OnViewCreatedCall
      * @param homeModulesConfigManager The manager class which handles the enabling states of
      *     modules.
      * @param profileSupplier The supplier of the profile in use.
+     * @param moduleRegistry The instance of {@link ModuleRegistry}.
      */
     public HomeModulesCoordinator(
             @NonNull Activity activity,
             @NonNull ModuleDelegateHost moduleDelegateHost,
             @NonNull ViewGroup parentView,
             @NonNull HomeModulesConfigManager homeModulesConfigManager,
-            @NonNull ObservableSupplier<Profile> profileSupplier) {
+            @NonNull ObservableSupplier<Profile> profileSupplier,
+            @NonNull ModuleRegistry moduleRegistry) {
         mModuleDelegateHost = moduleDelegateHost;
-        ModuleRegistry moduleRegistry = ModuleRegistry.getInstance();
+        mHomeModulesConfigManager = homeModulesConfigManager;
+        mHomeModulesStateListener = this::onModuleConfigChanged;
+        mHomeModulesConfigManager.addListener(mHomeModulesStateListener);
+        mModuleRegistry = moduleRegistry;
+
+        assert mModuleRegistry != null;
+
         mHomeModulesContextMenuManager =
                 new HomeModulesContextMenuManager(
-                        this, moduleDelegateHost.getContextMenuStartPoint(), moduleRegistry);
+                        this,
+                        moduleDelegateHost.getContextMenuStartPoint(),
+                        mHomeModulesConfigManager);
         mProfileSupplier = profileSupplier;
 
         mModel = new ModelList();
         mAdapter = new SimpleRecyclerViewAdapter(mModel);
-        moduleRegistry.registerAdapter(mAdapter, this::onViewCreated);
+
+        mModuleRegistry.registerAdapter(mAdapter, this::onViewCreated);
         mRecyclerView = parentView.findViewById(R.id.home_modules_recycler_view);
 
         mRecyclerView.setAdapter(mAdapter);
@@ -94,11 +112,6 @@ public class HomeModulesCoordinator implements ModuleDelegate, OnViewCreatedCall
 
         // Add pager indicator.
         setupRecyclerView(activity);
-
-        mHomeModulesConfigManager = homeModulesConfigManager;
-        mHomeModulesStateListener = this::onModuleConfigChanged;
-        mHomeModulesConfigManager.addListener(mHomeModulesStateListener);
-        mEnabledModuleList = mHomeModulesConfigManager.getEnabledModuleList();
 
         mMediator = new HomeModulesMediator(mModel, moduleRegistry);
     }
@@ -196,18 +209,18 @@ public class HomeModulesCoordinator implements ModuleDelegate, OnViewCreatedCall
 
     /** Shows the magic stack with profile ready. */
     private void showImpl(Callback<Boolean> onHomeModulesShownCallback) {
-        List<Integer> moduleList = getModuleList();
-        if (moduleList == null) {
-            onHomeModulesShownCallback.onResult(false);
+        // Initializing segmentation service since profile is available.
+        assert mProfileSupplier.hasValue();
+        mSegmentationPlatformService =
+                SegmentationPlatformServiceFactory.getForProfile(mProfileSupplier.get());
+        if (mSegmentationPlatformService == null
+                || !ChromeFeatureList.isEnabled(
+                        ChromeFeatureList.SEGMENTATION_PLATFORM_ANDROID_HOME_MODULE_RANKER)) {
+            onGotRankedModules(
+                    getFixedModuleList(), onHomeModulesShownCallback, /* durationMs= */ 0);
             return;
         }
-
-        mMediator.buildModulesAndShow(
-                moduleList,
-                this,
-                (isVisible) -> {
-                    onHomeModulesShownCallback.onResult(isVisible);
-                });
+        getSegmentationRanking(onHomeModulesShownCallback);
     }
 
     private void onProfileAvailable(
@@ -225,9 +238,15 @@ public class HomeModulesCoordinator implements ModuleDelegate, OnViewCreatedCall
     /** Reacts when the home modules' specific module type is disabled or enabled. */
     void onModuleConfigChanged(@ModuleType int moduleType, boolean isEnabled) {
         if (isEnabled) {
-            mEnabledModuleList.add(moduleType);
+            // If the mEnabledModuleSet hasn't been initialized yet, skip here.
+            if (mEnabledModuleSet != null) {
+                mEnabledModuleSet.add(moduleType);
+            }
         } else {
-            mEnabledModuleList.remove(moduleType);
+            // If the mEnabledModuleSet hasn't been initialized yet, skip here.
+            if (mEnabledModuleSet != null) {
+                mEnabledModuleSet.remove(moduleType);
+            }
             removeModule(moduleType);
         }
     }
@@ -339,32 +358,111 @@ public class HomeModulesCoordinator implements ModuleDelegate, OnViewCreatedCall
         return mIsSnapHelperAttached;
     }
 
+    /**
+     * This method returns the list of enabled modules based on surface (Start/NTP). The list
+     * returned is the intersection of modules that are enabled and available for the surface.
+     */
     @VisibleForTesting
-    List<Integer> getModuleList() {
-        // TODO(https://crbug.com/1512962): Gets the modules ranking list using segmentation service
-        // API.
-        List<Integer> generalModuleList;
-        if (HomeModulesMetricsUtils.HOME_MODULES_SHOW_ALL_MODULES.getValue()) {
-            generalModuleList =
-                    List.of(
-                            ModuleType.PRICE_CHANGE,
-                            ModuleType.SINGLE_TAB,
-                            ModuleType.TAB_RESUMPTION);
-        } else if (mModuleDelegateHost.isHomeSurface()) {
-            generalModuleList = List.of(ModuleType.PRICE_CHANGE, ModuleType.SINGLE_TAB);
-        } else if (ChromeFeatureList.sTabResumptionModuleAndroid.isEnabled()) {
-            generalModuleList = List.of(ModuleType.PRICE_CHANGE, ModuleType.TAB_RESUMPTION);
-        } else {
-            generalModuleList = List.of(ModuleType.PRICE_CHANGE);
+    List<Integer> getFixedModuleList() {
+        List<Integer> generalModuleList = new ArrayList<Integer>();
+        boolean addAll = HomeModulesMetricsUtils.HOME_MODULES_SHOW_ALL_MODULES.getValue();
+        boolean isHomeSurface = mModuleDelegateHost.isHomeSurface();
+        generalModuleList.add(ModuleType.PRICE_CHANGE);
+        if (addAll || isHomeSurface) {
+            generalModuleList.add(ModuleType.SINGLE_TAB);
+        }
+        // Make tab resumption module NTP-only.
+        if (addAll
+                || (!isHomeSurface && ChromeFeatureList.sTabResumptionModuleAndroid.isEnabled())) {
+            generalModuleList.add(ModuleType.TAB_RESUMPTION);
         }
 
+        ensureEnabledModuleSetCreated();
         List<Integer> moduleList = new ArrayList<>();
         for (int i = 0; i < generalModuleList.size(); i++) {
             @ModuleType int currentModuleType = generalModuleList.get(i);
-            if (mEnabledModuleList.contains(currentModuleType)) {
+            if (mEnabledModuleSet.contains(currentModuleType)) {
                 moduleList.add(currentModuleType);
             }
         }
         return moduleList;
+    }
+
+    private void onGotRankedModules(
+            List<Integer> moduleList,
+            Callback<Boolean> onHomeModulesShownCallback,
+            long durationMs) {
+        // Record only if ranking is fetched from segmentation service.
+        if (durationMs > 0) {
+            HomeModulesMetricsUtils.recordSegmentationFetchRankingDuration(
+                    getHostSurfaceType(), durationMs);
+        }
+        if (moduleList == null) {
+            onHomeModulesShownCallback.onResult(false);
+            return;
+        }
+
+        mMediator.buildModulesAndShow(
+                moduleList,
+                this,
+                (isVisible) -> {
+                    onHomeModulesShownCallback.onResult(isVisible);
+                });
+    }
+
+    private void getSegmentationRanking(Callback<Boolean> onHomeModulesShownCallback) {
+        PredictionOptions options = new PredictionOptions(false);
+        long segmentationServiceCallTimeMs = SystemClock.elapsedRealtime();
+        mSegmentationPlatformService.getClassificationResult(
+                "android_home_module_ranker",
+                options,
+                /* inputContext= */ null,
+                result -> {
+                    onGotRankedModules(
+                            onGetClassificationResult(result),
+                            onHomeModulesShownCallback,
+                            SystemClock.elapsedRealtime() - segmentationServiceCallTimeMs);
+                });
+    }
+
+    @VisibleForTesting
+    List<Integer> onGetClassificationResult(ClassificationResult result) {
+        List<Integer> moduleList;
+        // If segmentation service fails, fallback to return fixed module list.
+        if (result.status != PredictionStatus.SUCCEEDED || result.orderedLabels.isEmpty()) {
+            moduleList = getFixedModuleList();
+        } else {
+            moduleList = filterEnabledModuleList(result.orderedLabels);
+        }
+        return moduleList;
+    }
+
+    /**
+     * This method gets the list of enabled modules based on surface (Start/NTP) and returns the
+     * list of modules which are present in both the previous list and the module list from the
+     * model.
+     */
+    private List<Integer> filterEnabledModuleList(List<String> orderedModuleLabels) {
+        List<Integer> localEnabledModuleList = getFixedModuleList();
+        List<Integer> moduleList = new ArrayList<>();
+        for (String label : orderedModuleLabels) {
+            @ModuleType
+            int currentModuleType = HomeModulesMetricsUtils.convertLabelToModuleType(label);
+            if (localEnabledModuleList.contains(currentModuleType)) {
+                moduleList.add(currentModuleType);
+            }
+        }
+        return moduleList;
+    }
+
+    /**
+     * Initializes the mEnabledModuleSet if hasn't yet. The mEnabledModuleSet should only be created
+     * after Profile is ready.
+     */
+    @VisibleForTesting
+    void ensureEnabledModuleSetCreated() {
+        if (mEnabledModuleSet != null) return;
+
+        mEnabledModuleSet = mHomeModulesConfigManager.getEnabledModuleSet();
     }
 }

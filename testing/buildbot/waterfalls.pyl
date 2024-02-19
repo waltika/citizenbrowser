@@ -259,6 +259,20 @@
           'gtest_tests': 'linux_chromeos_browser_tests_require_lacros',
         },
       },
+      'linux-lacros-chrome': {
+        'mixins': [
+          'chrome-swarming-pool',
+          'linux-jammy',
+        ],
+        'swarming': {
+          'dimensions': {
+            'ssd': '0',
+          },
+        },
+        'test_suites': {
+          'gtest_tests': 'linux_lacros_chrome_gtests',
+        },
+      },
       'mac-chrome': {
         'additional_compile_targets': [
           'chrome',
@@ -636,6 +650,7 @@
       'android-cronet-arm64-dbg': {
         'additional_compile_targets': [
           'cronet_package',
+          'cronet_package_ci',
           'cronet_perf_test_apk',
           'cronet_sample_test_apk',
           'cronet_smoketests_missing_native_library_instrumentation_apk',
@@ -652,6 +667,7 @@
       'android-cronet-arm64-rel': {
         'additional_compile_targets': [
           'cronet_package',
+          'cronet_package_ci',
           'cronet_perf_test_apk',
           'cronet_sample_test_apk',
           'cronet_smoketests_missing_native_library_instrumentation_apk',
@@ -849,6 +865,7 @@
       'android-cronet-x64-rel': {
         'additional_compile_targets': [
           'cronet_package',
+          'cronet_package_ci',
           'cronet_perf_test_apk',
           'cronet_sample_test_apk',
           'cronet_smoketests_apk',
@@ -974,6 +991,7 @@
       'android-cronet-x86-rel': {
         'additional_compile_targets': [
           'cronet_package',
+          'cronet_package_ci',
           'cronet_perf_test_apk',
           'cronet_sample_test_apk',
           'cronet_smoketests_apk',
@@ -2689,6 +2707,23 @@
           'gpu_telemetry_tests': 'gpu_noop_sleep_telemetry_test',
         },
       },
+      'Dawn Win10 x64 Experimental Release (NVIDIA)': {
+        'os_type': 'win',
+        'browser_config': 'release_x64',
+        'mixins': [
+          'limited_capacity_bot',
+          'win10_nvidia_gtx_1660_experimental',
+        ],
+        # When the experimental driver is identical to the stable driver, this
+        # should be running the gpu_noop_sleep_telemetry_test. Otherwise, it
+        # should be running the same test_suites as
+        # 'Dawn Win10 x64 Release (NVIDIA)'
+        'test_suites': {
+          'gpu_telemetry_tests': 'gpu_dawn_telemetry_win_x64_tests',
+          'gtest_tests': 'gpu_dawn_integration_gtests_passthrough_win_x64',
+          'isolated_scripts': 'gpu_dawn_isolated_scripts',
+        },
+      },
       'Dawn Win10 x64 Release (Intel)': {
         'os_type': 'win',
         'browser_config': 'release_x64',
@@ -3282,7 +3317,7 @@
         },
       },
 
-      'chromeos-jacuzzi-rel-skylab-fyi': {
+      'chromeos-jacuzzi-rel-skylab': {
         'additional_compile_targets': [
           'chrome',
         ],
@@ -3291,7 +3326,7 @@
         },
         'os_type': 'chromeos',
       },
-      'chromeos-octopus-rel-skylab-fyi': {
+      'chromeos-octopus-rel-skylab': {
         'additional_compile_targets': [
           'chrome',
         ],
@@ -3530,6 +3565,21 @@
             'ssd': '0',
           },
         },
+        'test_suites': {
+          'gtest_tests': 'linux_lacros_gtests',
+        },
+      },
+      'linux-lacros-rel-dangling-ptr-fyi': {
+        'mixins': [
+          'isolate_profile_data',
+          'linux-jammy',
+          'x86-64',
+        ],
+        'additional_compile_targets': [
+          'chrome',
+          'chrome_sandbox',
+          'symupload'
+        ],
         'test_suites': {
           'gtest_tests': 'linux_lacros_gtests',
         },
@@ -4044,7 +4094,7 @@
         # should be running the same tests as 'Android FYI Release (Pixel 6)'.
         'test_suites': {
           'gtest_tests': 'gpu_fyi_android_gtests',
-          'gpu_telemetry_tests': 'gpu_pixel_4_and_6_telemetry_tests',
+          'gpu_telemetry_tests': 'gpu_pixel_6_telemetry_tests',
         },
       },
       'Android FYI Release (NVIDIA Shield TV)': {
@@ -4105,7 +4155,7 @@
         ],
         'test_suites': {
           'gtest_tests': 'gpu_fyi_android_gtests',
-          'gpu_telemetry_tests': 'gpu_pixel_4_and_6_telemetry_tests',
+          'gpu_telemetry_tests': 'gpu_pixel_4_telemetry_tests',
           'android_webview_gpu_telemetry_tests': 'android_webview_gpu_telemetry_tests',
         },
       },
@@ -4121,7 +4171,7 @@
         ],
         'test_suites': {
           'gtest_tests': 'gpu_fyi_android_gtests',
-          'gpu_telemetry_tests': 'gpu_pixel_4_and_6_telemetry_tests',
+          'gpu_telemetry_tests': 'gpu_pixel_6_telemetry_tests',
         },
       },
       'Android FYI Release (Samsung A13)': {
@@ -6837,7 +6887,7 @@
           'gpu-swarming-pool',
         ],
         'test_suites': {
-          'gpu_telemetry_tests': 'gpu_pixel_4_and_6_telemetry_tests',
+          'gpu_telemetry_tests': 'gpu_pixel_4_telemetry_tests',
           'android_webview_gpu_telemetry_tests': 'android_webview_gpu_telemetry_tests',
         },
       },

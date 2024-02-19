@@ -5,6 +5,7 @@
 package org.chromium.chrome.browser.magic_stack;
 
 import static org.chromium.chrome.browser.magic_stack.ModuleDelegate.ModuleType.PRICE_CHANGE;
+import static org.chromium.chrome.browser.magic_stack.ModuleDelegate.ModuleType.TAB_RESUMPTION;
 
 import android.content.Context;
 import android.os.Bundle;
@@ -13,7 +14,7 @@ import org.chromium.chrome.browser.magic_stack.ModuleDelegate.ModuleType;
 import org.chromium.chrome.browser.settings.ChromeBaseSettingsFragment;
 import org.chromium.components.browser_ui.settings.ChromeSwitchPreference;
 
-import java.util.Set;
+import java.util.List;
 
 /** Fragment that allows the user to configure chrome home modules related preferences. */
 public class HomeModulesConfigSettings extends ChromeBaseSettingsFragment {
@@ -24,16 +25,13 @@ public class HomeModulesConfigSettings extends ChromeBaseSettingsFragment {
         HomeModulesConfigManager homeModulesConfigManager =
                 HomeModulesConfigManager.getInstance();
 
-        ModuleRegistry moduleRegistry = ModuleRegistry.getInstance();
-        Set<Integer> moduleTypeRegistered = moduleRegistry.getRegisteredModuleTypes();
-        for (@ModuleType int moduleType : moduleTypeRegistered) {
-            if (!moduleRegistry.isModuleConfigurable(moduleType)
-                    || !moduleRegistry.isModuleEligibleToBuild(moduleType)) continue;
-
+        List<Integer> moduleTypeShownInSettings =
+                homeModulesConfigManager.getModuleListShownInSettings();
+        for (@ModuleType int moduleType : moduleTypeShownInSettings) {
             ChromeSwitchPreference currentSwitch =
                     new ChromeSwitchPreference(getStyledContext(), null);
-            currentSwitch.setKey(homeModulesConfigManager.getPreferenceKey(moduleType));
-            currentSwitch.setTitle(getTitleForModuleType(moduleType));
+            currentSwitch.setKey(homeModulesConfigManager.getSettingsPreferenceKey(moduleType));
+            currentSwitch.setTitle(getTitleResIdForModuleType(moduleType));
 
             // Set up listeners and update the page.
             boolean isModuleTypeEnabled =
@@ -53,11 +51,13 @@ public class HomeModulesConfigSettings extends ChromeBaseSettingsFragment {
         return getPreferenceManager().getContext();
     }
 
-    /** Returns the switch title of the module type. */
-    private Integer getTitleForModuleType(@ModuleType int moduleType) {
+    /** Returns the resources id of switch title for the module type. */
+    private Integer getTitleResIdForModuleType(@ModuleType int moduleType) {
         switch (moduleType) {
             case PRICE_CHANGE:
-                return R.string.price_change_module_context_menu_item;
+                return R.string.price_change_module_name;
+            case TAB_RESUMPTION:
+                return R.string.tab_resumption_module_other_devices_name;
             default:
                 assert false : "Module type not supported!";
                 return null;

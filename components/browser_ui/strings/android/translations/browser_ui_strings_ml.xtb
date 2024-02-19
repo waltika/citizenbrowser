@@ -21,7 +21,6 @@
 <translation id="1383876407941801731">Search</translation>
 <translation id="1384959399684842514">ഡൗൺലോഡ് താൽക്കാലികമായി നിർത്തി</translation>
 <translation id="1415402041810619267">URL ചുരുക്കി</translation>
-<translation id="1434873037477293673">വിലക്കുറവ് കാർഡ്</translation>
 <translation id="1448064542941920355">സൂം കുറയ്ക്കുക</translation>
 <translation id="146867109637325312">{COUNT,plural, =1{<ph name="SITE_COUNT" /> സൈറ്റ്}other{<ph name="SITE_COUNT" /> സൈറ്റുകൾ}}</translation>
 <translation id="1510341833810331442">നിങ്ങളുടെ ഉപകരണത്തിൽ ഡാറ്റ സംരക്ഷിക്കാൻ സൈറ്റുകൾക്ക് അനുവാദമില്ല</translation>
@@ -121,6 +120,7 @@
 <translation id="2979365474350987274">മൂന്നാം-കക്ഷി കുക്കികൾ നിയന്ത്രിച്ചിരിക്കുന്നു</translation>
 <translation id="3008272652534848354">അനുമതികൾ പുനഃസജ്ജീകരിക്കുക</translation>
 <translation id="301521992641321250">സ്വയമേവ ബ്ലോക്കുചെയ്‌തു</translation>
+<translation id="3025010840409371499"><ph name="RECENCY" /> <ph name="SEPARATOR" /> <ph name="HOST_NAME" /></translation>
 <translation id="3069226013421428034">നിർദ്ദിഷ്ട സൈറ്റിനായി മൂന്നാം കക്ഷി സൈൻ ഇൻ അനുവദിക്കുക.</translation>
 <translation id="3082992102194421695">{COUNT,plural, =1{നാളെ കാലഹരണപ്പെടും}other{# ദിവസത്തിനുള്ളിൽ കാലഹരണപ്പെടും}}</translation>
 <translation id="310297983047869047">മുമ്പത്തെ സ്ലൈഡ്</translation>
@@ -190,6 +190,7 @@
 <translation id="4169549551965910670">USB ഉപകരണത്തിലേക്ക് കണക്റ്റ് ചെയ്തു</translation>
 <translation id="4194328954146351878">NFC ഉപകരണങ്ങളിലെ വിവരങ്ങൾ കാണാനും അവയിൽ മാറ്റം വരുത്താനും സൈറ്റുകളെ അനുവദിക്കുന്നതിന് മുമ്പ് ചോദിക്കുക (നിർദ്ദേശിക്കുന്നത്)</translation>
 <translation id="4200726100658658164">ലൊക്കേഷൻ ക്രമീകരണം തുറക്കുക</translation>
+<translation id="4206661981211220935"><ph name="RECENCY" /> <ph name="SEPARATOR" /> <ph name="FROM_DEVICE" /> എന്നതിൽ നിന്ന്</translation>
 <translation id="4226663524361240545">അറിയിപ്പുകൾ ലഭിക്കുമ്പോൾ ഉപകരണം വൈബ്രേറ്റ് ചെയ്‌തേക്കാം</translation>
 <translation id="4259722352634471385">നാവിഗേഷൻ തടഞ്ഞിരിക്കുന്നു: <ph name="URL" /></translation>
 <translation id="4278390842282768270">അനുവദനീയം</translation>
@@ -210,6 +211,7 @@
 <translation id="4566417217121906555">മൈക്രോഫോൺ മ്യൂട്ട് ചെയ്യുക</translation>
 <translation id="4570913071927164677">വിശദാംശങ്ങൾ</translation>
 <translation id="4598549027014564149">അദൃശ്യ മോഡിലായിരിക്കുമ്പോൾ, പരസ്‌പരം ബന്ധപ്പെട്ട സൈറ്റുകളാണെങ്കിൽ പോലും മറ്റ് സൈറ്റുകളിലെ നിങ്ങളുടെ ബ്രൗസിംഗ് ആക്റ്റിവിറ്റി കാണാൻ സൈറ്റുകൾക്ക് നിങ്ങളുടെ കുക്കികൾ ഉപയോഗിക്കാനാകില്ല. പരസ്യങ്ങൾ വ്യക്തിപരമാക്കുന്നത് പോലെയുള്ള കാര്യങ്ങൾക്കായി നിങ്ങളുടെ ബ്രൗസിംഗ് ആക്‌റ്റിവിറ്റി ഉപയോഗിക്കുന്നില്ല. ചില സൈറ്റുകളിലെ ഫീച്ചറുകൾ പ്രവർത്തിച്ചേക്കില്ല.</translation>
+<translation id="4619615317237390068">മറ്റ് ഉപകരണങ്ങളിൽ നിന്നുള്ള ടാബുകൾ</translation>
 <translation id="4644713492825682049">ഇല്ലാതാക്കുക, റീസെറ്റ് ചെയ്യുക</translation>
 <translation id="4645575059429386691">നിങ്ങളുടെ രക്ഷിതാവ് നിയന്ത്രിക്കുന്നു</translation>
 <translation id="4670064810192446073">വെർച്വൽ റിയാലിറ്റി</translation>
@@ -364,7 +366,6 @@
 <translation id="7053983685419859001">തടയുക</translation>
 <translation id="7066151586745993502">{NUM_SELECTED,plural, =1{1 തിരഞ്ഞെടുത്തു}other{# തിരഞ്ഞെടുത്തു}}</translation>
 <translation id="7087918508125750058"><ph name="ITEM_COUNT" /> എണ്ണം തിരഞ്ഞെടുത്തു. സ്‌ക്രീനിന്റെ മുകളിലുള്ള ഭാഗത്തിന് സമീപം ഓപ്‌ഷനുകൾ ലഭ്യമാണ്</translation>
-<translation id="7137403271056944713">MIDI ഉപകരണനിയന്ത്രണം/റീപ്രോഗ്രാം</translation>
 <translation id="7141896414559753902">പോപ്പ് അപ്പുകളും റീഡയറക്‌റ്റുകളും കാണിക്കുന്നതിൽ നിന്ന് സൈറ്റുകളെ ബ്ലോക്ക് ചെയ്യുക (ശുപാർശ ചെയ്‌തിരിക്കുന്നു)</translation>
 <translation id="7176368934862295254"><ph name="KILOBYTES" /> KB</translation>
 <translation id="7180611975245234373">റീഫ്രഷ് ചെയ്യുക</translation>
@@ -400,8 +401,10 @@
 <translation id="7667547420449112975">ഓസ് നഗരത്തിലെ അതിശയിപ്പിക്കുന്ന മന്ത്രവാദി</translation>
 <translation id="7684642910516280563">മൂന്നാം-കക്ഷി കുക്കികൾ ഉപയോഗിക്കാൻ സൈറ്റിനെ അനുവദിക്കരുത്</translation>
 <translation id="7719367874908701697">പേജ് സൂം ചെയ്യുക</translation>
+<translation id="7759147511335618829">MIDI ഉപകരണ കൺട്രോൾ &amp; റീപ്രോഗ്രാം</translation>
 <translation id="7781829728241885113">ഇന്നലെ</translation>
 <translation id="7791543448312431591">ചേര്‍ക്കൂ</translation>
+<translation id="7801888679188438140">{TILE_COUNT,plural, =1{ഈ ടാബിൽ തുടരുക}other{ഈ ടാബുകളിൽ തുടരുക}}</translation>
 <translation id="780301667611848630">വേണ്ട നന്ദി</translation>
 <translation id="7804248752222191302">ഒരു സൈറ്റ് നിങ്ങളുടെ ക്യാമറ ഉപയോഗിക്കുന്നു</translation>
 <translation id="7807060072011926525">Google നൽകുന്നത്</translation>
