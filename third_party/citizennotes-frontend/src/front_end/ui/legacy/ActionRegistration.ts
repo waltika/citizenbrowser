@@ -35,6 +35,10 @@ const UIStrings = {
    */
   console: 'Console',
   /**
+   *@description Title of the keybind category 'Test' in Settings' Shortcuts pannel.
+   */
+  test: 'Test',
+  /**
    *@description Title of the keybind category 'Performance' in Settings' Shortcuts pannel.
    */
   performance: 'Performance',
@@ -326,6 +330,8 @@ export function getLocalizedActionCategory(category: ActionCategory): Platform.U
       return i18nString(UIStrings.javascript_profiler);
     case ActionCategory.CONSOLE:
       return i18nString(UIStrings.console);
+    case ActionCategory.TEST:
+      return i18nString(UIStrings.test);
     case ActionCategory.PERFORMANCE:
       return i18nString(UIStrings.performance);
     case ActionCategory.MOBILE:

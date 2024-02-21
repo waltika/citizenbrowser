@@ -8,6 +8,7 @@ import * as UI from '../../ui/legacy/legacy.js';
 import type * as Test from './test.js';
 
 import * as i18n from '../../core/i18n/i18n.js';
+
 const UIStrings = {
   /**
    *@description Title of the Test tool
@@ -28,75 +29,75 @@ const UIStrings = {
   /**
    *@description Title of an action in the test tool to create pin. A live expression is code that the user can enter into the test and it will be pinned in the UI. Live expressions are constantly evaluated as the user interacts with the test (hence 'live').
    */
-  createLiveExpression: 'Create live expression',
+  createTestLiveExpression: 'Create live expression',
   /**
    *@description Title of a setting under the Test category that can be invoked through the Command Menu
    */
-  hideNetworkMessages: 'Hide network messages',
+  hideTestNetworkMessages: 'Hide network messages',
   /**
    *@description Title of a setting under the Test category that can be invoked through the Command Menu
    */
-  showNetworkMessages: 'Show network messages',
+  showTestNetworkMessages: 'Show network messages',
   /**
    *@description Alternative title text of a setting in Test View of the Test panel
    */
-  selectedContextOnly: 'Selected context only',
+  selectedTestContextOnly: 'Selected context only',
   /**
    *@description Tooltip text that appears on the setting when hovering over it in Test View of the Test panel
    */
-  onlyShowMessagesFromTheCurrent: 'Only show messages from the current context (`top`, `iframe`, `worker`, extension)',
+  onlyShowTestMessagesFromTheCurrent: 'Only show messages from the current context (`top`, `iframe`, `worker`, extension)',
   /**
    *@description Title of a setting under the Test category that can be invoked through the Command Menu
    */
-  showMessagesFromAllContexts: 'Show messages from all contexts',
+  showTestMessagesFromAllContexts: 'Show messages from all contexts',
   /**
    *@description Title of a setting under the Test category in Settings
    */
-  logXmlhttprequests: 'Log XMLHttpRequests',
+  logTestXmlhttprequests: 'Log XMLHttpRequests',
   /**
    *@description Title of a setting under the Test category that can be invoked through the Command Menu
    */
-  showTimestamps: 'Show timestamps',
+  showTestTimestamps: 'Show timestamps',
   /**
    *@description Title of a setting under the Test category that can be invoked through the Command Menu
    */
-  hideTimestamps: 'Hide timestamps',
+  hideTestTimestamps: 'Hide timestamps',
   /**
    *@description Title of a setting under the Test category that can be invoked through the Command Menu
    */
-  autocompleteFromHistory: 'Autocomplete from history',
+  autocompleteTestFromHistory: 'Autocomplete from history',
   /**
    *@description Title of a setting under the Test category that can be invoked through the Command Menu
    */
-  doNotAutocompleteFromHistory: 'Do not autocomplete from history',
+  doNotAutocompleteTestFromHistory: 'Do not autocomplete from history',
   /**
    * @description Title of a setting under the Test category that controls whether to accept autocompletion with Enter.
    */
-  autocompleteOnEnter: 'Accept autocomplete suggestion on Enter',
+  autocompleteTestOnEnter: 'Accept autocomplete suggestion on Enter',
   /**
    * @description Title of a setting under the Test category that controls whether to accept autocompletion with Enter.
    */
-  doNotAutocompleteOnEnter: 'Do not accept autocomplete suggestion on Enter',
+  doNotAutocompleteTestOnEnter: 'Do not accept autocomplete suggestion on Enter',
   /**
    *@description Title of a setting under the Test category that can be invoked through the Command Menu
    */
-  groupSimilarMessagesInTest: 'Group similar messages in test',
+  groupSimilarTestMessagesIn: 'Group similar messages in test',
   /**
    *@description Title of a setting under the Test category that can be invoked through the Command Menu
    */
-  doNotGroupSimilarMessagesIn: 'Do not group similar messages in test',
+  doNotGroupTestSimilarMessagesIn: 'Do not group similar messages in test',
   /**
    *@description Title of a setting under the Test category that can be invoked through the Command Menu
    */
-  showCorsErrorsInTest: 'Show `CORS` errors in test',
+  showCorsTestErrorsIn: 'Show `CORS` errors in test',
   /**
    *@description Title of a setting under the Test category that can be invoked through the Command Menu
    */
-  doNotShowCorsErrorsIn: 'Do not show `CORS` errors in test',
+  doNotShowCorsTestErrorsIn: 'Do not show `CORS` errors in test',
   /**
    *@description Title of a setting under the Test category in Settings
    */
-  eagerEvaluation: 'Eager evaluation',
+  eagerTestEvaluation: 'Eager evaluation',
   /**
    *@description Title of a setting under the Test category that can be invoked through the Command Menu
    */
@@ -108,15 +109,15 @@ const UIStrings = {
   /**
    *@description Allows code that is executed in the test to do things that usually are only allowed if triggered by a user action
    */
-  evaluateTriggersUserActivation: 'Treat code evaluation as user action',
+  evaluateTestTriggersUserActivation: 'Treat code evaluation as user action',
   /**
    *@description Title of a setting under the Test category that can be invoked through the Command Menu
    */
-  treatEvaluationAsUserActivation: 'Treat evaluation as user activation',
+  treatTestEvaluationAsUserActivation: 'Treat evaluation as user activation',
   /**
    *@description Title of a setting under the Test category that can be invoked through the Command Menu
    */
-  doNotTreatEvaluationAsUser: 'Do not treat evaluation as user activation',
+  doNotTreatTestEvaluationAsUser: 'Do not treat evaluation as user activation',
   /**
    * @description Title of a setting under the Test category in Settings that controls whether `test.trace()` messages appear expanded by default.
    */
@@ -128,15 +129,14 @@ const UIStrings = {
 };
 const str_ = i18n.i18n.registerUIStrings('panels/test/test-meta.ts', UIStrings);
 const i18nLazyString = i18n.i18n.getLazilyComputedLocalizedString.bind(undefined, str_);
-let loadedTestModule: (typeof Test|undefined);
 
+let loadedTestModule: (typeof Test|undefined);
 async function loadTestModule(): Promise<typeof Test> {
   if (!loadedTestModule) {
     loadedTestModule = await import('./test.js');
   }
   return loadedTestModule;
 }
-
 function maybeRetrieveContextTypes<T = unknown>(getClassCallBack: (testModule: typeof Test) => T[]): T[] {
   if (loadedTestModule === undefined) {
     return [];
@@ -155,6 +155,8 @@ UI.ViewManager.registerViewExtension({
     return Test.TestPanel.TestPanel.instance();
   },
 });
+
+
 
 UI.ViewManager.registerViewExtension({
   location: UI.ViewManager.ViewLocationValues.DRAWER_VIEW,
@@ -187,6 +189,8 @@ UI.ActionRegistration.registerActionExtension({
     },
   ],
 });
+
+
 
 UI.ActionRegistration.registerActionExtension({
   actionId: 'test.clear',
@@ -224,7 +228,7 @@ UI.ActionRegistration.registerActionExtension({
 UI.ActionRegistration.registerActionExtension({
   actionId: 'test.create-pin',
   category: UI.ActionRegistration.ActionCategory.TEST,
-  title: i18nLazyString(UIStrings.createLiveExpression),
+  title: i18nLazyString(UIStrings.createTestLiveExpression),
   iconClass: UI.ActionRegistration.IconClass.EYE,
   async loadActionDelegate() {
     const Test = await loadTestModule();
@@ -235,18 +239,39 @@ UI.ActionRegistration.registerActionExtension({
 Common.Settings.registerSettingExtension({
   category: Common.Settings.SettingCategory.TEST,
   storageType: Common.Settings.SettingStorageType.Synced,
-  title: i18nLazyString(UIStrings.hideNetworkMessages),
-  settingName: 'hideNetworkMessages',
+  title: i18nLazyString(UIStrings.hideTestNetworkMessages),
+  settingName: 'hideTestNetworkMessages',
   settingType: Common.Settings.SettingType.BOOLEAN,
   defaultValue: false,
   options: [
     {
       value: true,
-      title: i18nLazyString(UIStrings.hideNetworkMessages),
+      title: i18nLazyString(UIStrings.hideTestNetworkMessages),
     },
     {
       value: false,
-      title: i18nLazyString(UIStrings.showNetworkMessages),
+      title: i18nLazyString(UIStrings.showTestNetworkMessages),
+    },
+  ],
+});
+
+
+
+Common.Settings.registerSettingExtension({
+  category: Common.Settings.SettingCategory.TEST,
+  storageType: Common.Settings.SettingStorageType.Synced,
+  title: i18nLazyString(UIStrings.selectedTestContextOnly),
+  settingName: 'selectedTestContextFilterEnabled',
+  settingType: Common.Settings.SettingType.BOOLEAN,
+  defaultValue: false,
+  options: [
+    {
+      value: true,
+      title: i18nLazyString(UIStrings.onlyShowTestMessagesFromTheCurrent),
+    },
+    {
+      value: false,
+      title: i18nLazyString(UIStrings.showTestMessagesFromAllContexts),
     },
   ],
 });
@@ -254,27 +279,8 @@ Common.Settings.registerSettingExtension({
 Common.Settings.registerSettingExtension({
   category: Common.Settings.SettingCategory.TEST,
   storageType: Common.Settings.SettingStorageType.Synced,
-  title: i18nLazyString(UIStrings.selectedContextOnly),
-  settingName: 'selectedContextFilterEnabled',
-  settingType: Common.Settings.SettingType.BOOLEAN,
-  defaultValue: false,
-  options: [
-    {
-      value: true,
-      title: i18nLazyString(UIStrings.onlyShowMessagesFromTheCurrent),
-    },
-    {
-      value: false,
-      title: i18nLazyString(UIStrings.showMessagesFromAllContexts),
-    },
-  ],
-});
-
-Common.Settings.registerSettingExtension({
-  category: Common.Settings.SettingCategory.TEST,
-  storageType: Common.Settings.SettingStorageType.Synced,
-  title: i18nLazyString(UIStrings.logXmlhttprequests),
-  settingName: 'monitoringXHREnabled',
+  title: i18nLazyString(UIStrings.logTestXmlhttprequests),
+  settingName: 'monitoringXTestHREnabled',
   settingType: Common.Settings.SettingType.BOOLEAN,
   defaultValue: false,
 });
@@ -282,36 +288,36 @@ Common.Settings.registerSettingExtension({
 Common.Settings.registerSettingExtension({
   category: Common.Settings.SettingCategory.TEST,
   storageType: Common.Settings.SettingStorageType.Synced,
-  title: i18nLazyString(UIStrings.showTimestamps),
+  title: i18nLazyString(UIStrings.showTestTimestamps),
   settingName: 'testTimestampsEnabled',
   settingType: Common.Settings.SettingType.BOOLEAN,
   defaultValue: false,
   options: [
     {
       value: true,
-      title: i18nLazyString(UIStrings.showTimestamps),
+      title: i18nLazyString(UIStrings.showTestTimestamps),
     },
     {
       value: false,
-      title: i18nLazyString(UIStrings.hideTimestamps),
+      title: i18nLazyString(UIStrings.hideTestTimestamps),
     },
   ],
 });
 
 Common.Settings.registerSettingExtension({
   category: Common.Settings.SettingCategory.TEST,
-  title: i18nLazyString(UIStrings.autocompleteFromHistory),
+  title: i18nLazyString(UIStrings.autocompleteTestFromHistory),
   settingName: 'testHistoryAutocomplete',
   settingType: Common.Settings.SettingType.BOOLEAN,
   defaultValue: true,
   options: [
     {
       value: true,
-      title: i18nLazyString(UIStrings.autocompleteFromHistory),
+      title: i18nLazyString(UIStrings.autocompleteTestFromHistory),
     },
     {
       value: false,
-      title: i18nLazyString(UIStrings.doNotAutocompleteFromHistory),
+      title: i18nLazyString(UIStrings.doNotAutocompleteTestFromHistory),
     },
   ],
 });
@@ -319,18 +325,18 @@ Common.Settings.registerSettingExtension({
 Common.Settings.registerSettingExtension({
   category: Common.Settings.SettingCategory.TEST,
   storageType: Common.Settings.SettingStorageType.Synced,
-  title: i18nLazyString(UIStrings.autocompleteOnEnter),
+  title: i18nLazyString(UIStrings.autocompleteTestOnEnter),
   settingName: 'testAutocompleteOnEnter',
   settingType: Common.Settings.SettingType.BOOLEAN,
   defaultValue: false,
   options: [
     {
       value: true,
-      title: i18nLazyString(UIStrings.autocompleteOnEnter),
+      title: i18nLazyString(UIStrings.autocompleteTestOnEnter),
     },
     {
       value: false,
-      title: i18nLazyString(UIStrings.doNotAutocompleteOnEnter),
+      title: i18nLazyString(UIStrings.doNotAutocompleteTestOnEnter),
     },
   ],
 });
@@ -338,36 +344,36 @@ Common.Settings.registerSettingExtension({
 Common.Settings.registerSettingExtension({
   category: Common.Settings.SettingCategory.TEST,
   storageType: Common.Settings.SettingStorageType.Synced,
-  title: i18nLazyString(UIStrings.groupSimilarMessagesInTest),
+  title: i18nLazyString(UIStrings.groupSimilarTestMessagesIn),
   settingName: 'testGroupSimilar',
   settingType: Common.Settings.SettingType.BOOLEAN,
   defaultValue: true,
   options: [
     {
       value: true,
-      title: i18nLazyString(UIStrings.groupSimilarMessagesInTest),
+      title: i18nLazyString(UIStrings.groupSimilarTestMessagesIn),
     },
     {
       value: false,
-      title: i18nLazyString(UIStrings.doNotGroupSimilarMessagesIn),
+      title: i18nLazyString(UIStrings.doNotGroupTestSimilarMessagesIn),
     },
   ],
 });
 
 Common.Settings.registerSettingExtension({
   category: Common.Settings.SettingCategory.TEST,
-  title: i18nLazyString(UIStrings.showCorsErrorsInTest),
+  title: i18nLazyString(UIStrings.showCorsTestErrorsIn),
   settingName: 'testShowsCorsErrors',
   settingType: Common.Settings.SettingType.BOOLEAN,
   defaultValue: true,
   options: [
     {
       value: true,
-      title: i18nLazyString(UIStrings.showCorsErrorsInTest),
+      title: i18nLazyString(UIStrings.showCorsTestErrorsIn),
     },
     {
       value: false,
-      title: i18nLazyString(UIStrings.doNotShowCorsErrorsIn),
+      title: i18nLazyString(UIStrings.doNotShowCorsTestErrorsIn),
     },
   ],
 });
@@ -375,7 +381,7 @@ Common.Settings.registerSettingExtension({
 Common.Settings.registerSettingExtension({
   category: Common.Settings.SettingCategory.TEST,
   storageType: Common.Settings.SettingStorageType.Synced,
-  title: i18nLazyString(UIStrings.eagerEvaluation),
+  title: i18nLazyString(UIStrings.eagerTestEvaluation),
   settingName: 'testEagerEval',
   settingType: Common.Settings.SettingType.BOOLEAN,
   defaultValue: true,
@@ -394,18 +400,18 @@ Common.Settings.registerSettingExtension({
 Common.Settings.registerSettingExtension({
   category: Common.Settings.SettingCategory.TEST,
   storageType: Common.Settings.SettingStorageType.Synced,
-  title: i18nLazyString(UIStrings.evaluateTriggersUserActivation),
+  title: i18nLazyString(UIStrings.evaluateTestTriggersUserActivation),
   settingName: 'testUserActivationEval',
   settingType: Common.Settings.SettingType.BOOLEAN,
   defaultValue: true,
   options: [
     {
       value: true,
-      title: i18nLazyString(UIStrings.treatEvaluationAsUserActivation),
+      title: i18nLazyString(UIStrings.treatTestEvaluationAsUserActivation),
     },
     {
       value: false,
-      title: i18nLazyString(UIStrings.doNotTreatEvaluationAsUser),
+      title: i18nLazyString(UIStrings.doNotTreatTestEvaluationAsUser),
     },
   ],
 });

@@ -267,6 +267,36 @@ export async function initializeGlobalVars({reset = true} = {}) {
     createSettingValue(
         Common.Settings.SettingCategory.PERFORMANCE, 'flamechartMouseWheelAction', false,
         Common.Settings.SettingType.ENUM),
+    createSettingValue(
+      Common.Settings.SettingCategory.TEST, 'hideNetworkMessages', false, Common.Settings.SettingType.BOOLEAN),
+    createSettingValue(
+      Common.Settings.SettingCategory.TEST, 'selectedContextFilterEnabled', false,
+      Common.Settings.SettingType.BOOLEAN),
+    createSettingValue(
+      Common.Settings.SettingCategory.TEST, 'testGroupSimilar', false, Common.Settings.SettingType.BOOLEAN),
+    createSettingValue(
+      Common.Settings.SettingCategory.TEST, 'testShowsCorsErrors', false, Common.Settings.SettingType.BOOLEAN),
+    createSettingValue(
+      Common.Settings.SettingCategory.TEST, 'testTimestampsEnabled', false,
+      Common.Settings.SettingType.BOOLEAN),
+    createSettingValue(
+      Common.Settings.SettingCategory.TEST, 'testHistoryAutocomplete', false,
+      Common.Settings.SettingType.BOOLEAN),
+    createSettingValue(
+      Common.Settings.SettingCategory.TEST, 'testAutocompleteOnEnter', false,
+      Common.Settings.SettingType.BOOLEAN),
+    createSettingValue(
+      Common.Settings.SettingCategory.TEST, 'preserveTestLog', false, Common.Settings.SettingType.BOOLEAN),
+    createSettingValue(
+      Common.Settings.SettingCategory.TEST, 'testEagerEval', false, Common.Settings.SettingType.BOOLEAN),
+    createSettingValue(
+      Common.Settings.SettingCategory.TEST, 'testUserActivationEval', false,
+      Common.Settings.SettingType.BOOLEAN),
+    createSettingValue(
+      Common.Settings.SettingCategory.TEST, 'testTraceExpand', false, Common.Settings.SettingType.BOOLEAN),
+    createSettingValue(
+      Common.Settings.SettingCategory.PERFORMANCE, 'flamechartMouseWheelAction', false,
+      Common.Settings.SettingType.ENUM),
   ];
 
   Common.Settings.registerSettingsForTest(settings, reset);
@@ -309,6 +339,7 @@ export async function deinitializeGlobalVars() {
   Root.Runtime.Runtime.removeInstance();
   Common.Settings.Settings.removeInstance();
   Common.Console.Console.removeInstance();
+  Common.Test.Test.removeInstance();
   Workspace.Workspace.WorkspaceImpl.removeInstance();
   Bindings.IgnoreListManager.IgnoreListManager.removeInstance();
   Bindings.DebuggerWorkspaceBinding.DebuggerWorkspaceBinding.removeInstance();

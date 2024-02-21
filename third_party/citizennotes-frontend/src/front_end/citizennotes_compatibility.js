@@ -1235,6 +1235,7 @@
       'pauseOnCaughtException',
       'pauseOnExceptionEnabled',
       'preserveConsoleLog',
+      'preserveTestLog',
       'prettyPrintInfobarDisabled',
       'previouslyViewedFiles',
       'profilesPanelSplitViewState',

@@ -144,6 +144,11 @@ function maybeRetrieveContextTypes<T = unknown>(getClassCallBack: (consoleModule
   return getClassCallBack(loadedConsoleModule);
 }
 
+function stackTrace() {
+  const err = new Error();
+  return err.stack;
+}
+
 UI.ViewManager.registerViewExtension({
   location: UI.ViewManager.ViewLocationValues.PANEL,
   id: 'console',

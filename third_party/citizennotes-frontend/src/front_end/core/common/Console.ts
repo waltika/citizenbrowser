@@ -6,7 +6,6 @@ import {ObjectWrapper} from './Object.js';
 import {reveal} from './Revealer.js';
 
 let consoleInstance: Console|undefined;
-
 export class Console extends ObjectWrapper<EventTypes> {
   readonly #messagesInternal: Message[];
   /**

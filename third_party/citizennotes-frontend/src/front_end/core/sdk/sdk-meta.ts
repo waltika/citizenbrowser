@@ -371,6 +371,25 @@ Common.Settings.registerSettingExtension({
 });
 
 Common.Settings.registerSettingExtension({
+  category: Common.Settings.SettingCategory.TEST,
+  storageType: Common.Settings.SettingStorageType.Synced,
+  title: i18nLazyString(UIStrings.preserveLogUponNavigation),
+  settingName: 'preserveTestLog',
+  settingType: Common.Settings.SettingType.BOOLEAN,
+  defaultValue: false,
+  options: [
+    {
+      value: true,
+      title: i18nLazyString(UIStrings.preserveLogUponNavigation),
+    },
+    {
+      value: false,
+      title: i18nLazyString(UIStrings.doNotPreserveLogUponNavigation),
+    },
+  ],
+});
+
+Common.Settings.registerSettingExtension({
   category: Common.Settings.SettingCategory.DEBUGGER,
   settingName: 'pauseOnExceptionEnabled',
   settingType: Common.Settings.SettingType.BOOLEAN,
