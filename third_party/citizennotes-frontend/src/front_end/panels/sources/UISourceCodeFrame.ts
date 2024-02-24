@@ -92,10 +92,6 @@ export class UISourceCodeFrame extends
 
     this.boundOnBindingChanged = this.onBindingChanged.bind(this);
 
-    Common.Settings.Settings.instance()
-        .moduleSetting('persistenceNetworkOverridesEnabled')
-        .addChangeListener(this.onNetworkPersistenceChanged, this);
-
     this.errorPopoverHelper =
         new UI.PopoverHelper.PopoverHelper(this.textEditor.editor.contentDOM, this.getErrorPopoverContent.bind(this));
     this.errorPopoverHelper.setHasPadding(true);
@@ -414,9 +410,6 @@ export class UISourceCodeFrame extends
     this.unloadUISourceCode();
     this.textEditor.editor.destroy();
     this.detach();
-    Common.Settings.Settings.instance()
-        .moduleSetting('persistenceNetworkOverridesEnabled')
-        .removeChangeListener(this.onNetworkPersistenceChanged, this);
   }
 
   private onMessageAdded(event: Common.EventTarget.EventTargetEvent<Workspace.UISourceCode.Message>): void {

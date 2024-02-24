@@ -228,12 +228,6 @@ export class DebuggerModel extends SDKModel<EventTypes> {
       void this.enableDebugger();
     }
 
-    this.#sourceMapManagerInternal.setEnabled(
-        Common.Settings.Settings.instance().moduleSetting('jsSourceMapsEnabled').get());
-    Common.Settings.Settings.instance()
-        .moduleSetting('jsSourceMapsEnabled')
-        .addChangeListener(event => this.#sourceMapManagerInternal.setEnabled((event.data as boolean)));
-
     const resourceTreeModel = (target.model(ResourceTreeModel) as ResourceTreeModel);
     if (resourceTreeModel) {
       resourceTreeModel.addEventListener(ResourceTreeModelEvents.FrameNavigated, this.onFrameNavigated, this);

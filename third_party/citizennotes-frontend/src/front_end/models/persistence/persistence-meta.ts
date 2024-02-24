@@ -77,31 +77,6 @@ UI.ViewManager.registerViewExtension({
   },
 });
 
-Common.Settings.registerSettingExtension({
-  category: Common.Settings.SettingCategory.PERSISTENCE,
-  title: i18nLazyString(UIStrings.enableLocalOverrides),
-  settingName: 'persistenceNetworkOverridesEnabled',
-  settingType: Common.Settings.SettingType.BOOLEAN,
-  defaultValue: false,
-  tags: [
-    i18nLazyString(UIStrings.interception),
-    i18nLazyString(UIStrings.override),
-    i18nLazyString(UIStrings.network),
-    i18nLazyString(UIStrings.rewrite),
-    i18nLazyString(UIStrings.request),
-  ],
-  options: [
-    {
-      value: true,
-      title: i18nLazyString(UIStrings.enableOverrideNetworkRequests),
-    },
-    {
-      value: false,
-      title: i18nLazyString(UIStrings.disableOverrideNetworkRequests),
-    },
-  ],
-});
-
 UI.ContextMenu.registerProvider({
   contextTypes() {
     return [

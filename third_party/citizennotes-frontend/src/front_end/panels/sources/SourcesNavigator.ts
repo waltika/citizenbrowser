@@ -277,14 +277,11 @@ export class OverridesNavigatorView extends NavigatorView {
     this.toolbar.removeToolbarItems();
     const project = Persistence.NetworkPersistenceManager.NetworkPersistenceManager.instance().project();
     if (project) {
-      const enableCheckbox = new UI.Toolbar.ToolbarSettingCheckbox(
-          Common.Settings.Settings.instance().moduleSetting('persistenceNetworkOverridesEnabled'));
       this.toolbar.appendToolbarItem(enableCheckbox);
 
       this.toolbar.appendToolbarItem(new UI.Toolbar.ToolbarSeparator(true));
       const clearButton = new UI.Toolbar.ToolbarButton(i18nString(UIStrings.clearConfiguration), 'clear');
       clearButton.addEventListener(UI.Toolbar.ToolbarButton.Events.Click, () => {
-        Common.Settings.Settings.instance().moduleSetting('persistenceNetworkOverridesEnabled').set(false);
         project.remove();
       });
       this.toolbar.appendToolbarItem(clearButton);
@@ -304,7 +301,6 @@ export class OverridesNavigatorView extends NavigatorView {
     if (!fileSystem) {
       return;
     }
-    Common.Settings.Settings.instance().moduleSetting('persistenceNetworkOverridesEnabled').set(true);
   }
 
   override sourceSelected(uiSourceCode: Workspace.UISourceCode.UISourceCode, focusSource: boolean): void {

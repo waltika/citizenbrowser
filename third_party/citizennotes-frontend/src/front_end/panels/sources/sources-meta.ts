@@ -1470,44 +1470,6 @@ Common.Settings.registerSettingExtension({
 Common.Settings.registerSettingExtension({
   category: Common.Settings.SettingCategory.SOURCES,
   storageType: Common.Settings.SettingStorageType.Synced,
-  title: i18nLazyString(UIStrings.enableJavascriptSourceMaps),
-  settingName: 'jsSourceMapsEnabled',
-  settingType: Common.Settings.SettingType.BOOLEAN,
-  defaultValue: true,
-  options: [
-    {
-      value: true,
-      title: i18nLazyString(UIStrings.enableJavascriptSourceMaps),
-    },
-    {
-      value: false,
-      title: i18nLazyString(UIStrings.disableJavascriptSourceMaps),
-    },
-  ],
-});
-
-Common.Settings.registerSettingExtension({
-  category: Common.Settings.SettingCategory.SOURCES,
-  storageType: Common.Settings.SettingStorageType.Synced,
-  title: i18nLazyString(UIStrings.enableTabMovesFocus),
-  settingName: 'textEditorTabMovesFocus',
-  settingType: Common.Settings.SettingType.BOOLEAN,
-  defaultValue: false,
-  options: [
-    {
-      value: true,
-      title: i18nLazyString(UIStrings.enableTabMovesFocus),
-    },
-    {
-      value: false,
-      title: i18nLazyString(UIStrings.disableTabMovesFocus),
-    },
-  ],
-});
-
-Common.Settings.registerSettingExtension({
-  category: Common.Settings.SettingCategory.SOURCES,
-  storageType: Common.Settings.SettingStorageType.Synced,
   title: i18nLazyString(UIStrings.detectIndentation),
   settingName: 'textEditorAutoDetectIndent',
   settingType: Common.Settings.SettingType.BOOLEAN,
@@ -1520,43 +1482,6 @@ Common.Settings.registerSettingExtension({
     {
       value: false,
       title: i18nLazyString(UIStrings.doNotDetectIndentation),
-    },
-  ],
-});
-
-Common.Settings.registerSettingExtension({
-  category: Common.Settings.SettingCategory.SOURCES,
-  storageType: Common.Settings.SettingStorageType.Synced,
-  title: i18nLazyString(UIStrings.autocompletion),
-  settingName: 'textEditorAutocompletion',
-  settingType: Common.Settings.SettingType.BOOLEAN,
-  defaultValue: true,
-  options: [
-    {
-      value: true,
-      title: i18nLazyString(UIStrings.enableAutocompletion),
-    },
-    {
-      value: false,
-      title: i18nLazyString(UIStrings.disableAutocompletion),
-    },
-  ],
-});
-
-Common.Settings.registerSettingExtension({
-  category: Common.Settings.SettingCategory.SOURCES,
-  title: i18nLazyString(UIStrings.bracketMatching),
-  settingName: 'textEditorBracketMatching',
-  settingType: Common.Settings.SettingType.BOOLEAN,
-  defaultValue: true,
-  options: [
-    {
-      value: true,
-      title: i18nLazyString(UIStrings.enableBracketMatching),
-    },
-    {
-      value: false,
-      title: i18nLazyString(UIStrings.disableBracketMatching),
     },
   ],
 });

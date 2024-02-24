@@ -23,8 +23,6 @@ export class NetworkPersistenceManager extends Common.ObjectWrapper.ObjectWrappe
   private bindings: WeakMap<Workspace.UISourceCode.UISourceCode, PersistenceBinding>;
   private readonly originalResponseContentPromises: WeakMap<Workspace.UISourceCode.UISourceCode, Promise<string|null>>;
   private savingForOverrides: WeakSet<Workspace.UISourceCode.UISourceCode>;
-  private readonly savingSymbol: symbol;
-  private enabledSetting: Common.Settings.Setting<boolean>;
   private readonly workspace: Workspace.Workspace.WorkspaceImpl;
   private readonly networkUISourceCodeForEncodedPath:
       Map<Platform.CitizenNotesPath.EncodedPathString, Workspace.UISourceCode.UISourceCode>;
@@ -34,7 +32,6 @@ export class NetworkPersistenceManager extends Common.ObjectWrapper.ObjectWrappe
   private projectInternal: Workspace.Workspace.Project|null;
   private readonly activeProject: Workspace.Workspace.Project|null;
   private activeInternal: boolean;
-  private enabled: boolean;
   private eventDescriptors: Common.EventTarget.EventDescriptor[];
   #headerOverridesMap: Map<Platform.CitizenNotesPath.EncodedPathString, HeaderOverrideWithRegex[]> = new Map();
   readonly #sourceCodeToBindProcessMutex = new WeakMap<Workspace.UISourceCode.UISourceCode, Common.Mutex.Mutex>();
@@ -46,11 +43,6 @@ export class NetworkPersistenceManager extends Common.ObjectWrapper.ObjectWrappe
     this.bindings = new WeakMap();
     this.originalResponseContentPromises = new WeakMap();
     this.savingForOverrides = new WeakSet();
-    this.savingSymbol = Symbol('SavingForOverrides');
-
-    this.enabledSetting = Common.Settings.Settings.instance().moduleSetting('persistenceNetworkOverridesEnabled');
-    this.enabledSetting.addChangeListener(this.enabledChanged, this);
-
     this.workspace = workspace;
 
     this.networkUISourceCodeForEncodedPath = new Map();
@@ -63,7 +55,6 @@ export class NetworkPersistenceManager extends Common.ObjectWrapper.ObjectWrappe
     this.activeProject = null;
 
     this.activeInternal = false;
-    this.enabled = false;
 
     this.workspace.addEventListener(Workspace.Workspace.Events.ProjectAdded, event => {
       void this.onProjectAdded(event.data);
@@ -122,39 +113,6 @@ export class NetworkPersistenceManager extends Common.ObjectWrapper.ObjectWrappe
   }
 
   private async enabledChanged(): Promise<void> {
-    if (this.enabled === this.enabledSetting.get()) {
-      return;
-    }
-    this.enabled = this.enabledSetting.get();
-    if (this.enabled) {
-      Host.userMetrics.actionTaken(Host.UserMetrics.Action.PersistenceNetworkOverridesEnabled);
-      this.eventDescriptors = [
-        Workspace.Workspace.WorkspaceImpl.instance().addEventListener(
-            Workspace.Workspace.Events.UISourceCodeRenamed,
-            event => {
-              void this.uiSourceCodeRenamedListener(event);
-            }),
-        Workspace.Workspace.WorkspaceImpl.instance().addEventListener(
-            Workspace.Workspace.Events.UISourceCodeAdded,
-            event => {
-              void this.uiSourceCodeAdded(event);
-            }),
-        Workspace.Workspace.WorkspaceImpl.instance().addEventListener(
-            Workspace.Workspace.Events.UISourceCodeRemoved,
-            event => {
-              void this.uiSourceCodeRemovedListener(event);
-            }),
-        Workspace.Workspace.WorkspaceImpl.instance().addEventListener(
-            Workspace.Workspace.Events.WorkingCopyCommitted,
-            event => this.onUISourceCodeWorkingCopyCommitted(event.data.uiSourceCode)),
-      ];
-      await this.updateActiveProject();
-    } else {
-      Host.userMetrics.actionTaken(Host.UserMetrics.Action.PersistenceNetworkOverridesDisabled);
-      Common.EventTarget.removeEventListeners(this.eventDescriptors);
-      await this.updateActiveProject();
-    }
-    this.dispatchEventToListeners(Events.LocalOverridesProjectUpdated, this.enabled);
   }
 
   private async uiSourceCodeRenamedListener(
@@ -176,8 +134,6 @@ export class NetworkPersistenceManager extends Common.ObjectWrapper.ObjectWrappe
 
   private async updateActiveProject(): Promise<void> {
     const wasActive = this.activeInternal;
-    this.activeInternal = Boolean(
-        this.enabledSetting.get() && SDK.TargetManager.TargetManager.instance().rootTarget() && this.projectInternal);
     if (this.activeInternal === wasActive) {
       return;
     }
@@ -384,9 +340,6 @@ export class NetworkPersistenceManager extends Common.ObjectWrapper.ObjectWrappe
 
   isActiveHeaderOverrides(uiSourceCode: Workspace.UISourceCode.UISourceCode): boolean {
     // If this overriden file is actively in use at the moment.
-    if (!this.enabledSetting.get()) {
-      return false;
-    }
     return uiSourceCode.url().endsWith(HEADERS_FILENAME) &&
         this.hasMatchingNetworkUISourceCodeForHeaderOverridesFile(uiSourceCode);
   }
@@ -421,13 +374,6 @@ export class NetworkPersistenceManager extends Common.ObjectWrapper.ObjectWrappe
     if (!this.project()) {
       Host.userMetrics.actionTaken(Host.UserMetrics.Action.OverrideContentContextMenuAbandonSetup);
       return false;
-    }
-
-    // Already have an overrides folder, enable setting
-    if (!this.enabledSetting.get()) {
-      Host.userMetrics.actionTaken(Host.UserMetrics.Action.OverrideContentContextMenuActivateDisabled);
-      this.enabledSetting.set(true);
-      await this.once(Events.LocalOverridesProjectUpdated);
     }
 
     // Save new file

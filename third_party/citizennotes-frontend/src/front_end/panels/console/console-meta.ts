@@ -240,53 +240,6 @@ UI.ActionRegistration.registerActionExtension({
 Common.Settings.registerSettingExtension({
   category: Common.Settings.SettingCategory.CONSOLE,
   storageType: Common.Settings.SettingStorageType.Synced,
-  title: i18nLazyString(UIStrings.hideNetworkMessages),
-  settingName: 'hideNetworkMessages',
-  settingType: Common.Settings.SettingType.BOOLEAN,
-  defaultValue: false,
-  options: [
-    {
-      value: true,
-      title: i18nLazyString(UIStrings.hideNetworkMessages),
-    },
-    {
-      value: false,
-      title: i18nLazyString(UIStrings.showNetworkMessages),
-    },
-  ],
-});
-
-Common.Settings.registerSettingExtension({
-  category: Common.Settings.SettingCategory.CONSOLE,
-  storageType: Common.Settings.SettingStorageType.Synced,
-  title: i18nLazyString(UIStrings.selectedContextOnly),
-  settingName: 'selectedContextFilterEnabled',
-  settingType: Common.Settings.SettingType.BOOLEAN,
-  defaultValue: false,
-  options: [
-    {
-      value: true,
-      title: i18nLazyString(UIStrings.onlyShowMessagesFromTheCurrent),
-    },
-    {
-      value: false,
-      title: i18nLazyString(UIStrings.showMessagesFromAllContexts),
-    },
-  ],
-});
-
-Common.Settings.registerSettingExtension({
-  category: Common.Settings.SettingCategory.CONSOLE,
-  storageType: Common.Settings.SettingStorageType.Synced,
-  title: i18nLazyString(UIStrings.logXmlhttprequests),
-  settingName: 'monitoringXHREnabled',
-  settingType: Common.Settings.SettingType.BOOLEAN,
-  defaultValue: false,
-});
-
-Common.Settings.registerSettingExtension({
-  category: Common.Settings.SettingCategory.CONSOLE,
-  storageType: Common.Settings.SettingStorageType.Synced,
   title: i18nLazyString(UIStrings.showTimestamps),
   settingName: 'consoleTimestampsEnabled',
   settingType: Common.Settings.SettingType.BOOLEAN,

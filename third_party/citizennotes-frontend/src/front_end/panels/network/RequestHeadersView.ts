@@ -561,8 +561,7 @@ export class RequestHeadersView extends UI.Widget.VBox {
     leftElement.createChild('span', 'header-count').textContent = headerCount;
 
     if (overrideable && this.#workspace.uiSourceCodeForURL(this.#getHeaderOverridesFileUrl())) {
-      const overridesSetting: Common.Settings.Setting<boolean> =
-          Common.Settings.Settings.instance().moduleSetting('persistenceNetworkOverridesEnabled');
+      const overridesSetting: Common.Settings.Setting<boolean> = false;
       const icon = new IconButton.Icon.Icon();
       icon.data = {iconName: 'document', color: 'var(--icon-default)', width: '16px', height: '16px'};
       if (overridesSetting.get()) {

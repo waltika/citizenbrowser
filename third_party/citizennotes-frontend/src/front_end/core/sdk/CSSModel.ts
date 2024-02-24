@@ -106,11 +106,6 @@ export class CSSModel extends SDKModel<EventTypes> {
     this.#isCSSPropertyTrackingEnabled = false;
     this.#isTrackingRequestPending = false;
     this.#stylePollingThrottler = new Common.Throttler.Throttler(StylePollingInterval);
-
-    this.#sourceMapManager.setEnabled(Common.Settings.Settings.instance().moduleSetting('cssSourceMapsEnabled').get());
-    Common.Settings.Settings.instance()
-        .moduleSetting('cssSourceMapsEnabled')
-        .addChangeListener(event => this.#sourceMapManager.setEnabled((event.data as boolean)));
   }
 
   headersForSourceURL(sourceURL: Platform.CitizenNotesPath.UrlString): CSSStyleSheetHeader[] {

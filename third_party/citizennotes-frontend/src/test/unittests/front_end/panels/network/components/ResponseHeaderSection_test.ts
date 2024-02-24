@@ -371,14 +371,14 @@ describeWithEnvironment('ResponseHeaderSection', () => {
     checkHeaderSectionRow(rows[0], 'cache-control:', 'max-age=600', false, false, true);
     checkHeaderSectionRow(rows[1], 'server:', 'overridden server', true, false, true);
 
-    Common.Settings.Settings.instance().moduleSetting('persistenceNetworkOverridesEnabled').set(false);
+    //Common.Settings.Settings.instance().moduleSetting('persistenceNetworkOverridesEnabled').set(false);
     component.data = {request};
     await coordinator.done();
 
     checkHeaderSectionRow(rows[0], 'cache-control:', 'max-age=600', false, false, false);
     checkHeaderSectionRow(rows[1], 'server:', 'overridden server', true, false, false);
 
-    Common.Settings.Settings.instance().moduleSetting('persistenceNetworkOverridesEnabled').set(true);
+    //Common.Settings.Settings.instance().moduleSetting('persistenceNetworkOverridesEnabled').set(true);
   });
 
   it('does not set headers as "editable" when matching ".headers" file cannot be parsed correctly', async () => {
@@ -858,7 +858,7 @@ describeWithEnvironment('ResponseHeaderSection', () => {
     checkHeaderSectionRow(rows[1], 'header-name:', 'header value', true, true, true);
 
     component.remove();
-    Common.Settings.Settings.instance().moduleSetting('persistenceNetworkOverridesEnabled').set(false);
+    //Common.Settings.Settings.instance().moduleSetting('persistenceNetworkOverridesEnabled').set(false);
     const component2 = await renderResponseHeaderSection(request);
     assertShadowRoot(component2.shadowRoot);
 
@@ -868,7 +868,7 @@ describeWithEnvironment('ResponseHeaderSection', () => {
     checkHeaderSectionRow(rows[1], 'header-name:', 'header value', true, false, false);
 
     component2.remove();
-    Common.Settings.Settings.instance().moduleSetting('persistenceNetworkOverridesEnabled').set(true);
+    //Common.Settings.Settings.instance().moduleSetting('persistenceNetworkOverridesEnabled').set(true);
     const component3 = await renderResponseHeaderSection(request);
     assertShadowRoot(component3.shadowRoot);
 

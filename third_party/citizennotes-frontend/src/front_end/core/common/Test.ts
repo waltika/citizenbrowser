@@ -20,6 +20,8 @@ export class Test extends ObjectWrapper<EventTypes> {
     this.addMessage("the fucking", MessageLevel.Info);
     this.addMessage("web part", MessageLevel.Info);
     this.addMessage("lives", MessageLevel.Info);
+    this.addMessage("error", MessageLevel.Error)
+    this.addMessage("warning", MessageLevel.Warning)
   }
 
   static instance(opts?: {forceNew: boolean}): Test {

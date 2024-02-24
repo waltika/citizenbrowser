@@ -579,7 +579,6 @@ export class DebuggerPlugin extends Plugin {
     }
 
     if (this.uiSourceCode.project().type() === Workspace.Workspace.projectTypes.Network &&
-        Common.Settings.Settings.instance().moduleSetting('jsSourceMapsEnabled').get() &&
         !Bindings.IgnoreListManager.IgnoreListManager.instance().isUserIgnoreListedURL(this.uiSourceCode.url())) {
       if (this.scriptFileForDebuggerModel.size) {
         const scriptFile: Bindings.ResourceScriptMapping.ResourceScriptFile =
@@ -1521,9 +1520,6 @@ export class DebuggerPlugin extends Plugin {
 
   private showSourceMapInfobarIfNeeded(): void {
     if (this.sourceMapInfobar) {
-      return;
-    }
-    if (!Common.Settings.Settings.instance().moduleSetting('jsSourceMapsEnabled').get()) {
       return;
     }
     if (!this.scriptHasSourceMap()) {

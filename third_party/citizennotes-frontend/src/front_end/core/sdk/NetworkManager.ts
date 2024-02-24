@@ -1007,24 +1007,6 @@ export class NetworkDispatcher implements ProtocolProxyApi.NetworkDispatcher {
     }
     this.#manager.dispatchEventToListeners(Events.RequestFinished, networkRequest);
     MultitargetNetworkManager.instance().inflightMainResourceRequests.delete(networkRequest.requestId());
-
-    if (Common.Settings.Settings.instance().moduleSetting('monitoringXHREnabled').get() &&
-        networkRequest.resourceType().category() === Common.ResourceType.resourceCategories.XHR) {
-      let message;
-      const failedToLoad = networkRequest.failed || networkRequest.hasErrorStatusCode();
-      if (failedToLoad) {
-        message = i18nString(
-            UIStrings.sFailedLoadingSS,
-            {PH1: networkRequest.resourceType().title(), PH2: networkRequest.requestMethod, PH3: networkRequest.url()});
-      } else {
-        message = i18nString(
-            UIStrings.sFinishedLoadingSS,
-            {PH1: networkRequest.resourceType().title(), PH2: networkRequest.requestMethod, PH3: networkRequest.url()});
-      }
-
-      this.#manager.dispatchEventToListeners(
-          Events.MessageGenerated, {message: message, requestId: networkRequest.requestId(), warning: false});
-    }
   }
 
   clearRequests(): void {

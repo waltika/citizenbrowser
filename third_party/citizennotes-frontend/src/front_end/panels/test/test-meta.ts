@@ -13,7 +13,7 @@ const UIStrings = {
   /**
    *@description Title of the Test tool
    */
-  test: 'Test',
+  test: 'Citizen Notes',
   /**
    *@description Title of an action that shows the test.
    */
@@ -126,6 +126,22 @@ const UIStrings = {
    * @description Title of a setting under the Test category in Settings that controls whether `test.trace()` messages appear collapsed by default.
    */
   collapseTestTraceMessagesByDefault: 'Do not automatically expand `test.trace()` messages',
+  /**
+   *@description Text for autocompletion
+   */
+  autocompletion: 'Autocompletion',
+  /**
+   *@description Title of a setting under the Sources category that can be invoked through the Command Menu
+   */
+  enableAutocompletion: 'Enable autocompletion',
+  /**
+   *@description Title of a setting under the Sources category that can be invoked through the Command Menu
+   */
+  disableAutocompletion: 'Disable autocompletion',
+  /**
+   *@description Title of a setting under the Sources category in Settings
+   */
+
 };
 const str_ = i18n.i18n.registerUIStrings('panels/test/test-meta.ts', UIStrings);
 const i18nLazyString = i18n.i18n.getLazilyComputedLocalizedString.bind(undefined, str_);
@@ -234,6 +250,25 @@ UI.ActionRegistration.registerActionExtension({
     const Test = await loadTestModule();
     return new Test.TestView.ActionDelegate();
   },
+});
+
+Common.Settings.registerSettingExtension({
+  category: Common.Settings.SettingCategory.TEST,
+  storageType: Common.Settings.SettingStorageType.Synced,
+  title: i18nLazyString(UIStrings.autocompletion),
+  settingName: 'textEditorAutocompletion',
+  settingType: Common.Settings.SettingType.BOOLEAN,
+  defaultValue: true,
+  options: [
+    {
+      value: true,
+      title: i18nLazyString(UIStrings.enableAutocompletion),
+    },
+    {
+      value: false,
+      title: i18nLazyString(UIStrings.disableAutocompletion),
+    },
+  ],
 });
 
 Common.Settings.registerSettingExtension({

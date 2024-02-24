@@ -441,7 +441,6 @@ export class TestView extends UI.Widget.VBox implements
     rightToolbar.appendToolbarItem(this.filterStatusText);
     rightToolbar.appendToolbarItem(this.showSettingsPaneButton);
 
-    const monitoringXHREnabledSetting = Common.Settings.Settings.instance().moduleSetting('monitoringXHREnabled');
     this.timestampsSetting = Common.Settings.Settings.instance().moduleSetting('testTimestampsEnabled');
     this.testHistoryAutocompleteSetting =
         Common.Settings.Settings.instance().moduleSetting('testHistoryAutocomplete');
@@ -459,14 +458,8 @@ export class TestView extends UI.Widget.VBox implements
     settingsToolbarLeft.makeVertical();
 
     TestView.appendSettingsCheckboxToToolbar(
-        settingsToolbarLeft, this.filter.hideNetworkMessagesSetting, this.filter.hideNetworkMessagesSetting.title(),
-        i18nString(UIStrings.hideNetwork));
-    TestView.appendSettingsCheckboxToToolbar(
         settingsToolbarLeft, 'preserveTestLog', i18nString(UIStrings.doNotClearLogOnPageReload),
         i18nString(UIStrings.preserveLog));
-    TestView.appendSettingsCheckboxToToolbar(
-        settingsToolbarLeft, this.filter.filterByExecutionContextSetting,
-        i18nString(UIStrings.onlyShowMessagesFromTheCurrentContext), i18nString(UIStrings.selectedContextOnly));
     TestView.appendSettingsCheckboxToToolbar(
         settingsToolbarLeft, this.groupSimilarSetting, i18nString(UIStrings.groupSimilarMessagesInTest));
     TestView.appendSettingsCheckboxToToolbar(
@@ -475,8 +468,6 @@ export class TestView extends UI.Widget.VBox implements
     const settingsToolbarRight = new UI.Toolbar.Toolbar('', settingsPane.element);
     settingsToolbarRight.makeVertical();
 
-    TestView.appendSettingsCheckboxToToolbar(
-        settingsToolbarRight, monitoringXHREnabledSetting, i18nString(UIStrings.logXMLHttpRequests));
     TestView.appendSettingsCheckboxToToolbar(
         settingsToolbarRight, 'testEagerEval', i18nString(UIStrings.eagerlyEvaluateTextInThePrompt));
     TestView.appendSettingsCheckboxToToolbar(
@@ -1606,8 +1597,6 @@ globalThis.Test.TestView = TestView;
 export class TestViewFilter {
   private readonly filterChanged: () => void;
   messageLevelFiltersSetting: Common.Settings.Setting<LevelsMask>;
-  hideNetworkMessagesSetting: Common.Settings.Setting<boolean>;
-  filterByExecutionContextSetting: Common.Settings.Setting<boolean>;
   private readonly suggestionBuilder: UI.FilterSuggestionBuilder.FilterSuggestionBuilder;
   readonly textFilterUI: UI.Toolbar.ToolbarInput;
   private readonly textFilterSetting: Common.Settings.Setting<string>;
@@ -1620,13 +1609,8 @@ export class TestViewFilter {
     this.filterChanged = filterChangedCallback;
 
     this.messageLevelFiltersSetting = TestViewFilter.levelFilterSetting();
-    this.hideNetworkMessagesSetting = Common.Settings.Settings.instance().moduleSetting('hideNetworkMessages');
-    this.filterByExecutionContextSetting =
-        Common.Settings.Settings.instance().moduleSetting('selectedContextFilterEnabled');
 
     this.messageLevelFiltersSetting.addChangeListener(this.onFilterChanged.bind(this));
-    this.hideNetworkMessagesSetting.addChangeListener(this.onFilterChanged.bind(this));
-    this.filterByExecutionContextSetting.addChangeListener(this.onFilterChanged.bind(this));
     UI.Context.Context.instance().addFlavorChangeListener(
         SDK.RuntimeModel.ExecutionContext, this.onFilterChanged, this);
 
@@ -1696,14 +1680,7 @@ export class TestViewFilter {
 
   private updateCurrentFilter(): void {
     const parsedFilters = this.filterParser.parse(this.textFilterUI.value());
-    if (this.hideNetworkMessagesSetting.get()) {
-      parsedFilters.push(
-          {key: FilterType.Source, text: Protocol.Log.LogEntrySource.Network, negative: true, regex: undefined});
-    }
 
-    this.currentFilter.executionContext = this.filterByExecutionContextSetting.get() ?
-        UI.Context.Context.instance().flavor(SDK.RuntimeModel.ExecutionContext) :
-        null;
     this.currentFilter.parsedFilters = parsedFilters;
     this.currentFilter.levelsMask = this.messageLevelFiltersSetting.get();
   }
@@ -1791,8 +1768,6 @@ export class TestViewFilter {
 
   reset(): void {
     this.messageLevelFiltersSetting.set(TestFilter.defaultLevelsFilterValue());
-    this.filterByExecutionContextSetting.set(false);
-    this.hideNetworkMessagesSetting.set(false);
     this.textFilterUI.setValue('');
     this.onFilterChanged();
   }

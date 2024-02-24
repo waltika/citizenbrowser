@@ -194,16 +194,12 @@ export async function initializeGlobalVars({reset = true} = {}) {
     createSettingValue(Common.Settings.SettingCategory.RENDERING, 'showWebVitals', false),
     createSettingValue(Common.Settings.SettingCategory.RENDERING, 'webpFormatDisabled', false),
     createSettingValue(Common.Settings.SettingCategory.SOURCES, 'allowScrollPastEof', true),
-    createSettingValue(Common.Settings.SettingCategory.SOURCES, 'cssSourceMapsEnabled', true),
     createSettingValue(Common.Settings.SettingCategory.SOURCES, 'inlineVariableValues', true),
-    createSettingValue(Common.Settings.SettingCategory.SOURCES, 'jsSourceMapsEnabled', true),
     createSettingValue(Common.Settings.SettingCategory.SOURCES, 'showWhitespacesInEditor', 'none'),
     createSettingValue(Common.Settings.SettingCategory.SOURCES, 'textEditorAutocompletion', true),
     createSettingValue(Common.Settings.SettingCategory.SOURCES, 'textEditorAutoDetectIndent', false),
-    createSettingValue(Common.Settings.SettingCategory.SOURCES, 'textEditorBracketMatching', true),
     createSettingValue(Common.Settings.SettingCategory.SOURCES, 'textEditorCodeFolding', true),
     createSettingValue(Common.Settings.SettingCategory.SOURCES, 'textEditorIndent', '    '),
-    createSettingValue(Common.Settings.SettingCategory.SOURCES, 'textEditorTabMovesFocus', false),
     createSettingValue(Common.Settings.SettingCategory.SOURCES, 'domWordWrap', true),
     createSettingValue(
         Common.Settings.SettingCategory.EMULATION, 'emulation.touch', '', Common.Settings.SettingType.ENUM),
@@ -220,16 +216,15 @@ export async function initializeGlobalVars({reset = true} = {}) {
         Common.Settings.SettingCategory.APPEARANCE, 'help.show-release-note', true,
         Common.Settings.SettingType.BOOLEAN),
     createSettingValue(Common.Settings.SettingCategory.NETWORK, 'requestBlockingEnabled', false),
-    createSettingValue(Common.Settings.SettingCategory.CONSOLE, 'monitoringXHREnabled', false),
     createSettingValue(
         Common.Settings.SettingCategory.NONE, 'customNetworkConditions', [], Common.Settings.SettingType.ARRAY),
     createSettingValue(
         Common.Settings.SettingCategory.APPEARANCE, 'uiTheme', 'systemPreferred', Common.Settings.SettingType.ENUM),
     createSettingValue(
         Common.Settings.SettingCategory.APPEARANCE, 'language', 'en-US', Common.Settings.SettingType.ENUM),
-    createSettingValue(
-        Common.Settings.SettingCategory.PERSISTENCE, 'persistenceNetworkOverridesEnabled', true,
-        Common.Settings.SettingType.BOOLEAN),
+//    createSettingValue(
+//        Common.Settings.SettingCategory.PERSISTENCE, 'persistenceNetworkOverridesEnabled', true,
+//        Common.Settings.SettingType.BOOLEAN),
     createSettingValue(
         Common.Settings.SettingCategory.NETWORK, 'network_log.preserve-log', true, Common.Settings.SettingType.BOOLEAN),
     createSettingValue(
@@ -237,8 +232,6 @@ export async function initializeGlobalVars({reset = true} = {}) {
     createSettingValue(
         Common.Settings.SettingCategory.SOURCES, 'network.enable-remote-file-loading', false,
         Common.Settings.SettingType.BOOLEAN),
-    createSettingValue(
-        Common.Settings.SettingCategory.CONSOLE, 'hideNetworkMessages', false, Common.Settings.SettingType.BOOLEAN),
     createSettingValue(
         Common.Settings.SettingCategory.CONSOLE, 'selectedContextFilterEnabled', false,
         Common.Settings.SettingType.BOOLEAN),
@@ -267,11 +260,6 @@ export async function initializeGlobalVars({reset = true} = {}) {
     createSettingValue(
         Common.Settings.SettingCategory.PERFORMANCE, 'flamechartMouseWheelAction', false,
         Common.Settings.SettingType.ENUM),
-    createSettingValue(
-      Common.Settings.SettingCategory.TEST, 'hideNetworkMessages', false, Common.Settings.SettingType.BOOLEAN),
-    createSettingValue(
-      Common.Settings.SettingCategory.TEST, 'selectedContextFilterEnabled', false,
-      Common.Settings.SettingType.BOOLEAN),
     createSettingValue(
       Common.Settings.SettingCategory.TEST, 'testGroupSimilar', false, Common.Settings.SettingType.BOOLEAN),
     createSettingValue(

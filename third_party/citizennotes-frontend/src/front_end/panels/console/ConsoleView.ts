@@ -441,7 +441,6 @@ export class ConsoleView extends UI.Widget.VBox implements
     rightToolbar.appendToolbarItem(this.filterStatusText);
     rightToolbar.appendToolbarItem(this.showSettingsPaneButton);
 
-    const monitoringXHREnabledSetting = Common.Settings.Settings.instance().moduleSetting('monitoringXHREnabled');
     this.timestampsSetting = Common.Settings.Settings.instance().moduleSetting('consoleTimestampsEnabled');
     this.consoleHistoryAutocompleteSetting =
         Common.Settings.Settings.instance().moduleSetting('consoleHistoryAutocomplete');
@@ -475,8 +474,6 @@ export class ConsoleView extends UI.Widget.VBox implements
     const settingsToolbarRight = new UI.Toolbar.Toolbar('', settingsPane.element);
     settingsToolbarRight.makeVertical();
 
-    ConsoleView.appendSettingsCheckboxToToolbar(
-        settingsToolbarRight, monitoringXHREnabledSetting, i18nString(UIStrings.logXMLHttpRequests));
     ConsoleView.appendSettingsCheckboxToToolbar(
         settingsToolbarRight, 'consoleEagerEval', i18nString(UIStrings.eagerlyEvaluateTextInThePrompt));
     ConsoleView.appendSettingsCheckboxToToolbar(

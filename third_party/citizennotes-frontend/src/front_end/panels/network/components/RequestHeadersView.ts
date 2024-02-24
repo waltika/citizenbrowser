@@ -159,9 +159,6 @@ export class RequestHeadersView extends LegacyWrapper.LegacyWrapper.WrappableCom
         Workspace.Workspace.Events.UISourceCodeAdded, this.#uiSourceCodeAddedOrRemoved, this);
     this.#workspace.addEventListener(
         Workspace.Workspace.Events.UISourceCodeRemoved, this.#uiSourceCodeAddedOrRemoved, this);
-    Common.Settings.Settings.instance()
-        .moduleSetting('persistenceNetworkOverridesEnabled')
-        .addChangeListener(this.render, this);
   }
 
   disconnectedCallback(): void {
@@ -169,9 +166,6 @@ export class RequestHeadersView extends LegacyWrapper.LegacyWrapper.WrappableCom
         Workspace.Workspace.Events.UISourceCodeAdded, this.#uiSourceCodeAddedOrRemoved, this);
     this.#workspace.removeEventListener(
         Workspace.Workspace.Events.UISourceCodeRemoved, this.#uiSourceCodeAddedOrRemoved, this);
-    Common.Settings.Settings.instance()
-        .moduleSetting('persistenceNetworkOverridesEnabled')
-        .removeChangeListener(this.render, this);
   }
 
   #uiSourceCodeAddedOrRemoved(event: Common.EventTarget.EventTargetEvent<Workspace.UISourceCode.UISourceCode>): void {
@@ -238,8 +232,6 @@ export class RequestHeadersView extends LegacyWrapper.LegacyWrapper.WrappableCom
       return LitHtml.nothing;
     }
 
-    const overridesSetting: Common.Settings.Setting<boolean> =
-        Common.Settings.Settings.instance().moduleSetting('persistenceNetworkOverridesEnabled');
     // Disabled until https://crbug.com/1079231 is fixed.
     // clang-format off
     const fileIcon = html`

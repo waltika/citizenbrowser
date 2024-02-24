@@ -74,12 +74,6 @@ export class DynamicSetting<T> {
   static none: readonly DynamicSetting<unknown>[] = [];
 }
 
-export const tabMovesFocus = DynamicSetting.bool('textEditorTabMovesFocus', [], CM.keymap.of([{
-  key: 'Tab',
-  run: (view: CM.EditorView): boolean => view.state.doc.length ? CM.indentMore(view) : false,
-  shift: (view: CM.EditorView): boolean => view.state.doc.length ? CM.indentLess(view) : false,
-}]));
-
 const disableConservativeCompletion = CM.StateEffect.define();
 
 // When enabled, this suppresses the behavior of showCompletionHint
@@ -186,8 +180,6 @@ export const autocompletion = new DynamicSetting<boolean>(
            {key: 'PageUp', run: CM.moveCompletionSelection(false, 'page')},
            {key: 'Enter', run: acceptCompletionIfNotConservative},
          ]))]);
-
-export const bracketMatching = DynamicSetting.bool('textEditorBracketMatching', CM.bracketMatching());
 
 export const codeFolding = DynamicSetting.bool('textEditorCodeFolding', [
   CM.foldGutter({
@@ -337,8 +329,6 @@ export function baseConfiguration(text: string|CM.Text): CM.Extension {
     CM.syntaxHighlighting(CodeHighlighter.CodeHighlighter.highlightStyle),
     baseKeymap,
     CM.EditorView.clickAddsSelectionRange.of(mouseEvent => mouseEvent.altKey || mouseEvent.ctrlKey),
-    tabMovesFocus.instance(),
-    bracketMatching.instance(),
     indentUnit.instance(),
     CM.Prec.lowest(CM.EditorView.contentAttributes.of({'aria-label': i18nString(UIStrings.codeEditor)})),
     text instanceof CM.Text ? [] : detectLineSeparator(text),
