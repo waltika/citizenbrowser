@@ -7,6 +7,8 @@
 <html lang="en">
 <meta charset="utf-8">
 <title>CitizenNotes</title>
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.0-rc.2/dist/quill.snow.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.0-rc.2/dist/quill.js"></script>
 <style>
   @media (prefers-color-scheme: dark) {
     body {
@@ -14,7 +16,7 @@
     }
   }
 </style>
-<meta http-equiv="Content-Security-Policy" content="object-src 'none'; script-src 'self' 'unsafe-eval' https://chrome-citizennotes-frontend.appspot.com">
+<meta http-equiv="Content-Security-Policy" content="object-src 'none'; script-src 'self' 'unsafe-eval' https://chrome-citizennotes-frontend.appspot.com 'unsafe-inline' 'unsafe-eval'" >
 <meta name="referrer" content="no-referrer">
 <script type="module" src="./entrypoints/%ENTRYPOINT_NAME%/%ENTRYPOINT_NAME%.js"></script>
 <body class="undocked" id="-blink-citizen-notes">

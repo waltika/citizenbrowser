@@ -42,10 +42,10 @@ interface SelectionModel {
 
 export class TestViewport {
   element: HTMLElement;
-  private topGapElement: HTMLElement;
+  private readonly topGapElement: HTMLElement;
   private topGapElementActive: boolean;
-  private contentElementInternal: HTMLElement;
-  private bottomGapElement: HTMLElement;
+  private readonly contentElementInternal: HTMLElement;
+  private readonly bottomGapElement: HTMLElement;
   private bottomGapElementActive: boolean;
   private provider: TestViewportProvider;
   private virtualSelectedIndex: number;
@@ -79,6 +79,16 @@ export class TestViewport {
     this.bottomGapElement.style.height = '0px';
     this.bottomGapElement.style.color = 'transparent';
     this.bottomGapElementActive = false;
+
+    let quillElement = this.element.createChild('div');
+    quillElement.textContent = 'Yadiyadiya';
+    quillElement.id = 'quillEditor';
+    quillElement.style.height = '50px';
+
+    const newScript = document.createElement("script");
+    const inlineScript = document.createTextNode('const quill = new Quill(\'#quillEditor\', {theme: \'snow\'});');
+    newScript.appendChild(inlineScript);
+    this.element.appendChild(newScript);
 
     // Text content needed for range intersection checks in updateSelectionModel.
     // Use Unicode ZERO WIDTH NO-BREAK SPACE, which avoids contributing any height to the element's layout overflow.
@@ -584,8 +594,8 @@ export class TestViewport {
       return null;
     }
 
-    let startSelection: SelectionModel|null = null;
-    let endSelection: SelectionModel|null = null;
+    let startSelection: SelectionModel|null;
+    let endSelection: SelectionModel|null;
     if (this.selectionIsBackward) {
       startSelection = this.headSelection;
       endSelection = this.anchorSelection;

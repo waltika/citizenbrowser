@@ -602,6 +602,25 @@ export class MainImpl {
     await this.#showAppUI(await appProvider.loadAppProvider());
   }
 
+  private insertQuillEditor(doc : Document, div : HTMLDivElement) {
+    div.id = 'quillEditor';
+    var s = doc.createElement('script');
+    s.type = 'text/javascript';
+    var code = '<!-- Include stylesheet -->\n' +
+      '<script>\n' +
+      '  const quill = new Quill(\'#quillEditor\', {\n' +
+      '    theme: \'snow\'\n' +
+      '  });\n' +
+      '</script>';
+    try {
+      s.appendChild(doc.createTextNode(code));
+      doc.body.appendChild(s);
+    } catch (e) {
+      s.text = code;
+      doc.body.appendChild(s);
+    }
+  }
+
   async #showAppUI(appProvider: Object): Promise<void> {
     MainImpl.time('Main._showAppUI');
     const app = (appProvider as Common.AppProvider.AppProvider).createApp();
