@@ -33,6 +33,7 @@ import * as Components from '../../ui/legacy/components/utils/utils.js';
 import * as UI from '../../ui/legacy/legacy.js';
 
 import {TestViewMessage, getMessageForElement} from './TestViewMessage.js';
+import {CitizenNotesEditor} from "./CitizenNotesEditor.js";
 
 interface SelectionModel {
   item: number;
@@ -70,6 +71,8 @@ export class TestViewport {
   constructor(provider: TestViewportProvider) {
     this.element = document.createElement('div');
     this.element.style.overflow = 'auto';
+    let editor = new CitizenNotesEditor(this.element);
+    editor.display();
     this.topGapElement = this.element.createChild('div');
     this.topGapElement.style.height = '0px';
     this.topGapElement.style.color = 'transparent';
@@ -79,16 +82,6 @@ export class TestViewport {
     this.bottomGapElement.style.height = '0px';
     this.bottomGapElement.style.color = 'transparent';
     this.bottomGapElementActive = false;
-
-    let quillElement = this.element.createChild('div');
-    quillElement.textContent = 'Yadiyadiya';
-    quillElement.id = 'quillEditor';
-    quillElement.style.height = '50px';
-
-    const newScript = document.createElement("script");
-    const inlineScript = document.createTextNode('const quill = new Quill(\'#quillEditor\', {theme: \'snow\'});');
-    newScript.appendChild(inlineScript);
-    this.element.appendChild(newScript);
 
     // Text content needed for range intersection checks in updateSelectionModel.
     // Use Unicode ZERO WIDTH NO-BREAK SPACE, which avoids contributing any height to the element's layout overflow.
